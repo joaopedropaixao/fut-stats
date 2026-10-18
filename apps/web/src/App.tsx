@@ -4,19 +4,30 @@ import { useEffect, useState } from 'react';
 type ApiState =
   { kind: 'loading' } | { kind: 'ok'; data: HealthResponse } | { kind: 'error'; message: string };
 
+async function fetchHealth(signal: AbortSignal): Promise<HealthResponse> {
+  const res = await fetch('/api/health', { signal });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const parsed = healthResponseSchema.safeParse(await res.json());
+  if (!parsed.success) throw new Error('resposta inesperada da API');
+  return parsed.data;
+}
+
 export function App() {
   const [api, setApi] = useState<ApiState>({ kind: 'loading' });
 
   useEffect(() => {
-    fetch('/api/health')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((body) => setApi({ kind: 'ok', data: healthResponseSchema.parse(body) }))
-      .catch((err: unknown) =>
-        setApi({ kind: 'error', message: err instanceof Error ? err.message : String(err) }),
-      );
+    // Cancela a requisição se o componente sair da tela antes da resposta
+    const controller = new AbortController();
+
+    fetchHealth(controller.signal)
+      .then((data) => setApi({ kind: 'ok', data }))
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return;
+        setApi({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
+      });
+
+    return () => controller.abort();
   }, []);
 
   return (
