@@ -30,7 +30,7 @@ pnpm dev                                    # sobe API e web juntas
 ```
 
 - Web: http://localhost:5173 (mostra o status da API)
-- API: http://localhost:3000/health → `{ "status": "ok" }`
+- API: http://localhost:3000/api/health → `{ "status": "ok" }` (todas as rotas ficam sob `/api`)
 
 Outros comandos (na raiz): `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format`.
 
