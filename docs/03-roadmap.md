@@ -11,7 +11,14 @@ Regra de ouro: **cada fase termina com algo no ar**, não só no seu computador.
 - [ ] Banco no Neon + Prisma conectado
 - [ ] **Deploy "hello world"** de front e API (staging a partir da `develop`)
 - [ ] Login com Google funcionando em staging
-- [ ] Figma: wireframes das 6 telas do caderno, depois um mini design system (cores, tipografia, componentes)
+
+## Fase 0.5: Design (Paper + Claude Code)
+Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a implementação das telas no front.**
+- [ ] Instalar o Paper Desktop e conectar ao Claude Code (plugin/MCP)
+- [ ] Mini design system: cores (Branco x Preto), tipografia, espaçamentos, componentes base
+- [ ] Wireframes das telas do caderno (mobile-first): feed, seletor de times, notas, ranking, histórico
+- [ ] Alta fidelidade das telas do MVP
+- [ ] Tokens do Paper → tema do Tailwind no `apps/web`
 
 ## Fase 1: Núcleo do grupo
 - [ ] Grupo + link de convite

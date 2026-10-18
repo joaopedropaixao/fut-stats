@@ -12,3 +12,26 @@ App de pelada (times, notas, ranking, feed, Cartola). Contexto completo em `docs
 - Lógica de domínio (balanceamento de times, notas, pontuação/preço do Cartola) em funções puras com testes unitários.
 - Schemas de validação compartilhados em `packages/shared` (Zod).
 - Segredos só em `.env` (nunca commitados); manter `.env.example` atualizado.
+- Commits e PRs sem trailers de co-autoria de IA (`Co-Authored-By`, "Generated with...").
+- Conta GitHub do repo: **joaopedropaixao** (pessoal). Para comandos `gh`, use
+  `GH_TOKEN=$(gh auth token --user joaopedropaixao) gh ...` (a conta ativa do `gh` na máquina é outra).
+- PRs sempre com base em `develop` (exceto release/hotfix para `main`).
+
+## Ambiente de desenvolvimento: Orca (stablyai/orca)
+- IDE que orquestra vários agentes de CLI (Claude Code, Codex, OpenCode, Pi...) em paralelo, em abas/painéis.
+- **Cada agente roda em um git worktree próprio** (cópia isolada do repo, branch própria). Não compartilham working directory.
+  Mudanças não commitadas de um worktree não existem nos outros.
+- Dá para disparar o mesmo prompt em vários agentes e comparar os diffs.
+- Source control embutido (review de diff, commit) e integração com GitHub (PRs, checks por worktree).
+- CLI: `orca worktree create` e outros comandos para agentes criarem/controlarem worktrees.
+
+### Regras de paralelização
+1. Uma tarefa = um worktree = uma branch = um PR para `develop`.
+2. Cada tarefa mexe em pastas diferentes. Arquivos compartilhados (`package.json` da raiz,
+   `pnpm-lock.yaml`, `schema.prisma`, configs de CI) têm **um dono por vez**.
+3. Antes de abrir o PR: `git fetch && git rebase origin/develop`, rodar lint/typecheck/testes.
+4. Dependências entre tarefas ficam explícitas no plano; não comece uma tarefa antes da dependência estar mergeada.
+
+## Design: Paper (paper.design)
+- Telas são desenhadas no Paper (canvas baseado em HTML/CSS) via MCP, com o Claude Code fazendo as alterações.
+- Nenhuma tela do `apps/web` é implementada antes de ter design aprovado no Paper.
