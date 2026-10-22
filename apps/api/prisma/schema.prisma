@@ -1,0 +1,180 @@
+// Schema do banco (Fase 1: núcleo do grupo).
+// Enums em inglês, iguais aos de packages/domain/src/core (src/prisma/domain-enums.spec.ts garante).
+// Todo dado de domínio pertence a um grupo: direto (Membership, Round) ou via Round.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Papel do usuário num grupo. Admin também é jogador, com permissões a mais.
+enum Role {
+  ADMIN
+  PLAYER
+}
+
+/// Igual a `Position` do domain (formação 1-2-3-1).
+enum Position {
+  GOALKEEPER
+  DEFENDER
+  WINGER
+  MIDFIELDER
+  FORWARD
+}
+
+/// Igual a `Team` do domain: Branco x Preto.
+enum Team {
+  WHITE
+  BLACK
+}
+
+/// Ciclo da rodada: agendada → times publicados → em jogo → votação → encerrada.
+enum RoundStatus {
+  SCHEDULED
+  TEAMS_PUBLISHED
+  IN_PROGRESS
+  VOTING
+  CLOSED
+}
+
+/// Tipo de lance registrado na rodada.
+enum MatchEventType {
+  GOAL
+  ASSIST
+  GOAL_CONCEDED
+}
+
+/// Pessoa que faz login (Google). Não tem dado de pelada: isso fica na Membership de cada grupo.
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  avatarUrl String?
+  googleId  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+}
+
+/// Uma pelada. Só entra quem tem o link de convite.
+model Group {
+  id                  String   @id @default(cuid())
+  name                String
+  slug                String   @unique
+  inviteCode          String   @unique @default(cuid())
+  votingDeadlineHours Int      @default(48)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  memberships Membership[]
+  rounds      Round[]
+}
+
+/// Um usuário dentro de um grupo: papel e dados de jogador daquele grupo.
+model Membership {
+  id                 String     @id @default(cuid())
+  userId             String
+  groupId            String
+  role               Role       @default(PLAYER)
+  nickname           String
+  photoUrl           String?
+  primaryPosition    Position
+  secondaryPositions Position[]
+  /// Nota de 0 a 10 (passo 0,5) definida pelo admin no cadastro; validada na borda.
+  initialRating      Float
+  /// Goleiro contratado por fora (não paga mensalidade). Dado de cadastro, não muda as regras.
+  isHiredGoalkeeper  Boolean    @default(false)
+  /// Desativar em vez de apagar: o histórico de rodadas continua apontando para a membership.
+  active             Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id])
+  group        Group        @relation(fields: [groupId], references: [id])
+  attendances  Attendance[]
+  teamPlayers  TeamPlayer[]
+  matchEvents  MatchEvent[] @relation("MatchEventPlayer")
+  eventsLogged MatchEvent[] @relation("MatchEventCreatedBy")
+
+  @@unique([userId, groupId])
+  @@index([groupId])
+}
+
+/// Encontro semanal = uma partida Branco x Preto.
+model Round {
+  id          String      @id @default(cuid())
+  groupId     String
+  scheduledAt DateTime
+  location    String?
+  status      RoundStatus @default(SCHEDULED)
+  /// Placar: nulo até o admin lançar.
+  whiteGoals  Int?
+  blackGoals  Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  group       Group        @relation(fields: [groupId], references: [id])
+  attendances Attendance[]
+  teamPlayers TeamPlayer[]
+  matchEvents MatchEvent[]
+
+  @@index([groupId, scheduledAt])
+}
+
+/// Resposta de presença de um membro numa rodada. Sem linha = ainda não respondeu.
+model Attendance {
+  id           String   @id @default(cuid())
+  roundId      String
+  membershipId String
+  confirmed    Boolean
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  round      Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@unique([roundId, membershipId])
+}
+
+/// Jogador escalado num time da rodada (titular ou reserva). Quem está aqui jogou.
+model TeamPlayer {
+  id           String   @id @default(cuid())
+  roundId      String
+  membershipId String
+  team         Team
+  position     Position
+  /// Reserva entra no revezamento e conta como tendo jogado.
+  isReserve    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  round      Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  /// Um jogador está em um só time por rodada.
+  @@unique([roundId, membershipId])
+}
+
+/// Um lance da rodada (scout). Guarda quem fez e quem lançou.
+model MatchEvent {
+  id           String         @id @default(cuid())
+  roundId      String
+  /// Quem fez o lance.
+  membershipId String
+  type         MatchEventType
+  /// Quem lançou: o próprio jogador ou um admin.
+  createdById  String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  round      Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  membership Membership @relation("MatchEventPlayer", fields: [membershipId], references: [id])
+  createdBy  Membership @relation("MatchEventCreatedBy", fields: [createdById], references: [id])
+
+  @@index([roundId])
+}
