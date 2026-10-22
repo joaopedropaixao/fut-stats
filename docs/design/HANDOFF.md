@@ -44,9 +44,13 @@ Leitura obrigatória antes de começar: [README.md](README.md) (regras do DS) e
   - texto de produto ≥ 13px
   - contornos clicáveis com `--color-border-strong`
   - respeitar "reduzir movimento"
-- **Dois modos (está na nota de ideias):**
-  - **dia a dia:** sóbrio, é o DS atual
-  - **festa:** momentos de jogo 2D (VS dos times, pacotinho do Craque, game over)
+- **Um DS só, sem "dois modos"** (decidido em 22 out 2026; detalhes na nota de ideias):
+  - a nostalgia de jogo 2D vira regra do DS consolidado, sobre a base da v0.4
+  - **aprovados:**
+    - tela de **VS** estilo Street Fighter/Mortal Kombat, que é o diferencial
+    - abertura do **pacote do Craque** estilo FIFA, com suspense e revelação da carta
+  - **a consolidar:** estética pixel estilo International Superstar Soccer
+  - **referência de DS (não de intenção):** [Ship or Die](https://www.ship-or-die.com/)
 
 ## Histórico das críticas (`/impeccable critique`)
 
@@ -97,16 +101,20 @@ Armadilhas do Paper:
 
 ## Próxima missão: inspirações com o taste-skill
 
-Objetivo: **aperfeiçoar o DS antes do front**, sem reabrir as decisões aprovadas.
+Objetivo: **fechar a versão do DS que será usada para construir as telas**, sem reabrir as decisões
+aprovadas.
 
 1. **Abrir a skill** `taste-skill:design-taste-frontend`. Ela tem um caminho próprio para telas de app,
    com regras e exemplos de dashboards e telas de uso. É o modo certo aqui; o Fut Stats não é landing page.
-2. **Levantar inspirações** na biblioteca dela e em referências de apps esportivos e de jogos. A nota
-   de ideias já lista: Mario, Street Fighter, Super Campeões, Panini, FIFA Ultimate Team.
+2. **Levantar inspirações** na biblioteca dela, com foco nas referências aprovadas: Street Fighter/MK (VS),
+   FIFA (pacote), ISS (pixel) e o DS do Ship or Die.
    - Apresentar de 2 a 4 direções de refinamento com prévias.
    - Cada uma deve dizer **o que muda e o que preserva**.
+   - A pergunta central é **como a nostalgia pixel entra no DS sem perder legibilidade**.
 3. **Candidatos a refinar**, para o dono escolher:
-   - **Movimento:** quadros-chave de 1 ou 2 momentos de "festa" (VS dos times, pacotinho do Craque).
+   - **Pixel no DS:** onde o pixel entra (sprites, ícones, molduras, botão "de jogo"), qual fonte pixel usar
+     e o que nunca vira pixel.
+   - **Movimento:** quadros-chave do VS dos times e do pacote do Craque.
    - **Navegação:** rever as 5 abas.
    - **Tipografia:** passo de 24px e papel "número" para o ranking.
    - **Foto:** figurinha com foto de verdade, em vez de iniciais (regras de recorte e moldura).

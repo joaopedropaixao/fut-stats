@@ -1,18 +1,56 @@
 # Ideias de inspiração: front com cara de jogo
 
 Banco de ideias para o Fut Stats não parecer "mais um app de estatística".
-Nada aqui está decidido: é um cardápio para escolher depois de validar a v0.2 com o grupo.
+A seção abaixo traz o que o dono já decidiu. O resto do arquivo continua sendo cardápio.
 
-## A grande ideia: dois modos
+## Decisões do dono (22 out 2026)
 
-| Modo | Quando | Visual |
-|------|--------|--------|
-| **Dia a dia** | Navegar, ler o feed, ver ranking, dar nota | O design system v0.2 (noite de jogo): limpo, legível, rápido |
-| **Festa** | Momentos especiais: times publicados, craque revelado, subiu no ranking, fim da votação | Explosão de game 2D: pixel art, sons, animações exageradas |
+- **Não teremos dois modos ("dia a dia" x "festa").** O design se consolida **agora**, num DS só.
+  - A nostalgia de jogo faz parte do DS.
+  - Ela não fica isolada num modo especial.
+  - O DS v0.4 ("Noite de jogo") é a base a refinar, não a substituir.
+- **Por que pixel art:** trazer a nostalgia dos jogos e das animações que a gente jogava antigamente.
+  Precisa virar regra de DS:
+  - onde entra
+  - em que tamanho
+  - com qual fonte
+  - o que nunca vira pixel
+- **Referências aprovadas:**
 
-Se tudo for festa, nada é festa. O app fica calmo e "vira videogame" só nos
-momentos que merecem comemoração. Isso também resolve a legibilidade: fonte pixel
-é linda num "VS", mas péssima num texto longo.
+| Referência | Status | Uso no Fut Stats |
+|---|---|---|
+| **Street Fighter / Mortal Kombat** | Aprovada, é o diferencial | Tela de **VS** dos times (Branco x Preto) |
+| **FIFA Ultimate Team** | Aprovada | Abertura de pacote com suspense e revelação da **carta do Craque** |
+| **International Superstar Soccer** | Curtiu; precisa consolidar | Estética pixel/16-bit: placar, bonequinhos e campo de cima |
+| **[Ship or Die](https://www.ship-or-die.com/)** | Referência de **DS**, não de intenção | Ver abaixo |
+
+### Ship or Die: o que pegar e o que não pegar
+
+É uma landing page, com outra intenção. Não precisamos chegar no nível de animação dela, mas o DS dela
+acerta a vibe pixel art, jogo e nostalgia. O que foi medido no site (22 out 2026):
+
+- **Fundo:** azul-marinho quase preto (`#030914`) com ilustrações em pixel art grandes (navio, mar, raio).
+  - As imagens usam `image-rendering: crisp-edges`, sem borrão.
+- **Fontes:**
+  - Anton, condensada e pesada, para os títulos gigantes
+  - Geist Mono para o texto
+  - Pirata One, temática, só no logo
+- **Texto em creme** (`#F3E6C9`), em vez de branco puro, com acentos em ouro (`#F0C56C`) e vermelho (`#E2695E`).
+- **Cantos retos** (raio 0) em quase tudo.
+  - Botão principal "chunky", em relevo de jogo: borda dura de 2px, sombra sólida deslocada para baixo
+    (`0 7px 0`) e brilho interno em cima.
+  - Parece uma tecla física.
+- **Molduras** de madeira/prancha em pixel art nos blocos de destaque.
+
+O que conversa com o Fut Stats:
+- a combinação de fonte condensada pesada + pixel art (já usamos Barlow Condensed)
+- o botão de jogo com sombra sólida
+- o creme quente no lugar do branco frio
+
+O que **não** pegar:
+- a fonte mono em todo o texto, porque legibilidade em produto vem antes
+- o tema pirata
+- as animações de rolagem de landing page
 
 ## Referências de jogos
 
@@ -106,9 +144,9 @@ O Paper desenha telas **paradas**. Para os momentos de festa, o caminho é:
 1. Desenhar no Paper os quadros-chave (começo, meio e fim da animação).
 2. Prototipar o movimento de verdade no código (Motion) ou no Rive.
 
-## Próximos passos sugeridos
+## Próximos passos
 
-- [ ] Validar a v0.2 com o grupo e perguntar também: "e se o app tivesse uma pegada de videogame nos momentos especiais?"
-- [ ] Escolher 2 ou 3 momentos de festa para o MVP (sugestão: **VS dos times**, **pacotinho do craque**, **game over/tela vazia**)
-- [ ] Definir o estilo visual da festa: pixel 8/16-bit, cartoon (Inazuma) ou mistura
-- [ ] Desenhar os quadros-chave no Paper
+- [x] Escolher os momentos do MVP: **VS dos times** e **pacote do Craque** (aprovados pelo dono)
+- [ ] Consolidar a estética pixel (ISS) como regra do DS, sem criar um segundo modo
+- [ ] Definir o estilo do pixel: 8 ou 16 bits, e se ele é sprite/ilustração ou também UI (bordas, botões)
+- [ ] Desenhar os quadros-chave do VS e do pacote no Paper
