@@ -198,12 +198,13 @@ variação de preço depois da rodada e validação da escalação de um partici
 - `priceVariation(price: number, points: number | null, config: Partial<CartolaPriceConfig> = {}): PriceVariation`
   - `config` sobre `DEFAULT_CARTOLA_PRICE`: `k` 0,5, `factor` 0,3, `maxChangeRatio` 0,1 (±10%), `minPrice` 3.
   - `points = null` quando o jogador não jogou.
-- `validateCartolaSquad(squad: CartolaSquad, { prices, budget = CARTOLA_INITIAL_BUDGET }: CartolaMarket): CartolaSquadError[]`
-  - `squad = { picks: TeamLineup, captainId }`; `prices: ReadonlyMap<playerId, preço>`; `budget` = patrimônio
-    (padrão C$ 100).
+- `validateCartolaSquad(squad: CartolaSquad, { players, budget = CARTOLA_INITIAL_BUDGET }: CartolaMarket): CartolaSquadError[]`
+  - `squad = { picks: TeamLineup, captainId }`; `players: ReadonlyMap<playerId, CartolaMarketPlayer>`, com
+    `CartolaMarketPlayer = { price, primaryPosition, secondaryPositions }`; `budget` = patrimônio (padrão C$ 100).
   - `CartolaSquadError` (lista em `CARTOLA_SQUAD_ERRORS`): `'INVALID_FORMATION'`, `'UNKNOWN_PLAYER'`,
-    `'OVER_BUDGET'`, `'CAPTAIN_NOT_IN_SQUAD'`.
-- `isValidCartolaSquad(squad, market): boolean` (versão sim/não) e `squadCost(picks, prices): number`.
+    `'POSITION_NOT_ALLOWED'`, `'OVER_BUDGET'`, `'CAPTAIN_NOT_IN_SQUAD'`.
+- `canPickForPosition(player, position): boolean`: se o jogador pode ocupar a vaga.
+- `isValidCartolaSquad(squad, market): boolean` (versão sim/não) e `squadCost(picks, players): number`.
 
 **Faz:**
 - `cartolaPoints`: nota (da rodada ou de referência) + gols/assistências + resultado + MVP/Bola Murcha. Se
@@ -211,17 +212,20 @@ variação de preço depois da rodada e validação da escalação de um partici
   multiplica o total (inclusive negativo). `played: false` → `0`, mesmo para o capitão.
 - `priceVariation`: esperado = preço × k; variação = (pontos − esperado) × fator, limitada a ±`maxChangeRatio`
   do preço; novo preço = max(`minPrice`, preço + variação). Com `points = null`, o preço congela.
-- `validateCartolaSquad`: checa `matchesFormation`, jogador com preço no mercado, custo ≤ `budget` e capitão
-  entre os escalados; lista **todos** os problemas.
+- `validateCartolaSquad`: checa `matchesFormation`, jogador no mercado, jogador numa vaga permitida, custo ≤ `budget`
+  e capitão entre os escalados; lista **todos** os problemas (jogador fora do mercado não gera erro de posição).
+- `canPickForPosition`: vaga de linha aceita a posição principal ou uma secundária do cadastro (o admin define;
+  normalmente 2 posições por jogador). Vaga de goleiro só para quem tem `GOALKEEPER` como principal, e goleiro
+  não entra em vaga de linha (igual ao `balanceTeams`). A vaga **não muda os pontos**: só limita a escalação.
 
 **Não faz:** não lança erro; não soma a pontuação do time inteiro; não define preços iniciais; não abre/fecha
-mercado; não confere se o jogador "pode" jogar na vaga escolhida (qualquer jogador em qualquer posição); não
+mercado; não dá desconto para quem joga na secundária; não
 valida `price`, nota nem config (vêm do sistema, de `roundScore`/`Player` e do schema do shared na borda);
 não tem texto de UI (mensagens em `CARTOLA_SCOUT_ERROR_LABELS`/`CARTOLA_SQUAD_ERROR_LABELS` no shared).
 
 **Devolve:** `cartolaPoints` → pontos com 2 casas. `priceVariation` → `{ expected, variation, newPrice }` com 2
 casas; `variation` é a mudança real (já com limite e piso). `parseCartolaScouts` → `Result` com todos os
-problemas. `validateCartolaSquad` → lista de códigos (vazia = válida). `squadCost` soma só jogadores com preço.
+problemas. `validateCartolaSquad` → lista de códigos (vazia = válida). `squadCost` soma só jogadores do mercado.
 
 **Evite:**
 - Pesos e parâmetros fixos no código (vêm da config do grupo).
