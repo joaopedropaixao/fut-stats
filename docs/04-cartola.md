@@ -44,6 +44,22 @@ novo preço  = max(preço_mínimo, preço + variação)
 Os parâmetros (`k`, `fator`, limites) ficam em configuração do grupo e são
 calibrados com os dados das primeiras rodadas.
 
+### Defaults decididos (implementados em `packages/domain/src/cartola`)
+
+| Parâmetro | Default |
+|-----------|---------|
+| Orçamento inicial | C$ 100 |
+| `k` | 0,5 (jogador de C$ 14 "deve" fazer 7 pontos) |
+| `fator` | 0,3 C$ por ponto acima/abaixo do esperado |
+| Limite por rodada | ±10% do preço |
+| Preço mínimo | C$ 3 |
+| Empate | 0 ponto (vitória = 1) |
+| Regras de goleiro | Valem para quem **jogou no gol na partida**, não para a vaga do Cartola |
+| Capitão | × 1,5 no total, inclusive se negativo; capitão que faltou faz 0 |
+| Arredondamento | Pontos e preços com 2 casas |
+
+A valorização usa os pontos do jogador **sem** o multiplicador de capitão.
+
 ## Riscos e cuidados
 
 - **Conflito de interesse**: quem vota nas notas também tem jogadores escalados.
