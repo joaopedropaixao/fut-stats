@@ -18,6 +18,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Mini design system: cores (Branco x Preto), tipografia, espaçamentos, componentes base
 - [ ] Wireframes das telas do caderno (mobile-first): feed, seletor de times, notas, ranking, histórico
 - [ ] Alta fidelidade das telas do MVP
+- [ ] MCP do Playwright configurado no repo (`.mcp.json`) antes da primeira tarefa que toca telas
 - [ ] Tokens do Paper → tema do Tailwind no `apps/web`
 
 ## Fase 1: Núcleo do grupo

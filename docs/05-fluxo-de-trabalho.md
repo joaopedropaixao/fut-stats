@@ -38,7 +38,7 @@ O [roadmap](03-roadmap.md) é o quadro de tarefas: pegue o próximo item da fase
 atual, crie a branch e marque `[x]` no PR que entrega. Custo zero, tudo no repo.
 
 ## Desenvolvendo com IA (sem perder o controle)
-- O `CLAUDE.md` na raiz guarda as convenções do projeto. Mantenha atualizado.
+- O `AGENTS.md` na raiz guarda as regras do projeto para todos os agentes (o `CLAUDE.md` só importa ele). Mantenha enxuto e atualizado.
 - Peça uma funcionalidade por vez, numa branch, e **leia o diff** antes de commitar.
 - Lógica de domínio (times, notas, Cartola) sempre com testes. Peça os testes junto.
 - Quando algo não fizer sentido, pergunte "por quê?". O objetivo também é aprender.

@@ -66,6 +66,7 @@ fut-stats/
 │  └─ domain/       # regras de domínio puras (times, notas, Cartola)
 ├─ docs/
 ├─ .github/workflows/
+├─ AGENTS.md       # regras para agentes (CLAUDE.md importa)
 └─ CLAUDE.md
 ```
 
