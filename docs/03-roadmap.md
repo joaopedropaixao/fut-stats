@@ -14,8 +14,8 @@ Regra de ouro: **cada fase termina com algo no ar**, não só no seu computador.
 
 ## Fase 0.5: Design (Paper + Claude Code)
 Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a implementação das telas no front.**
-- [ ] Instalar o Paper Desktop e conectar ao Claude Code (plugin/MCP)
-- [ ] Mini design system: cores (Branco x Preto), tipografia, espaçamentos, componentes base
+- [x] Instalar o Paper Desktop e conectar ao Claude Code (plugin/MCP)
+- [x] Mini design system: cores (Branco x Preto), tipografia, espaçamentos, componentes base ([docs/design](design/README.md))
 - [ ] Wireframes das telas do caderno (mobile-first): feed, seletor de times, notas, ranking, histórico
 - [ ] Alta fidelidade das telas do MVP
 - [ ] MCP do Playwright configurado no repo (`.mcp.json`) antes da primeira tarefa que toca telas
