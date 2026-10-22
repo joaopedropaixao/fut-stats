@@ -8,7 +8,8 @@ Regra de ouro: **cada fase termina com algo no ar**, não só no seu computador.
 - [x] Monorepo (pnpm + Turborepo) com `apps/api`, `apps/web` e `packages/shared`
 - [x] Lint + Prettier + TypeScript strict
 - [x] CI no GitHub Actions (lint, typecheck, testes em todo PR)
-- [ ] Banco no Neon + Prisma conectado
+- [x] Prisma conectado (schema da Fase 1, Postgres local via Docker, testes de integração no CI)
+- [ ] Banco no Neon
 - [ ] **Deploy "hello world"** de front e API (staging a partir da `develop`)
 - [ ] Login com Google funcionando em staging
 
