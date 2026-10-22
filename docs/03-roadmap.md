@@ -31,9 +31,9 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Histórico de rodadas e partidas
 
 ## Fase 2: Seletor de times
-- [ ] Algoritmo `balanceTeams` (Branco x Preto, 1-2-3-1, um goleiro por time) com testes
+- [x] Algoritmo `balanceTeams` (Branco x Preto, 1-2-3-1, um goleiro por time) com testes
 - [ ] Tela do admin: gerar, arrastar entre times, regerar, publicar
-- [ ] Anti-vício: penalizar duplas repetidas nas últimas N rodadas
+- [x] Anti-vício: penalizar duplas repetidas nas últimas N rodadas
 
 ## Fase 3: Notas e ranking
 - [ ] Abertura/fechamento da votação (todos votaram ou prazo expirou)
