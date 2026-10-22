@@ -10,8 +10,9 @@ export interface CartolaScouts {
   goals: number;
   assists: number;
   result: MatchResult;
+  /** Foi o Craque da rodada. */
   mvp: boolean;
-  /** Bola Murcha. */
+  /** Foi o Perna de Pau da rodada. */
   flop: boolean;
   /** Regras de goleiro valem para quem jogou no gol na partida real, não para a vaga do Cartola. */
   playedAsGoalkeeper: boolean;

@@ -64,7 +64,7 @@ describe('cartolaPoints', () => {
     expect(cartolaPoints(valid({ goals: 1 }), rating(null, 6.5))).toBe(9.5);
   });
 
-  it('soma gols, assistências, vitória e MVP', () => {
+  it('soma gols, assistências, vitória e Craque', () => {
     const s = valid({ goals: 2, assists: 1, result: 'WIN', mvp: true });
     // 7 + 2×3 + 1×2 + 1 + 3
     expect(cartolaPoints(s, rating(7))).toBe(19);
@@ -74,7 +74,7 @@ describe('cartolaPoints', () => {
     expect(cartolaPoints(valid({ result: 'DRAW' }), rating(6))).toBe(6);
   });
 
-  it('desconta a Bola Murcha', () => {
+  it('desconta o Perna de Pau', () => {
     expect(cartolaPoints(valid({ flop: true }), rating(4))).toBe(2);
   });
 
