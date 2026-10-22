@@ -9,6 +9,9 @@ regra de negócio vem de lá. **Se a regra estiver ambígua ou em aberto, pergun
 - Git Flow: `feature/<descricao>` → PR para `develop` (`main` só via release/hotfix). Conventional Commits.
   Sem trailers de IA (`Co-Authored-By`, "Generated with...") em commits e PRs.
 - GitHub só pela conta pessoal: `GH_TOKEN=$(gh auth token --user joaopedropaixao) gh ...`.
+- Ferramental de IA (plugins, skills, hooks, `.claude/`, regras de processo deste arquivo, orquestração) vai só na
+  branch `feature/plugin-harness`, em sessões dedicadas; a cada entrega, PR dela para `develop` e segue nela.
+  Exceção: entrada de domínio no `CONTEXT.md` vai no PR do próprio domínio.
 - Uma tarefa = um worktree = uma branch = um PR. Arquivos compartilhados (`package.json` da raiz,
   `pnpm-lock.yaml`, `schema.prisma`, CI) têm um dono por vez. Antes do PR: `git fetch && git rebase origin/develop`.
 - Pronto = `pnpm lint && pnpm typecheck && pnpm test && pnpm build` passando na raiz.
