@@ -14,7 +14,9 @@ export default defineConfig({
     seed: 'tsx prisma/seed.ts',
   },
   datasource: {
-    // `prisma generate` não conecta no banco; o fallback deixa gerar o client sem DATABASE_URL.
-    url: process.env.DATABASE_URL ?? '',
+    // CLI (migrations) usa a conexão direta quando existe: o pooler do Neon não serve para migrate.
+    // A API não passa por aqui; ela usa a DATABASE_URL (com pooling) no PrismaService.
+    // `prisma generate` não conecta no banco; o fallback deixa gerar o client sem nenhuma URL.
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? '',
   },
 });

@@ -11,7 +11,8 @@ services:
     autoDeployTrigger: commit
     # Versão do Node vem do .nvmrc; o pnpm, do campo "packageManager" (via corepack).
     # O turbo builda só a api e o que ela usa (shared, domain).
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@fut-stats/api
+    # No fim, aplica as migrations no Neon (o plano free não tem pre-deploy command). Usa a DIRECT_URL.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@fut-stats/api && pnpm --filter @fut-stats/api db:deploy
     startCommand: pnpm --filter @fut-stats/api start
     healthCheckPath: /api/health
     # Só redeploya quando muda algo que afeta a API (mudança só no front não acorda o Render).
@@ -28,4 +29,7 @@ services:
     envVars:
       # Connection string do Neon (branch dev). O Render pede o valor ao criar o Blueprint.
       - key: DATABASE_URL
+        sync: false
+      # Conexão direta do Neon (sem "-pooler"), só para as migrations do build.
+      - key: DIRECT_URL
         sync: false
