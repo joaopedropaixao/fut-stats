@@ -27,6 +27,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fut-stats/domain": "workspace:*",
     "zod": "^4.6.7"
   },
   "devDependencies": {
