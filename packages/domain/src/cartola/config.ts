@@ -1,4 +1,7 @@
-/** Pesos da pontuação do Cartola da pelada. Ficam na configuração do grupo. */
+/**
+ * Pesos da pontuação do Cartola da pelada. Ficam na configuração do grupo e são validados na borda
+ * (schema do shared) antes de chegar aqui.
+ */
 export interface CartolaScoringConfig {
   goal: number;
   assist: number;
@@ -6,7 +9,7 @@ export interface CartolaScoringConfig {
   draw: number;
   mvp: number;
   /** Somado quando o jogador é a Bola Murcha (por isso negativo). */
-  bolaMurcha: number;
+  flop: number;
   /** Goleiro que não sofreu gol. */
   cleanSheet: number;
   /** Por gol sofrido pelo goleiro (negativo). */
@@ -20,7 +23,7 @@ export const DEFAULT_CARTOLA_SCORING: Readonly<CartolaScoringConfig> = {
   win: 1,
   draw: 0,
   mvp: 3,
-  bolaMurcha: -2,
+  flop: -2,
   cleanSheet: 2,
   goalConceded: -0.5,
   captainMultiplier: 1.5,

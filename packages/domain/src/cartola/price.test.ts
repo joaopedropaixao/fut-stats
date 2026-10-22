@@ -16,10 +16,13 @@ describe('priceVariation (defaults: k=0,5 · fator=0,3 · ±10% · mínimo C$ 3)
     expect(priceVariation(14, 5)).toEqual({ expected: 7, variation: -0.6, newPrice: 13.4 });
   });
 
+  it('jogador que faltou (pontos null) mantém o preço', () => {
+    expect(priceVariation(14, null)).toEqual({ expected: 7, variation: 0, newPrice: 14 });
+  });
+
   it('limita a alta a +10% do preço', () => {
     // (20 − 7) × 0,3 = 3,9 → limitado a 1,4
-    expect(priceVariation(14, 20).variation).toBe(1.4);
-    expect(priceVariation(14, 20).newPrice).toBe(15.4);
+    expect(priceVariation(14, 20)).toEqual({ expected: 7, variation: 1.4, newPrice: 15.4 });
   });
 
   it('limita a queda a −10% do preço', () => {
@@ -41,10 +44,5 @@ describe('priceVariation (defaults: k=0,5 · fator=0,3 · ±10% · mínimo C$ 3)
   it('aceita config parcial sobre os defaults', () => {
     // esperado 10 × 1 = 10; (13 − 10) × 1 = 3, limite 50%
     expect(priceVariation(10, 13, { k: 1, factor: 1, maxChangeRatio: 0.5 }).newPrice).toBe(13);
-  });
-
-  it('rejeita preço inválido', () => {
-    expect(() => priceVariation(0, 5)).toThrow(RangeError);
-    expect(() => priceVariation(Number.NaN, 5)).toThrow(RangeError);
   });
 });

@@ -7,43 +7,43 @@ export interface CartolaSquad {
   captainId: string;
 }
 
+/** Preço atual de cada jogador disponível no mercado, por playerId. */
+export type CartolaPrices = ReadonlyMap<string, number>;
+
 export interface CartolaMarket {
-  /** Preço atual de cada jogador disponível no mercado, por playerId. */
-  prices: ReadonlyMap<string, number>;
+  prices: CartolaPrices;
   /** Patrimônio do participante; por padrão o orçamento inicial. */
   budget?: number;
 }
 
-export type CartolaSquadError =
-  'INVALID_FORMATION' | 'UNKNOWN_PLAYER' | 'OVER_BUDGET' | 'CAPTAIN_NOT_IN_SQUAD';
+/** Por que uma escalação é inválida. Textos de UI em `packages/shared` (`CARTOLA_SQUAD_ERROR_LABELS`). */
+export const CARTOLA_SQUAD_ERRORS = [
+  'INVALID_FORMATION',
+  'UNKNOWN_PLAYER',
+  'OVER_BUDGET',
+  'CAPTAIN_NOT_IN_SQUAD',
+] as const;
 
-export interface CartolaSquadValidation {
-  valid: boolean;
-  /** Soma dos preços dos jogadores conhecidos. */
-  cost: number;
-  errors: CartolaSquadError[];
+export type CartolaSquadError = (typeof CARTOLA_SQUAD_ERRORS)[number];
+
+/** Soma dos preços dos escalados; quem não tem preço no mercado fica de fora. */
+export function squadCost(picks: TeamLineup, prices: CartolaPrices): number {
+  return roundTo2(picks.reduce((sum, { playerId }) => sum + (prices.get(playerId) ?? 0), 0));
 }
 
+/** Lista todos os problemas da escalação (vazia se ela for válida). */
 export function validateCartolaSquad(
   squad: CartolaSquad,
   { prices, budget = CARTOLA_INITIAL_BUDGET }: CartolaMarket,
-): CartolaSquadValidation {
+): CartolaSquadError[] {
   const errors: CartolaSquadError[] = [];
-
   if (!matchesFormation(squad.picks)) errors.push('INVALID_FORMATION');
-
-  let cost = 0;
-  let unknown = false;
-  for (const { playerId } of squad.picks) {
-    const price = prices.get(playerId);
-    if (price === undefined) unknown = true;
-    else cost += price;
-  }
-  cost = roundTo2(cost);
-
-  if (unknown) errors.push('UNKNOWN_PLAYER');
-  if (cost > budget) errors.push('OVER_BUDGET');
+  if (squad.picks.some((s) => !prices.has(s.playerId))) errors.push('UNKNOWN_PLAYER');
+  if (squadCost(squad.picks, prices) > budget) errors.push('OVER_BUDGET');
   if (!squad.picks.some((s) => s.playerId === squad.captainId)) errors.push('CAPTAIN_NOT_IN_SQUAD');
+  return errors;
+}
 
-  return { valid: errors.length === 0, cost, errors };
+export function isValidCartolaSquad(squad: CartolaSquad, market: CartolaMarket): boolean {
+  return validateCartolaSquad(squad, market).length === 0;
 }

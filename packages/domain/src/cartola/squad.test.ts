@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TeamLineup } from '../core';
-import { validateCartolaSquad } from './squad';
+import { isValidCartolaSquad, squadCost, validateCartolaSquad } from './squad';
 
 const picks: TeamLineup = [
   { playerId: 'gk', position: 'GOALKEEPER' },
@@ -24,49 +24,55 @@ const prices = new Map([
   ['other', 5],
 ]);
 
+describe('squadCost', () => {
+  it('soma os preços dos escalados', () => {
+    expect(squadCost(picks, prices)).toBe(98);
+  });
+
+  it('ignora quem não tem preço no mercado', () => {
+    const withUnknown = picks.map((s) => (s.playerId === 'f1' ? { ...s, playerId: 'ghost' } : s));
+    expect(squadCost(withUnknown, prices)).toBe(78);
+  });
+});
+
 describe('validateCartolaSquad', () => {
   it('aceita escalação 1-2-3-1 dentro do orçamento inicial (C$ 100)', () => {
-    expect(validateCartolaSquad({ picks, captainId: 'f1' }, { prices })).toEqual({
-      valid: true,
-      cost: 98,
-      errors: [],
-    });
+    expect(validateCartolaSquad({ picks, captainId: 'f1' }, { prices })).toEqual([]);
+    expect(isValidCartolaSquad({ picks, captainId: 'f1' }, { prices })).toBe(true);
   });
 
   it('rejeita quem não segue a formação', () => {
-    const result = validateCartolaSquad({ picks: picks.slice(1), captainId: 'f1' }, { prices });
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain('INVALID_FORMATION');
-  });
-
-  it('rejeita escalação acima do orçamento', () => {
-    const result = validateCartolaSquad({ picks, captainId: 'f1' }, { prices, budget: 97.5 });
-    expect(result).toEqual({ valid: false, cost: 98, errors: ['OVER_BUDGET'] });
-  });
-
-  it('aceita custo exatamente igual ao orçamento', () => {
-    expect(validateCartolaSquad({ picks, captainId: 'f1' }, { prices, budget: 98 }).valid).toBe(
-      true,
+    expect(validateCartolaSquad({ picks: picks.slice(0, 6), captainId: 'gk' }, { prices })).toEqual(
+      ['INVALID_FORMATION'],
     );
   });
 
+  it('rejeita escalação acima do orçamento', () => {
+    expect(validateCartolaSquad({ picks, captainId: 'f1' }, { prices, budget: 97.5 })).toEqual([
+      'OVER_BUDGET',
+    ]);
+  });
+
+  it('aceita custo exatamente igual ao orçamento', () => {
+    expect(isValidCartolaSquad({ picks, captainId: 'f1' }, { prices, budget: 98 })).toBe(true);
+  });
+
   it('rejeita capitão fora do time', () => {
-    const result = validateCartolaSquad({ picks, captainId: 'other' }, { prices });
-    expect(result.errors).toEqual(['CAPTAIN_NOT_IN_SQUAD']);
+    expect(validateCartolaSquad({ picks, captainId: 'other' }, { prices })).toEqual([
+      'CAPTAIN_NOT_IN_SQUAD',
+    ]);
   });
 
   it('rejeita jogador sem preço no mercado', () => {
     const withUnknown = picks.map((s) => (s.playerId === 'f1' ? { ...s, playerId: 'ghost' } : s));
-    const result = validateCartolaSquad({ picks: withUnknown, captainId: 'gk' }, { prices });
-    expect(result.errors).toEqual(['UNKNOWN_PLAYER']);
-    expect(result.cost).toBe(78);
+    expect(validateCartolaSquad({ picks: withUnknown, captainId: 'gk' }, { prices })).toEqual([
+      'UNKNOWN_PLAYER',
+    ]);
   });
 
   it('acumula vários erros', () => {
-    const result = validateCartolaSquad(
-      { picks: picks.slice(1), captainId: 'gk' },
-      { prices, budget: 50 },
-    );
-    expect(result.errors).toEqual(['INVALID_FORMATION', 'OVER_BUDGET', 'CAPTAIN_NOT_IN_SQUAD']);
+    expect(
+      validateCartolaSquad({ picks: picks.slice(1), captainId: 'gk' }, { prices, budget: 50 }),
+    ).toEqual(['INVALID_FORMATION', 'OVER_BUDGET', 'CAPTAIN_NOT_IN_SQUAD']);
   });
 });

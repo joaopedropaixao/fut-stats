@@ -9,24 +9,24 @@ export interface PriceVariation {
 }
 
 /**
- * Valorização do jogador após a rodada. `points` é a pontuação do jogador sem o
- * multiplicador de capitão (o preço é do jogador, não da escalação de alguém).
+ * Valorização do jogador após a rodada.
+ * - `price` é gerado pelo sistema (preço inicial ou saída desta função), por isso não é validado aqui.
+ * - `points` é a pontuação do jogador **sem** o multiplicador de capitão (o preço é do jogador, não da
+ *   escalação de alguém); `null` quando ele não jogou, e aí o preço fica congelado.
  */
 export function priceVariation(
   price: number,
-  points: number,
+  points: number | null,
   config: Partial<CartolaPriceConfig> = {},
 ): PriceVariation {
-  if (!Number.isFinite(price) || price <= 0) {
-    throw new RangeError(`Preço inválido: ${price}`);
-  }
   const { k, factor, maxChangeRatio, minPrice } = { ...DEFAULT_CARTOLA_PRICE, ...config };
+  const expected = roundTo2(price * k);
+  if (points === null) return { expected, variation: 0, newPrice: price };
 
-  const expected = price * k;
   const limit = price * maxChangeRatio;
-  const raw = (points - expected) * factor;
+  const raw = (points - price * k) * factor;
   const clamped = Math.min(limit, Math.max(-limit, raw));
   const newPrice = roundTo2(Math.max(minPrice, price + clamped));
 
-  return { expected: roundTo2(expected), variation: roundTo2(newPrice - price), newPrice };
+  return { expected, variation: roundTo2(newPrice - price), newPrice };
 }
