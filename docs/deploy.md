@@ -72,10 +72,10 @@ connection string.
    ```
 4. Guarde num lugar seguro (gerenciador de senhas). Esta é a **`DATABASE_URL` de staging**.
 5. Ainda na janela, **desligue** o pooling e copie também a URL **sem** `-pooler` (conexão direta).
-   Ela vai servir para as migrations (seção 5). Guarde junto.
+   Esta é a **`DIRECT_URL` de staging** (usada só nas migrations). Guarde junto.
 
 > Essa URL contém a senha do banco. **Nunca** coloque no código nem em commit. Ela só vai no painel
-> do Render e no seu `.env` local.
+> do Render. No seu computador o `.env` usa o Postgres do Docker, não o Neon.
 
 ---
 
@@ -101,8 +101,12 @@ que lê o `render.yaml` do repositório e preenche tudo sozinho.
    - **Branch:** `develop`
    - **Blueprint Path:** deixe `render.yaml`
 5. Logo abaixo o Render mostra o que vai criar: um web service **`fut-stats-api-staging`**, plano
-   **Free**. Ele também pede o valor da variável **`DATABASE_URL`**: cole a URL **com pooling**
-   da seção 1.3.
+   **Free**. Ele também pede o valor de duas variáveis (seção 1.3):
+   - **`DATABASE_URL`**: a URL **com** `-pooler`
+   - **`DIRECT_URL`**: a URL **sem** `-pooler`
+
+   > Criou o Blueprint antes de a `DIRECT_URL` existir no `render.yaml`? Adicione à mão: serviço →
+   > **Environment** → **Add Environment Variable** → `DIRECT_URL` → **Save Changes**.
 6. Clique em **Deploy Blueprint** (ou **Apply**).
 
 > Se o Render pedir cartão de crédito ou mostrar algum plano pago, **pare** e me avise. Este setup é
@@ -217,26 +221,16 @@ curl -i https://<projeto>.vercel.app/api/health
 
 ---
 
-## 5. Próximo passo: banco e migrations
+## 5. Banco e migrations
 
-O Prisma está entrando em paralelo (`feature/modelo-de-dados`). A `DATABASE_URL` já está no Render
-(seção 2.1), mas a API ainda não usa. Quando o Prisma estiver na `develop`:
-
-1. **Variáveis:** o app usa a URL **com pooling** (`DATABASE_URL`, já configurada). As migrations
-   precisam da conexão **direta** (sem `-pooler`). Se a outra tarefa criar uma variável separada
-   para isso (ex.: `DIRECT_URL`), adicione no Render: serviço → **Environment** → **Add Environment
-   Variable** → cole a URL direta da seção 1.3 → **Save Changes**.
-   (Variável nova no `render.yaml` com `sync: false` **não** é preenchida sozinha depois da
-   criação: tem que adicionar à mão no painel.)
-2. **Quando rodar as migrations:** a cada deploy, **antes** da API nova subir, com
-   `prisma migrate deploy` (só aplica migrations já commitadas; nunca apaga dados nem cria
-   migration nova). No plano free do Render não há shell nem "pre-deploy command", então o caminho
-   é colocar no fim do `buildCommand` do `render.yaml`, algo como:
-   ```
-   ... && pnpm --filter @fut-stats/api exec prisma migrate deploy
-   ```
-   O comando exato fica para a tarefa que adicionar o Prisma.
-3. **Local:** no seu `.env`, use a URL da branch `dev` também. Para criar migrations novas
-   (`prisma migrate dev`), use sua máquina, nunca o Render.
-4. **Produção** (`main` + branch `prod` do Neon) vem depois, quando houver release: outro serviço no
-   Render e outro destino no rewrite. Não faz parte deste setup.
+- **A API** conecta no Neon pela `DATABASE_URL` (com pooling).
+- **As migrations** rodam sozinhas a cada deploy do Render: o `buildCommand` do `render.yaml` termina com
+  `pnpm --filter @fut-stats/api db:deploy` (`prisma migrate deploy`), que usa a `DIRECT_URL`.
+  Ele só aplica migrations já commitadas: nunca apaga dados nem cria migration nova.
+  Se uma migration falhar, o build falha e a API antiga continua no ar.
+- **Conferir:** no log do deploy no Render, procure `All migrations have been successfully applied`
+  (ou `No pending migrations to apply`). No Neon, **Tables** da branch `dev` mostra as tabelas.
+- **Local:** o `.env` usa o Postgres do Docker (`docker compose up -d`). Migration nova se cria na sua
+  máquina com `pnpm --filter @fut-stats/api db:migrate --name <nome>`, nunca no Render.
+- **Produção** (`main` + branch `prod` do Neon) vem depois, quando houver release: outro serviço no
+  Render e outro destino no rewrite. Não faz parte deste setup.
