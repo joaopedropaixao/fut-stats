@@ -101,8 +101,14 @@ dados reais, e o Cartola já estreia com preços que fazem sentido (sem precisar
 - **Nota inicial**: definida pelo admin no cadastro (cold start do seletor de times).
 - **Prazo de votação**: configurável por grupo (ex.: 48h após a rodada).
 - **Quem não vota** não perde nada no MVP (avaliar penalidade no Cartola depois).
-- **Goleiros contratados votam** nas notas, MVP e Bola Murcha como qualquer jogador
-  que jogou a rodada (normalmente são os mesmos e já conhecem a rapaziada).
+- **Goleiros contratados são membros como os outros**: votam nas notas, MVP e Bola
+  Murcha e participam do Cartola (normalmente são os mesmos e já conhecem a rapaziada).
+- **Grupo de confiança**: só entra no app quem é convidado; não há moderação nem
+  antifraude pesados além da média aparada.
+- **Adesão é opcional**: o jogo só depende de ter os 2 goleiros e os confirmados.
+  Votar e jogar o Cartola não são obrigatórios. Tudo precisa funcionar com poucos
+  participantes (ex.: poucos votos numa rodada, só parte do grupo no Cartola), porque
+  nem todos vão aderir de primeira.
 - **Confirmados por rodada**: de 14 a 18. Cada time tem 7 em campo (1 goleiro + 6 de
   linha) e de 0 a 2 reservas, que entram no revezamento (ex.: a cada 7–10 min, entram
   e saem todos os reservas juntos). Por isso todos contam como tendo jogado o mesmo tempo.
@@ -113,7 +119,7 @@ dados reais, e o Cartola já estreia com preços que fazem sentido (sem precisar
 
 ## Perguntas em aberto
 
-- [ ] Goleiros contratados participam do Cartola (montando time)? Já decidido: votam nas notas.
+- [x] Goleiros contratados votam nas notas e participam do Cartola? Sim, os dois.
 - [x] O que acontece quando sobra ou falta jogador (13, 15...)? Ver "Confirmados por rodada" acima.
 
 ## Referências
