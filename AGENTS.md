@@ -1,6 +1,7 @@
 # Fut Stats: regras para agentes
 
-App de pelada (times, notas, ranking, feed, Cartola). Contexto de produto em `docs/`;
+App de pelada (times, notas, ranking, feed, Cartola). Contexto de produto em `docs/`; glossário do domínio
+e decisões fixas em `CONTEXT.md` (leia antes de mexer em regra de negócio);
 regra de negócio vem de lá. **Se a regra estiver ambígua ou em aberto, pergunte; não invente.**
 
 ## Convenções
@@ -37,3 +38,4 @@ regra de negócio vem de lá. **Se a regra estiver ambígua ou em aberto, pergun
 
 ## Roadmap
 - Toda vez que finalizar um item de `docs/03-roadmap.md`, marque-o como `[x]` no mesmo PR que o entrega.
+- Item novo no domínio (tipo, função, regra, conceito) ou mudança de comportamento: registrar em `CONTEXT.md` no mesmo PR.
