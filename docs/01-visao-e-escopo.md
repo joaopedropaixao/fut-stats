@@ -29,7 +29,7 @@ arquitetura, deploy e desenvolvimento assistido por IA.
 
 | Papel     | O que faz |
 |-----------|-----------|
-| **Jogador** | Confirma presença, lança os **próprios** gols/assistências, dá notas, vota MVP / Bola Murcha, vê ranking/histórico, reage e comenta, monta o time no Cartola |
+| **Jogador** | Confirma presença, lança os **próprios** gols/assistências, dá notas, vota Craque / Perna de Pau, vê ranking/histórico, reage e comenta, monta o time no Cartola |
 | **Admin**   | Tudo do jogador + cadastra jogadores e goleiros, gera/edita/publica os times, lança placar e scouts **de qualquer jogador** (inclusive corrigindo), cria notícias/resenhas, fecha votação |
 
 Um usuário pode participar de **mais de um grupo (pelada)**, com papel diferente em cada.
@@ -48,11 +48,11 @@ O MVP roda em um grupo só, mas o modelo de dados já nasce multi-grupo.
 ### 2. Notas pós-rodada
 - Só quem jogou a rodada vota.
 - Nota para cada jogador que jogou (do seu time ou não), exceto a si mesmo.
-- Voto de **MVP (Craque)** e **Bola Murcha**.
+- Voto de **Craque** e **Perna de Pau**.
 - Resultados ficam ocultos até todos votarem **ou** o prazo expirar; aí vão para o histórico.
 
 ### 3. Ranking
-- Média de nota, vitórias, derrotas, gols, assistências, MVPs, Bolas Murchas, sequência.
+- Média de nota, vitórias, derrotas, gols, assistências, vezes Craque, vezes Perna de Pau, sequência.
 - Goleiros: stats próprios (ex.: gols sofridos, jogos sem sofrer gol).
 - Ranking geral e por posição.
 
@@ -79,7 +79,7 @@ confirmação automática.
 | Cadastro de jogadores e posições | | Notificações via WhatsApp |
 | Rodadas, presença, placar e scouts | | App nativo nas lojas (se fizer falta) |
 | Seletor de times | | Abrir para outros grupos |
-| Notas + MVP / Bola Murcha | | |
+| Notas + Craque / Perna de Pau | | |
 | Ranking | | |
 | Histórico | | |
 | Feed com notícias, reações e comentários | | |
@@ -92,7 +92,7 @@ dados reais, e o Cartola já estreia com preços que fazem sentido (sem precisar
 
 ## Regras de negócio (rascunho)
 
-- **Rodada = 1 partida** (Branco x Preto). Notas, MVP e Bola Murcha são por rodada.
+- **Rodada = 1 partida** (Branco x Preto). Notas, Craque e Perna de Pau são por rodada.
 - **Scouts**: o jogador lança os próprios gols/assistências; o admin lança e
   corrige os de qualquer um. Cada scout guarda quem lançou.
 - **Nota**: 0 a 10, de 0,5 em 0,5. A nota da rodada de um jogador é a **média
@@ -101,15 +101,15 @@ dados reais, e o Cartola já estreia com preços que fazem sentido (sem precisar
   jogador fica sem nota na rodada. Arredondada em 1 casa decimal.
 - **Quem vota**: só quem jogou a rodada (goleiros inclusos), em qualquer jogador que jogou
   (dos dois times), nunca em si mesmo.
-- **MVP / Bola Murcha**: quem vota escolhe um de cada (não dá para votar só em um), e não
-  pode ser o mesmo jogador. Leva quem tiver mais votos; no empate, MVP vai para a maior nota
-  da rodada e Bola Murcha para a menor (se a nota também empatar, todos levam). Critério configurável.
+- **Craque / Perna de Pau**: quem vota escolhe um de cada (não dá para votar só em um), e não
+  pode ser o mesmo jogador. Leva quem tiver mais votos; no empate, Craque vai para a maior nota
+  da rodada e Perna de Pau para a menor (se a nota também empatar, todos levam). Critério configurável.
 - **Votos são anônimos** para os jogadores; a média é pública.
 - **Nota inicial**: definida pelo admin no cadastro (cold start do seletor de times).
 - **Prazo de votação**: configurável por grupo (ex.: 48h após a rodada).
 - **Quem não vota** não perde nada no MVP (avaliar penalidade no Cartola depois).
-- **Goleiros contratados são membros como os outros**: votam nas notas, MVP e Bola
-  Murcha e participam do Cartola (normalmente são os mesmos e já conhecem a rapaziada).
+- **Goleiros contratados são membros como os outros**: votam nas notas, Craque e Perna
+  de Pau e participam do Cartola (normalmente são os mesmos e já conhecem a rapaziada).
 - **Grupo de confiança**: só entra no app quem é convidado; não há moderação nem
   antifraude pesados além da média aparada.
 - **Adesão é opcional**: o jogo só depende de ter os 2 goleiros e os confirmados.

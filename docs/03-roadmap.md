@@ -20,8 +20,8 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Alta fidelidade das telas do MVP
 - [ ] MCP do Playwright configurado no repo (`.mcp.json`) antes da primeira tarefa que toca telas
 - [ ] Tokens do Paper → tema do Tailwind no `apps/web`
-- [ ] Renomear entidades no código para os nomes definidos no design (mudaram junto com os ícones):
-  `packages/domain`, `packages/shared` (labels), `CONTEXT.md` e docs. Depende do PR do design na `develop`
+- [x] Renomear entidades para os nomes do design (mudaram junto com os ícones): MVP → **Craque**,
+  Bola Murcha → **Perna de Pau** em `packages/domain`, `packages/shared` (labels), `CONTEXT.md` e docs
 
 ## Fase 1: Núcleo do grupo
 - [ ] Grupo + link de convite
@@ -40,7 +40,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 ## Fase 3: Notas e ranking
 - [ ] Abertura/fechamento da votação (todos votaram ou prazo expirou)
 - [ ] Tela "Dê sua nota" (um jogador por vez, swipe)
-- [ ] MVP / Bola Murcha
+- [ ] Craque / Perna de Pau
 - [ ] Ranking geral e por posição + perfil com stats
 
 ## Fase 4: Feed e lançamento do MVP 🚀
