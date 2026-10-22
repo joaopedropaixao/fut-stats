@@ -31,6 +31,16 @@ Rodar na raiz (Node 24, pnpm via Corepack). O Turborepo executa em todos os paco
 - Rotas da API ficam sob `/api` (`setGlobalPrefix` em `apps/api/src/setup-app.ts`), igual em dev e produção.
 - Variáveis de ambiente da API são validadas com Zod em `apps/api/src/config/env.ts`; nova variável entra lá e no `.env.example`.
 
+## Domínio (`packages/domain`)
+- Zero dependências: funções puras em TypeScript, testadas com Vitest (`*.test.ts` ao lado do código).
+- Tipos e constantes base em `src/core/`: `Position` (`GOALKEEPER`, `DEFENDER`, `WINGER`, `MIDFIELDER`,
+  `FORWARD`), `Team` (`WHITE`/`BLACK`), `FORMATION` (1-2-3-1), `Player`, `LineupSlot`/`RoundLineup`,
+  `isValidRating` (0–10, passo 0,5), `matchesFormation`/`isValidRoundLineup`. Reusar, não redefinir.
+- Cada regra na sua pasta (`src/balance-teams/`, `src/round-score/`, `src/cartola/`), exportada em `src/index.ts`.
+- Parâmetros ajustáveis (pesos, limites) entram como argumento/config com default, nunca fixos no meio do código.
+- `packages/shared` deriva os schemas Zod dessas constantes (`positionSchema`, `teamSchema`, `ratingSchema`)
+  e guarda os textos de UI (`POSITION_LABELS`, `TEAM_LABELS`).
+
 ## Ambiente de desenvolvimento: Orca (stablyai/orca)
 - IDE que orquestra vários agentes de CLI (Claude Code, Codex, OpenCode, Pi...) em paralelo, em abas/painéis.
 - **Cada agente roda em um git worktree próprio** (cópia isolada do repo, branch própria). Não compartilham working directory.
