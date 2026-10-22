@@ -9,12 +9,14 @@ Leitura obrigatória antes de começar: [README.md](README.md) (regras do DS) e
 ## Onde estamos (22 out 2026)
 
 - **Paper**, arquivo "Fut Stats": https://app.paper.design/file/01M583500PVH8Y9M2R4HG9FFWS
-  - **Atual:** a folha **"Design System v0.4 — Noite de jogo"**, que é a de baixo.
-  - **Histórico:** as folhas v0.1 ("Design System — Mobile") e v0.2. Elas usam os mesmos tokens, então as cores
-    mudaram junto.
-  - **Tokens:** os 62 tokens do arquivo, lidos com `get_tokens`, são a fonte da verdade.
+  - **Atual:** a folha **"Design System v0.5 — Noite de jogo"**, à direita da v0.4.
+  - **Histórico:** as folhas v0.1 ("Design System — Mobile"), v0.2 e v0.4. Elas usam os mesmos tokens, então as
+    cores mudaram junto; o formato (cantos e sombras) continua o antigo.
+  - **Tokens:** os 68 tokens do arquivo, lidos com `get_tokens`, são a fonte da verdade.
     O Paper não tem token de sombra; as sombras estão escritas nos estilos da folha.
-- **Repo:** PR #12 mergeado. `docs/design/` tem o README, o PNG da v0.4 e a nota de ideias.
+    - Cantos e sombras também são valores escritos em cada peça, sem token: mudar o formato exige
+      `find_nodes` + `update_styles` em lote (foi assim que a v0.5 saiu da v0.4).
+- **Repo:** `docs/design/` tem o README, os PNGs da v0.4 e da v0.5 e a nota de ideias.
 - **Roadmap (Fase 0.5):**
   - Paper conectado: feito.
   - Mini design system: feito.
@@ -27,9 +29,14 @@ Leitura obrigatória antes de começar: [README.md](README.md) (regras do DS) e
   - gramado à noite (`#0A0F0C`)
   - holofote radial no topo
   - linhas de campo em giz
-- **Fontes:** Barlow Condensed 700/800 em caixa alta para placar e títulos; Inter para o resto, inclusive nomes.
+- **Fontes por papel (v0.5):** Barlow Condensed = o jogo (placar, times, títulos); Silkscreen = o jogador
+  (nome, nota, posição, VS, Craque, logo; só caixa alta, mínimo 13px); Inter = o app.
+- **Cor (v0.5):** paleta "Fliperama creme": texto creme `#F3EAD3`; fundo escuro padrão com holofote;
+  fundo verde "Gramado" como opção nas configurações.
+- **Forma (v0.5):** canto reto, contorno duro de 2px, botão em tecla (borda preta e sombra sólida), sem brilho.
+  Só avatar, ponto e bolinha do slider são redondos.
 - **Papel fixo das cores:**
-  - amarelo `#FACC15`: **só ação**, e é a única cor com brilho
+  - amarelo `#FACC15`: **só ação**, sem brilho. **Exceção aprovada:** a palavra VS (`--color-game`)
   - ouro `#E8A93A`: mérito
   - madeira `#B08D6A`: Perna de Pau
   - verde e vermelho: vitória e derrota
@@ -49,7 +56,8 @@ Leitura obrigatória antes de começar: [README.md](README.md) (regras do DS) e
   - **aprovados:**
     - tela de **VS** estilo Street Fighter/Mortal Kombat, que é o diferencial
     - abertura do **pacote do Craque** estilo FIFA, com suspense e revelação da carta
-  - **a consolidar:** estética pixel estilo International Superstar Soccer
+  - **consolidado na v0.5:** estética pixel estilo International Superstar Soccer (fonte do jogador,
+    bonequinhos, estrela; pixel inteiro só no VS e no pacote)
   - **referência de DS (não de intenção):** [Ship or Die](https://www.ship-or-die.com/)
 
 ## Histórico das críticas (`/impeccable critique`)
@@ -59,6 +67,7 @@ Leitura obrigatória antes de começar: [README.md](README.md) (regras do DS) e
 | v0.2 | 16/32 | Amarelo com papel duplo, nota imprecisa e sem volta, contornos invisíveis, faltavam estados, navegação só com ícone |
 | v0.3 | 24/32 | Campo só por arrasto, faltava o voto, cores quentes confusas, ícone da Bola Murcha ilegível |
 | v0.4 | não medida | Todos os itens P1/P2 da v0.3 foram corrigidos via `/impeccable polish` |
+| v0.5 | não medida | Formato fliperama, fontes por papel, creme, fundo "Gramado", VS e pacote |
 
 Ficou de fora, como sugestão das críticas:
 - não há momento de "revelação" na quinta às 22h
@@ -99,31 +108,22 @@ Armadilhas do Paper:
 - **Ao terminar:** chamar `finish_working_on_nodes`.
 - **Se der "Paper Desktop isn't running":** peça ao dono para abrir o app; não tente abrir sozinho.
 
-## Próxima missão: inspirações com o taste-skill
+## Como a v0.5 foi decidida (22 out 2026)
 
-Objetivo: **fechar a versão do DS que será usada para construir as telas**, sem reabrir as decisões
-aprovadas.
+Com a `taste-skill` (caminho de telas de app), o dono viu prévias em HTML e escolheu, em três rodadas:
+1. Direções A "Tempero", B "Cartucho" e C "16-bit": ficou a **C** (formato fliperama), com a **carta colorida
+   do B** e o **placar em Barlow**.
+2. Fontes: divisão por papel (Barlow / Silkscreen / Inter). A Pixelify foi descartada no teste de leitura.
+3. Cores: entre quatro paletas, ficou a **"Fliperama creme"**, com holofote e fundo verde como opção.
+   O VS em amarelo ganhou do ouro e virou exceção registrada.
 
-1. **Abrir a skill** `taste-skill:design-taste-frontend`. Ela tem um caminho próprio para telas de app,
-   com regras e exemplos de dashboards e telas de uso. É o modo certo aqui; o Fut Stats não é landing page.
-2. **Levantar inspirações** na biblioteca dela, com foco nas referências aprovadas: Street Fighter/MK (VS),
-   FIFA (pacote), ISS (pixel) e o DS do Ship or Die.
-   - Apresentar de 2 a 4 direções de refinamento com prévias.
-   - Cada uma deve dizer **o que muda e o que preserva**.
-   - A pergunta central é **como a nostalgia pixel entra no DS sem perder legibilidade**.
-3. **Candidatos a refinar**, para o dono escolher:
-   - **Pixel no DS:** onde o pixel entra (sprites, ícones, molduras, botão "de jogo"), qual fonte pixel usar
-     e o que nunca vira pixel.
-   - **Movimento:** quadros-chave do VS dos times e do pacote do Craque.
-   - **Navegação:** rever as 5 abas.
-   - **Tipografia:** passo de 24px e papel "número" para o ranking.
-   - **Foto:** figurinha com foto de verdade, em vez de iniciais (regras de recorte e moldura).
-   - **Modo claro** para uso no sol, só se o dono quiser.
-4. **Depois de aprovado:**
-   - aplicar no Paper com o fluxo acima
-   - rodar `/impeccable critique` para comparar com 24/32
-   - atualizar o `README.md` e este handoff
-   - abrir PR para `develop`
+## Próxima missão
+
+1. **Crítica da v0.5:** rodar `/impeccable critique` sobre o PNG da v0.5 e comparar com 24/32.
+2. **Quadros-chave** do VS e do pacote do Craque (começo, meio e fim) no Paper.
+3. **Wireframes e alta fidelidade** das telas do MVP, usando a v0.5.
+4. Candidatos que continuam em aberto: rever as 5 abas; passo de 24px na tipografia; figurinha com foto
+   de verdade; modo claro (só se o dono quiser).
 
 ## Pendências fora do design (não fazer nesta missão)
 

@@ -147,6 +147,7 @@ O Paper desenha telas **paradas**. Para os momentos de festa, o caminho é:
 ## Próximos passos
 
 - [x] Escolher os momentos do MVP: **VS dos times** e **pacote do Craque** (aprovados pelo dono)
-- [ ] Consolidar a estética pixel (ISS) como regra do DS, sem criar um segundo modo
-- [ ] Definir o estilo do pixel: 8 ou 16 bits, e se ele é sprite/ilustração ou também UI (bordas, botões)
+- [x] Consolidar a estética pixel (ISS) como regra do DS, sem criar um segundo modo (v0.5)
+- [x] Definir o estilo do pixel: sprites de 8×12 e fonte Silkscreen para o jogador; a UI pega o formato
+  de fliperama (canto reto, tecla), mas não vira pixel (v0.5, regras no [README](README.md))
 - [ ] Desenhar os quadros-chave do VS e do pacote no Paper
