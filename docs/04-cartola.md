@@ -58,6 +58,9 @@ calibrados com os dados das primeiras rodadas.
 | Capitão | × 1,5 no total, inclusive se negativo; capitão que faltou faz 0 |
 | Arredondamento | Pontos e preços com 2 casas |
 
+| Jogou e ficou sem nota (ninguém votou) | Usa a nota de referência do jogador (`Player.rating`) |
+| Escalado que faltou | 0 pontos para quem escalou; **preço congela** (não valoriza nem desvaloriza) |
+
 A valorização usa os pontos do jogador **sem** o multiplicador de capitão.
 
 ## Riscos e cuidados

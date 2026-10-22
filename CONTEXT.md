@@ -182,34 +182,55 @@ de calcular as notas da rodada; ignorar voto inválido em silêncio; converter p
 **O que é:** as regras do Cartola da pelada (`src/cartola/`): pontos de um jogador escalado na rodada,
 variação de preço depois da rodada e validação da escalação de um participante (1-2-3-1, orçamento, capitão).
 
-`cartolaPoints(scouts: CartolaScouts, roundRating: number, { captain = false, config }?: CartolaPointsOptions): number`
-- `scouts`: `{ played, goals, assists, result: 'WIN' | 'DRAW' | 'LOSS', mvp, bolaMurcha, playedAsGoalkeeper, goalsConceded }`.
-- `config?: Partial<CartolaScoringConfig>` sobre `DEFAULT_CARTOLA_SCORING`: `goal` 3, `assist` 2, `win` 1, `draw` 0,
-  `mvp` 3, `bolaMurcha` −2, `cleanSheet` 2, `goalConceded` −0,5, `captainMultiplier` 1,5.
-- **Faz:** nota + gols/assistências + resultado + MVP/Bola Murcha; se `playedAsGoalkeeper`, `cleanSheet` com 0 gols
-  sofridos, senão `goalConceded` × gols sofridos; capitão multiplica o total (inclusive negativo).
-- **Devolve:** pontos com 2 casas. `played: false` → `0`, mesmo capitão (os scouts são ignorados).
-- **Lança** `RangeError` se a nota for inválida (`isValidRating`) ou contagens forem negativas/fracionadas.
+**Fluxo:** `parseCartolaScouts` valida e carimba os scouts → `cartolaPoints` (só aceita scouts carimbados) →
+`priceVariation` com os pontos **sem** capitão. A nota vem de `roundScore` (ou da referência, se for `null`).
 
-`priceVariation(price: number, points: number, config?: Partial<CartolaPriceConfig>): PriceVariation`
-- `config` sobre `DEFAULT_CARTOLA_PRICE`: `k` 0,5, `factor` 0,3, `maxChangeRatio` 0,1 (±10%), `minPrice` 3.
-- **Faz:** esperado = preço × k; variação = (pontos − esperado) × fator, limitada a ±`maxChangeRatio` do preço;
-  novo preço = max(`minPrice`, preço + variação).
-- **Devolve:** `{ expected, variation, newPrice }` com 2 casas; `variation` é a mudança real (já com limite e piso).
-- **Lança** `RangeError` se `price` não for número finito > 0.
+**Assinaturas:**
+- `parseCartolaScouts(scouts: CartolaScouts): Result<ValidCartolaScouts, CartolaScoutIssue>`, com
+  `CartolaScouts = { played, goals, assists, result: 'WIN' | 'DRAW' | 'LOSS', mvp, flop, playedAsGoalkeeper, goalsConceded }`
+  (`flop` = Bola Murcha) e `CartolaScoutIssue = { field: 'goals' | 'assists' | 'goalsConceded', value, code }`.
+  `CartolaScoutError` (lista em `CARTOLA_SCOUT_ERRORS`): `'INVALID_COUNT'` (negativo, fracionado ou não numérico).
+- `cartolaPoints(scouts: ValidCartolaScouts, rating: CartolaRating, { captain = false, config }: CartolaPointsOptions = {}): number`
+  - `rating = { round: number | null, reference: number }`: `round` é a saída de `roundScore` (1 casa);
+    `reference` é o `Player.rating`, usado quando ninguém deu nota ao jogador.
+  - `config: Partial<CartolaScoringConfig>` sobre `DEFAULT_CARTOLA_SCORING`: `goal` 3, `assist` 2, `win` 1,
+    `draw` 0, `mvp` 3, `flop` −2, `cleanSheet` 2, `goalConceded` −0,5, `captainMultiplier` 1,5.
+- `priceVariation(price: number, points: number | null, config: Partial<CartolaPriceConfig> = {}): PriceVariation`
+  - `config` sobre `DEFAULT_CARTOLA_PRICE`: `k` 0,5, `factor` 0,3, `maxChangeRatio` 0,1 (±10%), `minPrice` 3.
+  - `points = null` quando o jogador não jogou.
+- `validateCartolaSquad(squad: CartolaSquad, { prices, budget = CARTOLA_INITIAL_BUDGET }: CartolaMarket): CartolaSquadError[]`
+  - `squad = { picks: TeamLineup, captainId }`; `prices: ReadonlyMap<playerId, preço>`; `budget` = patrimônio
+    (padrão C$ 100).
+  - `CartolaSquadError` (lista em `CARTOLA_SQUAD_ERRORS`): `'INVALID_FORMATION'`, `'UNKNOWN_PLAYER'`,
+    `'OVER_BUDGET'`, `'CAPTAIN_NOT_IN_SQUAD'`.
+- `isValidCartolaSquad(squad, market): boolean` (versão sim/não) e `squadCost(picks, prices): number`.
 
-`validateCartolaSquad(squad: CartolaSquad, { prices, budget = CARTOLA_INITIAL_BUDGET }: CartolaMarket): CartolaSquadValidation`
-- `squad`: `{ picks: TeamLineup, captainId }`; `prices: ReadonlyMap<playerId, preço>`; `budget` = patrimônio (padrão C$ 100).
-- **Faz:** checa `matchesFormation`, jogador com preço no mercado, custo ≤ `budget`, capitão entre os escalados.
-- **Devolve:** `{ valid, cost, errors }`, com **todos** os erros de uma vez (`INVALID_FORMATION`, `UNKNOWN_PLAYER`,
-  `OVER_BUDGET`, `CAPTAIN_NOT_IN_SQUAD`); `cost` soma só os jogadores conhecidos. Não lança.
+**Faz:**
+- `cartolaPoints`: nota (da rodada ou de referência) + gols/assistências + resultado + MVP/Bola Murcha. Se
+  `playedAsGoalkeeper`, soma `cleanSheet` com 0 gols sofridos, senão `goalConceded` × gols sofridos. O capitão
+  multiplica o total (inclusive negativo). `played: false` → `0`, mesmo para o capitão.
+- `priceVariation`: esperado = preço × k; variação = (pontos − esperado) × fator, limitada a ±`maxChangeRatio`
+  do preço; novo preço = max(`minPrice`, preço + variação). Com `points = null`, o preço congela.
+- `validateCartolaSquad`: checa `matchesFormation`, jogador com preço no mercado, custo ≤ `budget` e capitão
+  entre os escalados; lista **todos** os problemas.
 
-**Não faz:** não soma a pontuação do time inteiro, não define preços iniciais, não abre/fecha mercado,
-não confere se o jogador "pode" jogar na vaga escolhida (qualquer jogador em qualquer posição) e não decide se
-quem faltou deve ter o preço recalculado (quem chama decide; com 0 pontos ele desvaloriza).
-**Evite:** pesos/parâmetros fixos no código (vêm da config do grupo); passar a pontuação **com** capitão para
-`priceVariation` (o preço é do jogador); regras de goleiro pela vaga do Cartola em vez de quem jogou no gol
-na partida; arredondar fora daqui com outra precisão.
+**Não faz:** não lança erro; não soma a pontuação do time inteiro; não define preços iniciais; não abre/fecha
+mercado; não confere se o jogador "pode" jogar na vaga escolhida (qualquer jogador em qualquer posição); não
+valida `price`, nota nem config (vêm do sistema, de `roundScore`/`Player` e do schema do shared na borda);
+não tem texto de UI (mensagens em `CARTOLA_SCOUT_ERROR_LABELS`/`CARTOLA_SQUAD_ERROR_LABELS` no shared).
+
+**Devolve:** `cartolaPoints` → pontos com 2 casas. `priceVariation` → `{ expected, variation, newPrice }` com 2
+casas; `variation` é a mudança real (já com limite e piso). `parseCartolaScouts` → `Result` com todos os
+problemas. `validateCartolaSquad` → lista de códigos (vazia = válida). `squadCost` soma só jogadores com preço.
+
+**Evite:**
+- Pesos e parâmetros fixos no código (vêm da config do grupo).
+- Passar a pontuação **com** capitão para `priceVariation` (o preço é do jogador).
+- Passar `0` em vez de `null` para quem faltou (o preço cairia em vez de congelar).
+- Tratar nota `null` como 0 (use a de referência).
+- Aplicar as regras de goleiro pela vaga do Cartola em vez de por quem jogou no gol na partida.
+- Converter para `ValidCartolaScouts` com `as` fora do `parse*`.
+- Arredondar fora daqui com outra precisão.
 
 ---
 
