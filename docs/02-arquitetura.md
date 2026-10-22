@@ -70,29 +70,40 @@ fut-stats/
 └─ CLAUDE.md
 ```
 
-## Modelo de dados (rascunho do MVP)
+## Modelo de dados
+
+Fonte de verdade: [`apps/api/prisma/schema.prisma`](../apps/api/prisma/schema.prisma). Enums em inglês,
+iguais aos de `packages/domain` (ver `CONTEXT.md`).
+
+**Fase 1 (implementado):**
 
 ```
-User            id, nome, email, avatarUrl, googleId
-Group           id, nome, slug, inviteCode, prazoVotacaoHoras
-Membership      userId, groupId, papel (ADMIN|JOGADOR), tipo (MENSALISTA|GOLEIRO),
-                apelido, posicaoPrincipal, posicoesSecundarias[], notaInicial, ativo
-                posições: GOLEIRO | ZAGUEIRO | ALA | MEIO | ATACANTE
+User            id, name, email, avatarUrl, googleId
+Group           id, name, slug, inviteCode, votingDeadlineHours
+Membership      userId, groupId, role (ADMIN|PLAYER), nickname, photoUrl,
+                primaryPosition, secondaryPositions[], initialRating, isHiredGoalkeeper, active
+                posições: GOALKEEPER | DEFENDER | WINGER | MIDFIELDER | FORWARD
+                (goleiro é posição; "goleiro contratado" é só um dado de cadastro)
 
-Round (Rodada)  id, groupId, data, local, golsBranco, golsPreto,
-                status: AGENDADA → TIMES_PUBLICADOS → EM_JOGO → VOTACAO → ENCERRADA
+Round           id, groupId, scheduledAt, location, whiteGoals, blackGoals,
+                status: SCHEDULED → TEAMS_PUBLISHED → IN_PROGRESS → VOTING → CLOSED
                 (1 rodada = 1 partida Branco x Preto)
-Attendance      roundId, membershipId, confirmado
-TeamPlayer      roundId, membershipId, time (BRANCO|PRETO), posicao
-MatchEvent      roundId, membershipId, tipo (GOL|ASSISTENCIA|GOL_SOFRIDO|DEFESA|...),
-                lancadoPorId   (jogador lança os próprios; admin, de qualquer um)
+Attendance      roundId, membershipId, confirmed        (única por rodada + membro)
+TeamPlayer      roundId, membershipId, team (WHITE|BLACK), position, isReserve
+                (única por rodada + membro; quem está aqui jogou)
+MatchEvent      roundId, membershipId, type (GOAL|ASSIST; gol sofrido sai do placar), createdById
+                (jogador lança os próprios; admin, de qualquer um)
+```
 
-Rating          roundId, raterId, ratedId, nota       (único por rater+rated+round)
-AwardVote       roundId, voterId, votedId, tipo (MVP|FLOP)   (Craque | Perna de Pau)
+**Próximas fases (rascunho):**
 
-Post            id, groupId, autorId, titulo, corpo, midiaUrl, roundId?
+```
+Rating          roundId, raterId, ratedId, rating     (único por rater+rated+round)
+AwardVote       roundId, voterId, votedId, type (MVP|FLOP)   (Craque | Perna de Pau)
+
+Post            id, groupId, authorId, title, body, mediaUrl, roundId?
 Reaction        postId, membershipId, emoji
-Comment         postId, membershipId, texto
+Comment         postId, membershipId, text
 ```
 
 Tudo que é do grupo carrega `groupId` (direto ou via Round). Isso deixa o app

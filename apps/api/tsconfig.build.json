@@ -4,5 +4,5 @@
     // Sem tipos do Jest no código de produção: um `describe` perdido em src quebra o build.
     "types": ["node"]
   },
-  "exclude": ["src/**/*.spec.ts"]
+  "exclude": ["src/**/*.spec.ts", "src/test/**"]
 }

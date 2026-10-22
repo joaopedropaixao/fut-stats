@@ -9,3 +9,6 @@ coverage/
 *.log
 .DS_Store
 .vercel/
+
+# Client gerado pelo Prisma
+apps/api/src/generated/

@@ -3,6 +3,7 @@ import { z } from 'zod';
 /** Variáveis de ambiente da API. A app não sobe se alguma estiver inválida. */
 export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
 });
 
 export type Env = z.infer<typeof envSchema>;
