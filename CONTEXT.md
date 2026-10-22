@@ -23,6 +23,7 @@ Status: ✅ implementado · 🚧 em PR · 📋 planejado (só nos docs, nomes no
 - **Grupo de confiança:** só entra quem é convidado. Sem antifraude pesado; a média aparada basta.
 - **Votar e jogar o Cartola são opcionais.** A rodada só exige os 2 goleiros e os confirmados. Regra de notas e
   Cartola tem que funcionar com adesão parcial (poucos votos, poucos times no Cartola) sem quebrar nem travar.
+- **Nota da rodada com poucos votos:** com 3 votos ou menos, média simples; a partir de 4, média aparada.
 
 ---
 

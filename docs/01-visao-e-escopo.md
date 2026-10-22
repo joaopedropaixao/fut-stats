@@ -96,7 +96,8 @@ dados reais, e o Cartola já estreia com preços que fazem sentido (sem precisar
 - **Scouts**: o jogador lança os próprios gols/assistências; o admin lança e
   corrige os de qualquer um. Cada scout guarda quem lançou.
 - **Nota**: 0 a 10, de 0,5 em 0,5. A nota da rodada de um jogador é a **média
-  aparada** (descarta a maior e a menor), o que reduz voto de sacanagem.
+  aparada** (descarta a maior e a menor), o que reduz voto de sacanagem. Com **3 votos
+  ou menos**, usa a média simples (aparar sobraria pouca ou nenhuma nota).
 - **Votos são anônimos** para os jogadores; a média é pública.
 - **Nota inicial**: definida pelo admin no cadastro (cold start do seletor de times).
 - **Prazo de votação**: configurável por grupo (ex.: 48h após a rodada).
