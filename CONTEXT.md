@@ -66,12 +66,47 @@ e sem jogador repetido; `isValidRoundLineup` → os dois times válidos e nenhum
 
 ## Regras (`packages/domain/src/<regra>`)
 
-### Seletor de times: `balanceTeams` 🚧 (PR #7)
-**O que é:** gera Branco x Preto equilibrados a partir dos confirmados da rodada.
-**Faz:** um goleiro por time, formação 1-2-3-1, usa posições secundárias se faltar gente, minimiza
-diferença de força + penalidade por duplas repetidas nas últimas rodadas.
-**Devolve:** `RoundLineup`. É sugestão: o admin pode editar antes de publicar.
-**Evite:** aleatoriedade sem seed (os testes precisam ser determinísticos). *Detalhes: completar no PR.*
+### Seletor de times: `balanceTeams` ✅
+**O que é:** gera Branco x Preto equilibrados a partir dos confirmados da rodada. É sugestão: o admin pode
+editar antes de publicar.
+**Assinatura:** `balanceTeams(players: readonly Player[], history: readonly PastRound[] = [], config: Partial<BalanceTeamsConfig> = {})`.
+- `history`: rodadas anteriores, **da mais antiga para a mais recente**. `PastRound` = `RoundLineup` + `reserves?` opcional.
+- `config` (defaults em `DEFAULT_BALANCE_TEAMS_CONFIG`):
+  - `repeatedPairWeight` (λ) = `0.5`: custo de cada dupla repetida, em pontos de força.
+  - `lookbackRounds` = `3`: quantas rodadas recentes do histórico contam.
+  - `offPositionFactor` = `0.9`: multiplica a nota de quem joga na posição secundária.
+  - `maxReservesPerTeam` = `2`.
+  - `random` = `Math.random`: desempate. Use `seededRandom(seed)` (exportado) para ter determinismo.
+
+**Faz:**
+- Aceita de 14 a `14 + 2 · maxReservesPerTeam` confirmados (18 por padrão), com **exatamente 2 goleiros**
+  (`primaryPosition === 'GOALKEEPER'`), um em cada time.
+- Quem passa de 14 vira reserva de um time, com no máximo 1 de diferença de reservas entre os times
+  (15 → 1x0, 16 → 1x1...).
+- Jogador de linha joga na posição principal ou numa secundária, com o **mínimo possível** fora da principal.
+- Minimiza `|força Branco − força Preto| + λ · duplas repetidas` testando **todas** as divisões possíveis
+  (≈ 90 ms com 18). Empates são sorteados com `random`.
+- Força = soma das notas do time, com reserva valendo igual a titular (há revezamento), normalizada para 7
+  jogadores. Dupla repetida = par de jogadores de linha (inclusive reservas) no mesmo time numa das últimas
+  `lookbackRounds` rodadas. Cada rodada conta 1.
+
+**Não faz:**
+- Não põe jogador de linha no gol, nem usa `GOALKEEPER` como posição secundária.
+- Não põe ninguém em posição fora da principal e das secundárias.
+- Não gera time incompleto nem revezamento com menos de 14.
+- Não olha histórico de vitórias e não recalcula `rating`.
+
+**Devolve:** `{ ok: true, round: BalancedRound, strength: { WHITE, BLACK }, repeatedPairs }`, onde
+`BalancedRound` = `RoundLineup` (válido em `isValidRoundLineup`) + `reserves: { WHITE: string[], BLACK: string[] }`.
+Ou `{ ok: false, error }`, com `error` sendo `DUPLICATE_PLAYER`, `NOT_ENOUGH_PLAYERS`, `TOO_MANY_PLAYERS`,
+`NOT_ENOUGH_GOALKEEPERS`, `TOO_MANY_GOALKEEPERS` ou `POSITIONS_UNFILLABLE`. **Não lança.**
+
+**Evite:**
+- Aleatoriedade sem seed em testes.
+- Passar o histórico em ordem invertida (a mais recente primeiro).
+- Tratar `strength` como soma crua (é normalizada para 7).
+- Fixar λ e os outros pesos fora da config.
+- Contar o goleiro nas duplas.
 
 ### Nota da rodada, MVP e Bola Murcha: `roundScore` 🚧 (PR #5)
 **O que é:** nota final de um jogador na rodada = **média aparada** das notas recebidas (descarta a maior e a menor).
