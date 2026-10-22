@@ -242,17 +242,31 @@ problemas. `validateCartolaSquad` → lista de códigos (vazia = válida). `squa
 
 ## Conceitos ainda não implementados 📋
 
+Já existem como tabelas no banco (`apps/api/prisma/schema.prisma`, enums iguais aos do domain), mas ainda
+sem regras nem rotas.
+
 ### Grupo e participação (`Group` / `Membership`)
-**O que é:** grupo = uma pelada. Membership = um usuário num grupo, com papel (admin ou jogador) e tipo
-(mensalista ou goleiro). Um usuário pode estar em vários grupos, com papéis diferentes.
-**Evite:** qualquer dado de domínio sem `groupId`; checar papel pelo usuário em vez da membership daquele grupo.
+**O que é:** grupo = uma pelada. Membership = um usuário num grupo, com papel (`ADMIN` ou `PLAYER`) e os dados de
+jogador daquele grupo: apelido, foto, posição principal e secundárias, nota inicial (dada pelo admin), se é goleiro
+contratado (`isHiredGoalkeeper`) e se está ativo. Um usuário pode estar em vários grupos, com papéis diferentes.
+**Admin também é jogador:** tem posição e nota como todo mundo, mais as permissões de admin.
+**Evite:** qualquer dado de domínio sem `groupId`; checar papel pelo usuário em vez da membership daquele grupo;
+usar `isHiredGoalkeeper` como posição (quem joga no gol é quem tem `GOALKEEPER`); apagar membership (desative).
 
 ### Rodada (`Round`)
 **O que é:** um encontro semanal = **uma partida** (Branco x Preto). Notas, Craque e Perna de Pau são por rodada.
-**Ciclo:** agendada → times publicados → em jogo → votação → encerrada.
+**Ciclo (`RoundStatus`):** `SCHEDULED` (agendada) → `TEAMS_PUBLISHED` (times publicados) → `IN_PROGRESS` (em jogo)
+→ `VOTING` (votação) → `CLOSED` (encerrada). Placar em `whiteGoals`/`blackGoals`, nulo até ser lançado.
 **Evite:** modelar várias partidas por rodada; pular etapas do ciclo.
 
+### Presença e escalação (`Attendance` / `TeamPlayer`)
+**O que é:** `Attendance` = resposta de presença de um membro na rodada (`confirmed`); sem linha = não respondeu.
+`TeamPlayer` = jogador escalado num time da rodada, com a posição e `isReserve`. Quem está no `TeamPlayer` (titular
+ou reserva) **jogou**: é a lista de `playedIds` das notas. Por time: 7 titulares e até 2 reservas.
+**Evite:** usar `Attendance` como "jogou" (confirmou ≠ jogou); o mesmo membro nos dois times.
+
 ### Scout (`MatchEvent`)
-**O que é:** um lance registrado na rodada (gol, assistência, gol sofrido, defesa...). Guarda **quem lançou**.
+**O que é:** um lance registrado na rodada: `GOAL`, `ASSIST` ou `GOAL_CONCEDED`. Guarda quem fez (`membershipId`) e
+**quem lançou** (`createdById`).
 **Regras:** o jogador lança os próprios gols/assistências; o admin lança e corrige os de qualquer um.
 **Evite:** scout sem autor; jogador lançando scout de outro jogador.

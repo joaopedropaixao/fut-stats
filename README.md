@@ -20,12 +20,15 @@ React · Vite · TypeScript · NestJS · Prisma · PostgreSQL · PWA · pnpm/Tur
 
 ## Como rodar localmente
 
-Pré-requisitos: **Node 24** (veja `.nvmrc`) e **pnpm** (via Corepack: `corepack enable`).
+Pré-requisitos: **Node 24** (veja `.nvmrc`), **pnpm** (via Corepack: `corepack enable`) e **Docker**.
 
 ```bash
 pnpm install                                # instala tudo (todas as apps e pacotes)
 cp apps/api/.env.example apps/api/.env      # variáveis da API
 cp apps/web/.env.example apps/web/.env      # variáveis do front
+docker compose up -d                        # Postgres de dev (5432) e de testes (5433)
+pnpm --filter @fut-stats/api db:migrate     # cria as tabelas
+pnpm --filter @fut-stats/api db:seed        # dados fictícios (1 grupo, 17 membros)
 pnpm dev                                    # sobe API e web juntas
 ```
 
@@ -33,11 +36,16 @@ pnpm dev                                    # sobe API e web juntas
 - API: http://localhost:3000/api/health → `{ "status": "ok" }` (todas as rotas ficam sob `/api`)
 
 Outros comandos (na raiz): `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format`.
+`pnpm test` precisa do Postgres de testes no ar (`docker compose up -d`).
+
+Banco (`pnpm --filter @fut-stats/api <script>`): `db:migrate` (cria migration a partir do
+`schema.prisma` e aplica), `db:seed`, `db:reset` (apaga tudo e reaplica), `db:studio` (vê os dados
+no navegador), `generate` (regera o client do Prisma).
 
 ### Estrutura
 
 ```
-apps/api              NestJS (porta 3000)
+apps/api              NestJS (porta 3000) + Prisma (apps/api/prisma)
 apps/web              React + Vite + Tailwind (porta 5173; /api/* → API)
 packages/shared       schemas Zod usados pela API e pela web
 packages/domain       regras de domínio puras (Vitest)
