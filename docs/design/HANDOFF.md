@@ -122,6 +122,12 @@ Com a `taste-skill` (caminho de telas de app), o dono viu prévias em HTML e esc
 ## Próxima missão
 
 1. **Aplicar no Paper as decisões pós-crítica** (aprovadas em 22 out; o limite semanal do MCP acabou antes).
+   - **Só começar com o ok do dono**: ele avisa quando o limite do Paper voltar. O uso começou no domingo
+     (18 out) e acabou na quinta (22 out); o erro dizia "resets tomorrow", mas o app não mostra a data.
+     Teste com uma chamada de leitura (`get_basic_info`) antes de editar.
+   - O dono aprovou a prévia "DS v0.5.1" (artifact no claude.ai, privado):
+     https://claude.ai/artifact/BTu8CZDX1FybFDivZoPkLA. Ela é a referência visual do que aplicar.
+   - Depois de aplicar: nova crítica e rodadas de ajuste até fechar o design oficial do MVP; então PR para `develop`.
    Tudo na folha v0.5. Os ids abaixo são da v0.5; confira com `get_tree_summary` antes se algo falhar.
    - **Números em Barlow** (`update_styles`, Barlow 800, `fontVariantNumeric: tabular-nums`, `whiteSpace: nowrap`):
      - 26px/28px: notas do ranking `12B-0` `11Y-0`, posições `12H-0` `124-0`, figurinhas `18R-0` `18I-0`,
