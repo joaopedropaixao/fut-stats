@@ -45,9 +45,19 @@ describe('roundScore', () => {
     expect(score([1, 7, 7.5, 10])).toBe(7.3);
   });
 
-  it('com menos de 3 notas faz a média simples', () => {
+  it('com 3 notas ou menos faz a média simples', () => {
     expect(score([7])).toBe(7);
     expect(score([6, 7.5])).toBe(6.8);
+    expect(score([0, 7, 8])).toBe(5);
+  });
+
+  it('a partir de 4 notas apara', () => {
+    expect(score([0, 7, 8, 10])).toBe(7.5);
+  });
+
+  it('aceita a quantidade mínima de notas para aparar', () => {
+    expect(score([0, 7, 8], { minRatingsToTrim: 3 })).toBe(7);
+    expect(score([0, 7, 8, 10], { minRatingsToTrim: 5 })).toBe(6.3);
   });
 
   it('sem notas retorna null', () => {

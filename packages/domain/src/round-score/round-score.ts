@@ -25,23 +25,26 @@ export function parseRatings(ratings: readonly number[]): Result<ValidRatings, R
 export interface RoundScoreOptions {
   /** Quantas notas descartar de cada ponta (maiores e menores). */
   trim?: number;
+  /** Abaixo disso não apara: com poucas notas, aparar deixaria uma ou duas pessoas decidindo a nota. */
+  minRatingsToTrim?: number;
   /** Casas decimais do resultado. */
   decimals?: number;
 }
 
 /**
  * Nota da rodada de um jogador: média aparada das notas recebidas.
- * Descarta as `trim` maiores e as `trim` menores; se não sobrar nota depois disso
- * (ex.: menos de 3 notas com trim 1), faz a média simples. Sem notas retorna null.
+ * Com pelo menos `minRatingsToTrim` notas, descarta as `trim` maiores e as `trim` menores;
+ * com menos (ou se não sobrar nota depois de aparar), faz a média simples. Sem notas retorna null.
  */
 export function roundScore(
   ratings: ValidRatings,
-  { trim = 1, decimals = 1 }: RoundScoreOptions = {},
+  { trim = 1, minRatingsToTrim = 4, decimals = 1 }: RoundScoreOptions = {},
 ): number | null {
   if (ratings.length === 0) return null;
 
   const sorted = [...ratings].sort((a, b) => a - b);
-  const kept = sorted.length > trim * 2 ? sorted.slice(trim, sorted.length - trim) : sorted;
+  const shouldTrim = sorted.length >= minRatingsToTrim && sorted.length > trim * 2;
+  const kept = shouldTrim ? sorted.slice(trim, sorted.length - trim) : sorted;
   const mean = kept.reduce((sum, r) => sum + r, 0) / kept.length;
 
   const factor = 10 ** decimals;

@@ -139,8 +139,9 @@ aceitam o que foi carimbado (passar array cru não compila). Calcule as notas an
 **Assinaturas:**
 - `parseRatings(ratings: readonly number[]): Result<ValidRatings, RatingIssue>`,
   com `RatingIssue = { index, value, code: RatingError }`.
-- `roundScore(ratings: ValidRatings, { trim = 1, decimals = 1 }: RoundScoreOptions = {}): number | null`
-  `trim` = quantas notas descartar de cada ponta; `decimals` = casas do arredondamento.
+- `roundScore(ratings: ValidRatings, { trim = 1, minRatingsToTrim = 4, decimals = 1 }: RoundScoreOptions = {}): number | null`
+  `trim` = quantas notas descartar de cada ponta; `minRatingsToTrim` = a partir de quantas notas apara;
+  `decimals` = casas do arredondamento.
 - `validateVote(voterId: string, targetId: string, playedIds: readonly string[]): VoteError | null`
   `VoteError` (lista em `VOTE_ERRORS`): `'VOTER_DID_NOT_PLAY'`, `'SELF_VOTE'`, `'TARGET_DID_NOT_PLAY'`, nessa prioridade.
 - `canVoteFor(voterId, targetId, playedIds): boolean` (versão sim/não de `validateVote`).
@@ -156,8 +157,8 @@ aceitam o que foi carimbado (passar array cru não compila). Calcule as notas an
   `options` é obrigatório: o desempate padrão sem `roundScores` não compila.
 
 **Faz:**
-- `roundScore`: descarta as `trim` maiores e menores e tira a média do resto; se não sobrar nota depois de aparar
-  (menos de 3 notas com `trim` 1), faz a média simples. Arredonda (meio para cima: 7,25 → 7,3).
+- `roundScore`: com 4 notas ou mais, descarta as `trim` maiores e menores e tira a média do resto; com 3 ou menos
+  faz a média simples (aparar deixaria uma pessoa decidindo a nota). Arredonda (meio para cima: 7,25 → 7,3).
 - `validateVote`/`canVoteFor`/`rateablePlayers`: aplicam a regra de voto; `rateablePlayers` lista quem o votante deve avaliar.
 - `validateAwardBallot`: voto obrigatório em MVP **e** Bola Murcha, em jogadores diferentes, ambos votáveis. Lista
   todos os problemas do voto; se o votante não jogou, devolve só esse.
@@ -173,7 +174,7 @@ não exige que todos votem; não tem texto de UI (mensagens em `RATING_ERROR_LAB
 os problemas. `validate*` → código(s) de erro com o campo, para a borda montar a mensagem. `tallyAwards` →
 `{ mvpIds, flopIds }`, listas em ordem alfabética (várias pessoas no empate compartilhado; vazias sem votos ou com `NONE`).
 
-**Evite:** média simples (deixa passar "voto de sacanagem"); tratar `null` como 0 no ranking; apurar prêmios antes
+**Evite:** média simples com 4 notas ou mais (deixa passar "voto de sacanagem"); tratar `null` como 0 no ranking; apurar prêmios antes
 de calcular as notas da rodada; ignorar voto inválido em silêncio; converter para `ValidRatings`/`ValidBallots` com
 `as` fora do `parse*` (fura o carimbo); passar `playedIds` com quem só confirmou presença e não jogou.
 
