@@ -10,7 +10,7 @@ regra de negócio vem de lá. **Se a regra estiver ambígua ou em aberto, pergun
 - GitHub só pela conta pessoal: `GH_TOKEN=$(gh auth token --user joaopedropaixao) gh ...`.
 - Uma tarefa = um worktree = uma branch = um PR. Arquivos compartilhados (`package.json` da raiz,
   `pnpm-lock.yaml`, `schema.prisma`, CI) têm um dono por vez. Antes do PR: `git fetch && git rebase origin/develop`.
-- Pronto = `pnpm lint && pnpm typecheck && pnpm test && pnpm build` passando na raiz + item marcado em `docs/03-roadmap.md`.
+- Pronto = `pnpm lint && pnpm typecheck && pnpm test && pnpm build` passando na raiz.
 - Dependência nova: justificar no PR. Segredos só em `.env`; manter `.env.example` atualizado.
 - Comandos: `pnpm dev` sobe API (`:3000`) e web (`:5173`); um pacote só com `pnpm --filter @fut-stats/<pacote> <script>`.
 
@@ -34,3 +34,6 @@ regra de negócio vem de lá. **Se a regra estiver ambígua ou em aberto, pergun
 | Rota + service + banco (`api`) | Integração: supertest na app real + Postgres de teste (Docker local, service container no CI). Não mockar Prisma; não testar controller ou query isolados. |
 | Tela (`web`) | Ao terminar, validar no navegador com o MCP do Playwright: fluxo principal funciona e console sem erros. |
 | Bug corrigido | Vem com um teste que reproduz. |
+
+## Roadmap
+- Toda vez que finalizar um item de `docs/03-roadmap.md`, marque-o como `[x]` no mesmo PR que o entrega.
