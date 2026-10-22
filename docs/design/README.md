@@ -31,14 +31,18 @@ lugares: no formato (canto reto e tecla), na fonte pixel do jogador e nos moment
 
 | Fonte | Papel | Onde |
 |---|---|---|
-| Barlow Condensed 800 | o jogo | Placar, nome dos times, títulos. Caixa alta. |
-| Silkscreen 700 (`--font-pixel`) | o jogador | Nome, nota e posição do jogador; VS, Craque, Game Over; logo. Só caixa alta, mínimo 13px, sem quebra de linha. |
+| Barlow Condensed 800 | o jogo | Placar, nome dos times, títulos e **todo número** (nota, posição, contagens), com algarismos de largura fixa (`tabular-nums`). |
+| Silkscreen 700 (`--font-pixel`) | o jogador | Nome do jogador; VS, Craque, Fim de jogo; logo. Só caixa alta, mínimo 13px, sem quebra de linha, até 14 caracteres em lista (o resto vira "…"). |
 | Inter | o app | Botões, textos, rótulos, datas, mensagens. |
 
   - Texto corrido nunca vira pixel.
+  - Dígito em pixel só na festa (carta revelada, VS, pacote). Na crítica da v0.5, a Silkscreen em número pequeno
+    falhou: o 4 vira borrão, a vírgula é larga, o 2 é igual ao Z e o 0 parece O.
   - A Pixelify Sans foi descartada porque "Z" lê como "B" e 2/3 parecem 8.
 - **Forma:**
   - canto reto (raio 0) em tudo; só avatar, ponto e bolinha do slider são redondos
+  - exceção "controle redondo": a barra de abas, que fica sob o polegar o tempo todo, tem raio 20 e flutua;
+    a aba ativa é uma pílula de raio 14
   - card e lista: contorno duro de 2px com `--color-border-strong`, sem sombra
   - o que flutua (aviso, barra de abas, gaveta): contorno + sombra sólida preta `4px 4px 0`
   - botão principal é **tecla**: amarelo chapado, borda preta de 3px e sombra `4px 4px 0 #000`;

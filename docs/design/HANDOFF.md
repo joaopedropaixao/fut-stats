@@ -29,8 +29,10 @@ Leitura obrigatória antes de começar: [README.md](README.md) (regras do DS) e
   - gramado à noite (`#0A0F0C`)
   - holofote radial no topo
   - linhas de campo em giz
-- **Fontes por papel (v0.5):** Barlow Condensed = o jogo (placar, times, títulos); Silkscreen = o jogador
-  (nome, nota, posição, VS, Craque, logo; só caixa alta, mínimo 13px); Inter = o app.
+- **Fontes por papel (v0.5, revisado após a crítica):** Barlow Condensed = o jogo (placar, times, títulos e
+  **todo número**: nota, posição, contagens); Silkscreen = o jogador (nome; VS, Craque, logo; só caixa alta,
+  mínimo 13px, até 14 caracteres em lista); Inter = o app. Dígito em pixel só na festa (carta, VS, pacote).
+- **Navegação:** exceção "controle redondo": a barra de abas é arredondada e flutua; aba ativa em pílula.
 - **Cor (v0.5):** paleta "Fliperama creme": texto creme `#F3EAD3`; fundo escuro padrão com holofote;
   fundo verde "Gramado" como opção nas configurações.
 - **Forma (v0.5):** canto reto, contorno duro de 2px, botão em tecla (borda preta e sombra sólida), sem brilho.
@@ -67,7 +69,7 @@ Leitura obrigatória antes de começar: [README.md](README.md) (regras do DS) e
 | v0.2 | 16/32 | Amarelo com papel duplo, nota imprecisa e sem volta, contornos invisíveis, faltavam estados, navegação só com ícone |
 | v0.3 | 24/32 | Campo só por arrasto, faltava o voto, cores quentes confusas, ícone da Bola Murcha ilegível |
 | v0.4 | não medida | Todos os itens P1/P2 da v0.3 foram corrigidos via `/impeccable polish` |
-| v0.5 | não medida | Formato fliperama, fontes por papel, creme, fundo "Gramado", VS e pacote |
+| v0.5 | 24/32 | Identidade forte; dígitos em Silkscreen ilegíveis (4 vira borrão, vírgula larga, 2 = Z, 0 = O); navegação reta com aba ativa fraca; "Votos enviados" sem festa |
 
 Ficou de fora, como sugestão das críticas:
 - não há momento de "revelação" na quinta às 22h
@@ -119,7 +121,32 @@ Com a `taste-skill` (caminho de telas de app), o dono viu prévias em HTML e esc
 
 ## Próxima missão
 
-1. **Crítica da v0.5:** rodar `/impeccable critique` sobre o PNG da v0.5 e comparar com 24/32.
+1. **Aplicar no Paper as decisões pós-crítica** (aprovadas em 22 out; o limite semanal do MCP acabou antes).
+   Tudo na folha v0.5. Os ids abaixo são da v0.5; confira com `get_tree_summary` antes se algo falhar.
+   - **Números em Barlow** (`update_styles`, Barlow 800, `fontVariantNumeric: tabular-nums`, `whiteSpace: nowrap`):
+     - 26px/28px: notas do ranking `12B-0` `11Y-0`, posições `12H-0` `124-0`, figurinhas `18R-0` `18I-0`,
+       revisão `171-0` `16W-0` `16R-0`
+     - 32px/34px: nota da linha do Craque `1BA-0`
+     - 96px/100px: stepper `17R-0`
+     - fica em pixel (festa): a nota da carta revelada `1L8-0`
+   - **Textos** (`set_text_content`):
+     - `1JH-0` → "Tiago Zagueirão"; `1JI-0` → "Jogador 13–20"
+     - `1HZ-0` → "Barlow é o jogo: placar, títulos e todo número. Silkscreen é o jogador: o nome. Inter é o app."
+     - `1HF-0` → "Nome de jogador em Silkscreen, caixa alta, 13px ou mais e até 14 caracteres em lista (o resto
+       vira “…”). Nota e posição são placar: Barlow. Dígito em pixel só na festa."
+     - `1BC-0` → "Ronaldinho do…" (exemplo do corte)
+   - **Navegação "controle redondo"**:
+     - barra `10X-0`: raio 20, mantém o contorno de 2px e a sombra dura
+     - aba ativa `11J-0`: raio 14, fundo creme a 12% (`rgb(243 234 211 / 12%)`), ícone preenchido
+     - um quadradinho creme de 4×4 acima do ícone ativo
+     - subtítulo `11O-0` → "O polegar mora aqui, então ela é redonda, como controle de videogame. A aba ativa
+       vira pílula."
+   - **"Fim de jogo"** no lugar de "Votos enviados" (`14V-0`):
+     - trocar o círculo do check `150-0` por um bonequinho pixel comemorando (braços para cima)
+     - título `14Z-0` → "Fim de jogo" em Silkscreen 28px
+     - texto `14Y-0` → "Votos enviados! 9 de 14 já votaram. O resultado sai quinta às 22h, ou antes, se todo
+       mundo votar."
+   - Depois: exportar o PNG, revisar em fatias, `finish_working_on_nodes` e rodar a crítica de novo.
 2. **Quadros-chave** do VS e do pacote do Craque (começo, meio e fim) no Paper.
 3. **Wireframes e alta fidelidade** das telas do MVP, usando a v0.5.
 4. Candidatos que continuam em aberto: rever as 5 abas; passo de 24px na tipografia; figurinha com foto
