@@ -48,8 +48,7 @@ Gramado à noite com holofote no topo. Branco x Preto é a identidade; o resto d
 ## Pendências
 
 - [ ] Wireframes e alta fidelidade das telas do MVP (roadmap, Fase 0.5).
-- [ ] Nome do prêmio de zoeira: o design usa **Perna de Pau**, mas domínio e docs ainda dizem
-      **Bola Murcha**. Decidir e renomear em uma tarefa só.
+- [x] Nome dos prêmios: **Craque** e **Perna de Pau** em domínio, labels e docs (código segue `mvp`/`flop`).
 - [ ] Tokens do Paper → tema do Tailwind no `apps/web`, incluindo sombras, movimento e camadas.
 
 Ideias para os momentos de "festa" (animações estilo jogo 2D): [ideias-de-inspiracao.md](ideias-de-inspiracao.md).

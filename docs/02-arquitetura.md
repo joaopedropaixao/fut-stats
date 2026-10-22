@@ -88,7 +88,7 @@ MatchEvent      roundId, membershipId, tipo (GOL|ASSISTENCIA|GOL_SOFRIDO|DEFESA|
                 lancadoPorId   (jogador lança os próprios; admin, de qualquer um)
 
 Rating          roundId, raterId, ratedId, nota       (único por rater+rated+round)
-AwardVote       roundId, voterId, votedId, tipo (MVP|BOLA_MURCHA)
+AwardVote       roundId, voterId, votedId, tipo (MVP|FLOP)   (Craque | Perna de Pau)
 
 Post            id, groupId, autorId, titulo, corpo, midiaUrl, roundId?
 Reaction        postId, membershipId, emoji

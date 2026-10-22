@@ -1,15 +1,21 @@
 import type { Result } from '../core';
 import { VOTE_ERRORS, validateVote } from './eligibility';
 
-/** Voto de um jogador na rodada: um MVP (Craque) e uma Bola Murcha, ambos obrigatórios. */
+/** Prêmios da rodada: `MVP` = Craque, `FLOP` = Perna de Pau. Textos em `packages/shared`. */
+export const AWARDS = ['MVP', 'FLOP'] as const;
+
+export type Award = (typeof AWARDS)[number];
+
+/** Voto de um jogador na rodada: um Craque e um Perna de Pau, ambos obrigatórios. */
 export interface AwardBallot {
   voterId: string;
+  /** Craque. */
   mvpId: string;
-  /** Bola Murcha. */
+  /** Perna de Pau. */
   flopId: string;
 }
 
-/** Por que um voto de MVP/Bola Murcha é inválido. Textos em `packages/shared`. */
+/** Por que um voto de Craque/Perna de Pau é inválido. Textos em `packages/shared`. */
 export const BALLOT_ERRORS = [...VOTE_ERRORS, 'SAME_PLAYER_BOTH', 'DUPLICATE_VOTER'] as const;
 
 export type BallotError = (typeof BALLOT_ERRORS)[number];
@@ -71,7 +77,7 @@ export function parseBallots(
 
 /**
  * Critério quando há empate em votos:
- * - `ROUND_SCORE` (padrão): MVP vai para a maior nota da rodada, Bola Murcha para a menor;
+ * - `ROUND_SCORE` (padrão): Craque vai para a maior nota da rodada, Perna de Pau para a menor;
  *   se a nota também empatar, todos levam. Exige `roundScores`.
  * - `SHARE`: todos os empatados levam.
  * - `NONE`: ninguém leva.
@@ -87,12 +93,13 @@ export type AwardOptions =
   | { tieBreak: 'SHARE' | 'NONE'; roundScores?: never };
 
 export interface AwardResult {
+  /** Craque. */
   mvpIds: string[];
-  /** Bola Murcha. */
+  /** Perna de Pau. */
   flopIds: string[];
 }
 
-/** Apura MVP e Bola Murcha da rodada a partir de votos já validados. */
+/** Apura Craque e Perna de Pau da rodada a partir de votos já validados. */
 export function tallyAwards(ballots: ValidBallots, options: AwardOptions): AwardResult {
   const pick = (votes: string[], best: 'HIGHEST' | 'LOWEST') =>
     resolveTie(mostVoted(votes), options, best);

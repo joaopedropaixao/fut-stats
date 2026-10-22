@@ -25,8 +25,10 @@ Status: ✅ implementado · 🚧 em PR · 📋 planejado (só nos docs, nomes no
   - `parse*` → `Result<T, E>` (`{ ok: true, value }` ou `{ ok: false, errors }`). O `value` tem um tipo "carimbado"
     (ex.: `ValidRatings`) que só o `parse*` cria. **Função de cálculo só aceita entrada carimbada**: chamar sem
     validar antes não compila, então o cálculo não precisa checar nem lançar nada.
+- **Prêmios da rodada: Craque e Perna de Pau** (nomes do design). No código ficam `MVP`/`mvp` e `FLOP`/`flop`
+  (`AWARDS` no domain, textos em `AWARD_LABELS` no shared). "Bola Murcha" é o nome antigo: não usar.
 - **Domínio não conhece banco nem usuário.** Recebe ids (`string`) e números; não recebe entidade do Prisma.
-- **Goleiro contratado é membro pleno:** joga, vota (notas, MVP, Bola Murcha) e participa do Cartola.
+- **Goleiro contratado é membro pleno:** joga, vota (notas, Craque, Perna de Pau) e participa do Cartola.
 - **Grupo de confiança:** só entra quem é convidado. Sem antifraude pesado; a média aparada basta.
 - **Votar e jogar o Cartola são opcionais.** A rodada só exige os 2 goleiros e os confirmados. Regra de notas e
   Cartola tem que funcionar com adesão parcial (poucos votos, poucos times no Cartola) sem quebrar nem travar.
@@ -127,9 +129,9 @@ Ou `{ ok: false, error }`, com `error` sendo `DUPLICATE_PLAYER`, `NOT_ENOUGH_PLA
 - Fixar λ e os outros pesos fora da config.
 - Contar o goleiro nas duplas.
 
-### Nota da rodada, MVP e Bola Murcha: `roundScore` ✅
+### Nota da rodada, Craque e Perna de Pau: `roundScore` ✅
 **O que é:** nota final de um jogador na rodada = **média aparada** das notas recebidas (descarta a maior e a menor).
-Também define quem pode votar em quem e apura MVP e Bola Murcha pelos votos. Pasta `src/round-score/`.
+Também define quem pode votar em quem e apura Craque e Perna de Pau pelos votos. Pasta `src/round-score/`.
 **Regras:** só quem jogou vota (goleiros inclusos), em qualquer jogador que jogou (dos dois times); ninguém vota
 em si mesmo; votos anônimos para jogadores, média pública.
 
@@ -147,7 +149,7 @@ aceitam o que foi carimbado (passar array cru não compila). Calcule as notas an
 - `canVoteFor(voterId, targetId, playedIds): boolean` (versão sim/não de `validateVote`).
 - `rateablePlayers(voterId: string, playedIds: readonly string[]): string[]`
 - `validateAwardBallot(ballot: AwardBallot, playedIds: readonly string[]): BallotIssue[]`,
-  com `AwardBallot = { voterId, mvpId, flopId }` (`flop` = Bola Murcha) e
+  com `AwardBallot = { voterId, mvpId, flopId }` (`mvp` = Craque, `flop` = Perna de Pau) e
   `BallotIssue = { voterId, field: 'voterId' | 'mvpId' | 'flopId', code: BallotError }`.
   `BallotError` (lista em `BALLOT_ERRORS`) = os de `VoteError` + `'SAME_PLAYER_BOTH'` + `'DUPLICATE_VOTER'`.
 - `isValidAwardBallot(ballot, playedIds): boolean` (versão sim/não).
@@ -160,10 +162,10 @@ aceitam o que foi carimbado (passar array cru não compila). Calcule as notas an
 - `roundScore`: com 4 notas ou mais, descarta as `trim` maiores e menores e tira a média do resto; com 3 ou menos
   faz a média simples (aparar deixaria uma pessoa decidindo a nota). Arredonda (meio para cima: 7,25 → 7,3).
 - `validateVote`/`canVoteFor`/`rateablePlayers`: aplicam a regra de voto; `rateablePlayers` lista quem o votante deve avaliar.
-- `validateAwardBallot`: voto obrigatório em MVP **e** Bola Murcha, em jogadores diferentes, ambos votáveis. Lista
+- `validateAwardBallot`: voto obrigatório em Craque **e** Perna de Pau, em jogadores diferentes, ambos votáveis. Lista
   todos os problemas do voto; se o votante não jogou, devolve só esse.
 - `parseBallots`: valida todos os votos e marca o segundo voto da mesma pessoa como `DUPLICATE_VOTER`.
-- `tallyAwards`: mais votado leva. Empate: `ROUND_SCORE` (padrão) dá o MVP à maior nota da rodada e a Bola Murcha
+- `tallyAwards`: mais votado leva. Empate: `ROUND_SCORE` (padrão) dá o Craque à maior nota da rodada e o Perna de Pau
   à menor; quem não tem nota perde o desempate; se a nota empatar (ou ninguém tiver nota), todos levam.
   `SHARE` = todos os empatados levam; `NONE` = ninguém leva.
 
@@ -188,7 +190,7 @@ variação de preço depois da rodada e validação da escalação de um partici
 **Assinaturas:**
 - `parseCartolaScouts(scouts: CartolaScouts): Result<ValidCartolaScouts, CartolaScoutIssue>`, com
   `CartolaScouts = { played, goals, assists, result: 'WIN' | 'DRAW' | 'LOSS', mvp, flop, playedAsGoalkeeper, goalsConceded }`
-  (`flop` = Bola Murcha) e `CartolaScoutIssue = { field: 'goals' | 'assists' | 'goalsConceded', value, code }`.
+  (`mvp` = Craque, `flop` = Perna de Pau) e `CartolaScoutIssue = { field: 'goals' | 'assists' | 'goalsConceded', value, code }`.
   `CartolaScoutError` (lista em `CARTOLA_SCOUT_ERRORS`): `'INVALID_COUNT'` (negativo, fracionado ou não numérico).
 - `cartolaPoints(scouts: ValidCartolaScouts, rating: CartolaRating, { captain = false, config }: CartolaPointsOptions = {}): number`
   - `rating = { round: number | null, reference: number }`: `round` é a saída de `roundScore` (1 casa);
@@ -207,7 +209,7 @@ variação de preço depois da rodada e validação da escalação de um partici
 - `isValidCartolaSquad(squad, market): boolean` (versão sim/não) e `squadCost(picks, players): number`.
 
 **Faz:**
-- `cartolaPoints`: nota (da rodada ou de referência) + gols/assistências + resultado + MVP/Bola Murcha. Se
+- `cartolaPoints`: nota (da rodada ou de referência) + gols/assistências + resultado + Craque/Perna de Pau. Se
   `playedAsGoalkeeper`, soma `cleanSheet` com 0 gols sofridos, senão `goalConceded` × gols sofridos. O capitão
   multiplica o total (inclusive negativo). `played: false` → `0`, mesmo para o capitão.
 - `priceVariation`: esperado = preço × k; variação = (pontos − esperado) × fator, limitada a ±`maxChangeRatio`
@@ -246,7 +248,7 @@ problemas. `validateCartolaSquad` → lista de códigos (vazia = válida). `squa
 **Evite:** qualquer dado de domínio sem `groupId`; checar papel pelo usuário em vez da membership daquele grupo.
 
 ### Rodada (`Round`)
-**O que é:** um encontro semanal = **uma partida** (Branco x Preto). Notas, MVP e Bola Murcha são por rodada.
+**O que é:** um encontro semanal = **uma partida** (Branco x Preto). Notas, Craque e Perna de Pau são por rodada.
 **Ciclo:** agendada → times publicados → em jogo → votação → encerrada.
 **Evite:** modelar várias partidas por rodada; pular etapas do ciclo.
 

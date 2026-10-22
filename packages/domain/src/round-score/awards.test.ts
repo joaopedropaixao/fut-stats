@@ -33,7 +33,7 @@ describe('validateAwardBallot', () => {
     ]);
   });
 
-  it('aponta o mesmo jogador como MVP e Bola Murcha', () => {
+  it('aponta o mesmo jogador como Craque e Perna de Pau', () => {
     expect(validateAwardBallot(ballot('ana', 'bia', 'bia'), played)).toEqual([
       { voterId: 'ana', field: 'flopId', code: 'SAME_PLAYER_BOTH' },
     ]);
@@ -95,7 +95,7 @@ describe('tallyAwards', () => {
     tallyAwards(parsed.value, {});
   });
 
-  it('MVP e Bola Murcha são os mais votados', () => {
+  it('Craque e Perna de Pau são os mais votados', () => {
     const result = tally(
       [
         ballot('ana', 'bia', 'caio'),
@@ -108,14 +108,14 @@ describe('tallyAwards', () => {
     expect(result).toEqual({ mvpIds: ['bia'], flopIds: ['caio'] });
   });
 
-  it('sem votos não há MVP nem Bola Murcha', () => {
+  it('sem votos não há Craque nem Perna de Pau', () => {
     expect(tally([], { tieBreak: 'SHARE' })).toEqual({ mvpIds: [], flopIds: [] });
   });
 
   const tied = [ballot('ana', 'bia', 'davi'), ballot('bia', 'caio', 'edu')];
 
   describe('empate', () => {
-    it('ROUND_SCORE (padrão): MVP é o de maior nota, Bola Murcha o de menor', () => {
+    it('ROUND_SCORE (padrão): Craque é o de maior nota, Perna de Pau o de menor', () => {
       const roundScores = { bia: 8, caio: 7.5, davi: 4, edu: 5 };
       expect(tally(tied, { roundScores })).toEqual({ mvpIds: ['bia'], flopIds: ['davi'] });
     });

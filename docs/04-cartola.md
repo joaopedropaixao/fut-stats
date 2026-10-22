@@ -28,7 +28,7 @@
 pontos = nota_da_rodada
        + 3 × gols  + 2 × assistências
        + 1 × vitórias na rodada
-       + 3 se MVP  − 2 se Bola Murcha
+       + 3 se Craque  − 2 se Perna de Pau
        (goleiro: + 2 jogo sem sofrer gol, − 0,5 por gol sofrido)
 capitão: × 1,5
 ```

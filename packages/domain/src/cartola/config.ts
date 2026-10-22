@@ -7,8 +7,9 @@ export interface CartolaScoringConfig {
   assist: number;
   win: number;
   draw: number;
+  /** Somado quando o jogador é o Craque. */
   mvp: number;
-  /** Somado quando o jogador é a Bola Murcha (por isso negativo). */
+  /** Somado quando o jogador é o Perna de Pau (por isso negativo). */
   flop: number;
   /** Goleiro que não sofreu gol. */
   cleanSheet: number;

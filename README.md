@@ -8,8 +8,8 @@ notas pós-jogo, ranking, resenhas e um Cartola da pelada.**
 ## Funcionalidades
 
 - **Seletor de times**: sugere times equilibrados por nota, posição e histórico, sem repetir panelinha
-- **Notas da rodada**: cada jogador avalia os outros e vota no Craque e no Bola Murcha
-- **Ranking**: média, vitórias, gols, assistências, MVPs (geral e por posição)
+- **Notas da rodada**: cada jogador avalia os outros e vota no Craque e no Perna de Pau
+- **Ranking**: média, vitórias, gols, assistências, vezes Craque (geral e por posição)
 - **Feed**: notícias e resenhas da pelada, com reações e comentários
 - **Histórico**: todas as rodadas, placares e notas
 - **Cartola**: monte seu time com os jogadores da pelada *(v1.1)*

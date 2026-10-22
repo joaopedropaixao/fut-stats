@@ -1,4 +1,4 @@
-/** Por que um voto (nota, MVP ou Bola Murcha) não é permitido. Textos em `packages/shared`. */
+/** Por que um voto (nota, Craque ou Perna de Pau) não é permitido. Textos em `packages/shared`. */
 export const VOTE_ERRORS = ['VOTER_DID_NOT_PLAY', 'TARGET_DID_NOT_PLAY', 'SELF_VOTE'] as const;
 
 export type VoteError = (typeof VOTE_ERRORS)[number];
