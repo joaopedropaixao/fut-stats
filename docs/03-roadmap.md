@@ -20,6 +20,8 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Alta fidelidade das telas do MVP
 - [ ] MCP do Playwright configurado no repo (`.mcp.json`) antes da primeira tarefa que toca telas
 - [ ] Tokens do Paper → tema do Tailwind no `apps/web`
+- [ ] Renomear entidades no código para os nomes definidos no design (mudaram junto com os ícones):
+  `packages/domain`, `packages/shared` (labels), `CONTEXT.md` e docs. Depende do PR do design na `develop`
 
 ## Fase 1: Núcleo do grupo
 - [ ] Grupo + link de convite
