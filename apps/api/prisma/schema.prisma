@@ -43,10 +43,10 @@ enum RoundStatus {
 }
 
 /// Tipo de lance registrado na rodada.
+/// Gols sofridos não são lance: saem do placar (gols do time adversário).
 enum MatchEventType {
   GOAL
   ASSIST
-  GOAL_CONCEDED
 }
 
 /// Pessoa que faz login (Google). Não tem dado de pelada: isso fica na Membership de cada grupo.

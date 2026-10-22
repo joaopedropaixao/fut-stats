@@ -91,7 +91,7 @@ Round           id, groupId, scheduledAt, location, whiteGoals, blackGoals,
 Attendance      roundId, membershipId, confirmed        (única por rodada + membro)
 TeamPlayer      roundId, membershipId, team (WHITE|BLACK), position, isReserve
                 (única por rodada + membro; quem está aqui jogou)
-MatchEvent      roundId, membershipId, type (GOAL|ASSIST|GOAL_CONCEDED), createdById
+MatchEvent      roundId, membershipId, type (GOAL|ASSIST; gol sofrido sai do placar), createdById
                 (jogador lança os próprios; admin, de qualquer um)
 ```
 

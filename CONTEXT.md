@@ -266,7 +266,8 @@ ou reserva) **jogou**: é a lista de `playedIds` das notas. Por time: 7 titulare
 **Evite:** usar `Attendance` como "jogou" (confirmou ≠ jogou); o mesmo membro nos dois times.
 
 ### Scout (`MatchEvent`)
-**O que é:** um lance registrado na rodada: `GOAL`, `ASSIST` ou `GOAL_CONCEDED`. Guarda quem fez (`membershipId`) e
+**O que é:** um lance registrado na rodada: `GOAL` ou `ASSIST`. Guarda quem fez (`membershipId`) e
 **quem lançou** (`createdById`).
+**Não faz:** gol sofrido não é lance; sai do placar da rodada (gols do time adversário de quem jogou no gol).
 **Regras:** o jogador lança os próprios gols/assistências; o admin lança e corrige os de qualquer um.
-**Evite:** scout sem autor; jogador lançando scout de outro jogador.
+**Evite:** scout sem autor; jogador lançando scout de outro jogador; gravar gol sofrido como lance (contradiz o placar).
