@@ -113,11 +113,45 @@ Ou `{ ok: false, error }`, com `error` sendo `DUPLICATE_PLAYER`, `NOT_ENOUGH_PLA
 - Fixar λ e os outros pesos fora da config.
 - Contar o goleiro nas duplas.
 
-### Nota da rodada, MVP e Bola Murcha: `roundScore` 🚧 (PR #5)
+### Nota da rodada, MVP e Bola Murcha: `roundScore` ✅
 **O que é:** nota final de um jogador na rodada = **média aparada** das notas recebidas (descarta a maior e a menor).
-Também apura MVP e Bola Murcha pelos votos.
-**Regras:** só quem jogou vota; ninguém vota em si mesmo; votos anônimos para jogadores, média pública.
-**Evite:** média simples (deixa passar "voto de sacanagem"). *Detalhes: completar no PR.*
+Também define quem pode votar em quem e apura MVP e Bola Murcha pelos votos. Pasta `src/round-score/`.
+**Regras:** só quem jogou vota (goleiros inclusos), em qualquer jogador que jogou (dos dois times); ninguém vota
+em si mesmo; votos anônimos para jogadores, média pública.
+
+**Assinaturas:**
+- `roundScore(ratings: readonly number[], { trim = 1, decimals = 1 }: RoundScoreOptions = {}): number | null`
+  `trim` = quantas notas descartar de cada ponta; `decimals` = casas do arredondamento.
+- `canVoteFor(voterId: string, targetId: string, playedIds: readonly string[]): boolean`
+- `rateablePlayers(voterId: string, playedIds: readonly string[]): string[]`
+- `isValidAwardBallot(ballot: AwardBallot, playedIds: readonly string[]): boolean`,
+  com `AwardBallot = { voterId, mvpId, flopId }` (`flop` = Bola Murcha).
+- `tallyAwards(ballots: readonly AwardBallot[], playedIds: readonly string[], { tieBreak = 'ROUND_SCORE', roundScores }: AwardOptions = {}): AwardResult`
+  `tieBreak: 'ROUND_SCORE' | 'SHARE' | 'NONE'`; `roundScores: Record<playerId, number | null>` (obrigatório com `ROUND_SCORE`).
+
+**Faz:**
+- `roundScore`: descarta as `trim` maiores e menores e tira a média do resto; se não sobrar nota depois de aparar
+  (menos de 3 notas com `trim` 1), faz a média simples. Arredonda (meio para cima: 7,25 → 7,3).
+- `canVoteFor`/`rateablePlayers`: aplicam a regra de voto; `rateablePlayers` lista quem o votante deve avaliar.
+- `isValidAwardBallot`: voto obrigatório em MVP **e** Bola Murcha, em jogadores diferentes, ambos votáveis.
+- `tallyAwards`: mais votado leva. Empate: `ROUND_SCORE` (padrão) dá o MVP à maior nota da rodada e a Bola Murcha
+  à menor; quem não tem nota perde o desempate; se a nota empatar (ou ninguém tiver nota), todos levam.
+  `SHARE` = todos os empatados levam; `NONE` = ninguém leva.
+
+**Não faz:** não controla prazo nem abertura/fechamento da votação; não guarda votos nem sabe quem votou de forma
+anônima (recebe ids); não exige que todos votem.
+
+**Devolve:** `roundScore` → nota arredondada, ou `null` sem notas (`null` ≠ nota 0). `canVoteFor`/`isValidAwardBallot`
+→ `boolean`. `rateablePlayers` → ids (vazio se o votante não jogou). `tallyAwards` → `{ mvpIds, flopIds }`, listas
+em ordem alfabética (várias pessoas no empate compartilhado; vazias sem votos ou com `NONE`).
+
+**Lança (pré-condição, não validação):** `roundScore` lança `RangeError` com nota inválida; `tallyAwards` lança com
+voto inválido, votante repetido ou `ROUND_SCORE` sem `roundScores`. A borda deve filtrar antes com
+`isValidRating`/`isValidAwardBallot`/`canVoteFor` e responder 400; o erro aqui é só rede de segurança.
+
+**Evite:** média simples (deixa passar "voto de sacanagem"); tratar `null` como 0 no ranking; apurar prêmios antes
+de calcular as notas da rodada (o desempate padrão precisa delas); ignorar voto inválido em silêncio; passar
+`playedIds` com quem só confirmou presença e não jogou.
 
 ### Cartola: `cartolaPoints` / `priceVariation` 🚧 (PR #6)
 **O que é:** pontuação de um jogador no Cartola da pelada (nota da rodada + scouts + bônus, capitão × 1,5)
