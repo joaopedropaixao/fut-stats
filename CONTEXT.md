@@ -16,8 +16,15 @@ Status: ✅ implementado · 🚧 em PR · 📋 planejado (só nos docs, nomes no
   (`POSITION_LABELS`, `TEAM_LABELS`).
 - **O domain é a fonte; o shared deriva.** Constantes e regras nascem em `packages/domain`; os schemas Zod do
   `shared` são gerados a partir delas (`z.enum(POSITIONS)`), nunca o contrário.
-- **Validação do domínio responde, não lança.** Funções `is*`/`matches*` devolvem `boolean`; quem decide o erro
-  (400, mensagem na tela) é a borda (controller/formulário).
+- **Validação do domínio responde, não lança.** O domínio nunca dá `throw` por entrada inválida; quem decide o erro
+  (400, mensagem na tela) é a borda (controller/formulário). Três formas, conforme a necessidade:
+  - `is*`/`matches*` → `boolean`, para um "pode ou não pode" rápido.
+  - `validate*` → **código de erro** (`'SELF_VOTE'`) ou `null`/lista vazia, para dizer **por quê**. Os códigos
+    ficam numa lista `*_ERRORS` no domain; o texto de cada um fica no `shared` (`*_ERROR_LABELS`, um
+    `Record<código, string>`: código sem mensagem não compila).
+  - `parse*` → `Result<T, E>` (`{ ok: true, value }` ou `{ ok: false, errors }`). O `value` tem um tipo "carimbado"
+    (ex.: `ValidRatings`) que só o `parse*` cria. **Função de cálculo só aceita entrada carimbada**: chamar sem
+    validar antes não compila, então o cálculo não precisa checar nem lançar nada.
 - **Domínio não conhece banco nem usuário.** Recebe ids (`string`) e números; não recebe entidade do Prisma.
 - **Goleiro contratado é membro pleno:** joga, vota (notas, MVP, Bola Murcha) e participa do Cartola.
 - **Grupo de confiança:** só entra quem é convidado. Sem antifraude pesado; a média aparada basta.
@@ -48,10 +55,17 @@ comparar string crua vinda de fora sem `isPosition`/`positionSchema`.
 **Não faz:** não há formação alternativa (4-3-3 etc.). A pelada e o Cartola usam sempre 1-2-3-1.
 **Evite:** escrever `7` ou `2 zagueiros` direto no código; use as constantes.
 
-### Nota: `isValidRating` ✅
+### Nota: `isValidRating` / `validateRating` ✅
 **O que é:** nota de 0 a 10, de 0,5 em 0,5 (`RATING_MIN`, `RATING_MAX`, `RATING_STEP`).
-**Devolve:** `boolean`. **Não arredonda nem corrige**: `7.3` é inválida, não vira `7.5`.
+**Devolve:** `isValidRating` → `boolean`; `validateRating` → `RatingError` (`'NOT_A_NUMBER'`, `'OUT_OF_RANGE'`,
+`'INVALID_STEP'`, lista em `RATING_ERRORS`) ou `null` se válida. Textos em `RATING_ERROR_LABELS` (shared).
+**Não arredonda nem corrige**: `7.3` é inválida, não vira `7.5`.
 **Evite:** escala 0–100, nota inteira, nota como string; arredondar em silêncio para "aceitar".
+
+### Resultado de validação: `Result<T, E>` ✅
+**O que é:** `{ ok: true, value: T } | { ok: false, errors: E[] }`. O que as funções `parse*` devolvem: o valor
+validado ou **todos** os problemas encontrados (não para no primeiro).
+**Evite:** `throw` no domínio por entrada inválida; devolver só o primeiro erro quando dá para listar todos.
 
 ### Jogador: `Player` ✅
 **O que é:** o que as regras precisam saber de um jogador: `id`, `primaryPosition`, `secondaryPositions`
@@ -119,39 +133,49 @@ Também define quem pode votar em quem e apura MVP e Bola Murcha pelos votos. Pa
 **Regras:** só quem jogou vota (goleiros inclusos), em qualquer jogador que jogou (dos dois times); ninguém vota
 em si mesmo; votos anônimos para jogadores, média pública.
 
+**Fluxo:** validar → calcular. `parseRatings`/`parseBallots` validam e "carimbam"; `roundScore`/`tallyAwards` só
+aceitam o que foi carimbado (passar array cru não compila). Calcule as notas antes de apurar os prêmios.
+
 **Assinaturas:**
-- `roundScore(ratings: readonly number[], { trim = 1, decimals = 1 }: RoundScoreOptions = {}): number | null`
+- `parseRatings(ratings: readonly number[]): Result<ValidRatings, RatingIssue>`,
+  com `RatingIssue = { index, value, code: RatingError }`.
+- `roundScore(ratings: ValidRatings, { trim = 1, decimals = 1 }: RoundScoreOptions = {}): number | null`
   `trim` = quantas notas descartar de cada ponta; `decimals` = casas do arredondamento.
-- `canVoteFor(voterId: string, targetId: string, playedIds: readonly string[]): boolean`
+- `validateVote(voterId: string, targetId: string, playedIds: readonly string[]): VoteError | null`
+  `VoteError` (lista em `VOTE_ERRORS`): `'VOTER_DID_NOT_PLAY'`, `'SELF_VOTE'`, `'TARGET_DID_NOT_PLAY'`, nessa prioridade.
+- `canVoteFor(voterId, targetId, playedIds): boolean` (versão sim/não de `validateVote`).
 - `rateablePlayers(voterId: string, playedIds: readonly string[]): string[]`
-- `isValidAwardBallot(ballot: AwardBallot, playedIds: readonly string[]): boolean`,
-  com `AwardBallot = { voterId, mvpId, flopId }` (`flop` = Bola Murcha).
-- `tallyAwards(ballots: readonly AwardBallot[], playedIds: readonly string[], { tieBreak = 'ROUND_SCORE', roundScores }: AwardOptions = {}): AwardResult`
-  `tieBreak: 'ROUND_SCORE' | 'SHARE' | 'NONE'`; `roundScores: Record<playerId, number | null>` (obrigatório com `ROUND_SCORE`).
+- `validateAwardBallot(ballot: AwardBallot, playedIds: readonly string[]): BallotIssue[]`,
+  com `AwardBallot = { voterId, mvpId, flopId }` (`flop` = Bola Murcha) e
+  `BallotIssue = { voterId, field: 'voterId' | 'mvpId' | 'flopId', code: BallotError }`.
+  `BallotError` (lista em `BALLOT_ERRORS`) = os de `VoteError` + `'SAME_PLAYER_BOTH'` + `'DUPLICATE_VOTER'`.
+- `isValidAwardBallot(ballot, playedIds): boolean` (versão sim/não).
+- `parseBallots(ballots: readonly AwardBallot[], playedIds: readonly string[]): Result<ValidBallots, BallotIssue>`
+- `tallyAwards(ballots: ValidBallots, options: AwardOptions): AwardResult`, com
+  `AwardOptions = { tieBreak?: 'ROUND_SCORE' (padrão); roundScores: Record<playerId, number | null> } | { tieBreak: 'SHARE' | 'NONE' }`.
+  `options` é obrigatório: o desempate padrão sem `roundScores` não compila.
 
 **Faz:**
 - `roundScore`: descarta as `trim` maiores e menores e tira a média do resto; se não sobrar nota depois de aparar
   (menos de 3 notas com `trim` 1), faz a média simples. Arredonda (meio para cima: 7,25 → 7,3).
-- `canVoteFor`/`rateablePlayers`: aplicam a regra de voto; `rateablePlayers` lista quem o votante deve avaliar.
-- `isValidAwardBallot`: voto obrigatório em MVP **e** Bola Murcha, em jogadores diferentes, ambos votáveis.
+- `validateVote`/`canVoteFor`/`rateablePlayers`: aplicam a regra de voto; `rateablePlayers` lista quem o votante deve avaliar.
+- `validateAwardBallot`: voto obrigatório em MVP **e** Bola Murcha, em jogadores diferentes, ambos votáveis. Lista
+  todos os problemas do voto; se o votante não jogou, devolve só esse.
+- `parseBallots`: valida todos os votos e marca o segundo voto da mesma pessoa como `DUPLICATE_VOTER`.
 - `tallyAwards`: mais votado leva. Empate: `ROUND_SCORE` (padrão) dá o MVP à maior nota da rodada e a Bola Murcha
   à menor; quem não tem nota perde o desempate; se a nota empatar (ou ninguém tiver nota), todos levam.
   `SHARE` = todos os empatados levam; `NONE` = ninguém leva.
 
-**Não faz:** não controla prazo nem abertura/fechamento da votação; não guarda votos nem sabe quem votou de forma
-anônima (recebe ids); não exige que todos votem.
+**Não faz:** não lança erro; não controla prazo nem abertura/fechamento da votação; não guarda votos (recebe ids);
+não exige que todos votem; não tem texto de UI (mensagens em `RATING_ERROR_LABELS`/`BALLOT_ERROR_LABELS` no shared).
 
-**Devolve:** `roundScore` → nota arredondada, ou `null` sem notas (`null` ≠ nota 0). `canVoteFor`/`isValidAwardBallot`
-→ `boolean`. `rateablePlayers` → ids (vazio se o votante não jogou). `tallyAwards` → `{ mvpIds, flopIds }`, listas
-em ordem alfabética (várias pessoas no empate compartilhado; vazias sem votos ou com `NONE`).
-
-**Lança (pré-condição, não validação):** `roundScore` lança `RangeError` com nota inválida; `tallyAwards` lança com
-voto inválido, votante repetido ou `ROUND_SCORE` sem `roundScores`. A borda deve filtrar antes com
-`isValidRating`/`isValidAwardBallot`/`canVoteFor` e responder 400; o erro aqui é só rede de segurança.
+**Devolve:** `roundScore` → nota arredondada, ou `null` sem notas (`null` ≠ nota 0). `parse*` → `Result` com todos
+os problemas. `validate*` → código(s) de erro com o campo, para a borda montar a mensagem. `tallyAwards` →
+`{ mvpIds, flopIds }`, listas em ordem alfabética (várias pessoas no empate compartilhado; vazias sem votos ou com `NONE`).
 
 **Evite:** média simples (deixa passar "voto de sacanagem"); tratar `null` como 0 no ranking; apurar prêmios antes
-de calcular as notas da rodada (o desempate padrão precisa delas); ignorar voto inválido em silêncio; passar
-`playedIds` com quem só confirmou presença e não jogou.
+de calcular as notas da rodada; ignorar voto inválido em silêncio; converter para `ValidRatings`/`ValidBallots` com
+`as` fora do `parse*` (fura o carimbo); passar `playedIds` com quem só confirmou presença e não jogou.
 
 ### Cartola: `cartolaPoints` / `priceVariation` 🚧 (PR #6)
 **O que é:** pontuação de um jogador no Cartola da pelada (nota da rodada + scouts + bônus, capitão × 1,5)
