@@ -4,7 +4,7 @@ Este arquivo **é** o quadro de tarefas: marque `[x]` no mesmo PR que entrega o 
 Regra de ouro: **cada fase termina com algo no ar**, não só no seu computador.
 
 ## Fase 0: Fundação
-- [ ] Repositório no GitHub, branches `main` e `develop`, proteção de branch
+- [x] Repositório no GitHub, branches `main` e `develop`, proteção de branch
 - [x] Monorepo (pnpm + Turborepo) com `apps/api`, `apps/web` e `packages/shared`
 - [x] Lint + Prettier + TypeScript strict
 - [x] CI no GitHub Actions (lint, typecheck, testes em todo PR)
