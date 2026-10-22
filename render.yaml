@@ -1,0 +1,31 @@
+# Blueprint do Render: API de staging (plano free), deploy automático a cada push na develop.
+# Passo a passo em docs/deploy.md.
+services:
+  - type: web
+    name: fut-stats-api-staging
+    runtime: node
+    plan: free
+    # Mais perto do Brasil entre as regiões do Render; o banco do Neon deve ficar em us-east-1 também.
+    region: virginia
+    branch: develop
+    autoDeployTrigger: commit
+    # Versão do Node vem do .nvmrc; o pnpm, do campo "packageManager" (via corepack).
+    # O turbo builda só a api e o que ela usa (shared, domain).
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@fut-stats/api
+    startCommand: pnpm --filter @fut-stats/api start
+    healthCheckPath: /api/health
+    # Só redeploya quando muda algo que afeta a API (mudança só no front não acorda o Render).
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/**
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - .nvmrc
+        - render.yaml
+    envVars:
+      # Connection string do Neon (branch dev). O Render pede o valor ao criar o Blueprint.
+      - key: DATABASE_URL
+        sync: false
