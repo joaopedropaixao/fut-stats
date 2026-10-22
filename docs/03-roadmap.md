@@ -53,6 +53,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Mercado abre/fecha por rodada
 - [ ] Montar escalação + capitão, com orçamento
 - [ ] Pontuação e valorização após a votação
+  - [x] Regras puras em `packages/domain/src/cartola` (pontos, valorização, validação da escalação)
 - [ ] Ranking do Cartola (rodada e geral)
 
 ## Fase 6: Pagamentos

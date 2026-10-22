@@ -3,3 +3,4 @@
 export * from './core';
 export * from './balance-teams';
 export * from './round-score';
+export * from './cartola';

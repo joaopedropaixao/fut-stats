@@ -1,5 +1,12 @@
 import { isValidRating, POSITIONS, RATING_MAX, RATING_MIN, TEAMS } from '@fut-stats/domain';
-import type { BallotError, Position, RatingError, Team } from '@fut-stats/domain';
+import type {
+  BallotError,
+  CartolaScoutError,
+  CartolaSquadError,
+  Position,
+  RatingError,
+  Team,
+} from '@fut-stats/domain';
 import { z } from 'zod';
 
 // Schemas derivados das constantes do domínio: a regra mora em packages/domain,
@@ -51,4 +58,19 @@ export const BALLOT_ERROR_LABELS: Readonly<Record<BallotError, string>> = {
   SELF_VOTE: 'Você não pode votar em si mesmo',
   SAME_PLAYER_BOTH: 'MVP e Bola Murcha precisam ser jogadores diferentes',
   DUPLICATE_VOTER: 'Você já votou nesta rodada',
+};
+
+/** Por que um scout do Cartola é inválido. */
+export const CARTOLA_SCOUT_ERROR_LABELS: Readonly<Record<CartolaScoutError, string>> = {
+  INVALID_COUNT: 'Use um número inteiro, zero ou mais',
+};
+
+/** Por que uma escalação do Cartola é inválida. */
+export const CARTOLA_SQUAD_ERROR_LABELS: Readonly<Record<CartolaSquadError, string>> = {
+  INVALID_FORMATION:
+    'A escalação precisa ser 1-2-3-1: goleiro, 2 zagueiros, 2 alas, 1 meio e 1 atacante',
+  UNKNOWN_PLAYER: 'Tem jogador na escalação que não está no mercado',
+  POSITION_NOT_ALLOWED: 'Tem jogador numa posição que não é a principal nem a secundária dele',
+  OVER_BUDGET: 'A escalação passa do seu patrimônio',
+  CAPTAIN_NOT_IN_SQUAD: 'O capitão precisa estar na escalação',
 };
