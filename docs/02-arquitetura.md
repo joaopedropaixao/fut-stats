@@ -62,7 +62,8 @@ fut-stats/
 │  ├─ api/          # NestJS + Prisma
 │  └─ web/          # React + Vite (PWA)
 ├─ packages/
-│  └─ shared/       # schemas Zod, tipos, enums
+│  ├─ shared/       # schemas Zod, tipos, enums
+│  └─ domain/       # regras de domínio puras (times, notas, Cartola)
 ├─ docs/
 ├─ .github/workflows/
 └─ CLAUDE.md

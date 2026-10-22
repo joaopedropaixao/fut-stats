@@ -5,9 +5,9 @@ Regra de ouro: **cada fase termina com algo no ar**, não só no seu computador.
 
 ## Fase 0: Fundação
 - [ ] Repositório no GitHub, branches `main` e `develop`, proteção de branch
-- [ ] Monorepo (pnpm + Turborepo) com `apps/api`, `apps/web` e `packages/shared`
-- [ ] Lint + Prettier + TypeScript strict
-- [ ] CI no GitHub Actions (lint, typecheck, testes em todo PR)
+- [x] Monorepo (pnpm + Turborepo) com `apps/api`, `apps/web` e `packages/shared`
+- [x] Lint + Prettier + TypeScript strict
+- [x] CI no GitHub Actions (lint, typecheck, testes em todo PR)
 - [ ] Banco no Neon + Prisma conectado
 - [ ] **Deploy "hello world"** de front e API (staging a partir da `develop`)
 - [ ] Login com Google funcionando em staging

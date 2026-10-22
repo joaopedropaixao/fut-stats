@@ -17,6 +17,20 @@ App de pelada (times, notas, ranking, feed, Cartola). Contexto completo em `docs
   `GH_TOKEN=$(gh auth token --user joaopedropaixao) gh ...` (a conta ativa do `gh` na máquina é outra).
 - PRs sempre com base em `develop` (exceto release/hotfix para `main`).
 
+## Comandos principais
+Rodar na raiz (Node 24, pnpm via Corepack). O Turborepo executa em todos os pacotes na ordem certa.
+- `pnpm install`: instala dependências de todo o monorepo.
+- `pnpm dev` (`turbo watch dev`): sobe API (`:3000`) e web (`:5173`, proxy `/api/*` → API). Mudanças em
+  `packages/*` recompilam o pacote e reiniciam as apps sozinhas.
+- `pnpm lint` (ESLint + Prettier check), `pnpm typecheck`, `pnpm test`, `pnpm build`.
+- `pnpm format`: aplica o Prettier.
+- Um pacote só: `pnpm --filter @fut-stats/api test` (ou `web`, `shared`, `domain`).
+- Adicionar dependência: `pnpm --filter @fut-stats/web add <pacote>`.
+- Testes da API: Jest (Nest 12 é ESM, por isso roda com `--experimental-vm-modules`); `packages/domain`: Vitest.
+- `packages/shared` e `packages/domain` são compilados (tsup) para `dist/`; o Turbo builda eles antes de quem depende.
+- Rotas da API ficam sob `/api` (`setGlobalPrefix` em `apps/api/src/setup-app.ts`), igual em dev e produção.
+- Variáveis de ambiente da API são validadas com Zod em `apps/api/src/config/env.ts`; nova variável entra lá e no `.env.example`.
+
 ## Ambiente de desenvolvimento: Orca (stablyai/orca)
 - IDE que orquestra vários agentes de CLI (Claude Code, Codex, OpenCode, Pi...) em paralelo, em abas/painéis.
 - **Cada agente roda em um git worktree próprio** (cópia isolada do repo, branch própria). Não compartilham working directory.

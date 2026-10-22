@@ -18,6 +18,32 @@ notas pós-jogo, ranking, resenhas e um Cartola da pelada.**
 
 React · Vite · TypeScript · NestJS · Prisma · PostgreSQL · PWA · pnpm/Turborepo
 
+## Como rodar localmente
+
+Pré-requisitos: **Node 24** (veja `.nvmrc`) e **pnpm** (via Corepack: `corepack enable`).
+
+```bash
+pnpm install                                # instala tudo (todas as apps e pacotes)
+cp apps/api/.env.example apps/api/.env      # variáveis da API
+cp apps/web/.env.example apps/web/.env      # variáveis do front
+pnpm dev                                    # sobe API e web juntas
+```
+
+- Web: http://localhost:5173 (mostra o status da API)
+- API: http://localhost:3000/api/health → `{ "status": "ok" }` (todas as rotas ficam sob `/api`)
+
+Outros comandos (na raiz): `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format`.
+
+### Estrutura
+
+```
+apps/api              NestJS (porta 3000)
+apps/web              React + Vite + Tailwind (porta 5173; /api/* → API)
+packages/shared       schemas Zod usados pela API e pela web
+packages/domain       regras de domínio puras (Vitest)
+packages/eslint-config  config de ESLint compartilhada
+```
+
 ## Documentação
 
 1. [Visão e escopo](docs/01-visao-e-escopo.md)
