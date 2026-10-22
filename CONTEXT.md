@@ -19,6 +19,11 @@ Status: ✅ implementado · 🚧 em PR · 📋 planejado (só nos docs, nomes no
 - **Validação do domínio responde, não lança.** Funções `is*`/`matches*` devolvem `boolean`; quem decide o erro
   (400, mensagem na tela) é a borda (controller/formulário).
 - **Domínio não conhece banco nem usuário.** Recebe ids (`string`) e números; não recebe entidade do Prisma.
+- **Goleiro contratado é membro pleno:** joga, vota (notas, MVP, Bola Murcha) e participa do Cartola.
+- **Grupo de confiança:** só entra quem é convidado. Sem antifraude pesado; a média aparada basta.
+- **Votar e jogar o Cartola são opcionais.** A rodada só exige os 2 goleiros e os confirmados. Regra de notas e
+  Cartola tem que funcionar com adesão parcial (poucos votos, poucos times no Cartola) sem quebrar nem travar.
+- **Nota da rodada com poucos votos:** com 3 votos ou menos, média simples; a partir de 4, média aparada.
 
 ---
 
