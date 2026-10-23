@@ -1,15 +1,11 @@
 import {
   MATCH_EVENT_TYPE_LABELS,
-  POSITION_LABELS,
-  TEAM_LABELS,
   type LaunchableEventType,
   type MatchEventItem,
   type MatchView,
 } from '@fut-stats/shared';
 import { useCallback, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { Avatar } from '../../components/ui/avatar';
-import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
@@ -18,7 +14,8 @@ import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states
 import { Toast, type ToastData } from '../../components/ui/toast';
 import { useCurrentGroup } from '../../features/group/use-current-group';
 import { EventList } from '../../features/match/event-list';
-import { ScoreStepper, Scoreboard } from '../../features/match/scoreboard';
+import { PlayerPicker } from '../../features/match/player-picker';
+import { Scoreboard } from '../../features/match/scoreboard';
 import { useMatch, useMatchActions } from '../../features/match/use-match';
 import { ApiError } from '../../lib/api';
 
@@ -30,14 +27,17 @@ export function MatchPage() {
   return (
     <>
       <title>Jogo · Fut Stats</title>
-      <div className="flex items-center justify-between gap-3">
-        <PixelText as="h1" size={24} wrap className="outline-none">
+      <div className="-mt-2 flex items-center gap-1">
+        <Link
+          to={`/rodadas/${roundId}`}
+          aria-label="Voltar para a rodada"
+          className="-ml-3 inline-flex size-11 shrink-0 items-center justify-center"
+        >
+          <Icon name="chevronLeft" size={22} />
+        </Link>
+        <PixelText as="h1" size={24} className="outline-none">
           Jogo
         </PixelText>
-        <Link to={`/rodadas/${roundId}`} className="inline-flex h-11 items-center gap-1 pr-1">
-          <Icon name="chevronLeft" size={18} />
-          <PixelText>Rodada</PixelText>
-        </Link>
       </div>
       {groupPending ? (
         <SkeletonList rows={3} />
@@ -56,7 +56,7 @@ export function MatchPage() {
 function failureText(error: unknown): string {
   return error instanceof ApiError && error.body
     ? error.body.message
-    : 'Não deu certo. Tente de novo.';
+    : 'Não deu certo. Confira a internet e tente de novo.';
 }
 
 function MatchContent({ groupId, roundId }: { groupId: string; roundId: string }) {
@@ -70,7 +70,7 @@ function MatchContent({ groupId, roundId }: { groupId: string; roundId: string }
         title={notFound ? 'Rodada não encontrada' : 'Não deu para abrir o jogo'}
         message={
           notFound
-            ? 'Essa rodada não existe neste grupo.'
+            ? 'Essa rodada não existe neste grupo. Volte e escolha outra.'
             : 'Parece que a internet caiu ou o servidor está acordando. Tente de novo em instantes.'
         }
         onRetry={notFound ? undefined : () => void match.refetch()}
@@ -79,6 +79,24 @@ function MatchContent({ groupId, roundId }: { groupId: string; roundId: string }
     );
   }
   return <MatchBoard groupId={groupId} roundId={roundId} view={match.data} />;
+}
+
+/** Antes do jogo: o que falta, dito para quem está vendo (o admin faz; o jogador espera). */
+function notStartedText(status: 'SCHEDULED' | 'TEAMS_PUBLISHED', isAdmin: boolean) {
+  if (status === 'SCHEDULED') {
+    return {
+      title: 'Os times ainda não saíram',
+      message: isAdmin
+        ? 'Monte e publique os times da rodada. Depois é só começar o jogo aqui.'
+        : 'Quando o admin publicar os times e começar o jogo, o placar aparece aqui.',
+    };
+  }
+  return {
+    title: 'A bola ainda não rolou',
+    message: isAdmin
+      ? 'Comece o jogo quando a bola rolar: o placar e os lances passam a valer.'
+      : 'Quando o admin começar o jogo, o placar e os lances aparecem aqui.',
+  };
 }
 
 type Confirming = 'start' | 'finish' | null;
@@ -144,99 +162,100 @@ function MatchBoard({
   }
 
   const next = view.next;
-  const notStarted = view.status === 'SCHEDULED' || view.status === 'TEAMS_PUBLISHED';
+  const notStarted =
+    view.status === 'SCHEDULED' || view.status === 'TEAMS_PUBLISHED'
+      ? notStartedText(view.status, isAdmin)
+      : null;
+  const launching = (type: LaunchableEventType) =>
+    actions.launchEvent.isPending && actions.launchEvent.variables?.type === type;
 
   return (
     <>
       {notStarted ? (
-        <EmptyState
-          title={
-            view.status === 'SCHEDULED'
-              ? 'Os times ainda não foram publicados'
-              : 'O jogo ainda não começou'
-          }
-          message={
-            view.status === 'SCHEDULED'
-              ? 'Quando o admin publicar os times e começar o jogo, o placar aparece aqui.'
-              : 'Quando o admin começar o jogo, o placar e os lances aparecem aqui.'
-          }
-        />
+        <EmptyState title={notStarted.title} message={notStarted.message} />
       ) : (
         <>
-          <Scoreboard status={view.status} score={view.score} />
-          {isAdmin && view.isOpen && (
-            <ScoreStepper
-              score={view.score}
-              busy={actions.setScore.isPending}
-              onChange={(score) => actions.setScore.mutate(score, { onError: fail })}
-            />
+          <Scoreboard
+            status={view.status}
+            score={view.score}
+            scheduledAt={view.scheduledAt}
+            editor={
+              isAdmin && view.isOpen
+                ? {
+                    busy: actions.setScore.isPending,
+                    onChange: (score) => actions.setScore.mutate(score, { onError: fail }),
+                  }
+                : undefined
+            }
+          />
+          {view.isOpen && isAdmin && (
+            <section aria-label="Lançar lance" className="flex flex-col gap-3">
+              <Button
+                variant="secondary"
+                icon="plus"
+                label="Lançar gol"
+                block
+                onClick={() => setPicking('GOAL')}
+              />
+              <Button
+                variant="secondary"
+                icon="plus"
+                label="Lançar assistência"
+                block
+                onClick={() => setPicking('ASSIST')}
+              />
+            </section>
+          )}
+          {view.isOpen && !isAdmin && me && (
+            <section aria-label="Lançar o meu lance" className="flex flex-col gap-3">
+              <Button
+                variant="secondary"
+                icon="plus"
+                label="Meu gol"
+                block
+                loading={launching('GOAL')}
+                disabled={actions.launchEvent.isPending && !launching('GOAL')}
+                onClick={() => launch(membershipId, 'GOAL', me.nickname)}
+              />
+              <Button
+                variant="secondary"
+                icon="plus"
+                label="Minha assistência"
+                block
+                loading={launching('ASSIST')}
+                disabled={actions.launchEvent.isPending && !launching('ASSIST')}
+                onClick={() => launch(membershipId, 'ASSIST', me.nickname)}
+              />
+            </section>
+          )}
+          {view.isOpen && !isAdmin && !me && (
+            <p className="text-sm text-text-muted">
+              Você não jogou esta rodada: dá para acompanhar o placar e os lances por aqui.
+            </p>
           )}
           <EventList
             events={view.events}
+            score={view.score}
             onRemove={remove}
             removing={actions.removeEvent.isPending}
           />
-          {view.isOpen && (isAdmin || me) && (
-            <section aria-label="Lançar" className="flex flex-col gap-3">
-              {isAdmin ? (
-                <>
-                  <Button
-                    variant="outline"
-                    icon="plus"
-                    label="Lançar gol"
-                    block
-                    onClick={() => setPicking('GOAL')}
-                  />
-                  <Button
-                    variant="outline"
-                    icon="plus"
-                    label="Lançar assistência"
-                    block
-                    onClick={() => setPicking('ASSIST')}
-                  />
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    icon="plus"
-                    label="Meu gol"
-                    block
-                    loading={
-                      actions.launchEvent.isPending &&
-                      actions.launchEvent.variables?.type === 'GOAL'
-                    }
-                    disabled={actions.launchEvent.isPending}
-                    onClick={() => launch(membershipId, 'GOAL', me?.nickname ?? '')}
-                  />
-                  <Button
-                    variant="outline"
-                    icon="plus"
-                    label="Minha assistência"
-                    block
-                    loading={
-                      actions.launchEvent.isPending &&
-                      actions.launchEvent.variables?.type === 'ASSIST'
-                    }
-                    disabled={actions.launchEvent.isPending}
-                    onClick={() => launch(membershipId, 'ASSIST', me?.nickname ?? '')}
-                  />
-                </>
-              )}
-            </section>
-          )}
         </>
       )}
 
       {isAdmin && next && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           <Button
             label={next.to === 'IN_PROGRESS' ? 'Começar jogo' : 'Encerrar jogo'}
             block
             disabled={!next.allowed}
             onClick={() => setConfirming(next.to === 'IN_PROGRESS' ? 'start' : 'finish')}
           />
-          {next.reason && <p className="text-sm text-text-muted">{next.reason}</p>}
+          {next.reason && (
+            <p className="flex gap-2 text-sm text-text-muted">
+              <Icon name="alert" size={18} className="mt-px shrink-0 text-warning" />
+              {next.reason}
+            </p>
+          )}
         </div>
       )}
 
@@ -275,51 +294,5 @@ function MatchBoard({
       </Sheet>
       {toast && <Toast data={toast} onDismiss={dismissToast} />}
     </>
-  );
-}
-
-function PlayerPicker({
-  players,
-  onPick,
-}: {
-  players: MatchView['players'];
-  onPick: (player: MatchView['players'][number]) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-4">
-      {(['WHITE', 'BLACK'] as const).map((team) => (
-        <div key={team} className="flex flex-col gap-2">
-          <Badge
-            variant={team === 'WHITE' ? 'white' : 'black'}
-            label={TEAM_LABELS[team]}
-            className="self-start"
-          />
-          <ul className="flex flex-col gap-2">
-            {players
-              .filter((player) => player.team === team)
-              .map((player) => (
-                <li key={player.membershipId}>
-                  <button
-                    type="button"
-                    onClick={() => onPick(player)}
-                    className="flex h-14 w-full items-center gap-3 bg-surface px-4 text-left shadow-card active:bg-highlight"
-                  >
-                    <Avatar
-                      nickname={player.nickname}
-                      team={team === 'WHITE' ? 'white' : 'black'}
-                      size={32}
-                      gap="surface"
-                    />
-                    <PixelText className="flex-1">{player.nickname}</PixelText>
-                    <span className="text-caption text-text-muted">
-                      {player.isReserve ? 'Reserva' : POSITION_LABELS[player.position]}
-                    </span>
-                  </button>
-                </li>
-              ))}
-          </ul>
-        </div>
-      ))}
-    </div>
   );
 }
