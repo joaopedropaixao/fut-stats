@@ -20,6 +20,12 @@ const PATHS = {
   ),
   trash: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
   share: <path d="M12 3v12M7 8l5-5 5 5M5 14v5h14v-5" />,
+  copy: (
+    <>
+      <rect x="8" y="8" width="12" height="12" />
+      <path d="M16 8V4H4v12h4" />
+    </>
+  ),
   clock: (
     <>
       <circle cx="12" cy="13" r="8" />

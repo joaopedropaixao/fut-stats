@@ -1,4 +1,5 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode, Ref } from 'react';
+import { Link, type LinkProps } from 'react-router';
 import { cn } from '../../lib/cn';
 import { Icon, Spinner, type IconName } from './icons';
 import { PixelText } from './pixel-text';
@@ -96,6 +97,8 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> &
     label: string;
     icon?: IconName;
     loading?: boolean;
+    /** Para mover o foco até o botão (ex.: ao abrir ou fechar uma confirmação). */
+    ref?: Ref<HTMLButtonElement>;
   };
 
 export function Button({
@@ -157,6 +160,29 @@ export function ButtonLink({
     <a className={buttonClasses({ variant, size, block, className })} {...rest}>
       <Content label={label} icon={icon} mark={mark} variant={variant} />
     </a>
+  );
+}
+
+type LinkButtonProps = Omit<LinkProps, 'children' | 'className'> &
+  Omit<ButtonStyleOptions, 'disabled'> & {
+    label: string;
+    icon?: IconName;
+  };
+
+/** Botão que navega para uma rota interna (Link do router, sem recarregar a página). */
+export function LinkButton({
+  label,
+  icon,
+  variant = 'primary',
+  size,
+  block,
+  className,
+  ...rest
+}: LinkButtonProps) {
+  return (
+    <Link className={buttonClasses({ variant, size, block, className })} {...rest}>
+      <Content label={label} icon={icon} variant={variant} />
+    </Link>
   );
 }
 
