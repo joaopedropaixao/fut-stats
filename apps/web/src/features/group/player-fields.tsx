@@ -1,33 +1,21 @@
-import { joinGroupSchema, positionSchema } from '@fut-stats/shared';
-import type { z } from 'zod';
-import { useState } from 'react';
+import type { JoinGroupInput } from '@fut-stats/shared';
+import { useReducer } from 'react';
 import { TextField } from '../../components/ui/text-field';
+import {
+  initialPlayerFields,
+  playerFieldsReducer,
+  validatePlayerFields,
+} from './player-fields-state';
 import { PositionPicker } from './position-picker';
-
-type Position = z.infer<typeof positionSchema>;
-
-export type PlayerFieldErrors = { nickname?: string; primaryPosition?: string };
 
 /** Apelido + posição, os dois campos de quem entra numa pelada. A validação é a do contrato compartilhado. */
 export function usePlayerFields() {
-  const [nickname, setNickname] = useState('');
-  const [position, setPosition] = useState<Position | null>(null);
-  const [errors, setErrors] = useState<PlayerFieldErrors>({});
+  const [state, dispatch] = useReducer(playerFieldsReducer, initialPlayerFields);
 
-  function validate(): { nickname: string; primaryPosition: Position } | null {
-    const parsed = joinGroupSchema.safeParse({ nickname, primaryPosition: position ?? undefined });
-    if (parsed.success) {
-      setErrors({});
-      return parsed.data;
-    }
-    const next: PlayerFieldErrors = {};
-    for (const issue of parsed.error.issues) {
-      const key = issue.path[0];
-      if (key === 'nickname') next.nickname ??= issue.message;
-      if (key === 'primaryPosition') next.primaryPosition ??= 'Escolha sua posição';
-    }
-    setErrors(next);
-    return null;
+  function validate(): JoinGroupInput | null {
+    const result = validatePlayerFields(state);
+    dispatch({ type: 'errors', errors: 'errors' in result ? result.errors : {} });
+    return 'data' in result ? result.data : null;
   }
 
   const fields = (
@@ -35,12 +23,17 @@ export function usePlayerFields() {
       <TextField
         label="Seu apelido"
         hint="Até 10 letras. É como o pessoal vai te ver."
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-        error={errors.nickname}
+        value={state.nickname}
+        onChange={(e) => dispatch({ type: 'nickname', value: e.target.value })}
+        autoCapitalize="words"
+        error={state.errors.nickname}
         autoComplete="off"
       />
-      <PositionPicker value={position} onChange={setPosition} error={errors.primaryPosition} />
+      <PositionPicker
+        value={state.position}
+        onChange={(value) => dispatch({ type: 'position', value })}
+        error={state.errors.primaryPosition}
+      />
     </>
   );
 
