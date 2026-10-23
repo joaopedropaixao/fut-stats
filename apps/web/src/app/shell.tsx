@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { ErrorState, SkeletonList } from '../components/ui/states';
 import { TabBar } from '../components/ui/tab-bar';
+import { peekPendingDestination } from '../features/group/invite-code';
 import { useSession } from '../features/session/use-session';
 import { TABS } from './tabs';
 
@@ -25,6 +26,12 @@ export function AppShell() {
   }, [pathname]);
 
   if (session.data === null) return <Navigate to="/entrar" replace />;
+
+  // Voltou do Google com um convite guardado: retoma o convite
+  const pending = session.data ? peekPendingDestination() : null;
+  if (pending) return <Navigate to={pending} replace />;
+  // Logado e sem pelada: o início é criar uma ou entrar por convite
+  if (session.data && session.data.groups.length === 0) return <Navigate to="/comecar" replace />;
 
   // Com sessão em cache, um erro numa atualização em segundo plano não derruba a tela
   const ready = session.data !== undefined;
