@@ -71,8 +71,14 @@ export interface RoundVoteIssues {
   awards: BallotIssue[];
 }
 
-/** Valida o pacote inteiro; problemas das notas e dos prêmios vêm separados. */
+/**
+ * Valida o pacote inteiro; problemas das notas e dos prêmios vêm separados. Se o votante não jogou,
+ * o motivo vem uma vez só, nas notas.
+ */
 export function validateRoundVote(vote: RoundVote, playedIds: readonly string[]): RoundVoteIssues {
+  if (!playedIds.includes(vote.voterId)) {
+    return { ratings: [{ targetId: vote.voterId, code: 'VOTER_DID_NOT_PLAY' }], awards: [] };
+  }
   return {
     ratings: validateRatingSheet(vote.voterId, vote.ratings, playedIds),
     awards: validateAwardBallot(vote, playedIds),

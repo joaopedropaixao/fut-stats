@@ -31,7 +31,10 @@ export function votingDeadline(openedAt: Date, deadlineHours: number): Date {
  */
 export function votingCloseReason(now: Date, voting: VotingState): VotingCloseReason | null {
   const voted = new Set(voting.votedIds);
-  if (voting.playedIds.every((id) => voted.has(id))) return 'ALL_VOTED';
+  // Sem ninguém que jogou, "todos votaram" seria verdade sem ninguém votar: só o prazo fecha.
+  if (voting.playedIds.length > 0 && voting.playedIds.every((id) => voted.has(id))) {
+    return 'ALL_VOTED';
+  }
   if (now.getTime() >= votingDeadline(voting.openedAt, voting.deadlineHours).getTime()) {
     return 'DEADLINE_PASSED';
   }

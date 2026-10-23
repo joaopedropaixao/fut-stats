@@ -56,11 +56,12 @@ comparar string crua vinda de fora sem `isPosition`/`positionSchema`.
 **Não faz:** não existe terceiro time, mandante/visitante nem id de time.
 **Evite:** `A/B`, `home/away`, `1/2`; supor que um time é "o forte" ou que a ordem significa algo.
 
-### Formação: `FORMATION` / `PLAYERS_PER_TEAM` ✅
+### Formação: `FORMATION` / `PLAYERS_PER_TEAM` / `MAX_RESERVES_PER_TEAM` ✅
 **O que é:** quantos jogadores por posição num time: 1 goleiro, 2 zagueiros, 2 alas, 1 meio, 1 atacante.
-`PLAYERS_PER_TEAM` = 7 (calculado da formação).
+`PLAYERS_PER_TEAM` = 7 (calculado da formação). `MAX_RESERVES_PER_TEAM` = 2: padrão do `balanceTeams` e da
+validação dos times da rodada.
 **Não faz:** não há formação alternativa (4-3-3 etc.). A pelada e o Cartola usam sempre 1-2-3-1.
-**Evite:** escrever `7` ou `2 zagueiros` direto no código; use as constantes.
+**Evite:** escrever `7`, `2 zagueiros` ou `2 reservas` direto no código; use as constantes.
 
 ### Nota: `isValidRating` / `validateRating` ✅
 **O que é:** nota de 0 a 10, de 0,5 em 0,5 (`RATING_MIN`, `RATING_MAX`, `RATING_STEP`).
@@ -106,7 +107,7 @@ editar antes de publicar.
   - `repeatedPairWeight` (λ) = `0.5`: custo de cada dupla repetida, em pontos de força.
   - `lookbackRounds` = `3`: quantas rodadas recentes do histórico contam.
   - `offPositionFactor` = `0.9`: multiplica a nota de quem joga na posição secundária.
-  - `maxReservesPerTeam` = `2`.
+  - `maxReservesPerTeam` = `MAX_RESERVES_PER_TEAM` (2).
   - `random` = `Math.random`: desempate. Use `seededRandom(seed)` (exportado) para ter determinismo.
 
 **Faz:**
@@ -184,7 +185,8 @@ aceitam o que foi carimbado (passar array cru não compila). Calcule as notas an
 - `validateRatingSheet`: a folha de notas de um votante cobre todos os avaliáveis, sem repetir alvo, sem nota para
   si mesmo ou para quem não jogou e com notas válidas. Lista todos os problemas (na ordem da folha, depois os que
   faltaram como `MISSING_RATING`); se o votante não jogou, devolve só esse.
-- `validateRoundVote`: valida o pacote (folha de notas + `validateAwardBallot`), com os problemas separados.
+- `validateRoundVote`: valida o pacote (folha de notas + `validateAwardBallot`), com os problemas separados. Se o
+  votante não jogou, `VOTER_DID_NOT_PLAY` vem uma vez só, em `ratings`.
 - `parseBallots`: valida todos os votos e marca o segundo voto da mesma pessoa como `DUPLICATE_VOTER`.
 - `tallyAwards`: mais votado leva. Empate: `ROUND_SCORE` (padrão) dá o Craque à maior nota da rodada e o Perna de Pau
   à menor; quem não tem nota perde o desempate; se a nota empatar (ou ninguém tiver nota), todos levam.
@@ -280,7 +282,7 @@ e quando a votação fecha sozinha.
 - `RoundActor = { id, isAdmin }`: quem está agindo. O domínio não conhece usuário: a API diz se é admin do grupo.
 
 **Assinaturas:**
-- `validateRoundTransition(round: RoundState, to: RoundStatus, { maxReservesPerTeam = 2 }: RoundTeamsOptions = {}): RoundTransitionError[]`
+- `validateRoundTransition(round: RoundState, to: RoundStatus, { maxReservesPerTeam = MAX_RESERVES_PER_TEAM }: RoundTeamsOptions = {}): RoundTransitionError[]`
   e `canTransitionRound(...)` (sim/não). `RoundTransitionError` (lista em `ROUND_TRANSITION_ERRORS`):
   `'INVALID_TRANSITION'`, `'INVALID_LINEUP'`, `'INVALID_RESERVES'`, `'SCORE_MISSING'`, `'INVALID_SCORE'`,
   `'GOALS_MISMATCH'`, `'TOO_MANY_ASSISTS'`.
@@ -305,7 +307,7 @@ e quando a votação fecha sozinha.
 - **Ciclo:** só anda para frente, com uma volta: `TEAMS_PUBLISHED` → `SCHEDULED` (despublicar para refazer os times).
   `CLOSED` é definitivo (votação não reabre). Pré-condições: publicar times e começar o jogo exigem `RoundTeams`
   válido (`isValidRoundLineup` + até `maxReservesPerTeam` reservas por time, sem repetir ninguém nem titular);
-  ir para `VOTING` e para `CLOSED` exigem placar lançado e válido, **gols lançados = placar** em cada time
+  ir para `VOTING` e para `CLOSED` exigem times montados (sem eles, `INVALID_LINEUP`), placar lançado e válido, **gols lançados = placar** em cada time
   (gol contra conta para o adversário) e assistências ≤ gols do time. Etapa inválida devolve só `INVALID_TRANSITION`.
 - **Cancelar:** não há status de cancelada. Rodada que não vai acontecer é apagada, e só antes do jogo
   (`SCHEDULED` ou `TEAMS_PUBLISHED`, `isRoundDeletable`).
@@ -315,8 +317,9 @@ e quando a votação fecha sozinha.
   os gols de um time não passam do placar dele, nem as assistências.
 - **Placar:** só admin, em `IN_PROGRESS` e `VOTING`; não fica abaixo dos gols nem das assistências já lançados.
   Gols podem ser lançados antes do placar.
-- **Votação:** fecha sozinha quando todos que jogaram votaram (`ALL_VOTED`, tem prioridade) ou quando o prazo
-  expira (`DEADLINE_PASSED`, a partir do instante `openedAt + deadlineHours`). Votar é opcional: sem votos, fecha no
+- **Votação:** fecha sozinha quando todos que jogaram votaram (`ALL_VOTED`, tem prioridade; com `playedIds`
+  vazio não vale, só o prazo fecha) ou quando o prazo expira (`DEADLINE_PASSED`, a partir do instante
+  `openedAt + deadlineHours`). Votar é opcional: sem votos, fecha no
   prazo. Voto de quem não jogou ou repetido não conta. O admin pode encerrar antes: basta a transição para `CLOSED`.
   `votedIds` = quem mandou o pacote (notas de todos + Craque + Perna de Pau). Votar e editar o voto só com
   `isVotingOpen`: rodada em `VOTING` e votação ainda não fechada; depois que fecha (por qualquer motivo), não muda.

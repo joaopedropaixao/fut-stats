@@ -92,6 +92,13 @@ describe('validateRoundVote', () => {
     expect(isValidRoundVote(vote, played)).toBe(true);
   });
 
+  it('votante que não jogou: o motivo aparece uma vez só', () => {
+    expect(validateRoundVote({ ...vote, voterId: 'davi' }, played)).toEqual({
+      ratings: [{ targetId: 'davi', code: 'VOTER_DID_NOT_PLAY' }],
+      awards: [],
+    });
+  });
+
   it('separa os problemas das notas e dos prêmios', () => {
     const result = validateRoundVote({ ...vote, flopId: 'bia', ratings: sheet('bia') }, played);
     expect(result.ratings).toHaveLength(2);

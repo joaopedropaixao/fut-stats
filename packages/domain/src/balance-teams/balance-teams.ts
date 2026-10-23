@@ -1,5 +1,6 @@
 import {
   FORMATION,
+  MAX_RESERVES_PER_TEAM,
   PLAYERS_PER_TEAM,
   POSITIONS,
   type LineupSlot,
@@ -28,7 +29,7 @@ export const DEFAULT_BALANCE_TEAMS_CONFIG: Readonly<BalanceTeamsConfig> = {
   repeatedPairWeight: 0.5,
   lookbackRounds: 3,
   offPositionFactor: 0.9,
-  maxReservesPerTeam: 2,
+  maxReservesPerTeam: MAX_RESERVES_PER_TEAM,
   random: Math.random,
 };
 

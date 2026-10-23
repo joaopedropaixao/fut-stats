@@ -137,6 +137,20 @@ describe('validateRoundTransition', () => {
       });
     }
 
+    it('sem times montados não vai para a votação nem encerra', () => {
+      for (const [status, to] of [
+        ['IN_PROGRESS', 'VOTING'],
+        ['VOTING', 'CLOSED'],
+      ] as const) {
+        expect(
+          validateRoundTransition(
+            round({ status, teams: null, score: { WHITE: 0, BLACK: 0 } }),
+            to,
+          ),
+        ).toEqual(['INVALID_LINEUP']);
+      }
+    });
+
     it('0 x 0 sem lances bate', () => {
       expect(validateRoundTransition(round({ score: { WHITE: 0, BLACK: 0 } }), 'VOTING')).toEqual(
         [],

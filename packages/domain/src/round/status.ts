@@ -1,5 +1,4 @@
-import { DEFAULT_BALANCE_TEAMS_CONFIG } from '../balance-teams';
-import { isValidRoundLineup, TEAMS } from '../core';
+import { isValidRoundLineup, MAX_RESERVES_PER_TEAM, TEAMS } from '../core';
 import { tallyMatchEvents, validateScore, type RoundState, type RoundTeams } from './match';
 
 /** Ciclo da rodada, na ordem. Textos em `packages/shared` (`ROUND_STATUS_LABELS`). */
@@ -39,7 +38,7 @@ export const ROUND_TRANSITION_ERRORS = [
 export type RoundTransitionError = (typeof ROUND_TRANSITION_ERRORS)[number];
 
 export interface RoundTeamsOptions {
-  /** Máximo de reservas por time. Padrão: o mesmo do `balanceTeams` (2). */
+  /** Máximo de reservas por time. Padrão: `MAX_RESERVES_PER_TEAM` (2). */
   maxReservesPerTeam?: number;
 }
 
@@ -49,7 +48,7 @@ export interface RoundTeamsOptions {
  */
 export function validateRoundTeams(
   teams: RoundTeams | null,
-  { maxReservesPerTeam = DEFAULT_BALANCE_TEAMS_CONFIG.maxReservesPerTeam }: RoundTeamsOptions = {},
+  { maxReservesPerTeam = MAX_RESERVES_PER_TEAM }: RoundTeamsOptions = {},
 ): RoundTransitionError[] {
   if (!teams) return ['INVALID_LINEUP'];
 
@@ -68,15 +67,17 @@ export function validateRoundTeams(
   return errors;
 }
 
-/** Placar lançado, válido e batendo com os lances: gols = placar e assistências ≤ gols, por time. */
+/**
+ * Times montados (sem eles não dá para contar os lances), placar lançado e válido e batendo com os
+ * lances: gols = placar e assistências ≤ gols, por time.
+ */
 function validateScoreMatchesEvents(round: RoundState): RoundTransitionError[] {
   const { score, teams } = round;
+  if (!teams) return ['INVALID_LINEUP'];
   if (!score) return ['SCORE_MISSING'];
   if (validateScore(score)) return ['INVALID_SCORE'];
 
-  const tally = teams
-    ? tallyMatchEvents(round.events, teams)
-    : { goals: { WHITE: 0, BLACK: 0 }, assists: { WHITE: 0, BLACK: 0 } };
+  const tally = tallyMatchEvents(round.events, teams);
   const errors: RoundTransitionError[] = [];
   if (TEAMS.some((team) => tally.goals[team] !== score[team])) errors.push('GOALS_MISMATCH');
   if (TEAMS.some((team) => tally.assists[team] > score[team])) errors.push('TOO_MANY_ASSISTS');

@@ -6,6 +6,7 @@ import {
   RATING_MIN,
   ROUND_STATUSES,
   TEAMS,
+  validateScore,
 } from '@fut-stats/domain';
 import type {
   Award,
@@ -39,10 +40,12 @@ export const ratingSchema = z
 export const roundStatusSchema = z.enum(ROUND_STATUSES);
 export const matchEventTypeSchema = z.enum(MATCH_EVENT_TYPES);
 
-const goalsSchema = z.number().int().min(0);
-
 /** Placar da rodada: gols inteiros, zero ou mais. */
-export const matchScoreSchema = z.object({ WHITE: goalsSchema, BLACK: goalsSchema });
+export const matchScoreSchema = z
+  .object({ WHITE: z.number(), BLACK: z.number() })
+  .refine((score) => validateScore(score) === null, {
+    message: 'O placar precisa ser um número inteiro, zero ou mais',
+  });
 
 export const lineupSlotSchema = z.object({
   playerId: z.string().min(1),
@@ -134,7 +137,7 @@ export const CARTOLA_SQUAD_ERROR_LABELS: Readonly<Record<CartolaSquadError, stri
 export const ROUND_TRANSITION_ERROR_LABELS: Readonly<Record<RoundTransitionError, string>> = {
   INVALID_TRANSITION: 'A rodada não pode ir para essa etapa agora',
   INVALID_LINEUP: 'Os dois times precisam estar completos no 1-2-3-1, sem jogador nos dois',
-  INVALID_RESERVES: 'Cada time tem até 2 reservas, sem repetir ninguém nem quem já é titular',
+  INVALID_RESERVES: 'Tem reserva demais, repetido ou que já é titular',
   SCORE_MISSING: 'Lance o placar antes',
   INVALID_SCORE: 'O placar precisa ser um número inteiro, zero ou mais',
   GOALS_MISMATCH: 'Os gols lançados precisam bater com o placar',

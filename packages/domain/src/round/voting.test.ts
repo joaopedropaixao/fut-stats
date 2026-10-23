@@ -71,6 +71,11 @@ describe('votingCloseReason', () => {
     );
   });
 
+  it('sem ninguém que jogou, não fecha por "todos votaram" (só pelo prazo)', () => {
+    expect(votingCloseReason(hoursLater(1), voting({ playedIds: [] }))).toBeNull();
+    expect(votingCloseReason(hoursLater(48), voting({ playedIds: [] }))).toBe('DEADLINE_PASSED');
+  });
+
   it('relógio antes da abertura não fecha', () => {
     expect(votingCloseReason(hoursLater(-1), voting())).toBeNull();
   });
