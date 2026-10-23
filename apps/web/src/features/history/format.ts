@@ -27,9 +27,39 @@ export function formatMatchTime(iso: string): string {
   return `${date.getHours()}H${minutes ? String(minutes).padStart(2, '0') : ''}`;
 }
 
-/** Placar no padrão do app: "4×3". */
-export function formatScore(score: { white: number; black: number }): string {
-  return `${score.white}×${score.black}`;
+const MONTH_NAMES = [
+  'JANEIRO',
+  'FEVEREIRO',
+  'MARÇO',
+  'ABRIL',
+  'MAIO',
+  'JUNHO',
+  'JULHO',
+  'AGOSTO',
+  'SETEMBRO',
+  'OUTUBRO',
+  'NOVEMBRO',
+  'DEZEMBRO',
+] as const;
+
+/** "OUTUBRO 2026": cabeçalho de mês da lista. */
+export function formatMonth(iso: string): string {
+  const date = new Date(iso);
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+/** Agrupa por mês (no fuso do aparelho), mantendo a ordem em que os itens chegaram. */
+export function groupByMonth<T extends { scheduledAt: string }>(
+  items: readonly T[],
+): { month: string; items: T[] }[] {
+  const groups: { month: string; items: T[] }[] = [];
+  for (const item of items) {
+    const month = formatMonth(item.scheduledAt);
+    const last = groups[groups.length - 1];
+    if (last?.month === month) last.items.push(item);
+    else groups.push({ month, items: [item] });
+  }
+  return groups;
 }
 
 /** "1 GOL", "2 GOLS". */

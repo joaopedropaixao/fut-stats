@@ -1,79 +1,113 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router';
-import type { HistoryDetail, HistoryPlayer, HistoryTeam } from '@fut-stats/shared';
+import {
+  POSITION_LABELS,
+  TEAM_LABELS,
+  type HistoryDetail,
+  type HistoryPlayer,
+} from '@fut-stats/shared';
 import { Avatar } from '../../components/ui/avatar';
 import { Icon } from '../../components/ui/icons';
+import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states';
 import { ApiError } from '../../lib/api';
+import { cn } from '../../lib/cn';
 import { useCurrentGroup } from '../../features/group/use-current-group';
 import { pluralize } from '../../features/history/format';
 import { useHistoryDetail } from '../../features/history/queries';
+import { placeOnPitch, type Team } from '../../features/history/match-view';
+import { Pitch } from './pitch';
 import { Scoreboard } from './scoreboard';
 
-const POSITION_LABEL: Record<HistoryPlayer['position'], string> = {
-  GOALKEEPER: 'GOLEIRO',
-  DEFENDER: 'ZAGUEIRO',
-  WINGER: 'ALA',
-  MIDFIELDER: 'MEIA',
-  FORWARD: 'ATACANTE',
-};
+const avatarTeam = (team: Team) => (team === 'WHITE' ? 'white' : 'black');
 
-function BackLink() {
+/** Linha de jogador: avatar com o anel do time, apelido em pixel, detalhe em Inter e os gols à direita. */
+function PlayerRow({
+  player,
+  team,
+  detail,
+  first,
+}: {
+  player: HistoryPlayer;
+  team: Team;
+  detail: string;
+  first: boolean;
+}) {
   return (
-    <Link to="/historico" className="-ml-1 inline-flex min-h-11 items-center gap-1 self-start pr-3">
-      <Icon name="chevronLeft" size={20} strokeWidth={2.4} />
-      <PixelText>HISTÓRICO</PixelText>
-    </Link>
-  );
-}
-
-function PlayerRow({ player, side }: { player: HistoryPlayer; side: 'white' | 'black' }) {
-  return (
-    <li className="flex min-h-14 items-center gap-3 px-4 py-2">
+    <li
+      className={cn(
+        'flex min-h-16 items-center gap-3 px-4 py-3',
+        !first && 'shadow-[inset_0_2px_0_0_var(--color-border)]',
+      )}
+    >
       <Avatar
         nickname={player.nickname}
-        team={side}
-        size={32}
+        team={avatarTeam(team)}
+        size={40}
         goalkeeper={player.position === 'GOALKEEPER'}
         gap="surface"
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         <PixelText>{player.nickname}</PixelText>
-        <PixelText className="text-text-muted">{POSITION_LABEL[player.position]}</PixelText>
+        <p className="text-caption text-text-muted">{detail}</p>
       </div>
+      {player.goals > 0 && (
+        <span className="flex w-16 shrink-0 flex-col items-end gap-1">
+          <span className="sr-only">{pluralize(player.goals, 'gol', 'gols')}</span>
+          <PixelDigits value={player.goals} scale={3} decorative />
+          <span aria-hidden>
+            <PixelText className="text-text-muted">{player.goals === 1 ? 'Gol' : 'Gols'}</PixelText>
+          </span>
+        </span>
+      )}
     </li>
   );
 }
 
-function TeamCard({
-  title,
-  side,
-  team,
-}: {
-  title: string;
-  side: 'white' | 'black';
-  team: HistoryTeam;
-}) {
-  const empty = team.starters.length === 0 && team.reserves.length === 0;
+function assistsText(player: HistoryPlayer): string | null {
+  return player.assists > 0 ? pluralize(player.assists, 'assistência', 'assistências') : null;
+}
+
+/** Quem fez gol ou deu assistência, artilheiro primeiro. O time vem escrito (cor não é o único sinal). */
+function Highlights({ match }: { match: HistoryDetail }) {
+  const rows = (['WHITE', 'BLACK'] as const).flatMap((team) =>
+    [...match.teams[team].starters, ...match.teams[team].reserves]
+      .filter((p) => p.goals > 0 || p.assists > 0)
+      .map((player) => ({ team, player })),
+  );
+  rows.sort(
+    (a, b) =>
+      b.player.goals - a.player.goals ||
+      b.player.assists - a.player.assists ||
+      a.player.nickname.localeCompare(b.player.nickname),
+  );
+
+  const totalGoals = match.score ? match.score.WHITE + match.score.BLACK : null;
+  const emptyMessage =
+    totalGoals === null
+      ? 'Os gols aparecem aqui quando o placar for lançado.'
+      : totalGoals === 0
+        ? 'Ninguém balançou a rede nesta partida.'
+        : 'O placar foi lançado sem os autores dos gols.';
+
   return (
-    <section aria-label={title} className="flex flex-col gap-2">
-      <PixelText as="h2" size={16}>
-        {title}
+    <section aria-label="Lances" className="flex flex-col gap-2">
+      <PixelText as="h2" className="text-text-muted">
+        Lances
       </PixelText>
-      {empty ? (
-        <p className="bg-surface p-4 text-sm text-text-muted shadow-card">Time não registrado.</p>
+      {rows.length === 0 ? (
+        <p className="bg-surface px-4 py-4 text-sm text-text-muted shadow-card">{emptyMessage}</p>
       ) : (
-        <ul className="divide-y-2 divide-border bg-surface shadow-card">
-          {team.starters.map((p) => (
-            <PlayerRow key={p.membershipId} player={p} side={side} />
-          ))}
-          {team.reserves.length > 0 && (
-            <li className="px-4 py-2">
-              <PixelText className="text-text-muted">RESERVAS</PixelText>
-            </li>
-          )}
-          {team.reserves.map((p) => (
-            <PlayerRow key={p.membershipId} player={p} side={side} />
+        <ul className="bg-surface shadow-card">
+          {rows.map(({ team, player }, i) => (
+            <PlayerRow
+              key={player.membershipId}
+              player={player}
+              team={team}
+              first={i === 0}
+              detail={[TEAM_LABELS[team], assistsText(player)].filter(Boolean).join(' · ')}
+            />
           ))}
         </ul>
       )}
@@ -81,55 +115,89 @@ function TeamCard({
   );
 }
 
-/** Quem fez gol ou assistência, com o time ao lado do nome escrito (cor não é o único sinal). */
-function Highlights({ match }: { match: HistoryDetail }) {
-  const rows = (['WHITE', 'BLACK'] as const).flatMap((side) =>
-    [...match.teams[side].starters, ...match.teams[side].reserves]
-      .filter((p) => p.goals > 0 || p.assists > 0)
-      .map((player) => ({ side, player })),
+/** Branco | Preto, como o segmentado de time da folha: o lado ativo ganha a cor do time. */
+function TeamSwitch({ value, onChange }: { value: Team; onChange: (team: Team) => void }) {
+  return (
+    <div role="group" aria-label="Time" className="flex gap-1 bg-surface p-1 shadow-card">
+      {(['WHITE', 'BLACK'] as const).map((team) => {
+        const active = team === value;
+        return (
+          <button
+            key={team}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(team)}
+            className={cn(
+              'flex h-11 flex-1 items-center justify-center transition-colors duration-(--duration-fast)',
+              !active && 'text-text-muted hover:bg-highlight',
+              active && team === 'WHITE' && 'bg-team-white text-team-black',
+              active &&
+                team === 'BLACK' &&
+                'bg-team-black text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)]',
+            )}
+          >
+            <PixelText>{TEAM_LABELS[team]}</PixelText>
+          </button>
+        );
+      })}
+    </div>
   );
-  rows.sort((a, b) => b.player.goals - a.player.goals || b.player.assists - a.player.assists);
+}
+
+/** Os dois times: campo 1-2-3-1 do time escolhido e o banco embaixo. */
+function Lineups({ match }: { match: HistoryDetail }) {
+  const [team, setTeam] = useState<Team>(match.winner === 'BLACK' ? 'BLACK' : 'WHITE');
+  const { starters, reserves } = match.teams[team];
+  const { leftover } = placeOnPitch(starters);
+  const bench = [...leftover, ...reserves];
+  const noLineup =
+    match.teams.WHITE.starters.length === 0 && match.teams.BLACK.starters.length === 0;
 
   return (
-    <section aria-label="Lances" className="flex flex-col gap-2">
-      <PixelText as="h2" size={16}>
-        Lances
+    <section aria-label="Times" className="flex flex-col gap-2">
+      <PixelText as="h2" className="text-text-muted">
+        Times
       </PixelText>
-      {rows.length === 0 ? (
-        <p className="bg-surface p-4 text-sm text-text-muted shadow-card">
-          Nenhum lance registrado.
+      {noLineup ? (
+        <p className="bg-surface px-4 py-4 text-sm text-text-muted shadow-card">
+          Os times desta partida não foram registrados.
         </p>
       ) : (
-        <ul className="divide-y-2 divide-border bg-surface shadow-card">
-          {rows.map(({ side, player }) => (
-            <li key={player.membershipId} className="flex min-h-14 items-center gap-3 px-4 py-2">
-              <Avatar
-                nickname={player.nickname}
-                team={side === 'WHITE' ? 'white' : 'black'}
-                size={32}
-                gap="surface"
-              />
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <PixelText>{player.nickname}</PixelText>
-                <PixelText className="text-text-muted">
-                  {side === 'WHITE' ? 'BRANCO' : 'PRETO'}
-                </PixelText>
-              </div>
-              <div className="flex shrink-0 flex-col items-end gap-0.5">
-                {player.goals > 0 && (
-                  <PixelText>{pluralize(player.goals, 'GOL', 'GOLS')}</PixelText>
-                )}
-                {player.assists > 0 && (
-                  <PixelText className="text-text-muted">
-                    {pluralize(player.assists, 'ASSISTÊNCIA', 'ASSISTÊNCIAS')}
-                  </PixelText>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+        <>
+          <TeamSwitch value={team} onChange={setTeam} />
+          <Pitch team={team} starters={starters} />
+          {bench.length > 0 && (
+            <div className="mt-2 flex flex-col bg-surface shadow-card">
+              <PixelText as="h3" className="px-4 pt-3 pb-1 text-text-muted">
+                Banco
+              </PixelText>
+              <ul>
+                {bench.map((player, i) => (
+                  <PlayerRow
+                    key={player.membershipId}
+                    player={player}
+                    team={team}
+                    first={i === 0}
+                    detail={[POSITION_LABELS[player.position], assistsText(player)]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  />
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </section>
+  );
+}
+
+function MatchSkeleton() {
+  return (
+    <div role="status" aria-label="Carregando a partida" className="flex flex-col gap-6">
+      <div className="h-58 bg-surface-3 shadow-card" />
+      <SkeletonList rows={3} label="Carregando os lances" />
+    </div>
   );
 }
 
@@ -138,23 +206,39 @@ export function MatchPage() {
   const { group, isPending: sessionPending } = useCurrentGroup();
   const match = useHistoryDetail(group?.id, roundId);
   const notFound = match.error instanceof ApiError && match.error.status === 404;
+  // O TanStack volta para "pending" ao tentar de novo sem dado: o erro fica na tela até a resposta chegar
+  const failed = !match.data && match.errorUpdateCount > 0 && !notFound;
 
   return (
     <>
       <title>Partida · Fut Stats</title>
-      <BackLink />
-      <PixelText as="h1" size={24} wrap className="outline-none">
-        Partida
-      </PixelText>
+      <header className="-ml-3 flex items-center gap-1">
+        <Link
+          to="/historico"
+          aria-label="Voltar para o histórico"
+          className="inline-flex size-11 shrink-0 items-center justify-center hover:bg-highlight"
+        >
+          <Icon name="chevronLeft" size={24} strokeWidth={2.4} />
+        </Link>
+        <PixelText as="h1" size={24} className="outline-none">
+          Partida
+        </PixelText>
+      </header>
 
-      {(sessionPending || match.isPending) && !match.isError && <SkeletonList rows={4} />}
+      {!sessionPending && !group && (
+        <EmptyState
+          title="Nenhum grupo ainda"
+          message="Entre numa pelada pelo convite para ver as partidas."
+        />
+      )}
+      {(sessionPending || (group && !match.data && !failed && !notFound)) && <MatchSkeleton />}
       {notFound && (
         <EmptyState
           title="Partida não encontrada"
-          message="Ela não existe ou ainda não foi jogada."
+          message="Ela não é deste grupo ou ainda não foi jogada."
         />
       )}
-      {match.isError && !notFound && (
+      {failed && (
         <ErrorState
           title="Não deu para abrir a partida"
           message="Parece que a internet caiu ou o servidor está acordando. Tente de novo em instantes."
@@ -166,8 +250,7 @@ export function MatchPage() {
         <>
           <Scoreboard match={match.data} />
           <Highlights match={match.data} />
-          <TeamCard title="BRANCO" side="white" team={match.data.teams.WHITE} />
-          <TeamCard title="PRETO" side="black" team={match.data.teams.BLACK} />
+          <Lineups key={match.data.roundId} match={match.data} />
         </>
       )}
     </>
