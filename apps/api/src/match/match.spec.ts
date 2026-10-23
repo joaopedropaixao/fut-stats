@@ -122,6 +122,7 @@ describe('placar e lances da rodada', () => {
 
       expect(matchViewSchema.safeParse(res.body).success).toBe(true);
       expect(res.body).toMatchObject({
+        scheduledAt: c.round.scheduledAt.toISOString(),
         status: 'IN_PROGRESS',
         score: { WHITE: 1, BLACK: 0 },
         isOpen: true,
@@ -521,5 +522,46 @@ describe('placar e lances da rodada', () => {
       });
       await del(c, c.adminUser.id, foreign.id).expect(404);
     });
+  });
+
+  it('admin de outro grupo não mexe na rodada pela rota do grupo dele → 404, nada muda', async () => {
+    const c = await setup();
+    const event = await t.prisma.matchEvent.create({
+      data: {
+        roundId: c.round.id,
+        membershipId: c.white[1]!.membership.id,
+        type: 'GOAL',
+        createdById: c.admin.id,
+      },
+    });
+    const other = await createGroup(t);
+    const otherAdmin = await createUser(t);
+    await addMember(t, otherAdmin.id, other.id, { role: 'ADMIN' });
+    const path = (rest: string) => matchPath(other.id, c.round.id, rest);
+    const cookie = as(otherAdmin.id);
+
+    await request(server())
+      .patch(path('/status'))
+      .set('Cookie', cookie)
+      .send({ to: 'VOTING' })
+      .expect(404);
+    await request(server())
+      .put(path('/score'))
+      .set('Cookie', cookie)
+      .send({ WHITE: 9, BLACK: 9 })
+      .expect(404);
+    await request(server())
+      .post(path('/events'))
+      .set('Cookie', cookie)
+      .send({ membershipId: c.white[2]!.membership.id, type: 'GOAL' })
+      .expect(404);
+    await request(server())
+      .delete(path(`/events/${event.id}`))
+      .set('Cookie', cookie)
+      .expect(404);
+
+    const round = await t.prisma.round.findUniqueOrThrow({ where: { id: c.round.id } });
+    expect(round).toMatchObject({ status: 'IN_PROGRESS', whiteGoals: null, blackGoals: null });
+    expect(await t.prisma.matchEvent.count()).toBe(1);
   });
 });

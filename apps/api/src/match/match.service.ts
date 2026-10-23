@@ -55,6 +55,7 @@ export class MatchService {
 
     return {
       roundId,
+      scheduledAt: data.scheduledAt.toISOString(),
       status,
       score: state.score ? { ...state.score } : null,
       players: data.players,
@@ -163,6 +164,7 @@ export class MatchService {
     const round = await this.prisma.round.findFirst({
       where: { id: roundId, groupId },
       select: {
+        scheduledAt: true,
         status: true,
         whiteGoals: true,
         blackGoals: true,
@@ -208,6 +210,7 @@ export class MatchService {
     );
     return {
       state,
+      scheduledAt: round.scheduledAt,
       players: round.teamPlayers.map((p) => ({
         membershipId: p.membershipId,
         nickname: p.membership.nickname,

@@ -48,6 +48,8 @@ export const matchEventSchema = z.object({
  */
 export const matchViewSchema = z.object({
   roundId: z.string(),
+  /** Dia e hora marcados da rodada (o placar mostra o dia). */
+  scheduledAt: z.iso.datetime(),
   status: roundStatusSchema,
   /** Nulo até o admin lançar. */
   score: matchScoreSchema.nullable(),
