@@ -379,6 +379,22 @@ códigos, e rodada fora da janela de editar/apagar (`ROUND_NOT_EDITABLE`/`ROUND_
 **Evite:** deixar o jogador mudar a presença com os times publicados; contar confirmado que ficou inativo;
 travar confirmação por número; usar o horário marcado como prazo da presença.
 
+### Rodada atual: `pickCurrentRound` 🚧
+**O que é:** qual rodada o app mostra como "a da vez" no início e na aba Times (`src/round/current.ts`). Decidido pelo
+dono em 23 out 2026, para as telas não terem cada uma a sua regra.
+
+**Assinatura:** `pickCurrentRound(rounds: readonly T[], now: Date, options?: { staleAfterHours?: number }): T | null`,
+com `T extends RoundAtTime = { status, scheduledAt }`.
+
+**Faz:** a rodada **em jogo** (`IN_PROGRESS`) vem primeiro (se houver mais de uma, a de horário mais recente). Sem jogo,
+a de antes do jogo (`SCHEDULED`/`TEAMS_PUBLISHED`) com o **horário mais cedo**, contando as que passaram do horário há
+menos de `staleAfterHours` (padrão 24): no dia da pelada, passou da hora e o admin ainda não começou, ela continua
+na tela.
+
+**Não faz:** não lê relógio (`now` vem de fora); não considera `VOTING`/`CLOSED` (o card de votação é da Fase 3).
+
+**Evite:** escolher "a primeira das próximas" na tela (a rodada some do início na hora do jogo); repetir a regra no front.
+
 ### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `DEFAULT_INITIAL_RATING` 🚧
 **O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).
 - `toSlug(nome)`: minúsculo, sem acento, letras/números separados por hífen (`"Pelada do Zé"` → `pelada-do-ze`);
@@ -392,6 +408,8 @@ travar confirmação por número; usar o horário marcado como prazo da presenç
 - `DEFAULT_INITIAL_RATING` = 6: nota inicial de quem entra (ver Decisões fixas).
 
 **Na API** (`apps/api/src/groups`, contratos em `packages/shared/src/group.ts`):
+- `GET /api/me` e as respostas de grupo trazem, em cada grupo, o `role` e o `membershipId` do usuário (para a tela
+  achar "você" nos times e nas listas).
 - `POST /api/groups` `{ name, nickname, primaryPosition }`: cria o grupo com slug único e código de convite; quem
   cria vira `ADMIN` (também jogador, nota 6). Devolve o grupo com `role` e `memberCount`.
 - `GET /api/groups/:groupId` e `GET /api/groups/:groupId/members` (membro): o grupo; os membros **ativos** por
