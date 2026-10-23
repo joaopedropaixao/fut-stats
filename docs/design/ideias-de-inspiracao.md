@@ -1,18 +1,56 @@
 # Ideias de inspiração: front com cara de jogo
 
 Banco de ideias para o Fut Stats não parecer "mais um app de estatística".
-Nada aqui está decidido: é um cardápio para escolher depois de validar a v0.2 com o grupo.
+A seção abaixo traz o que o dono já decidiu. O resto do arquivo continua sendo cardápio.
 
-## A grande ideia: dois modos
+## Decisões do dono (22 out 2026)
 
-| Modo | Quando | Visual |
-|------|--------|--------|
-| **Dia a dia** | Navegar, ler o feed, ver ranking, dar nota | O design system v0.2 (noite de jogo): limpo, legível, rápido |
-| **Festa** | Momentos especiais: times publicados, craque revelado, subiu no ranking, fim da votação | Explosão de game 2D: pixel art, sons, animações exageradas |
+- **Não teremos dois modos.** O design se consolida **agora**, num DS só.
+  - A nostalgia de jogo faz parte do DS.
+  - Ela não fica isolada num modo especial.
+  - O DS v0.4 ("Noite de jogo") é a base a refinar, não a substituir.
+- **Por que pixel art:** trazer a nostalgia dos jogos e das animações que a gente jogava antigamente.
+  Precisa virar regra de DS:
+  - onde entra
+  - em que tamanho
+  - com qual fonte
+  - o que nunca vira pixel
+- **Referências aprovadas:**
 
-Se tudo for festa, nada é festa. O app fica calmo e "vira videogame" só nos
-momentos que merecem comemoração. Isso também resolve a legibilidade: fonte pixel
-é linda num "VS", mas péssima num texto longo.
+| Referência | Status | Uso no Fut Stats |
+|---|---|---|
+| **Street Fighter / Mortal Kombat** | Aprovada, é o diferencial | Tela de **VS** dos times (Branco x Preto) |
+| **FIFA Ultimate Team** | Aprovada | Abertura de pacote com suspense e revelação da **carta do Craque** |
+| **International Superstar Soccer** | Curtiu; precisa consolidar | Estética pixel/16-bit: placar, bonequinhos e campo de cima |
+| **[Ship or Die](https://www.ship-or-die.com/)** | Referência de **DS**, não de intenção | Ver abaixo |
+
+### Ship or Die: o que pegar e o que não pegar
+
+É uma landing page, com outra intenção. Não precisamos chegar no nível de animação dela, mas o DS dela
+acerta a vibe pixel art, jogo e nostalgia. O que foi medido no site (22 out 2026):
+
+- **Fundo:** azul-marinho quase preto (`#030914`) com ilustrações em pixel art grandes (navio, mar, raio).
+  - As imagens usam `image-rendering: crisp-edges`, sem borrão.
+- **Fontes:**
+  - Anton, condensada e pesada, para os títulos gigantes
+  - Geist Mono para o texto
+  - Pirata One, temática, só no logo
+- **Texto em creme** (`#F3E6C9`), em vez de branco puro, com acentos em ouro (`#F0C56C`) e vermelho (`#E2695E`).
+- **Cantos retos** (raio 0) em quase tudo.
+  - Botão principal "chunky", em relevo de jogo: borda dura de 2px, sombra sólida deslocada para baixo
+    (`0 7px 0`) e brilho interno em cima.
+  - Parece uma tecla física.
+- **Molduras** de madeira/prancha em pixel art nos blocos de destaque.
+
+O que conversa com o Fut Stats:
+- a combinação de fonte condensada pesada + pixel art (já usamos Barlow Condensed)
+- o botão de jogo com sombra sólida
+- o creme quente no lugar do branco frio
+
+O que **não** pegar:
+- a fonte mono em todo o texto, porque legibilidade em produto vem antes
+- o tema pirata
+- as animações de rolagem de landing page
 
 ## Referências de jogos
 
@@ -33,7 +71,7 @@ momentos que merecem comemoração. Isso também resolve a legibilidade: fonte p
 - Tela dividida na diagonal (já é a nossa assinatura!): Branco de um lado, Preto do outro.
 - Os 7 jogadores de cada time entram deslizando, um por um, como seleção de lutador.
 - "VS" gigante no meio, com tremida de tela e som de impacto.
-- Encerra com "QUINTA, 20H. QUEM GANHA?"
+- Encerra com "HOJE, 20H. QUEM GANHA?" (o dia da pelada não é fixo).
 
 ### 2. Sorteio de times: bloco "?" (estilo Mario)
 - O admin toca num bloco "?" pixelado; ele "pula" e solta os jogadores sorteados.
@@ -78,10 +116,10 @@ momentos que merecem comemoração. Isso também resolve a legibilidade: fonte p
    Isso dá sensação de "objeto físico", como num jogo.
 3. **Squash & stretch.** Princípio clássico de animação: coisas que pulam achatam ao cair
    e esticam ao subir. É o que faz o Mario parecer vivo.
-4. **Curto.** Micro-interações de 150 a 300 ms. Momentos de festa até uns 2 s, sempre com
+4. **Curto.** Micro-interações de 150 a 300 ms. Grandes momentos até uns 2 s, sempre com
    botão "pular".
 5. **Acessibilidade.** Respeitar a configuração "reduzir movimento" do celular
-   (`prefers-reduced-motion`): nesse caso a festa vira um fade simples.
+   (`prefers-reduced-motion`): nesse caso o grande momento vira um fade simples.
 6. **Som opcional e desligado por padrão.** Ninguém quer o celular apitando no trabalho.
    Vibração curta (Android) pode substituir.
 
@@ -94,7 +132,7 @@ momentos que merecem comemoração. Isso também resolve a legibilidade: fonte p
 | **Lottie / dotLottie** | Tocar animações prontas (exportadas do After Effects ou baixadas no LottieFiles) | Bom para comemorações prontas |
 | **canvas-confetti** | Confete na tela em 1 linha | Comemoração barata |
 | **View Transitions API** | Transição suave entre telas, nativa do navegador | Sem biblioteca |
-| **Fontes pixel** (Press Start 2P, Pixelify Sans, Silkscreen) | Títulos de festa: "VS", "1-UP", "GAME OVER" | Só em textos curtos, nunca em texto corrido |
+| **Fontes pixel** (Press Start 2P, Pixelify Sans, Silkscreen) | Interface toda (v1.3: Silkscreen); antes só "VS", "1-UP", "GAME OVER" | Nunca em texto corrido |
 
 Pixel art (moedas, bloco "?", bonequinhos) pode vir de pacotes gratuitos (ex.: itch.io,
 Kenney.nl). Atenção à licença: preferir CC0 ou desenhar o nosso próprio, sem usar
@@ -102,13 +140,14 @@ personagens da Nintendo (direitos autorais).
 
 ## Limitação do Paper
 
-O Paper desenha telas **paradas**. Para os momentos de festa, o caminho é:
+O Paper desenha telas **paradas**. Para os grandes momentos, o caminho é:
 1. Desenhar no Paper os quadros-chave (começo, meio e fim da animação).
 2. Prototipar o movimento de verdade no código (Motion) ou no Rive.
 
-## Próximos passos sugeridos
+## Próximos passos
 
-- [ ] Validar a v0.2 com o grupo e perguntar também: "e se o app tivesse uma pegada de videogame nos momentos especiais?"
-- [ ] Escolher 2 ou 3 momentos de festa para o MVP (sugestão: **VS dos times**, **pacotinho do craque**, **game over/tela vazia**)
-- [ ] Definir o estilo visual da festa: pixel 8/16-bit, cartoon (Inazuma) ou mistura
-- [ ] Desenhar os quadros-chave no Paper
+- [x] Escolher os momentos do MVP: **VS dos times** e **pacote do Craque** (aprovados pelo dono)
+- [x] Consolidar a estética pixel (ISS) como regra do DS, sem criar um segundo modo (v0.5)
+- [x] Definir o estilo do pixel: sprites de 8×12 e fonte Silkscreen para o jogador; a UI pega o formato
+  de fliperama (canto reto, tecla), mas não vira pixel (v0.5, regras no [README](README.md))
+- [x] Desenhar os quadros-chave do VS e do pacote (v1.3, na folha HTML; falta colar no Paper)

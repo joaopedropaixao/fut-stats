@@ -1,124 +1,124 @@
 # Handoff: design system → próxima sessão
 
-Para uma sessão nova, com pouco contexto, que vai **explorar inspirações e aperfeiçoar o design system com o
-plugin taste-skill** antes de começar o front. Leia este arquivo inteiro antes de mexer no Paper.
+Para uma sessão nova, com pouco contexto. Leia este arquivo inteiro antes de mexer no design ou no Paper.
 
-Leitura obrigatória antes de começar: [README.md](README.md) (regras do DS) e
-[ideias-de-inspiracao.md](ideias-de-inspiracao.md) (ideias de "festa" estilo jogo 2D).
+Leitura obrigatória:
+- [DESIGN.md](DESIGN.md): as regras do DS v1.3.
+- [README.md](README.md): onde cada coisa vive.
 
-## Onde estamos (22 out 2026)
+## Onde estamos (23 out 2026)
 
-- **Paper**, arquivo "Fut Stats": https://app.paper.design/file/01M583500PVH8Y9M2R4HG9FFWS
-  - **Atual:** a folha **"Design System v0.4 — Noite de jogo"**, que é a de baixo.
-  - **Histórico:** as folhas v0.1 ("Design System — Mobile") e v0.2. Elas usam os mesmos tokens, então as cores
-    mudaram junto.
-  - **Tokens:** os 62 tokens do arquivo, lidos com `get_tokens`, são a fonte da verdade.
-    O Paper não tem token de sombra; as sombras estão escritas nos estilos da folha.
-- **Repo:** PR #12 mergeado. `docs/design/` tem o README, o PNG da v0.4 e a nota de ideias.
+- **DS v1.3 fechado e aprovado pelo dono.** Os arquivos estão em `docs/design/`:
+  - `DESIGN.md`: as regras;
+  - `tokens.css`: os valores;
+  - `folha/design-system-v1.3.html`: a folha com todas as peças, gerada por `folha/build.py`.
+  - Prévia publicada (artifact privado do dono): https://claude.ai/artifact/5ya7WX9AFE9Rt3xsXexoi3
+- **Paper ainda na v0.5.** O limite semanal do MCP acabou em 22 out, então a v1.x foi feita em HTML. A regra do
+  AGENTS.md ("nenhuma tela sem design aprovado no Paper") continua valendo: colar a v1.3 no Paper é a próxima
+  missão.
 - **Roadmap (Fase 0.5):**
-  - Paper conectado: feito.
-  - Mini design system: feito.
-  - Rename Craque / Perna de Pau: feito.
-  - Abertos: wireframes, alta fidelidade, MCP do Playwright no repo e tokens → Tailwind.
+  - feitos: Paper conectado, mini design system (agora v1.3) e rename Craque / Perna de Pau;
+  - em aberto: wireframes, alta fidelidade, MCP do Playwright no repo e tokens → Tailwind.
 
-## Decisões aprovadas pelo dono (não reabrir sem perguntar)
+## Decisões do dono (não reabrir sem perguntar)
 
-- **Tema escuro "Noite de jogo":**
-  - gramado à noite (`#0A0F0C`)
-  - holofote radial no topo
-  - linhas de campo em giz
-- **Fontes:** Barlow Condensed 700/800 em caixa alta para placar e títulos; Inter para o resto, inclusive nomes.
-- **Papel fixo das cores:**
-  - amarelo `#FACC15`: **só ação**, e é a única cor com brilho
-  - ouro `#E8A93A`: mérito
-  - madeira `#B08D6A`: Perna de Pau
-  - verde e vermelho: vitória e derrota
-  - laranja: só o ícone de prazo
-- **Duas assinaturas, e só elas:** o placar com corte diagonal Branco/Preto e o campo 1-2-3-1.
-- **Figurinha** para jogador; só a do Craque é holográfica e inclinada.
-- **Prêmios:** "Craque" (estrela, ouro) e "Perna de Pau" (ícone de pernas de pau, madeira). Nunca "Bola Murcha".
-- **"Dar nota":** slider + stepper −/+ 0,5, depois revisão, depois voto Craque / Perna de Pau, depois "Votos enviados".
-- **Campo:** tocar no jogador e depois na vaga, com arrastar como atalho; seletor Branco/Preto, banco e desfazer.
-- **Pisos de qualidade:**
-  - alvo de toque ≥ 44px
-  - texto de produto ≥ 13px
-  - contornos clicáveis com `--color-border-strong`
-  - respeitar "reduzir movimento"
-- **Dois modos (está na nota de ideias):**
-  - **dia a dia:** sóbrio, é o DS atual
-  - **festa:** momentos de jogo 2D (VS dos times, pacotinho do Craque, game over)
+- **Um DS só, sem "modos".** Os três **grandes momentos** (VS, pacote do Craque, revelação do resultado) vivem
+  dentro dele. Nunca chamar de "festa".
+- **Fundo verde "Gramado" é o padrão.** O escuro "Noite" é opção nas configurações.
+- **Pixel em toda a interface**, menos texto corrido e campos (Inter):
+  - Silkscreen só em 16, 24 ou 32px;
+  - números em dígitos pixel próprios (6×9, traço de 2px);
+  - em pixel não se abrevia.
+  - A Barlow saiu da UI.
+- **Formato fliperama:**
+  - canto reto, contorno de 2px, tecla com sombra dura e texto creme;
+  - exceção: a barra de abas redonda, em que só a aba ativa mostra o nome, numa pílula que cresce com animação. As 5 abas ficam.
+- **Cor por papel:**
+  - amarelo = ação (uma por tela); VS amarelo é exceção;
+  - ouro = recompensa;
+  - laranja = atenção;
+  - verde = convite e vitória;
+  - vermelho = perigo, ausência e derrota;
+  - madeira = Perna de Pau.
+  - Cor nunca é o único sinal, porque há um jogador daltônico no grupo.
+- **Feed:** um aviso grande por vez, na ordem resultado > votação > presença; os outros aparecem em linha.
+- **Presença:** "CONFIRMAR" (verde) e "AUSÊNCIA" (contorno vermelho), empilhados, com 64px.
+- **Voto em 2 passos:** primeiro o Craque, depois o Perna de Pau. A seleção aparece por contorno, selo e a palavra
+  "ESCOLHIDO". No passo 2, o Craque escolhido fica travado.
+- **Campo 1-2-3-1:** os alas ficam abertos para os lados, como meias-alas. No código a posição é `WINGER` ("ala").
+- **Ícone do Histórico:** continua o calendário.
+- **O dia da pelada não é fixo.** Nenhum texto fixa dia da semana.
+
+## Regras de produto novas (levar ao `CONTEXT.md` no PR do domínio)
+
+1. **Nota para todos:** quem vota dá nota a todos que jogaram, menos a si mesmo, sem pular.
+2. **Apelido com até 10 letras**, que aparece inteiro.
+3. **Notas e votos editáveis até o fim do prazo da votação.**
+   - O prazo ainda não foi definido; "22h" na folha é só exemplo.
+   - O domínio hoje não controla prazo nem abertura e fechamento da votação.
 
 ## Histórico das críticas (`/impeccable critique`)
 
 | Versão | Nota | Principais achados |
 |---|---|---|
-| v0.2 | 16/32 | Amarelo com papel duplo, nota imprecisa e sem volta, contornos invisíveis, faltavam estados, navegação só com ícone |
-| v0.3 | 24/32 | Campo só por arrasto, faltava o voto, cores quentes confusas, ícone da Bola Murcha ilegível |
-| v0.4 | não medida | Todos os itens P1/P2 da v0.3 foram corrigidos via `/impeccable polish` |
+| v0.2 | 16/32 | Amarelo com papel duplo, nota imprecisa, contornos invisíveis |
+| v0.3 | 24/32 | Campo só por arrasto, faltava o voto |
+| v0.5 | 24/32 | Dígitos em Silkscreen ilegíveis; navegação reta; "Votos enviados" sem comemoração |
+| v1.0 | 25/32 | Feed com dois amarelos; voto só por cor; texto de 12px; faltavam peças de admin |
+| v1.2 | 26/32 | Elenco de exemplo contraditório; faltavam admin e configurações; abreviações em pixel; feed pesado |
+| v1.3 | não medida | Todos os achados da v1.2 corrigidos; o dono dispensou nova crítica |
 
-Ficou de fora, como sugestão das críticas:
-- não há momento de "revelação" na quinta às 22h
-- revisar se 5 abas na navegação é o número certo
-- não há passo de 24px na escala de tipo
-- o slider precisa anunciar o valor para leitor de tela (detalhe de código)
+Os relatórios ficam em `.impeccable/critique/`, que é local e não vai para o git.
+
+## Como a v1.x foi feita (e como continuar)
+
+1. **Folha HTML gerada por Python** (`folha/build.py`):
+   - helpers como `t()`, `px()`, `pix()`, `pn()`, `key()`, `ghost()`, `section()` e `gaveta()`;
+   - estilo inline e tokens em `:root`;
+   - só `div`, `span` e `svg`, sem `margin` e sem `calc()`. É o formato que o Paper aceita.
+   - Python 3.9: não use barra invertida dentro de expressão de f-string.
+2. **Revisão:**
+   - servir a pasta com `python3 -m http.server`;
+   - Playwright em viewport de 405px, com prints por `[layer-name="..."]`;
+   - `impeccable detect --json`.
+   - Falsos alarmes conhecidos:
+     - corte diagonal do placar;
+     - VS amarelo sobre branco (tem contorno preto);
+     - barras coladas na borda;
+     - molduras da folha ("nested cards");
+     - holofote.
+3. **Prévia para o dono:** publicar o HTML como artifact e iterar pelo link.
+4. **Pixel nítido:**
+   - Silkscreen só em múltiplos de 8;
+   - dígitos com `pn(texto, escala)` em escala inteira (altura 9 × escala).
+   - A seção "Pixel legível" da folha mostra o porquê.
+
+## Próxima missão
+
+1. **Colar a v1.3 no Paper.**
+   - **Antes:** só começar com o ok do dono, testando primeiro com `get_basic_info`. O plano grátis dá 100
+     chamadas por semana.
+   - **Montar a folha:**
+     - criar o artboard "Design System v1.3" ao lado da v0.5;
+     - atualizar os tokens com `set_tokens` / `create_tokens` a partir de `tokens.css`;
+     - colar seção por seção com `write_html`, cada `[layer-name]` de primeiro nível da folha (cerca de 20
+       chamadas).
+   - **Conferir:**
+     - os dígitos e a pixel art são SVG inline, então devem entrar direto;
+     - a fonte Silkscreen precisa existir no Paper (`get_font_family_info`);
+     - a exportação do Paper limita a altura a 16.000px, e a folha passa disso: exportar em duas partes.
+   - **Fechar:** `finish_working_on_nodes`.
+2. **Wireframes e alta fidelidade** das telas do MVP, usando a v1.3.
+3. **Tokens → tema do Tailwind** no `apps/web`, com Silkscreen, o componente de dígitos pixel e o tema Noite.
+   Começa quando o front começar.
 
 ## Sobre o dono
 
-- Dev backend aprendendo front e design: **explique cada decisão de forma simples** e ofereça opções para ele
-  escolher (de 2 a 4, com uma recomendada).
-- Gosta de ver antes de decidir: prefira mostrar (PNG, print, prévia) a descrever.
-
-## Como trabalhar sem gastar o Paper (plano grátis: 100 chamadas/semana)
-
-O fluxo que funcionou:
-
-1. **Montar a mudança como HTML local** (scratchpad), com os tokens como CSS vars no `:root`.
-   Para partir da folha atual, puxe com `get_jsx` (1 chamada) só a seção que vai mexer.
-2. **Revisar no navegador** com o MCP do Playwright, em viewport 390px, tirando print por seção.
-   - O Playwright salva arquivos em `.playwright-mcp/` dentro do repo: mova para o scratchpad e apague a pasta.
-3. **Rodar o detector:** `impeccable detect --json <arquivo.html>`.
-   Falsos alarmes conhecidos (não "corrigir"):
-   - brilho amarelo nos botões principais
-   - contraste no fundo diagonal
-   - barras "coladas na borda"
-   - Inter
-4. **Só então colar no Paper:** `write_html` com `mode: "replace"` no nó da seção, uma chamada por seção.
-   Se não souber o id, use `find_nodes`. Para ajustes pequenos, `update_styles`, `set_text_content` e
-   `set_tokens` aceitam vários nós de uma vez.
-5. **Conferir:** `export` em PNG 2x (1 chamada) e revisar em fatias localmente. É mais barato que vários
-   `get_screenshot`. A exportação limita a altura a 16.000px.
-
-Armadilhas do Paper:
-- **Não aceita:** `margin`, `calc()`, tags semânticas (`button`, `section`, `h1`... use `div`), `display: inline`.
-- **Gradientes:** radial com tamanho em `%` estica quando a folha vira `fit-content`; use paradas em `px`.
-- **Texto que não pode quebrar:** `white-space: nowrap`.
-- **Ao terminar:** chamar `finish_working_on_nodes`.
-- **Se der "Paper Desktop isn't running":** peça ao dono para abrir o app; não tente abrir sozinho.
-
-## Próxima missão: inspirações com o taste-skill
-
-Objetivo: **aperfeiçoar o DS antes do front**, sem reabrir as decisões aprovadas.
-
-1. **Abrir a skill** `taste-skill:design-taste-frontend`. Ela tem um caminho próprio para telas de app,
-   com regras e exemplos de dashboards e telas de uso. É o modo certo aqui; o Fut Stats não é landing page.
-2. **Levantar inspirações** na biblioteca dela e em referências de apps esportivos e de jogos. A nota
-   de ideias já lista: Mario, Street Fighter, Super Campeões, Panini, FIFA Ultimate Team.
-   - Apresentar de 2 a 4 direções de refinamento com prévias.
-   - Cada uma deve dizer **o que muda e o que preserva**.
-3. **Candidatos a refinar**, para o dono escolher:
-   - **Movimento:** quadros-chave de 1 ou 2 momentos de "festa" (VS dos times, pacotinho do Craque).
-   - **Navegação:** rever as 5 abas.
-   - **Tipografia:** passo de 24px e papel "número" para o ranking.
-   - **Foto:** figurinha com foto de verdade, em vez de iniciais (regras de recorte e moldura).
-   - **Modo claro** para uso no sol, só se o dono quiser.
-4. **Depois de aprovado:**
-   - aplicar no Paper com o fluxo acima
-   - rodar `/impeccable critique` para comparar com 24/32
-   - atualizar o `README.md` e este handoff
-   - abrir PR para `develop`
+- Dev backend aprendendo front e design: **explique cada decisão de forma simples** e ofereça de 2 a 4 opções,
+  com uma recomendada.
+- Gosta de ver antes de decidir: mostre prévia (artifact) em vez de descrever.
 
 ## Pendências fora do design (não fazer nesta missão)
 
-- **`.impeccable/` no `.gitignore`:** é ferramental de IA, então vai pela branch `feature/plugin-harness`.
-- **MCP do Playwright em `.mcp.json`:** roadmap; necessário antes da primeira tarefa de tela.
-- **Tokens → tema do Tailwind no `apps/web`:** começa quando o front começar.
+- `.impeccable/` e `.taste-skill/` no `.gitignore`: ferramental de IA, vai pela branch `feature/plugin-harness`.
+- MCP do Playwright em `.mcp.json`: roadmap, necessário antes da primeira tarefa de tela.
