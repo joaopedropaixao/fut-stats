@@ -1,56 +1,35 @@
 # Design
 
-O design vive no **Paper**, arquivo "Fut Stats":
-https://app.paper.design/file/01M583500PVH8Y9M2R4HG9FFWS
+O design system atual é a **v1.3**:
+- Regras para construir as telas: [DESIGN.md](DESIGN.md).
+- Valores (base do tema do Tailwind): [tokens.css](tokens.css).
+- Folha com todas as peças desenhadas: [folha/design-system-v1.3.html](folha/design-system-v1.3.html). Abra no
+  navegador em largura de celular. Para mudar, edite `folha/build.py` e rode `python3 folha/build.py`.
 
-A fonte da verdade é a folha **"Design System v0.4 — Noite de jogo"** e os tokens do arquivo. O PNG
-`design-system-v0.4.png` é só uma foto para consulta rápida. As folhas v0.1 e v0.2 ficam no Paper como histórico.
+## Onde a versão vive
 
-## Direção: "Noite de jogo"
+- Até a v0.5, a fonte da verdade era o **Paper**, arquivo "Fut Stats":
+  https://app.paper.design/file/01M583500PVH8Y9M2R4HG9FFWS
+- A v1.x foi montada em HTML porque o limite semanal de chamadas do Paper (plano grátis) acabou.
+  - A folha HTML gera código já no formato que o Paper aceita.
+  - Quando o limite voltar, ela é colada no Paper como "Design System v1.3".
+  - Enquanto isso, **a folha HTML vale**.
+- As folhas v0.1 a v0.5 ficam no Paper só como histórico. Os PNGs `design-system-v0.4.png` e `design-system-v0.5.png` são dessa fase.
 
-Gramado à noite com holofote no topo. Branco x Preto é a identidade; o resto da interface fica quieto.
+## Em uma linha
 
-- **Cor tem papel fixo:**
-  - amarelo `--color-accent`: só ações; é a única cor com brilho; um por tela
-  - ouro `--color-gold`: mérito (Craque, líder)
-  - madeira `--color-flop`: zoeira (Perna de Pau)
-  - verde e vermelho: vitória e derrota
-  - laranja `--color-warning`: só o ícone de prazo
-- **Duas assinaturas, e só elas:**
-  - o placar com corte diagonal Branco/Preto
-  - o campo 1-2-3-1
-- **Figurinha** para jogador. Só a do Craque é holográfica e inclinada.
-- **Tipografia:**
-  - Barlow Condensed em caixa alta para placar e títulos
-  - Inter para todo o resto, inclusive nomes de jogador
-  - números com largura fixa (tabular)
-- **Profundidade:** 3 níveis, com sombra embaixo e fio de luz em cima.
-  - O Paper não tem token de sombra. Os valores estão na folha e viram tokens no Tailwind.
-- **Acessibilidade:**
-  - alvo de toque mínimo de 44px
-  - texto de produto com no mínimo 13px
-  - contornos clicáveis usam `--color-border-strong` (3:1)
-  - o campo funciona por toque, e arrastar é atalho
-  - respeitar "reduzir movimento"
-
-## Componentes na folha
-
-| Grupo | Componentes |
-|---|---|
-| Ações | Botões: primário com pressionado, foco e carregando; secundário; fantasma; desabilitado; perigo; ícone |
-| Identidade | Selos e avatares com anel do time e goleiro |
-| Entrada | Presença (Vou / Não vou) com contador; campos de texto com foco e erro |
-| Partida e times | Card da partida; campo 1-2-3-1 com banco, seleção e desfazer; figurinhas |
-| Notas e votos | Dar nota (stepper + slider + revisão); voto Craque / Perna de Pau; fim "Votos enviados" |
-| Estados | Aviso com desfazer; carregando; vazio; erro com "Tentar de novo"; gaveta de confirmação |
-| Navegação e listas | Feed (alerta), abas, ranking e barra de navegação com rótulos |
+Gramado à noite com holofote, Branco x Preto como identidade e cara de fliperama:
+- canto reto e botão em tecla;
+- letra pixel em toda a interface;
+- números em dígitos pixel próprios;
+- três grandes momentos com pixel art: VS, pacote do Craque e revelação do resultado.
 
 ## Pendências
 
+- [ ] Colar a v1.3 no Paper (com ok do dono; ver [HANDOFF.md](HANDOFF.md)).
 - [ ] Wireframes e alta fidelidade das telas do MVP (roadmap, Fase 0.5).
-- [x] Nome dos prêmios: **Craque** e **Perna de Pau** em domínio, labels e docs (código segue `mvp`/`flop`).
-- [ ] Tokens do Paper → tema do Tailwind no `apps/web`, incluindo sombras, movimento e camadas.
+- [ ] `tokens.css` → tema do Tailwind no `apps/web`, com a fonte Silkscreen e o componente de dígitos pixel.
+- [ ] Levar ao `CONTEXT.md`, no PR do domínio, as três regras de produto da seção final do [DESIGN.md](DESIGN.md).
 
-Próxima sessão de design: comece pelo [HANDOFF.md](HANDOFF.md).
-
-Ideias para os momentos de "festa" (animações estilo jogo 2D): [ideias-de-inspiracao.md](ideias-de-inspiracao.md).
+Próxima sessão de design: comece pelo [HANDOFF.md](HANDOFF.md). Ideias para os grandes momentos (animações estilo
+jogo 2D): [ideias-de-inspiracao.md](ideias-de-inspiracao.md).
