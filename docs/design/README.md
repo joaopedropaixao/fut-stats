@@ -1,83 +1,35 @@
 # Design
 
-O design vive no **Paper**, arquivo "Fut Stats":
-https://app.paper.design/file/01M583500PVH8Y9M2R4HG9FFWS
+O design system atual é a **v1.3**:
+- Regras para construir as telas: [DESIGN.md](DESIGN.md).
+- Valores (base do tema do Tailwind): [tokens.css](tokens.css).
+- Folha com todas as peças desenhadas: [folha/design-system-v1.3.html](folha/design-system-v1.3.html). Abra no
+  navegador em largura de celular. Para mudar, edite `folha/build.py` e rode `python3 folha/build.py`.
 
-A fonte da verdade é a folha **"Design System v0.5 — Noite de jogo"** e os tokens do arquivo. O PNG
-`design-system-v0.5.png` é só uma foto para consulta rápida. As folhas v0.1, v0.2 e v0.4 ficam no Paper como
-histórico. Elas usam os mesmos tokens, então as cores mudaram junto, mas o formato (cantos, sombras) é o antigo.
+## Onde a versão vive
 
-## Direção: "Noite de jogo" com cara de fliperama
+- Até a v0.5, a fonte da verdade era o **Paper**, arquivo "Fut Stats":
+  https://app.paper.design/file/01M583500PVH8Y9M2R4HG9FFWS
+- A v1.x foi montada em HTML porque o limite semanal de chamadas do Paper (plano grátis) acabou.
+  - A folha HTML gera código já no formato que o Paper aceita.
+  - Quando o limite voltar, ela é colada no Paper como "Design System v1.3".
+  - Enquanto isso, **a folha HTML vale**.
+- As folhas v0.1 a v0.5 ficam no Paper só como histórico. Os PNGs `design-system-v0.4.png` e `design-system-v0.5.png` são dessa fase.
 
-Gramado à noite com holofote no topo. Branco x Preto é a identidade. A nostalgia de jogo 2D entra em três
-lugares: no formato (canto reto e tecla), na fonte pixel do jogador e nos momentos de festa (VS e pacote).
+## Em uma linha
 
-- **Cor tem papel fixo:**
-  - texto em creme `--color-text` (`#F3EAD3`); o branco puro fica só para o time Branco
-  - amarelo `--color-accent`: só ações, um por tela, sem brilho
-    - **exceção aprovada:** a palavra **VS** usa `--color-game`, que é o mesmo amarelo
-  - ouro `--color-gold`: mérito (Craque, líder)
-  - madeira `--color-flop`: zoeira (Perna de Pau)
-  - verde e vermelho: vitória e derrota
-  - laranja `--color-warning`: só o ícone de prazo
-- **Fundo:**
-  - padrão escuro (`--color-bg`), com holofote radial no topo (`--color-floodlight`)
-  - opção **"Gramado"** nas configurações: troca só as 4 cores de fundo pelos tokens `*-green`
-    (`--color-bg-green`, `--color-surface-green`, `--color-surface-3-green`, `--color-border-strong-green`)
-- **Duas assinaturas, e só elas:**
-  - o placar com corte diagonal Branco/Preto
-  - o campo 1-2-3-1
-- **Tipografia: uma fonte para cada papel.**
-
-| Fonte | Papel | Onde |
-|---|---|---|
-| Barlow Condensed 800 | o jogo | Placar, nome dos times, títulos e **todo número** (nota, posição, contagens), com algarismos de largura fixa (`tabular-nums`). |
-| Silkscreen 700 (`--font-pixel`) | o jogador | Nome do jogador; VS, Craque, Fim de jogo; logo. Só caixa alta, mínimo 13px, sem quebra de linha, até 14 caracteres em lista (o resto vira "…"). |
-| Inter | o app | Botões, textos, rótulos, datas, mensagens. |
-
-  - Texto corrido nunca vira pixel.
-  - Dígito em pixel só na festa (carta revelada, VS, pacote). Na crítica da v0.5, a Silkscreen em número pequeno
-    falhou: o 4 vira borrão, a vírgula é larga, o 2 é igual ao Z e o 0 parece O.
-  - A Pixelify Sans foi descartada porque "Z" lê como "B" e 2/3 parecem 8.
-- **Forma:**
-  - canto reto (raio 0) em tudo; só avatar, ponto e bolinha do slider são redondos
-  - exceção "controle redondo": a barra de abas, que fica sob o polegar o tempo todo, tem raio 20 e flutua;
-    a aba ativa é uma pílula de raio 14
-  - card e lista: contorno duro de 2px com `--color-border-strong`, sem sombra
-  - o que flutua (aviso, barra de abas, gaveta): contorno + sombra sólida preta `4px 4px 0`
-  - botão principal é **tecla**: amarelo chapado, borda preta de 3px e sombra `4px 4px 0 #000`;
-    pressionado, desce 4px e perde a sombra
-  - O Paper não tem token de sombra. Os valores estão na folha e viram tokens no Tailwind.
-- **Pixel art:** bonequinhos (8×12), estrela e bola desenhados em pixel, com cantos nítidos.
-  - Aparecem inteiros no VS e no pacote. No resto do app, o pixel fica na fonte do jogador.
-- **Figurinha** para jogador. Só a do Craque é colorida (holográfica) e inclinada.
-- **Acessibilidade:**
-  - alvo de toque mínimo de 44px
-  - texto de produto com no mínimo 13px
-  - contornos clicáveis usam `--color-border-strong` (3:1)
-  - o campo funciona por toque, e arrastar é atalho
-  - respeitar "reduzir movimento"
-
-## Componentes na folha
-
-| Grupo | Componentes |
-|---|---|
-| Base | Cores; fundo escuro e "Gramado" com holofote; tipografia por papel; forma e profundidade |
-| Ações | Botões: primário (tecla) com pressionado, foco e carregando; secundário; fantasma; desabilitado; perigo; ícone |
-| Identidade | Selos e avatares com anel do time e goleiro |
-| Entrada | Presença (Vou / Não vou) com contador; campos de texto com foco e erro |
-| Partida e times | Card da partida; campo 1-2-3-1 com banco, seleção e desfazer; figurinhas |
-| Festa | VS dos times (quadro final); pacote do Craque fechado e carta revelada |
-| Notas e votos | Dar nota (stepper + slider + revisão); voto Craque / Perna de Pau; fim "Votos enviados" |
-| Estados | Aviso com desfazer; carregando; vazio; erro com "Tentar de novo"; gaveta de confirmação |
-| Navegação e listas | Feed (alerta), abas, ranking e barra de navegação com rótulos |
+Gramado à noite com holofote, Branco x Preto como identidade e cara de fliperama:
+- canto reto e botão em tecla;
+- letra pixel em toda a interface;
+- números em dígitos pixel próprios;
+- três grandes momentos com pixel art: VS, pacote do Craque e revelação do resultado.
 
 ## Pendências
 
+- [ ] Colar a v1.3 no Paper (com ok do dono; ver [HANDOFF.md](HANDOFF.md)).
 - [ ] Wireframes e alta fidelidade das telas do MVP (roadmap, Fase 0.5).
-- [x] Nome dos prêmios: **Craque** e **Perna de Pau** em domínio, labels e docs (código segue `mvp`/`flop`).
-- [ ] Tokens do Paper → tema do Tailwind no `apps/web`, incluindo sombras, movimento, camadas e o fundo "Gramado".
+- [ ] `tokens.css` → tema do Tailwind no `apps/web`, com a fonte Silkscreen e o componente de dígitos pixel.
+- [ ] Levar ao `CONTEXT.md`, no PR do domínio, as três regras de produto da seção final do [DESIGN.md](DESIGN.md).
 
-Próxima sessão de design: comece pelo [HANDOFF.md](HANDOFF.md).
-
-Ideias para os momentos de "festa" (animações estilo jogo 2D): [ideias-de-inspiracao.md](ideias-de-inspiracao.md).
+Próxima sessão de design: comece pelo [HANDOFF.md](HANDOFF.md). Ideias para os grandes momentos (animações estilo
+jogo 2D): [ideias-de-inspiracao.md](ideias-de-inspiracao.md).

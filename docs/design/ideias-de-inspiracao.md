@@ -5,7 +5,7 @@ A seção abaixo traz o que o dono já decidiu. O resto do arquivo continua send
 
 ## Decisões do dono (22 out 2026)
 
-- **Não teremos dois modos ("dia a dia" x "festa").** O design se consolida **agora**, num DS só.
+- **Não teremos dois modos.** O design se consolida **agora**, num DS só.
   - A nostalgia de jogo faz parte do DS.
   - Ela não fica isolada num modo especial.
   - O DS v0.4 ("Noite de jogo") é a base a refinar, não a substituir.
@@ -71,7 +71,7 @@ O que **não** pegar:
 - Tela dividida na diagonal (já é a nossa assinatura!): Branco de um lado, Preto do outro.
 - Os 7 jogadores de cada time entram deslizando, um por um, como seleção de lutador.
 - "VS" gigante no meio, com tremida de tela e som de impacto.
-- Encerra com "QUINTA, 20H. QUEM GANHA?"
+- Encerra com "HOJE, 20H. QUEM GANHA?" (o dia da pelada não é fixo).
 
 ### 2. Sorteio de times: bloco "?" (estilo Mario)
 - O admin toca num bloco "?" pixelado; ele "pula" e solta os jogadores sorteados.
@@ -116,10 +116,10 @@ O que **não** pegar:
    Isso dá sensação de "objeto físico", como num jogo.
 3. **Squash & stretch.** Princípio clássico de animação: coisas que pulam achatam ao cair
    e esticam ao subir. É o que faz o Mario parecer vivo.
-4. **Curto.** Micro-interações de 150 a 300 ms. Momentos de festa até uns 2 s, sempre com
+4. **Curto.** Micro-interações de 150 a 300 ms. Grandes momentos até uns 2 s, sempre com
    botão "pular".
 5. **Acessibilidade.** Respeitar a configuração "reduzir movimento" do celular
-   (`prefers-reduced-motion`): nesse caso a festa vira um fade simples.
+   (`prefers-reduced-motion`): nesse caso o grande momento vira um fade simples.
 6. **Som opcional e desligado por padrão.** Ninguém quer o celular apitando no trabalho.
    Vibração curta (Android) pode substituir.
 
@@ -132,7 +132,7 @@ O que **não** pegar:
 | **Lottie / dotLottie** | Tocar animações prontas (exportadas do After Effects ou baixadas no LottieFiles) | Bom para comemorações prontas |
 | **canvas-confetti** | Confete na tela em 1 linha | Comemoração barata |
 | **View Transitions API** | Transição suave entre telas, nativa do navegador | Sem biblioteca |
-| **Fontes pixel** (Press Start 2P, Pixelify Sans, Silkscreen) | Títulos de festa: "VS", "1-UP", "GAME OVER" | Só em textos curtos, nunca em texto corrido |
+| **Fontes pixel** (Press Start 2P, Pixelify Sans, Silkscreen) | Interface toda (v1.3: Silkscreen); antes só "VS", "1-UP", "GAME OVER" | Nunca em texto corrido |
 
 Pixel art (moedas, bloco "?", bonequinhos) pode vir de pacotes gratuitos (ex.: itch.io,
 Kenney.nl). Atenção à licença: preferir CC0 ou desenhar o nosso próprio, sem usar
@@ -140,7 +140,7 @@ personagens da Nintendo (direitos autorais).
 
 ## Limitação do Paper
 
-O Paper desenha telas **paradas**. Para os momentos de festa, o caminho é:
+O Paper desenha telas **paradas**. Para os grandes momentos, o caminho é:
 1. Desenhar no Paper os quadros-chave (começo, meio e fim da animação).
 2. Prototipar o movimento de verdade no código (Motion) ou no Rive.
 
@@ -150,4 +150,4 @@ O Paper desenha telas **paradas**. Para os momentos de festa, o caminho é:
 - [x] Consolidar a estética pixel (ISS) como regra do DS, sem criar um segundo modo (v0.5)
 - [x] Definir o estilo do pixel: sprites de 8×12 e fonte Silkscreen para o jogador; a UI pega o formato
   de fliperama (canto reto, tecla), mas não vira pixel (v0.5, regras no [README](README.md))
-- [ ] Desenhar os quadros-chave do VS e do pacote no Paper
+- [x] Desenhar os quadros-chave do VS e do pacote (v1.3, na folha HTML; falta colar no Paper)
