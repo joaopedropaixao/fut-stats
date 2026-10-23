@@ -42,14 +42,15 @@ function toItem(round: ItemRow): HistoryItem {
   const score =
     round.whiteGoals === null || round.blackGoals === null
       ? null
-      : { white: round.whiteGoals, black: round.blackGoals };
+      : { WHITE: round.whiteGoals, BLACK: round.blackGoals };
   return {
     roundId: round.id,
     scheduledAt: round.scheduledAt.toISOString(),
     location: round.location,
     status: round.status,
     score,
-    winner: score && matchWinner({ WHITE: score.white, BLACK: score.black }),
+    // Placar de jogo em andamento é parcial: ninguém venceu ainda
+    winner: score && round.status !== 'IN_PROGRESS' ? matchWinner(score) : null,
   };
 }
 
@@ -98,7 +99,7 @@ export class HistoryService {
     for (const { membershipId, type } of round.matchEvents) {
       const entry = tally.get(membershipId) ?? { goals: 0, assists: 0 };
       if (type === 'GOAL') entry.goals += 1;
-      else entry.assists += 1;
+      if (type === 'ASSIST') entry.assists += 1;
       tally.set(membershipId, entry);
     }
 

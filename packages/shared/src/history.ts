@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { positionSchema, roundStatusSchema, teamSchema } from './domain';
+import { matchScoreSchema, positionSchema, roundStatusSchema, teamSchema } from './domain';
 
 /** Tamanho da página do histórico (proteção de entrada, não regra da pelada). */
 export const HISTORY_PAGE_DEFAULT = 20;
@@ -13,15 +13,16 @@ export const historyQuerySchema = z.object({
 
 export const matchWinnerSchema = z.enum([...teamSchema.options, 'DRAW']);
 
-export const historyScoreSchema = z.object({ white: z.number().int(), black: z.number().int() });
-
-/** Uma partida já jogada na lista. `score` e `winner` são nulos se o placar ainda não foi lançado. */
+/**
+ * Uma partida já jogada na lista. `score` e `winner` são nulos se o placar ainda não foi lançado;
+ * `winner` também é nulo com o jogo em andamento (placar parcial).
+ */
 export const historyItemSchema = z.object({
   roundId: z.string(),
   scheduledAt: z.iso.datetime(),
   location: z.string().nullable(),
   status: roundStatusSchema,
-  score: historyScoreSchema.nullable(),
+  score: matchScoreSchema.nullable(),
   winner: matchWinnerSchema.nullable(),
 });
 

@@ -92,8 +92,25 @@ describe('histórico de rodadas e partidas', () => {
       expect(body.items.map((i) => i.roundId)).toEqual([live.id, recent.id, black.id, old.id]);
       expect(body.items.map((i) => i.winner)).toEqual([null, 'DRAW', 'BLACK', 'WHITE']);
       expect(body.items[0]).toMatchObject({ score: null, status: 'IN_PROGRESS' });
-      expect(body.items[3]).toMatchObject({ score: { white: 3, black: 1 }, location: 'Arena' });
+      expect(body.items[3]).toMatchObject({ score: { WHITE: 3, BLACK: 1 }, location: 'Arena' });
       expect(body.nextCursor).toBeNull();
+    });
+
+    it('jogo em andamento com placar parcial ainda não tem vencedor', async () => {
+      const { group, cookie } = await setup();
+      const live = await createRound(group.id, { status: 'IN_PROGRESS', score: [2, 0] });
+
+      const res = await request(server()).get(listPath(group.id)).set('Cookie', cookie).expect(200);
+      const detail = await request(server())
+        .get(`${listPath(group.id)}/${live.id}`)
+        .set('Cookie', cookie)
+        .expect(200);
+
+      expect(historyListSchema.parse(res.body).items[0]).toMatchObject({
+        score: { WHITE: 2, BLACK: 0 },
+        winner: null,
+      });
+      expect(historyDetailSchema.parse(detail.body).winner).toBeNull();
     });
 
     it('rodada agendada que já tem placar também entra', async () => {
@@ -209,7 +226,7 @@ describe('histórico de rodadas e partidas', () => {
       expect(body).toMatchObject({
         roundId: round.id,
         winner: 'WHITE',
-        score: { white: 2, black: 1 },
+        score: { WHITE: 2, BLACK: 1 },
       });
       expect(body.teams.WHITE.starters.map((p) => p.nickname)).toEqual([
         'Paredão',
