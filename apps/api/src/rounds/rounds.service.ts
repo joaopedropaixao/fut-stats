@@ -34,6 +34,7 @@ const confirmedCount = {
 
 const summarySelect = {
   id: true,
+  number: true,
   scheduledAt: true,
   location: true,
   status: true,
@@ -42,6 +43,7 @@ const summarySelect = {
 
 type SummaryRow = {
   id: string;
+  number: number;
   scheduledAt: Date;
   location: string | null;
   status: RoundSummary['status'];

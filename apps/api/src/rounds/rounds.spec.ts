@@ -319,6 +319,73 @@ describe('rodadas e presença', () => {
     });
   });
 
+  describe('número da rodada', () => {
+    const numbersOf = async (groupId: string) =>
+      (
+        await t.prisma.round.findMany({
+          where: { groupId },
+          select: { number: true },
+          orderBy: { number: 'asc' },
+        })
+      ).map((r) => r.number);
+
+    it('cada grupo conta do 1, na ordem de criação (não da data)', async () => {
+      const { group, adminUser } = await setup();
+      const other = await createGroup(t);
+
+      await createRound(group.id, { scheduledAt: new Date(Date.now() + 7 * DAY_MS) });
+      await createRound(other.id);
+      const res = await request(server())
+        .post(roundsPath(group.id))
+        .set('Cookie', as(adminUser.id))
+        .send({ scheduledAt: '2020-01-01T10:00:00Z' })
+        .expect(201);
+
+      expect(res.body.number).toBe(2);
+      expect(await numbersOf(group.id)).toEqual([1, 2]);
+      expect(await numbersOf(other.id)).toEqual([1]);
+    });
+
+    it('apagar a última libera o número; apagar outra deixa o buraco', async () => {
+      const { group } = await setup();
+      const first = await createRound(group.id);
+      await createRound(group.id);
+      const third = await createRound(group.id);
+
+      await t.prisma.round.delete({ where: { id: third.id } });
+      expect((await createRound(group.id)).number).toBe(3);
+
+      await t.prisma.round.delete({ where: { id: first.id } });
+      expect((await createRound(group.id)).number).toBe(4);
+      expect(await numbersOf(group.id)).toEqual([2, 3, 4]);
+    });
+
+    it('rodadas criadas ao mesmo tempo ganham números diferentes', async () => {
+      const { group } = await setup();
+
+      await Promise.all(Array.from({ length: 8 }, () => createRound(group.id)));
+
+      expect(await numbersOf(group.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    });
+
+    it('lista e detalhe mostram o número', async () => {
+      const { group, playerUser } = await setup();
+      const round = await createRound(group.id);
+
+      const list = await request(server())
+        .get(roundsPath(group.id))
+        .set('Cookie', as(playerUser.id))
+        .expect(200);
+      const detail = await request(server())
+        .get(`${roundsPath(group.id)}/${round.id}`)
+        .set('Cookie', as(playerUser.id))
+        .expect(200);
+
+      expect(list.body.upcoming[0].number).toBe(1);
+      expect(detail.body.number).toBe(1);
+    });
+  });
+
   describe('DELETE /rounds/:roundId (apagar)', () => {
     it('admin apaga antes do jogo, junto com as presenças', async () => {
       const { group, adminUser, player } = await setup();

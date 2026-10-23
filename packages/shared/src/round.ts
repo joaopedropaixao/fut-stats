@@ -50,6 +50,8 @@ export const setAttendanceSchema = z.object({ confirmed: z.boolean() });
 /** Uma rodada na lista do grupo. */
 export const roundSummarySchema = z.object({
   id: z.string(),
+  /** Número da rodada no grupo ("RODADA 12"), dado pelo banco na criação. */
+  number: z.number().int().positive(),
   scheduledAt: z.iso.datetime(),
   location: z.string().nullable(),
   status: roundStatusSchema,
