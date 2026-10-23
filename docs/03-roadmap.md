@@ -64,7 +64,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] v1.3 colada no Paper (depende do limite semanal do plano grátis)
 - [ ] Telas da Fase 1 (mobile-first): entrar/convite, rodada e presença, montar times, placar e scouts, histórico
 - [ ] Telas das Fases 2 a 4: seletor de times, notas, Craque / Perna de Pau, ranking, feed
-- [ ] MCP do Playwright configurado no repo (`.mcp.json`) antes da primeira tarefa que toca telas
+- [x] MCP do Playwright configurado no repo (`.mcp.json`) antes da primeira tarefa que toca telas
 - [ ] `docs/design/tokens.css` → tema do Tailwind no `apps/web` (tarefa `feature/web-foundation`)
 - [x] Renomear entidades para os nomes do design (mudaram junto com os ícones): MVP → **Craque**,
   Bola Murcha → **Perna de Pau** em `packages/domain`, `packages/shared` (labels), `CONTEXT.md` e docs
