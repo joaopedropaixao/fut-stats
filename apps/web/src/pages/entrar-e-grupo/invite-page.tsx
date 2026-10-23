@@ -73,8 +73,8 @@ export function InvitePage() {
               <PixelText>{preview.data.memberCount === 1 ? 'Jogador' : 'Jogadores'}</PixelText>
             </Surface>
           </header>
-          {session.data === undefined && <SkeletonList rows={1} />}
-          {session.data === null && (
+          {session.data === undefined && !session.isError && <SkeletonList rows={1} />}
+          {(session.data === null || (session.data === undefined && session.isError)) && (
             <ButtonLink
               href={LOGIN_URL}
               label="Entrar com Google"

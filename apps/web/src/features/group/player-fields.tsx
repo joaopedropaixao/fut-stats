@@ -39,7 +39,6 @@ export function usePlayerFields() {
         onChange={(e) => setNickname(e.target.value)}
         error={errors.nickname}
         autoComplete="off"
-        maxLength={30}
       />
       <PositionPicker value={position} onChange={setPosition} error={errors.primaryPosition} />
     </>

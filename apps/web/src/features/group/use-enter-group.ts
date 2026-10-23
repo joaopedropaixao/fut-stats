@@ -20,7 +20,8 @@ function useAfterEnter() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   return async (groupId: string) => {
-    await queryClient.invalidateQueries({ queryKey: sessionQueryKey });
+    // Se o refetch falhar, a pessoa já entrou: segue para o início e o shell tenta de novo
+    await queryClient.invalidateQueries({ queryKey: sessionQueryKey }).catch(() => undefined);
     setCurrentGroupId(groupId);
     void navigate('/', { replace: true });
   };

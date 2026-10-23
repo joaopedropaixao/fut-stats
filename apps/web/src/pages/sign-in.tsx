@@ -1,8 +1,13 @@
+import { useEffect } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
 import { ButtonLink } from '../components/ui/button';
 import { GoogleMark } from '../components/ui/google-mark';
 import { PixelText } from '../components/ui/pixel-text';
-import { isInvitePath, savePendingDestination } from '../features/group/invite-code';
+import {
+  clearPendingDestination,
+  isInvitePath,
+  savePendingDestination,
+} from '../features/group/invite-code';
 import { useSession } from '../features/session/use-session';
 import { LOGIN_URL } from '../lib/api';
 
@@ -12,6 +17,10 @@ export function SignInPage() {
   const [params] = useSearchParams();
   const next = params.get('next');
   const destination = isInvitePath(next) ? next : null;
+  // Voltou para cá sem concluir o login: o destino guardado de antes não vale mais
+  useEffect(() => {
+    if (session.data === null) clearPendingDestination();
+  }, [session.data]);
   if (session.data) return <Navigate to={destination ?? '/'} replace />;
 
   return (
