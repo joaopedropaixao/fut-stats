@@ -146,12 +146,16 @@ export class LineupsService {
         ]),
       ),
     ];
+    // Quem já está no rascunho segue valendo mesmo que tenha desconfirmado depois: o admin tira ele quando quiser.
+    const placed = new Set((await this.teamPlayers(round.id)).map((row) => row.membership.id));
     const confirmed = await this.prisma.membership.findMany({
       where: {
         id: { in: ids },
         groupId: membership.groupId,
-        active: true,
-        attendances: { some: { roundId: round.id, confirmed: true } },
+        OR: [
+          { active: true, attendances: { some: { roundId: round.id, confirmed: true } } },
+          { id: { in: [...placed] } },
+        ],
       },
       select: { id: true, primaryPosition: true },
     });
@@ -180,10 +184,21 @@ export class LineupsService {
         isReserve: true,
       })),
     ]);
-    await this.prisma.$transaction([
-      this.prisma.teamPlayer.deleteMany({ where: { roundId: round.id } }),
-      this.prisma.teamPlayer.createMany({ data }),
-    ]);
+    await this.prisma.$transaction(async (tx) => {
+      // Trava a rodada e confere a etapa de novo: publicar ao mesmo tempo não deixa o rascunho mudar por baixo.
+      const locked = await tx.round.updateMany({
+        where: { id: round.id, status: 'SCHEDULED' },
+        data: { status: 'SCHEDULED' },
+      });
+      if (locked.count !== 1) {
+        throw new ConflictException({
+          code: 'LINEUP_NOT_EDITABLE',
+          message: LINEUP_NOT_EDITABLE_LABEL,
+        });
+      }
+      await tx.teamPlayer.deleteMany({ where: { roundId: round.id } });
+      await tx.teamPlayer.createMany({ data });
+    });
     return this.get(membership, round.id);
   }
 
@@ -203,34 +218,38 @@ export class LineupsService {
     to: RoundStatus,
   ): Promise<Lineup> {
     const round = await this.findRound(membership.groupId, roundId);
-    const rows = await this.teamPlayers(round.id);
-    const [error] = validateRoundTransition(toState(round.status, rows), to);
-    if (error) {
-      throw new ConflictException({ code: error, message: ROUND_TRANSITION_ERROR_LABELS[error] });
-    }
-
-    // Só muda se ninguém mexeu na etapa nesse meio-tempo.
-    const { count } = await this.prisma.round.updateMany({
-      where: { id: round.id, status: round.status },
-      data: { status: to },
-    });
-    if (count !== 1) {
-      throw new ConflictException({
-        code: 'INVALID_TRANSITION',
-        message: ROUND_TRANSITION_ERROR_LABELS.INVALID_TRANSITION,
+    await this.prisma.$transaction(async (tx) => {
+      // Muda a etapa primeiro (trava a linha e só passa se ninguém mexeu) e valida com os times lidos depois.
+      const { count } = await tx.round.updateMany({
+        where: { id: round.id, status: round.status },
+        data: { status: to },
       });
-    }
+      const rows = await this.teamPlayers(round.id, tx);
+      const [error] =
+        count === 1
+          ? validateRoundTransition(toState(round.status, rows), to)
+          : (['INVALID_TRANSITION'] as const);
+      if (error) {
+        throw new ConflictException({ code: error, message: ROUND_TRANSITION_ERROR_LABELS[error] });
+      }
+    });
     return this.get(membership, round.id);
   }
 
-  private async teamPlayers(roundId: string): Promise<TeamPlayerRow[]> {
-    const rows = await this.prisma.teamPlayer.findMany({
+  private async teamPlayers(
+    roundId: string,
+    db: Pick<PrismaService, 'teamPlayer'> = this.prisma,
+  ): Promise<TeamPlayerRow[]> {
+    const rows = await db.teamPlayer.findMany({
       where: { roundId },
       select: { team: true, position: true, isReserve: true, membership: { select: memberSelect } },
+      // O id (cuid) cresce na ordem em que o createMany os gerou: mantém a ordem salva dos reservas.
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
-    // Titulares na ordem do 1-2-3-1 (goleiro, zagueiros, alas, meio, atacante).
-    return rows.sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position));
+    // Titulares na ordem do 1-2-3-1 (goleiro, zagueiros, alas, meio, atacante); reservas na ordem salva.
+    const rank = (row: TeamPlayerRow) =>
+      row.isReserve ? POSITIONS.length : POSITIONS.indexOf(row.position);
+    return rows.sort((a, b) => rank(a) - rank(b));
   }
 
   /** A rodada, só se for do grupo da rota; senão 404. */

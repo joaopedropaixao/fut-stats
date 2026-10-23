@@ -265,6 +265,41 @@ describe('times da rodada (escalação)', () => {
       }
     });
 
+    it('quem já está no rascunho continua valendo mesmo se desconfirmar depois', async () => {
+      const { group, adminUser, round, ids } = await setup();
+      const path = lineupPath(group.id, round.id);
+      await request(server())
+        .put(path)
+        .set('Cookie', as(adminUser.id))
+        .send(fullDraft(ids))
+        .expect(200);
+      await t.prisma.attendance.update({
+        where: { roundId_membershipId: { roundId: round.id, membershipId: ids[3]! } },
+        data: { confirmed: false },
+      });
+
+      await request(server())
+        .put(path)
+        .set('Cookie', as(adminUser.id))
+        .send(fullDraft(ids))
+        .expect(200);
+    });
+
+    it('mantém a ordem dos reservas salva', async () => {
+      const { group, adminUser, round, ids } = await setup();
+      const draft = fullDraft(ids);
+      draft.WHITE.reserves = [ids[15]!, ids[14]!];
+      draft.BLACK.reserves = [];
+      const res = await request(server())
+        .put(lineupPath(group.id, round.id))
+        .set('Cookie', as(adminUser.id))
+        .send(draft)
+        .expect(200);
+      expect(
+        res.body.teams.WHITE.reserves.map((p: { membershipId: string }) => p.membershipId),
+      ).toEqual([ids[15], ids[14]]);
+    });
+
     it.each<RoundStatus>(['TEAMS_PUBLISHED', 'IN_PROGRESS', 'CLOSED'])(
       'com a rodada %s não deixa mexer (409)',
       async (status) => {
