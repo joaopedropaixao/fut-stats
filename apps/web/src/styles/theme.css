@@ -1,0 +1,137 @@
+/*
+ * Tema do Tailwind a partir de docs/design/tokens.css (DS v1.3, fonte da verdade do visual).
+ * Mudou um valor lá? Mude aqui também: o teste theme.test.ts compara os dois arquivos.
+ *
+ * Os padrões do Tailwind para cor, texto e canto foram zerados de propósito: só existe o que o DS define
+ * (nada de bg-blue-500 ou rounded-lg por engano).
+ */
+@theme {
+  --color-*: initial;
+  --text-*: initial;
+  --radius-*: initial;
+  --font-*: initial;
+
+  /* Fundo e superfícies: Gramado (padrão). O tema Noite troca estes valores (ver abaixo). */
+  --color-bg: #0d2717;
+  --color-surface: #143521;
+  --color-surface-raised: #1a3f29;
+  --color-surface-3: #1e472e;
+  --color-border: #2f6444;
+  --color-border-strong: #77a285;
+  --color-track: #09190f;
+  --color-field: #1b4f2d;
+
+  /* Texto */
+  --color-text: #f3ead3;
+  --color-text-muted: #cfcab5;
+  --color-disabled: #9db0a2;
+
+  /* Papéis fixos de cor */
+  --color-accent: #facc15;
+  --color-accent-pressed: #e0b20a;
+  --color-on-accent: #111111;
+  --color-game: var(--color-accent);
+  --color-gold: #e8a93a;
+  --color-flop: #c4a07c;
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+  --color-warning: #fb923c;
+  --color-team-white: #ffffff;
+  --color-team-black: #000000;
+
+  /* Luz e camadas */
+  --color-floodlight: rgb(214 250 190 / 18%);
+  --color-highlight: rgb(255 255 255 / 7%);
+  --color-chalk: rgb(255 255 255 / 14%);
+  --color-scrim: rgb(0 0 0 / 62%);
+
+  /* Fontes servidas pelo app (src/styles/fonts.css) */
+  --font-pixel: 'Silkscreen', ui-monospace, monospace;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+
+  /* Silkscreen só em 16, 24 ou 32px (grade de 8px); entrelinha = tamanho + 4, como na folha */
+  --text-pixel-sm: 16px;
+  --text-pixel-sm--line-height: 20px;
+  --text-pixel-md: 24px;
+  --text-pixel-md--line-height: 28px;
+  --text-pixel-lg: 32px;
+  --text-pixel-lg--line-height: 36px;
+
+  /* Texto corrido (Inter): mínimo 13px, entrelinha >= 1,4 */
+  --text-caption: 13px;
+  --text-caption--line-height: 18px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 16px;
+  --text-base--line-height: 24px;
+  --text-lg: 20px;
+  --text-lg--line-height: 28px;
+  --leading-body: 1.4;
+
+  /* Espaço: os tokens são múltiplos de 4px (spacing-1 = 4px ... spacing-14 = 56px), então p-4 = 16px */
+  --spacing: 4px;
+
+  /* Forma: canto reto em tudo; exceções */
+  --radius-none: 0;
+  --radius-nav: 20px;
+  --radius-nav-pill: 14px;
+  --radius-full: 999px;
+
+  /* Sombras duras, sem desfoque */
+  --shadow-card: inset 0 0 0 2px var(--color-border-strong);
+  --shadow-float: inset 0 0 0 2px var(--color-border-strong), 4px 4px 0 #000;
+  --shadow-key: inset 0 0 0 3px #000, 4px 4px 0 #000;
+  --shadow-key-pressed: inset 0 0 0 3px #000;
+
+  /* Curvas */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-pixel: steps(2, jump-none);
+
+  /* Larguras */
+  --container-mobile: 390px;
+  --container-content: 640px;
+}
+
+/* Tokens sem namespace no Tailwind: use como z-(--z-nav), duration-(--duration-normal), min-h-(--touch-min) */
+:root {
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-moment: 400ms;
+
+  --z-nav: 10;
+  --z-sheet: 20;
+  --z-toast: 30;
+  --z-drag: 40;
+
+  --touch-min: 44px;
+  --border-width: 2px;
+
+  /* Fundo Noite (opção nas configurações) */
+  --color-bg-night: #0a0f0c;
+  --color-surface-night: #141a16;
+  --color-surface-raised-night: #1e2520;
+  --color-surface-3-night: #262e28;
+  --color-border-night: #2a332d;
+  --color-border-strong-night: #667069;
+  --color-floodlight-night: rgb(236 244 214 / 16%);
+}
+
+/* Reduzir movimento: o resto troca sem animar (os grandes momentos vão direto ao quadro final) */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-moment: 0ms;
+  }
+}
+
+/* Tema Noite: data-theme="night" no <html> troca só os tokens de fundo */
+[data-theme='night'] {
+  --color-bg: var(--color-bg-night);
+  --color-surface: var(--color-surface-night);
+  --color-surface-raised: var(--color-surface-raised-night);
+  --color-surface-3: var(--color-surface-3-night);
+  --color-border: var(--color-border-night);
+  --color-border-strong: var(--color-border-strong-night);
+  --color-floodlight: var(--color-floodlight-night);
+}
