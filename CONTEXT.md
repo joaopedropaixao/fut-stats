@@ -307,8 +307,17 @@ e quando a votação fecha sozinha.
 - `votingCloseReason(now: Date, voting: VotingState): VotingCloseReason | null` e `shouldCloseVoting(now, voting): boolean`,
   com `VotingState = { openedAt, deadlineHours, playedIds, votedIds }` e `VotingCloseReason` (lista em
   `VOTING_CLOSE_REASONS`) = `'ALL_VOTED'` | `'DEADLINE_PASSED'`. `votingDeadline(openedAt, deadlineHours): Date`.
+- `matchWinner(score: MatchScore): MatchWinner` (`src/round/winner.ts`): `'WHITE'` | `'BLACK'` | `'DRAW'`. Mais gols vence;
+  placar igual é empate (inclusive 0 a 0), sem desempate.
+- `isRoundPlayed(status)` → `boolean` (lista em `PLAYED_ROUND_STATUSES`): a partida já começou (`IN_PROGRESS`, `VOTING`
+  ou `CLOSED`). É o que entra no histórico (API `GET /groups/:groupId/history`). Placar no banco com a rodada antes
+  disso **não** conta.
+- `roundResult(status, score)` → `MatchWinner | null`: o resultado só existe depois do jogo (`VOTING`/`CLOSED`) e com
+  placar lançado. **Em jogo o placar é parcial**, então volta `null`. É o `winner` do histórico.
 - Apoio: `teamOf(playerId, teams)`, `roundPlayerIds(teams)` (os `playedIds` das notas),
-  `tallyMatchEvents(events, teams)` → `{ goals, assists }` por time, `validateScore(score)` → `'INVALID_SCORE'` | `null`.
+  `tallyMatchEvents(events, teams)` → `{ goals, assists }` por time, `tallyPlayerEvents(events)` →
+  `Map<playerId, { goals, assists, ownGoals }>` (gol contra fica com quem fez, separado dos gols; só aparece quem tem
+  lance), `validateScore(score)` → `'INVALID_SCORE'` | `null`.
 
 **Faz:**
 - **Ciclo:** só anda para frente, com uma volta: `TEAMS_PUBLISHED` → `SCHEDULED` (despublicar para refazer os times).
