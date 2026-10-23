@@ -13,3 +13,8 @@ coverage/
 # Client gerado pelo Prisma
 apps/api/src/generated/
 .render-bin/
+
+# Pastas locais de ferramentas de IA e de design
+.playwright-mcp/
+.impeccable/
+.taste-skill/
