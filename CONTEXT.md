@@ -243,12 +243,87 @@ problemas. `validateCartolaSquad` → lista de códigos (vazia = válida). `squa
 - Converter para `ValidCartolaScouts` com `as` fora do `parse*`.
 - Arredondar fora daqui com outra precisão.
 
+### Rodada, placar e scouts: `validateRoundTransition` / `validateMatchEvent` / `shouldCloseVoting` ✅
+**O que é:** as regras de uma rodada (`src/round/`). Rodada = um encontro semanal = **uma partida** (Branco x Preto);
+notas, Craque e Perna de Pau são por rodada. Aqui ficam o ciclo (`RoundStatus`), o placar, os scouts (lances)
+e quando a votação fecha sozinha.
+
+**Tipos:**
+- `RoundStatus` (lista em `ROUND_STATUSES`, igual ao enum do Prisma): `SCHEDULED` (agendada) →
+  `TEAMS_PUBLISHED` (times publicados) → `IN_PROGRESS` (em jogo) → `VOTING` (votação) → `CLOSED` (encerrada).
+  Para onde cada um pode ir: `ROUND_TRANSITIONS`.
+- `MatchEventType` (lista em `MATCH_EVENT_TYPES`): `GOAL`, `ASSIST`, `OWN_GOAL` (gol contra). **`OWN_GOAL` ainda
+  não está no enum do Prisma** (`MatchEventType`): entra no PR da API que usar estas regras.
+- `MatchEvent = { playerId, type }`: quem fez o lance (no banco, `MatchEvent.membershipId`).
+- `MatchScore = { WHITE, BLACK }`: placar (no banco, `whiteGoals`/`blackGoals`).
+- `RoundTeams` = `RoundLineup` + `reserves: TeamReserves` (mesmo formato do `BalancedRound`). Quem está aqui jogou.
+- `RoundState = { status, teams: RoundTeams | null, score: MatchScore | null, events: MatchEvent[] }`:
+  o que as regras precisam da rodada (`null` = ainda não montado/lançado).
+- `RoundActor = { id, isAdmin }`: quem está agindo. O domínio não conhece usuário: a API diz se é admin do grupo.
+
+**Assinaturas:**
+- `validateRoundTransition(round: RoundState, to: RoundStatus, { maxReservesPerTeam = 2 }: RoundTeamsOptions = {}): RoundTransitionError[]`
+  e `canTransitionRound(...)` (sim/não). `RoundTransitionError` (lista em `ROUND_TRANSITION_ERRORS`):
+  `'INVALID_TRANSITION'`, `'INVALID_LINEUP'`, `'INVALID_RESERVES'`, `'SCORE_MISSING'`, `'INVALID_SCORE'`,
+  `'GOALS_MISMATCH'`, `'TOO_MANY_ASSISTS'`.
+- `validateRoundTeams(teams: RoundTeams | null, options?): RoundTransitionError[]` (só `INVALID_LINEUP`/`INVALID_RESERVES`).
+- `isRoundDeletable(status): boolean`.
+- `validateMatchEvent(event: MatchEvent, actor: RoundActor, round: RoundState): MatchEventError[]` e
+  `canLaunchMatchEvent(...)` (sim/não); `validateMatchEventRemoval(event, actor, round): MatchEventError[]`.
+  `MatchEventError` (lista em `MATCH_EVENT_ERRORS`): `'ROUND_NOT_OPEN'`, `'NOT_OWN_EVENT'`,
+  `'PLAYER_DID_NOT_PLAY'`, `'GOALS_EXCEED_SCORE'`, `'ASSISTS_EXCEED_SCORE'`.
+- `validateScoreEntry(score: MatchScore, actor: RoundActor, round: RoundState): ScoreEntryError[]`.
+  `ScoreEntryError` (lista em `SCORE_ENTRY_ERRORS`): `'ROUND_NOT_OPEN'`, `'NOT_ADMIN'`, `'INVALID_SCORE'`,
+  `'SCORE_BELOW_GOALS'`, `'SCORE_BELOW_ASSISTS'`.
+- `isMatchOpen(status): boolean`: se scouts e placar podem ser lançados/corrigidos.
+- `votingCloseReason(now: Date, voting: VotingState): VotingCloseReason | null` e `shouldCloseVoting(now, voting): boolean`,
+  com `VotingState = { openedAt, deadlineHours, playedIds, votedIds }` e `VotingCloseReason` (lista em
+  `VOTING_CLOSE_REASONS`) = `'ALL_VOTED'` | `'DEADLINE_PASSED'`. `votingDeadline(openedAt, deadlineHours): Date`.
+- Apoio: `teamOf(playerId, teams)`, `roundPlayerIds(teams)` (os `playedIds` das notas),
+  `tallyMatchEvents(events, teams)` → `{ goals, assists }` por time, `validateScore(score)` → `'INVALID_SCORE'` | `null`.
+
+**Faz:**
+- **Ciclo:** só anda para frente, com uma volta: `TEAMS_PUBLISHED` → `SCHEDULED` (despublicar para refazer os times).
+  `CLOSED` é definitivo (votação não reabre). Pré-condições: publicar times e começar o jogo exigem `RoundTeams`
+  válido (`isValidRoundLineup` + até `maxReservesPerTeam` reservas por time, sem repetir ninguém nem titular);
+  ir para `VOTING` e para `CLOSED` exigem placar lançado e válido, **gols lançados = placar** em cada time
+  (gol contra conta para o adversário) e assistências ≤ gols do time. Etapa inválida devolve só `INVALID_TRANSITION`.
+- **Cancelar:** não há status de cancelada. Rodada que não vai acontecer é apagada, e só antes do jogo
+  (`SCHEDULED` ou `TEAMS_PUBLISHED`, `isRoundDeletable`).
+- **Scouts:** lança e apaga só em `IN_PROGRESS` e `VOTING`; em `CLOSED` congela (notas, prêmios e Cartola já saíram).
+  Jogador lança/apaga só os próprios; admin, de qualquer um. Quem fez o lance tem que ter jogado (titular ou reserva).
+  Corrigir = apagar + lançar. Assistência é solta (não aponta para um gol). Sem placar, não há limite; com placar,
+  os gols de um time não passam do placar dele, nem as assistências.
+- **Placar:** só admin, em `IN_PROGRESS` e `VOTING`; não fica abaixo dos gols nem das assistências já lançados.
+  Gols podem ser lançados antes do placar.
+- **Votação:** fecha sozinha quando todos que jogaram votaram (`ALL_VOTED`, tem prioridade) ou quando o prazo
+  expira (`DEADLINE_PASSED`, a partir do instante `openedAt + deadlineHours`). Votar é opcional: sem votos, fecha no
+  prazo. Voto de quem não jogou ou repetido não conta. O admin pode encerrar antes: basta a transição para `CLOSED`.
+
+**Não faz:** não lê relógio (`now` vem de fora); não guarda nada nem sabe quem lançou o scout (a API grava
+`createdById`); não checa papel no grupo (recebe `isAdmin`); não define o que é "votou" (a API passa `votedIds`);
+não fecha a rodada sozinha: `shouldCloseVoting` só diz que é hora, e o `CLOSED` ainda exige placar batendo
+(prazo expirado com gols sem bater fica em `VOTING` até o admin acertar); não tem texto de UI
+(`ROUND_STATUS_LABELS`, `MATCH_EVENT_TYPE_LABELS`, `ROUND_TRANSITION_ERROR_LABELS`, `MATCH_EVENT_ERROR_LABELS`,
+`SCORE_ENTRY_ERROR_LABELS` no shared).
+
+**Devolve:** `validate*` → lista de códigos (vazia = pode); fora de `IN_PROGRESS`/`VOTING`, os de scout e placar
+devolvem só `ROUND_NOT_OPEN`. `votingCloseReason` → motivo ou `null` (segue aberta).
+
+**Evite:**
+- Gravar gol sofrido como lance (sai do placar); scout sem autor; jogador lançando scout de outro.
+- Lançar gol contra como `GOAL` de alguém do outro time (use `OWN_GOAL` de quem fez).
+- Contar `OWN_GOAL` como gol do jogador no Cartola ou nas estatísticas (`CartolaScouts.goals` é só `GOAL`).
+- Ler `new Date()` dentro do domínio; usar o horário agendado da rodada como `openedAt` (é quando entrou em `VOTING`).
+- Pular etapas ou mudar `status` sem `validateRoundTransition`; modelar várias partidas por rodada.
+- Passar `Attendance` (confirmados) como `teams` ou `playedIds`.
+
 ---
 
 ## Conceitos ainda não implementados 📋
 
-Já existem como tabelas no banco (`apps/api/prisma/schema.prisma`, enums iguais aos do domain), mas ainda
-sem regras nem rotas.
+Já existem como tabelas no banco (`apps/api/prisma/schema.prisma`, enums iguais aos do domain, menos o `OWN_GOAL`), mas ainda
+sem regras nem rotas. Rodada e Scout já têm regras (ver "Rodada, placar e scouts" acima).
 
 ### Grupo e participação (`Group` / `Membership`)
 **O que é:** grupo = uma pelada. Membership = um usuário num grupo, com papel (`ADMIN` ou `PLAYER`) e os dados de
@@ -265,21 +340,9 @@ ou `@GroupRole('ADMIN')`. Só passa quem tem Membership **ativa** naquele grupo.
 **Evite:** qualquer dado de domínio sem `groupId`; checar papel pelo usuário em vez da membership daquele grupo;
 usar `isHiredGoalkeeper` como posição (quem joga no gol é quem tem `GOALKEEPER`); apagar membership (desative).
 
-### Rodada (`Round`)
-**O que é:** um encontro semanal = **uma partida** (Branco x Preto). Notas, Craque e Perna de Pau são por rodada.
-**Ciclo (`RoundStatus`):** `SCHEDULED` (agendada) → `TEAMS_PUBLISHED` (times publicados) → `IN_PROGRESS` (em jogo)
-→ `VOTING` (votação) → `CLOSED` (encerrada). Placar em `whiteGoals`/`blackGoals`, nulo até ser lançado.
-**Evite:** modelar várias partidas por rodada; pular etapas do ciclo.
-
 ### Presença e escalação (`Attendance` / `TeamPlayer`)
 **O que é:** `Attendance` = resposta de presença de um membro na rodada (`confirmed`); sem linha = não respondeu.
 `TeamPlayer` = jogador escalado num time da rodada, com a posição e `isReserve`. Quem está no `TeamPlayer` (titular
 ou reserva) **jogou**: é a lista de `playedIds` das notas. Por time: 7 titulares e até 2 reservas.
+Os times da rodada viram `RoundTeams` no domínio (ver "Rodada, placar e scouts").
 **Evite:** usar `Attendance` como "jogou" (confirmou ≠ jogou); o mesmo membro nos dois times.
-
-### Scout (`MatchEvent`)
-**O que é:** um lance registrado na rodada: `GOAL` ou `ASSIST`. Guarda quem fez (`membershipId`) e
-**quem lançou** (`createdById`).
-**Não faz:** gol sofrido não é lance; sai do placar da rodada (gols do time adversário de quem jogou no gol).
-**Regras:** o jogador lança os próprios gols/assistências; o admin lança e corrige os de qualquer um.
-**Evite:** scout sem autor; jogador lançando scout de outro jogador; gravar gol sofrido como lance (contradiz o placar).

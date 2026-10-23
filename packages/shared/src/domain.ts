@@ -1,11 +1,24 @@
-import { isValidRating, POSITIONS, RATING_MAX, RATING_MIN, TEAMS } from '@fut-stats/domain';
+import {
+  isValidRating,
+  MATCH_EVENT_TYPES,
+  POSITIONS,
+  RATING_MAX,
+  RATING_MIN,
+  ROUND_STATUSES,
+  TEAMS,
+} from '@fut-stats/domain';
 import type {
   Award,
   BallotError,
   CartolaScoutError,
   CartolaSquadError,
+  MatchEventError,
+  MatchEventType,
   Position,
   RatingError,
+  RoundStatus,
+  RoundTransitionError,
+  ScoreEntryError,
   Team,
 } from '@fut-stats/domain';
 import { z } from 'zod';
@@ -21,6 +34,14 @@ export const ratingSchema = z
   .min(RATING_MIN)
   .max(RATING_MAX)
   .refine(isValidRating, { message: 'A nota deve ir de 0 a 10, de 0,5 em 0,5' });
+
+export const roundStatusSchema = z.enum(ROUND_STATUSES);
+export const matchEventTypeSchema = z.enum(MATCH_EVENT_TYPES);
+
+const goalsSchema = z.number().int().min(0);
+
+/** Placar da rodada: gols inteiros, zero ou mais. */
+export const matchScoreSchema = z.object({ WHITE: goalsSchema, BLACK: goalsSchema });
 
 export const lineupSlotSchema = z.object({
   playerId: z.string().min(1),
@@ -46,6 +67,22 @@ export const TEAM_LABELS: Readonly<Record<Team, string>> = {
 export const AWARD_LABELS: Readonly<Record<Award, string>> = {
   MVP: 'Craque',
   FLOP: 'Perna de Pau',
+};
+
+/** Textos de UI para as etapas da rodada. */
+export const ROUND_STATUS_LABELS: Readonly<Record<RoundStatus, string>> = {
+  SCHEDULED: 'Agendada',
+  TEAMS_PUBLISHED: 'Times publicados',
+  IN_PROGRESS: 'Em jogo',
+  VOTING: 'Votação',
+  CLOSED: 'Encerrada',
+};
+
+/** Textos de UI para os tipos de lance. */
+export const MATCH_EVENT_TYPE_LABELS: Readonly<Record<MatchEventType, string>> = {
+  GOAL: 'Gol',
+  ASSIST: 'Assistência',
+  OWN_GOAL: 'Gol contra',
 };
 
 // Mensagens dos códigos de erro de validação do domínio. O Record obriga a ter texto para
@@ -80,4 +117,33 @@ export const CARTOLA_SQUAD_ERROR_LABELS: Readonly<Record<CartolaSquadError, stri
   POSITION_NOT_ALLOWED: 'Tem jogador numa posição que não é a principal nem a secundária dele',
   OVER_BUDGET: 'A escalação passa do seu patrimônio',
   CAPTAIN_NOT_IN_SQUAD: 'O capitão precisa estar na escalação',
+};
+
+/** Por que a rodada não pode mudar de etapa. */
+export const ROUND_TRANSITION_ERROR_LABELS: Readonly<Record<RoundTransitionError, string>> = {
+  INVALID_TRANSITION: 'A rodada não pode ir para essa etapa agora',
+  INVALID_LINEUP: 'Os dois times precisam estar completos no 1-2-3-1, sem jogador nos dois',
+  INVALID_RESERVES: 'Cada time tem até 2 reservas, sem repetir ninguém nem quem já é titular',
+  SCORE_MISSING: 'Lance o placar antes',
+  INVALID_SCORE: 'O placar precisa ser um número inteiro, zero ou mais',
+  GOALS_MISMATCH: 'Os gols lançados precisam bater com o placar',
+  TOO_MANY_ASSISTS: 'Tem time com mais assistências que gols',
+};
+
+/** Por que um lance (gol, assistência, gol contra) não pode ser lançado ou apagado. */
+export const MATCH_EVENT_ERROR_LABELS: Readonly<Record<MatchEventError, string>> = {
+  ROUND_NOT_OPEN: 'Só dá para lançar durante o jogo ou a votação',
+  NOT_OWN_EVENT: 'Você só pode lançar os seus próprios lances',
+  PLAYER_DID_NOT_PLAY: 'Esse jogador não jogou a rodada',
+  GOALS_EXCEED_SCORE: 'Esse gol passa do placar do time',
+  ASSISTS_EXCEED_SCORE: 'Essa assistência passa dos gols do time no placar',
+};
+
+/** Por que o placar não pode ser lançado. */
+export const SCORE_ENTRY_ERROR_LABELS: Readonly<Record<ScoreEntryError, string>> = {
+  ROUND_NOT_OPEN: 'Só dá para lançar o placar durante o jogo ou a votação',
+  NOT_ADMIN: 'Só o admin lança o placar',
+  INVALID_SCORE: 'O placar precisa ser um número inteiro, zero ou mais',
+  SCORE_BELOW_GOALS: 'O placar não pode ser menor que os gols já lançados',
+  SCORE_BELOW_ASSISTS: 'O placar não pode ser menor que as assistências já lançadas',
 };
