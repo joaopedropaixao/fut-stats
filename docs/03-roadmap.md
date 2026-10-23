@@ -16,7 +16,7 @@ mergeadas na `develop`, e não precisa esperar a onda anterior inteira.
 |---|---|---|---|
 | `feature/auth-sessao` | `apps/api/src/auth` | — | Sessão JWT em cookie httpOnly, guard, `@CurrentUser()`, checagem de membro/admin do grupo e helper de login nos testes |
 | `feature/dominio-rodada` | `packages/domain/src/round` | — | Regras puras: ciclo da rodada (`RoundStatus`), abertura/fechamento da votação e quem pode lançar scout |
-| `feature/design-system-refino` | `docs/design` + Paper | — | DS v0.5.1 aplicado no Paper e fechado (vira v1.0) |
+| `feature/design-system-refino` ✅ | `docs/design` | — | DS v1.3 fechado no repo (PR #23); falta colar no Paper |
 | `feature/plugin-harness` | `.mcp.json`, `.gitignore` | — | MCP do Playwright no repo e `.impeccable/` ignorado (sessão dedicada) |
 | Você, no Google Cloud | — | — | Projeto e credenciais OAuth (guia passo a passo, como no deploy) |
 
@@ -35,7 +35,7 @@ mergeadas na `develop`, e não precisa esperar a onda anterior inteira.
 | `feature/times-e-placar` | `apps/api/src/lineups` | `rodadas-e-presenca` | Admin monta Branco x Preto, publica e lança o placar |
 | `feature/scouts` | `apps/api/src/match-events` | `rodadas-e-presenca` | Gols e assistências (jogador os próprios, admin de todos) |
 | `feature/historico` | `apps/api/src/history` | `times-e-placar`, `scouts` | Lista de rodadas e detalhe da partida |
-| `feature/web-foundation` | `apps/web` | DS fechado | Tokens → Tailwind, rotas, TanStack Query, cliente da API, shell do app, PWA |
+| `feature/web-foundation` | `apps/web` | DS fechado ✅ (já pode começar) | Tokens → Tailwind, rotas, TanStack Query, cliente da API, shell do app, PWA |
 
 ### Onda 4: telas da Fase 1
 Uma tarefa por tela aprovada no Paper, todas depois do `web-foundation` e da rota que a tela usa.
@@ -60,11 +60,12 @@ se resolve no rebase.
 Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a implementação das telas no front.**
 - [x] Instalar o Paper Desktop e conectar ao Claude Code (plugin/MCP)
 - [x] Mini design system: cores (Branco x Preto), tipografia, espaçamentos, componentes base ([docs/design](design/README.md))
-- [ ] Design system fechado: refinos da v0.5.1 aplicados no Paper e crítica final (vira v1.0)
+- [x] Design system fechado: v1.3 com `DESIGN.md` e `tokens.css` ([docs/design](design/README.md))
+- [ ] v1.3 colada no Paper (depende do limite semanal do plano grátis)
 - [ ] Telas da Fase 1 (mobile-first): entrar/convite, rodada e presença, montar times, placar e scouts, histórico
 - [ ] Telas das Fases 2 a 4: seletor de times, notas, Craque / Perna de Pau, ranking, feed
 - [ ] MCP do Playwright configurado no repo (`.mcp.json`) antes da primeira tarefa que toca telas
-- [ ] Tokens do Paper → tema do Tailwind no `apps/web`
+- [ ] `docs/design/tokens.css` → tema do Tailwind no `apps/web` (tarefa `feature/web-foundation`)
 - [x] Renomear entidades para os nomes do design (mudaram junto com os ícones): MVP → **Craque**,
   Bola Murcha → **Perna de Pau** em `packages/domain`, `packages/shared` (labels), `CONTEXT.md` e docs
 
