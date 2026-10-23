@@ -70,7 +70,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
   Bola Murcha → **Perna de Pau** em `packages/domain`, `packages/shared` (labels), `CONTEXT.md` e docs
 
 ## Fase 1: Núcleo do grupo
-- [ ] Grupo + link de convite
+- [x] Grupo + link de convite
 - [ ] Perfil do jogador (apelido, foto, posição, nota inicial definida pelo admin)
 - [ ] Cadastro dos goleiros contratados (`isHiredGoalkeeper`; goleiro é a posição `GOALKEEPER`)
 - [x] Regras da rodada no domínio: ciclo de status e quem pode lançar scout
