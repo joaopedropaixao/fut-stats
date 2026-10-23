@@ -145,6 +145,26 @@ describe('times da rodada (escalação)', () => {
     });
   });
 
+  describe('escrever em rodada de outro grupo', () => {
+    it('admin de um grupo não salva, publica nem despublica a rodada do outro (404) e nada muda lá', async () => {
+      const { group, adminUser } = await setup();
+      const other = await setup();
+      const path = lineupPath(group.id, other.round.id);
+
+      await request(server())
+        .put(path)
+        .set('Cookie', as(adminUser.id))
+        .send(fullDraft(other.ids))
+        .expect(404);
+      await request(server()).post(`${path}/publish`).set('Cookie', as(adminUser.id)).expect(404);
+      await request(server()).post(`${path}/unpublish`).set('Cookie', as(adminUser.id)).expect(404);
+
+      expect(await t.prisma.teamPlayer.count({ where: { roundId: other.round.id } })).toBe(0);
+      const round = await t.prisma.round.findUniqueOrThrow({ where: { id: other.round.id } });
+      expect(round.status).toBe('SCHEDULED');
+    });
+  });
+
   describe('PUT /lineup (rascunho)', () => {
     it('admin salva o rascunho; o GET devolve titulares com posição e reservas', async () => {
       const { group, adminUser, round, ids } = await setup();

@@ -73,6 +73,36 @@ describe('reservas', () => {
   });
 });
 
+describe('reserva cheia: tocar numa caixa ocupada troca', () => {
+  it('quem vem do banco entra na caixa e o dono volta para o banco', () => {
+    let d = placeInReserve(emptyDraft(), 'BLACK', 'a');
+    d = placeInReserve(d, 'BLACK', 'b');
+    d = placeInReserve(d, 'BLACK', 'c', 0);
+    expect(d.BLACK.reserves).toEqual(['c', 'b']);
+    expect(locate(d, 'a')).toBeNull();
+  });
+
+  it('quem vem de uma vaga troca de lugar com o reserva', () => {
+    let d = placeInSlot(emptyDraft(), 'WHITE', 'MID', 'm');
+    d = placeInReserve(d, 'WHITE', 'a');
+    d = placeInReserve(d, 'WHITE', 'b');
+    d = placeInReserve(d, 'WHITE', 'm', 1);
+    expect(d.WHITE.reserves).toEqual(['a', 'm']);
+    expect(d.WHITE.slots.MID).toBe('b');
+  });
+
+  it('dois reservas do mesmo time trocam de caixa', () => {
+    let d = placeInReserve(emptyDraft(), 'WHITE', 'a');
+    d = placeInReserve(d, 'WHITE', 'b');
+    expect(placeInReserve(d, 'WHITE', 'a', 1).WHITE.reserves).toEqual(['b', 'a']);
+  });
+
+  it('caixa livre continua indo para o fim da fila', () => {
+    const d = placeInReserve(emptyDraft(), 'WHITE', 'a', 1);
+    expect(d.WHITE.reserves).toEqual(['a']);
+  });
+});
+
 describe('sendToBench', () => {
   it('tira o jogador da vaga ou da reserva', () => {
     let d = placeInSlot(emptyDraft(), 'BLACK', 'GK', 'a');

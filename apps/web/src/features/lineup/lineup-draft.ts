@@ -59,6 +59,18 @@ export function draftFromLineup(lineup: Lineup): Draft {
   return draft;
 }
 
+/** Todo mundo que aparece na tela (sem time, titulares e reservas), por id. */
+export function membersOf(lineup: Lineup): Map<string, Lineup['unassigned'][number]> {
+  const map = new Map<string, Lineup['unassigned'][number]>();
+  for (const m of lineup.unassigned) map.set(m.membershipId, m);
+  for (const team of TEAM_KEYS) {
+    for (const p of [...lineup.teams[team].starters, ...lineup.teams[team].reserves]) {
+      map.set(p.membershipId, p);
+    }
+  }
+  return map;
+}
+
 /** Rascunho da tela → corpo do PUT. */
 export function toSaveInput(draft: Draft): SaveLineupInput {
   const team = (key: TeamKey) => ({
@@ -120,8 +132,29 @@ export function placeInSlot(draft: Draft, team: TeamKey, slot: SlotKey, id: stri
   return next;
 }
 
-/** Põe o jogador nas reservas do time. Sem caixa livre, o rascunho fica como está. */
-export function placeInReserve(draft: Draft, team: TeamKey, id: string): Draft {
+/**
+ * Põe o jogador nas reservas do time. Tocando numa caixa ocupada (`index`), troca com o dono: o dono vai para
+ * onde o jogador estava (vaga, reserva ou banco). Caixa livre ou sem `index`: entra no fim da fila; sem caixa
+ * livre, o rascunho fica como está.
+ */
+export function placeInReserve(draft: Draft, team: TeamKey, id: string, index?: number): Draft {
+  const occupant = index === undefined ? undefined : draft[team].reserves[index];
+  if (occupant === id) return draft;
+  if (occupant !== undefined) {
+    const next = clone(draft);
+    const origin = locate(next, id);
+    if (origin?.kind === 'reserve' && origin.team === team) {
+      next[team].reserves = next[team].reserves.map((r) =>
+        r === occupant ? id : r === id ? occupant : r,
+      );
+      return next;
+    }
+    clear(next, id);
+    next[team].reserves = next[team].reserves.map((r) => (r === occupant ? id : r));
+    if (origin?.kind === 'slot') next[origin.team].slots[origin.key] = occupant;
+    else if (origin) next[origin.team].reserves.push(occupant);
+    return next;
+  }
   const already = draft[team].reserves.includes(id);
   if (!already && draft[team].reserves.length >= RESERVE_BOXES) return draft;
   const next = clone(draft);
