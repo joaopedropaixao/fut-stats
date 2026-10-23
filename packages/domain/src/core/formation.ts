@@ -10,3 +10,6 @@ export const FORMATION: Readonly<Record<Position, number>> = {
 };
 
 export const PLAYERS_PER_TEAM = Object.values(FORMATION).reduce((sum, n) => sum + n, 0);
+
+/** Máximo de reservas por time (entram no revezamento). */
+export const MAX_RESERVES_PER_TEAM = 2;
