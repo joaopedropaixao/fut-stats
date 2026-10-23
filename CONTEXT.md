@@ -32,6 +32,11 @@ Status: ✅ implementado · 🚧 em PR · 📋 planejado (só nos docs, nomes no
 - **Grupo de confiança:** só entra quem é convidado. Sem antifraude pesado; a média aparada basta.
 - **Votar e jogar o Cartola são opcionais.** A rodada só exige os 2 goleiros e os confirmados. Regra de notas e
   Cartola tem que funcionar com adesão parcial (poucos votos, poucos times no Cartola) sem quebrar nem travar.
+- **Voto é um pacote, e quem vota avalia todos** (dono, 22–23 out 2026). Votar é opcional como um todo; quem vota
+  manda nota para **todos** que jogaram (menos ele mesmo, sem pular ninguém) + Craque + Perna de Pau.
+- **Voto pode ser alterado enquanto a votação está aberta**: até o prazo (`Group.votingDeadlineHours`, valor ainda
+  não definido), ou antes, se todos votarem ou o admin encerrar. Fechou, não muda mais.
+- **Apelido com até 10 letras** (regra do `Membership`; implementação no perfil do jogador).
 - **Nota da rodada com poucos votos:** com 3 votos ou menos, média simples; a partir de 4, média aparada.
 
 ---
@@ -138,7 +143,8 @@ Ou `{ ok: false, error }`, com `error` sendo `DUPLICATE_PLAYER`, `NOT_ENOUGH_PLA
 **O que é:** nota final de um jogador na rodada = **média aparada** das notas recebidas (descarta a maior e a menor).
 Também define quem pode votar em quem e apura Craque e Perna de Pau pelos votos. Pasta `src/round-score/`.
 **Regras:** só quem jogou vota (goleiros inclusos), em qualquer jogador que jogou (dos dois times); ninguém vota
-em si mesmo; votos anônimos para jogadores, média pública.
+em si mesmo; quem vota dá nota a **todos** os avaliáveis (`rateablePlayers`) e manda o pacote inteiro (notas +
+Craque + Perna de Pau); votos anônimos para jogadores, média pública.
 
 **Fluxo:** validar → calcular. `parseRatings`/`parseBallots` validam e "carimbam"; `roundScore`/`tallyAwards` só
 aceitam o que foi carimbado (passar array cru não compila). Calcule as notas antes de apurar os prêmios.
@@ -158,6 +164,12 @@ aceitam o que foi carimbado (passar array cru não compila). Calcule as notas an
   `BallotIssue = { voterId, field: 'voterId' | 'mvpId' | 'flopId', code: BallotError }`.
   `BallotError` (lista em `BALLOT_ERRORS`) = os de `VoteError` + `'SAME_PLAYER_BOTH'` + `'DUPLICATE_VOTER'`.
 - `isValidAwardBallot(ballot, playedIds): boolean` (versão sim/não).
+- `validateRatingSheet(voterId: string, ratings: readonly RatingEntry[], playedIds: readonly string[]): RatingSheetIssue[]`,
+  com `RatingEntry = { targetId, value }` e `RatingSheetIssue = { targetId, code: RatingSheetError }`.
+  `RatingSheetError` (lista em `RATING_SHEET_ERRORS`) = os de `VoteError` + os de `RatingError` + `'MISSING_RATING'`
+  + `'DUPLICATE_TARGET'`. `isValidRatingSheet(...)` é a versão sim/não.
+- `validateRoundVote(vote: RoundVote, playedIds): { ratings: RatingSheetIssue[]; awards: BallotIssue[] }`, com
+  `RoundVote = AwardBallot & { ratings: RatingEntry[] }` (o pacote). `isValidRoundVote(...)` é a versão sim/não.
 - `parseBallots(ballots: readonly AwardBallot[], playedIds: readonly string[]): Result<ValidBallots, BallotIssue>`
 - `tallyAwards(ballots: ValidBallots, options: AwardOptions): AwardResult`, com
   `AwardOptions = { tieBreak?: 'ROUND_SCORE' (padrão); roundScores: Record<playerId, number | null> } | { tieBreak: 'SHARE' | 'NONE' }`.
@@ -169,20 +181,26 @@ aceitam o que foi carimbado (passar array cru não compila). Calcule as notas an
 - `validateVote`/`canVoteFor`/`rateablePlayers`: aplicam a regra de voto; `rateablePlayers` lista quem o votante deve avaliar.
 - `validateAwardBallot`: voto obrigatório em Craque **e** Perna de Pau, em jogadores diferentes, ambos votáveis. Lista
   todos os problemas do voto; se o votante não jogou, devolve só esse.
+- `validateRatingSheet`: a folha de notas de um votante cobre todos os avaliáveis, sem repetir alvo, sem nota para
+  si mesmo ou para quem não jogou e com notas válidas. Lista todos os problemas (na ordem da folha, depois os que
+  faltaram como `MISSING_RATING`); se o votante não jogou, devolve só esse.
+- `validateRoundVote`: valida o pacote (folha de notas + `validateAwardBallot`), com os problemas separados.
 - `parseBallots`: valida todos os votos e marca o segundo voto da mesma pessoa como `DUPLICATE_VOTER`.
 - `tallyAwards`: mais votado leva. Empate: `ROUND_SCORE` (padrão) dá o Craque à maior nota da rodada e o Perna de Pau
   à menor; quem não tem nota perde o desempate; se a nota empatar (ou ninguém tiver nota), todos levam.
   `SHARE` = todos os empatados levam; `NONE` = ninguém leva.
 
 **Não faz:** não lança erro; não controla prazo nem abertura/fechamento da votação; não guarda votos (recebe ids);
-não exige que todos votem; não tem texto de UI (mensagens em `RATING_ERROR_LABELS`/`BALLOT_ERROR_LABELS` no shared).
+não exige que todos votem (só que quem vota avalie todos); não diz se ainda dá para votar ou editar (`isVotingOpen`,
+em `src/round`); não tem texto de UI (mensagens em `RATING_ERROR_LABELS`/`BALLOT_ERROR_LABELS`/`RATING_SHEET_ERROR_LABELS` no shared).
 
 **Devolve:** `roundScore` → nota arredondada, ou `null` sem notas (`null` ≠ nota 0). `parse*` → `Result` com todos
 os problemas. `validate*` → código(s) de erro com o campo, para a borda montar a mensagem. `tallyAwards` →
 `{ mvpIds, flopIds }`, listas em ordem alfabética (várias pessoas no empate compartilhado; vazias sem votos ou com `NONE`).
 
 **Evite:** média simples com 4 notas ou mais (deixa passar "voto de sacanagem"); tratar `null` como 0 no ranking; apurar prêmios antes
-de calcular as notas da rodada; ignorar voto inválido em silêncio; converter para `ValidRatings`/`ValidBallots` com
+de calcular as notas da rodada; ignorar voto inválido em silêncio; aceitar folha de notas parcial ou notas sem
+Craque/Perna de Pau (o voto é um pacote); converter para `ValidRatings`/`ValidBallots` com
 `as` fora do `parse*` (fura o carimbo); passar `playedIds` com quem só confirmou presença e não jogou.
 
 ### Cartola: `cartolaPoints` / `priceVariation` / `validateCartolaSquad` ✅
@@ -276,6 +294,7 @@ e quando a votação fecha sozinha.
   `ScoreEntryError` (lista em `SCORE_ENTRY_ERRORS`): `'ROUND_NOT_OPEN'`, `'NOT_ADMIN'`, `'INVALID_SCORE'`,
   `'SCORE_BELOW_GOALS'`, `'SCORE_BELOW_ASSISTS'`.
 - `isMatchOpen(status): boolean`: se scouts e placar podem ser lançados/corrigidos.
+- `isVotingOpen(status: RoundStatus, now: Date, voting: VotingState): boolean`: se dá para votar **ou editar** o voto.
 - `votingCloseReason(now: Date, voting: VotingState): VotingCloseReason | null` e `shouldCloseVoting(now, voting): boolean`,
   com `VotingState = { openedAt, deadlineHours, playedIds, votedIds }` e `VotingCloseReason` (lista em
   `VOTING_CLOSE_REASONS`) = `'ALL_VOTED'` | `'DEADLINE_PASSED'`. `votingDeadline(openedAt, deadlineHours): Date`.
@@ -299,6 +318,8 @@ e quando a votação fecha sozinha.
 - **Votação:** fecha sozinha quando todos que jogaram votaram (`ALL_VOTED`, tem prioridade) ou quando o prazo
   expira (`DEADLINE_PASSED`, a partir do instante `openedAt + deadlineHours`). Votar é opcional: sem votos, fecha no
   prazo. Voto de quem não jogou ou repetido não conta. O admin pode encerrar antes: basta a transição para `CLOSED`.
+  `votedIds` = quem mandou o pacote (notas de todos + Craque + Perna de Pau). Votar e editar o voto só com
+  `isVotingOpen`: rodada em `VOTING` e votação ainda não fechada; depois que fecha (por qualquer motivo), não muda.
 
 **Não faz:** não lê relógio (`now` vem de fora); não guarda nada nem sabe quem lançou o scout (a API grava
 `createdById`); não checa papel no grupo (recebe `isAdmin`); não define o que é "votou" (a API passa `votedIds`);
@@ -328,7 +349,7 @@ sem regras nem rotas. Rodada e Scout já têm regras (ver "Rodada, placar e scou
 ### Grupo e participação (`Group` / `Membership`)
 **O que é:** grupo = uma pelada. Membership = um usuário num grupo, com papel (`ADMIN` ou `PLAYER`) e os dados de
 jogador daquele grupo: apelido, foto, posição principal e secundárias, nota inicial (dada pelo admin), se é goleiro
-contratado (`isHiredGoalkeeper`) e se está ativo. Um usuário pode estar em vários grupos, com papéis diferentes.
+contratado (`isHiredGoalkeeper`) e se está ativo. **Apelido com até 10 letras** (decisão do dono; regra a implementar). Um usuário pode estar em vários grupos, com papéis diferentes.
 **Admin também é jogador:** tem posição e nota como todo mundo, mais as permissões de admin.
 **Acesso ao grupo na API** ✅ (`apps/api/src/auth`): rota com `:groupId` usa `@GroupMember()` (qualquer membro)
 ou `@GroupRole('ADMIN')`. Só passa quem tem Membership **ativa** naquele grupo.

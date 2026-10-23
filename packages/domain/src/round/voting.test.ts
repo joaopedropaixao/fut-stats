@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { shouldCloseVoting, votingCloseReason, votingDeadline, type VotingState } from './voting';
+import {
+  isVotingOpen,
+  shouldCloseVoting,
+  votingCloseReason,
+  votingDeadline,
+  type VotingState,
+} from './voting';
 
 const openedAt = new Date('2026-10-22T22:00:00Z');
 const hoursLater = (h: number) => new Date(openedAt.getTime() + h * 3_600_000);
@@ -74,5 +80,27 @@ describe('shouldCloseVoting', () => {
   it('é a versão sim/não de votingCloseReason', () => {
     expect(shouldCloseVoting(hoursLater(1), voting())).toBe(false);
     expect(shouldCloseVoting(hoursLater(48), voting())).toBe(true);
+  });
+});
+
+describe('isVotingOpen', () => {
+  it('aberta: em VOTING, dentro do prazo e faltando votos (votar e editar)', () => {
+    expect(isVotingOpen('VOTING', hoursLater(1), voting({ votedIds: ['ana'] }))).toBe(true);
+  });
+
+  it('fecha no prazo: não dá mais para votar nem editar', () => {
+    expect(isVotingOpen('VOTING', hoursLater(48), voting({ votedIds: ['ana'] }))).toBe(false);
+  });
+
+  it('fecha quando todos votaram, mesmo antes do prazo', () => {
+    expect(
+      isVotingOpen('VOTING', hoursLater(1), voting({ votedIds: ['ana', 'bia', 'caio'] })),
+    ).toBe(false);
+  });
+
+  it('fora de VOTING está fechada (antes de abrir ou depois do admin encerrar)', () => {
+    for (const status of ['SCHEDULED', 'TEAMS_PUBLISHED', 'IN_PROGRESS', 'CLOSED'] as const) {
+      expect(isVotingOpen(status, hoursLater(1), voting())).toBe(false);
+    }
   });
 });

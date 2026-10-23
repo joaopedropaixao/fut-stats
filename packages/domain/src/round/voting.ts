@@ -1,3 +1,5 @@
+import type { RoundStatus } from './status';
+
 const HOUR_MS = 60 * 60 * 1000;
 
 /** O que a regra de fechamento precisa saber da votação. */
@@ -38,4 +40,12 @@ export function votingCloseReason(now: Date, voting: VotingState): VotingCloseRe
 
 export function shouldCloseVoting(now: Date, voting: VotingState): boolean {
   return votingCloseReason(now, voting) !== null;
+}
+
+/**
+ * Dá para votar ou editar o voto (notas, Craque e Perna de Pau)? Só com a rodada em `VOTING` e a
+ * votação ainda aberta: fechou (prazo, todos votaram ou o admin encerrou), não muda mais.
+ */
+export function isVotingOpen(status: RoundStatus, now: Date, voting: VotingState): boolean {
+  return status === 'VOTING' && !shouldCloseVoting(now, voting);
 }

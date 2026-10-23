@@ -95,8 +95,8 @@ A seção "Daltonismo" da folha tem a simulação.
 
 ## Regras de produto que o design assume
 
-Estas regras foram decididas pelo dono em 22 e 23 out 2026. Ainda precisam entrar no `CONTEXT.md` no PR do
-domínio que as implementar:
+Estas regras foram decididas pelo dono em 22 e 23 out 2026 e estão registradas no `CONTEXT.md` (1 e 3 já
+implementadas no domínio; 2 vai no perfil do jogador):
 1. **Nota para todos:** quem vota dá nota a todos que jogaram, menos a si mesmo, sem pular. Votar continua opcional
    como um todo.
 2. **Apelido com até 10 letras.**

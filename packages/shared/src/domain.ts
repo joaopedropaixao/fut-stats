@@ -16,6 +16,7 @@ import type {
   MatchEventType,
   Position,
   RatingError,
+  RatingSheetError,
   RoundStatus,
   RoundTransitionError,
   ScoreEntryError,
@@ -102,6 +103,16 @@ export const BALLOT_ERROR_LABELS: Readonly<Record<BallotError, string>> = {
   SELF_VOTE: 'Você não pode votar em si mesmo',
   SAME_PLAYER_BOTH: 'Craque e Perna de Pau precisam ser jogadores diferentes',
   DUPLICATE_VOTER: 'Você já votou nesta rodada',
+};
+
+/** Por que a folha de notas de um votante é inválida. */
+export const RATING_SHEET_ERROR_LABELS: Readonly<Record<RatingSheetError, string>> = {
+  VOTER_DID_NOT_PLAY: BALLOT_ERROR_LABELS.VOTER_DID_NOT_PLAY,
+  TARGET_DID_NOT_PLAY: BALLOT_ERROR_LABELS.TARGET_DID_NOT_PLAY,
+  SELF_VOTE: BALLOT_ERROR_LABELS.SELF_VOTE,
+  ...RATING_ERROR_LABELS,
+  MISSING_RATING: 'Dê nota a todos que jogaram',
+  DUPLICATE_TARGET: 'Só uma nota por jogador',
 };
 
 /** Por que um scout do Cartola é inválido. */
