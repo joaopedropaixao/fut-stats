@@ -379,6 +379,27 @@ códigos, e rodada fora da janela de editar/apagar (`ROUND_NOT_EDITABLE`/`ROUND_
 **Evite:** deixar o jogador mudar a presença com os times publicados; contar confirmado que ficou inativo;
 travar confirmação por número; usar o horário marcado como prazo da presença.
 
+### Times da rodada: `validateLineupDraft` ✅
+**O que é:** o rascunho dos times (Branco x Preto) que o admin monta antes de publicar (`src/round/lineup-draft.ts`).
+Diferente de `validateRoundTeams` (que exige os dois 1-2-3-1 completos para publicar), o rascunho pode estar incompleto.
+
+**Assinatura:** `validateLineupDraft(draft: RoundTeams, { maxReservesPerTeam = MAX_RESERVES_PER_TEAM }?): LineupDraftError[]`.
+`LineupDraftError` (lista em `LINEUP_DRAFT_ERRORS`): `'DUPLICATE_PLAYER'` (repetido: no mesmo time, nos dois, ou titular e
+reserva), `'POSITION_FULL'` (posição com mais gente que o 1-2-3-1), `'TOO_MANY_RESERVES'`. Textos em `LINEUP_DRAFT_ERROR_LABELS` (shared).
+
+**Na API** (`apps/api/src/lineups`, rotas sob `/api/groups/:groupId/rounds/:roundId/lineup`):
+- `GET` (membro): `{ published, teams: { WHITE, BLACK }, unassigned, errors }`. Titulares na ordem do 1-2-3-1; `unassigned` =
+  confirmados ativos ainda sem time. **Jogador comum só vê os times depois de publicados** (`published` = rodada fora de
+  `SCHEDULED`); antes disso recebe tudo vazio. Admin vê o rascunho e `errors` (o que falta para publicar, de `validateRoundTeams`).
+- `PUT` (admin): troca o rascunho inteiro (`TeamPlayer`), só com a rodada `SCHEDULED` (senão 409 `LINEUP_NOT_EDITABLE`). Só entra
+  quem confirmou presença nesta rodada e segue ativo no grupo (senão 400 `PLAYER_NOT_CONFIRMED`); erros do rascunho → 400 `{ code, message }`.
+  **Reserva guarda a posição principal** do jogador (o `TeamPlayer.position` é obrigatório).
+- `POST .../publish` (admin): `SCHEDULED → TEAMS_PUBLISHED` por `validateRoundTransition`; erro do domain → 409 `{ code, message }`.
+- `POST .../unpublish` (admin): `TEAMS_PUBLISHED → SCHEDULED` (o domain permite voltar para refazer); o rascunho fica.
+- Se um jogador sair (confirmar "não vou") depois de escalado, ele continua no rascunho até o admin tirar: a presença não mexe nos times.
+
+**Evite:** publicar sem passar por `validateRoundTransition`; deixar o jogador comum ver o rascunho; mexer nos times depois de publicar sem despublicar.
+
 ### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `DEFAULT_INITIAL_RATING` 🚧
 **O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).
 - `toSlug(nome)`: minúsculo, sem acento, letras/números separados por hífen (`"Pelada do Zé"` → `pelada-do-ze`);
