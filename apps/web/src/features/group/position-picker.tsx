@@ -1,10 +1,11 @@
 import { POSITION_LABELS, positionSchema } from '@fut-stats/shared';
+import { useId } from 'react';
 import type { z } from 'zod';
 import { cn } from '../../lib/cn';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
 
-type Position = z.infer<typeof positionSchema>;
+export type Position = z.infer<typeof positionSchema>;
 
 type PositionPickerProps = {
   value: Position | null;
@@ -12,38 +13,55 @@ type PositionPickerProps = {
   error?: string;
 };
 
-/** Escolha da posição principal: uma opção por vez, com ✓ na escolhida (cor nunca é o único sinal). */
+/**
+ * Escolha da posição principal, na lista de opções da folha ("Escolha o dia"): a escolhida ganha contorno
+ * creme e ✓ (cor nunca é o único sinal). Rádio nativo: as setas do teclado trocam a opção.
+ */
 export function PositionPicker({ value, onChange, error }: PositionPickerProps) {
+  const id = useId();
+  const errorId = `${id}-erro`;
   return (
-    <fieldset className="flex flex-col gap-2">
+    <fieldset className="flex flex-col gap-2" aria-describedby={error ? errorId : undefined}>
       <legend className="mb-2">
         <PixelText>Sua posição</PixelText>
       </legend>
-      <div role="radiogroup" aria-label="Sua posição" className="flex flex-col gap-2">
-        {positionSchema.options.map((position) => {
+      <div
+        className={cn(
+          'flex flex-col bg-surface',
+          error ? 'shadow-[inset_0_0_0_2px_var(--color-danger)]' : 'shadow-card',
+        )}
+      >
+        {positionSchema.options.map((position, i) => {
           const selected = value === position;
           return (
-            <button
+            <label
               key={position}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              onClick={() => onChange(position)}
               className={cn(
-                'flex h-12 items-center justify-between px-4 text-text',
+                'flex h-12 cursor-pointer items-center justify-between px-4',
+                'has-focus-visible:outline-2 has-focus-visible:-outline-offset-4 has-focus-visible:outline-text',
                 selected
                   ? 'bg-highlight shadow-[inset_0_0_0_2px_var(--color-text)]'
-                  : 'bg-surface shadow-card',
+                  : i > 0 && 'shadow-[inset_0_2px_0_0_var(--color-border)]',
               )}
             >
-              <PixelText>{POSITION_LABELS[position].toUpperCase()}</PixelText>
-              {selected && <Icon name="check" size={20} strokeWidth={2.4} />}
-            </button>
+              <input
+                type="radio"
+                name={id}
+                value={position}
+                checked={selected}
+                onChange={() => onChange(position)}
+                className="sr-only"
+              />
+              <PixelText>{POSITION_LABELS[position]}</PixelText>
+              {selected && (
+                <Icon name="check" size={20} strokeWidth={2.4} className="text-success" />
+              )}
+            </label>
           );
         })}
       </div>
       {error && (
-        <p role="alert" className="text-caption text-[#fca5a5]">
+        <p id={errorId} role="alert" className="text-caption text-[#fca5a5]">
           {error}
         </p>
       )}
