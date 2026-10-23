@@ -108,7 +108,11 @@ function GroupName({ group }: { group: MyGroup }) {
         {group.name}
       </PixelText>
       {/* Largura fixa: os selos ficam na mesma coluna em todas as linhas */}
-      <Badge label={group.role === 'ADMIN' ? 'Admin' : 'Jogador'} className="w-30 justify-center" />
+      <Badge
+        label={group.role === 'ADMIN' ? 'Admin' : 'Jogador'}
+        variant={group.role === 'ADMIN' ? 'admin' : 'neutral'}
+        className="w-30 justify-center"
+      />
     </>
   );
 }

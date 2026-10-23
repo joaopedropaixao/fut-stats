@@ -5,14 +5,16 @@ import { PixelText } from './pixel-text';
 /**
  * Selos da folha. Prêmio é ouro, zoeira é madeira; nenhum brilha.
  * Craque, Perna de Pau e prazo vêm com ícone: cor nunca é o único sinal.
+ * ADMIN é a exceção aprovada do amarelo (DESIGN.md), em contorno: não compete com a tecla.
  */
-export type BadgeVariant = 'white' | 'black' | 'craque' | 'flop' | 'neutral' | 'deadline';
+export type BadgeVariant = 'white' | 'black' | 'craque' | 'flop' | 'admin' | 'neutral' | 'deadline';
 
 const VARIANT: Record<BadgeVariant, string> = {
   white: 'bg-team-white text-team-black shadow-[inset_0_0_0_2px_var(--color-team-white)]',
   black: 'bg-team-black text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)]',
   craque: 'bg-gold/14 text-gold shadow-[inset_0_0_0_2px_var(--color-gold)]',
   flop: 'bg-flop/14 text-flop shadow-[inset_0_0_0_2px_var(--color-flop)]',
+  admin: 'bg-accent/14 text-accent shadow-[inset_0_0_0_2px_var(--color-accent)]',
   neutral: 'text-text shadow-card',
   deadline: 'text-text shadow-card',
 };
