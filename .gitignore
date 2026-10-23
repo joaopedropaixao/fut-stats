@@ -12,3 +12,4 @@ coverage/
 
 # Client gerado pelo Prisma
 apps/api/src/generated/
+.render-bin/

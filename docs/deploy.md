@@ -55,8 +55,9 @@ connection string.
      digite `prod` → salve.
 3. Volte em **Branches** → botão **New branch** (ou **Create branch**):
    - **Name:** `dev`
+   - **Auto-delete:** **Never** (o padrão "After 1 day" **apaga** a branch, e o banco de staging, no dia seguinte)
    - **Parent branch:** `prod`
-   - Deixe o resto como está → **Create**.
+   - Deixe o resto como está (**Branch data and schema**) → **Create**.
 
 ### 1.3 Copiar a connection string da `dev`
 
@@ -104,9 +105,6 @@ que lê o `render.yaml` do repositório e preenche tudo sozinho.
    **Free**. Ele também pede o valor de duas variáveis (seção 1.3):
    - **`DATABASE_URL`**: a URL **com** `-pooler`
    - **`DIRECT_URL`**: a URL **sem** `-pooler`
-
-   > Criou o Blueprint antes de a `DIRECT_URL` existir no `render.yaml`? Adicione à mão: serviço →
-   > **Environment** → **Add Environment Variable** → `DIRECT_URL` → **Save Changes**.
 6. Clique em **Deploy Blueprint** (ou **Apply**).
 
 > Se o Render pedir cartão de crédito ou mostrar algum plano pago, **pare** e me avise. Este setup é
@@ -130,7 +128,8 @@ O que já fica configurado pelo `render.yaml`:
 
 - **Deploy automático** a cada merge na `develop`, só quando muda algo da API (`buildFilter`).
 - **Health check** em `/api/health`: o Render só troca a versão no ar se essa rota responder.
-- **Node** pela versão do `.nvmrc`; **pnpm** pela do `package.json` (corepack).
+- **Node** pela versão do `.nvmrc`; **pnpm** pela do `package.json` (corepack, instalado numa pasta do
+  projeto porque o `/usr/bin` do Render é só leitura).
 
 > **Plano free "dorme":** depois de 15 min sem acesso, a API desliga e o primeiro acesso seguinte
 > demora ~1 min para acordar. É normal em staging.
@@ -213,6 +212,7 @@ curl -i https://<projeto>.vercel.app/api/health
 
 | Sintoma | Causa provável |
 |---|---|
+| Build do Render falha com `EROFS: read-only file system` | `render.yaml` antigo, com `corepack enable` sem pasta própria. Atualize a `develop` e faça **Manual Deploy** |
 | Passo 1 demora ~1 min e depois funciona | API estava dormindo (plano free). Normal |
 | Passo 3 dá erro/timeout, mas o 1 funciona | Abra o passo 1 primeiro para acordar a API e tente de novo |
 | Passo 3 devolve a página do app (HTML) em vez de JSON | Deploy da Vercel antigo ou da branch errada (refaça o 3.3) |
