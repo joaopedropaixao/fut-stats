@@ -50,7 +50,7 @@ export function PixelText({
       <span className="sr-only">{children}</span>
       {parts.map((part, i) =>
         !part ? null : i % 2 ? (
-          <PixelDigits key={i} value={part} scale={scale} className="self-center" />
+          <PixelDigits key={i} value={part} scale={scale} className="self-center" decorative />
         ) : (
           <span key={i} aria-hidden className="whitespace-pre">
             {part}

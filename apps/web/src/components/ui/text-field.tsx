@@ -32,7 +32,7 @@ export function TextField({ label, hint, error, className, ...rest }: TextFieldP
             'h-13 w-full bg-surface px-4 text-base text-text caret-accent outline-none',
             'placeholder:text-text-muted',
             error
-              ? 'pr-12 shadow-[inset_0_0_0_2px_var(--color-danger)]'
+              ? 'pr-12 shadow-[inset_0_0_0_2px_var(--color-danger)] focus:shadow-[inset_0_0_0_2px_var(--color-danger),0_0_0_4px_rgb(239_68_68/24%)]'
               : 'shadow-card focus:shadow-[inset_0_0_0_2px_var(--color-text),0_0_0_4px_rgb(243_234_211/14%)]',
           )}
           {...rest}

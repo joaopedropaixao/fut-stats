@@ -59,6 +59,8 @@ A seção "Daltonismo" da folha tem a simulação.
   aba, a pílula cresce até caber o nome (250 ms, ease-out).
 - Card e lista: contorno de 2px (`--shadow-card`), sem sombra.
 - O que flutua (aviso, barra de abas, gaveta, menu): contorno + sombra sólida `4px 4px 0` preta (`--shadow-float`).
+  No tema Noite a sombra vira cinza-escuro (`--color-shadow-night`), porque o preto some no fundo quase preto
+  (decisão do dono, 23 out 2026).
 - Botão principal é **tecla**: amarelo chapado, borda preta de 3px e sombra dura. Pressionado, desce 4px e perde a
   sombra.
 

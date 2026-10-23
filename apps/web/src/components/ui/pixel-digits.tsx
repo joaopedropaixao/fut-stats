@@ -8,10 +8,12 @@ type PixelDigitsProps = {
   className?: string;
   /** Texto para leitor de tela quando o número sozinho não diz o que é ("nota 8,4"). */
   label?: string;
+  /** Esconde do leitor de tela quando o texto ao lado já diz o número (ex.: dentro do PixelText). */
+  decorative?: boolean;
 };
 
 /** Todo número do app (nota, placar, contagem, data) é desenhado com estes dígitos, nunca com a fonte. */
-export function PixelDigits({ value, scale = 3, className, label }: PixelDigitsProps) {
+export function PixelDigits({ value, scale = 3, className, label, decorative }: PixelDigitsProps) {
   const text = String(value);
   if (import.meta.env.DEV && !isPixelText(text)) {
     console.warn(`PixelDigits: "${text}" tem caractere sem dígito pixel`);
@@ -21,8 +23,7 @@ export function PixelDigits({ value, scale = 3, className, label }: PixelDigitsP
 
   return (
     <svg
-      role="img"
-      aria-label={label ?? text}
+      {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label ?? text })}
       width={width * step}
       height={GLYPH_HEIGHT * step}
       viewBox={`0 0 ${width} ${GLYPH_HEIGHT}`}

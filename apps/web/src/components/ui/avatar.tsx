@@ -80,7 +80,7 @@ export function AvatarMore({ count }: { count: number }) {
       aria-label={`mais ${count}`}
       className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-raised text-text"
     >
-      <PixelDigits value={`+${count}`} scale={2} />
+      <PixelDigits value={`+${count}`} scale={2} decorative />
     </span>
   );
 }

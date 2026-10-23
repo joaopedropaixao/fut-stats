@@ -19,6 +19,8 @@ const VARIANT: Record<ButtonVariant, string> = {
   primary: cn(
     'bg-accent text-on-accent shadow-key',
     'active:bg-accent-pressed active:shadow-key-pressed',
+    // Foco da folha: o anel creme fica na sombra (as outras variantes usam o contorno global de :focus-visible)
+    'focus-visible:outline-none',
     'focus-visible:shadow-[inset_0_0_0_3px_#000,0_0_0_2px_var(--color-bg),0_0_0_4px_var(--color-text)]',
     PRESS,
   ),
@@ -49,7 +51,6 @@ function buttonClasses({
   return cn(
     'inline-flex items-center justify-center gap-2 px-4 select-none',
     'transition-[translate,background-color,box-shadow] duration-(--duration-fast) ease-out',
-    'focus-visible:outline-none',
     { 56: 'h-14', 52: 'h-13', 48: 'h-12', 44: 'h-11' }[size],
     block && 'w-full',
     disabled ? DISABLED : VARIANT[variant],
@@ -103,20 +104,23 @@ export function Button({
   disabled,
   className,
   type = 'button',
+  onClick,
   ...rest
 }: ButtonProps) {
-  const isDisabled = disabled || loading;
   return (
     <button
       type={type}
-      disabled={isDisabled}
+      // Carregando não usa `disabled`: o botão continua focável e o foco não cai para o <body>
+      disabled={disabled}
+      aria-disabled={loading || undefined}
       aria-busy={loading || undefined}
+      onClick={loading ? (e) => e.preventDefault() : onClick}
       className={buttonClasses({
         variant,
         size,
         block,
         // Carregando continua amarelo; só o desabilitado de verdade fica apagado
-        disabled: disabled && !loading,
+        disabled,
         className,
       })}
       {...rest}

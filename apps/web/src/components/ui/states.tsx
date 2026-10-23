@@ -1,5 +1,6 @@
 import { Button } from './button';
 import { Icon } from './icons';
+import { PixelText } from './pixel-text';
 
 type ErrorStateProps = {
   title: string;
@@ -75,6 +76,39 @@ export function SkeletonList({
         const [w1, w2] = WIDTHS[i % WIDTHS.length]!;
         return <SkeletonRow key={i} first={i === 0} w1={w1} w2={w2} />;
       })}
+    </div>
+  );
+}
+
+type EmptyStateProps = {
+  /** O que não tem ("Nenhuma rodada marcada"). */
+  title: string;
+  /** O que vai acontecer ou o que fazer. */
+  message: string;
+};
+
+/** Vazio: o campinho de giz da folha, com a bola parada. */
+export function EmptyState({ title, message }: EmptyStateProps) {
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-8 text-center shadow-card">
+      <svg
+        width="96"
+        height="56"
+        viewBox="0 0 96 56"
+        fill="none"
+        stroke="rgb(255 255 255 / 28%)"
+        strokeWidth="2"
+        aria-hidden
+      >
+        <rect x="2" y="2" width="92" height="52" />
+        <line x1="48" y1="2" x2="48" y2="54" />
+        <circle cx="48" cy="28" r="10" />
+        <rect x="66" y="36" width="8" height="8" stroke="none" className="fill-text" />
+      </svg>
+      <PixelText as="p" wrap className="justify-center">
+        {title}
+      </PixelText>
+      <p className="max-w-65 text-sm text-text-muted">{message}</p>
     </div>
   );
 }

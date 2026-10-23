@@ -9,7 +9,7 @@ export type Tab = { to: string; label: string; icon: IconName };
 /**
  * Barra de abas: a exceção ao canto reto (raio 20, flutua sob o polegar).
  * Só a aba ativa mostra o nome, numa pílula de raio 14 que cresce até caber o nome (250 ms, ease-out);
- * as outras são só ícone, com o nome para leitor de tela.
+ * as outras são só ícone, com o nome para leitor de tela. Em tela estreita (< 380px) a pílula fica só com o ícone.
  */
 export function TabBar({ tabs }: { tabs: readonly Tab[] }) {
   return (
@@ -60,7 +60,9 @@ function tabClasses(active: boolean) {
   return cn(
     'flex h-12 min-w-11 items-center justify-center rounded-nav-pill',
     'transition-[background-color] duration-(--duration-normal) ease-out',
-    active ? 'shrink-0 bg-text/12 px-3.5 text-text' : 'flex-1 text-text-muted',
+    active
+      ? 'shrink-0 bg-text/12 px-3.5 text-text max-[380px]:shrink max-[380px]:flex-1 max-[380px]:px-0'
+      : 'flex-1 text-text-muted',
   );
 }
 
@@ -71,7 +73,9 @@ function TabContent({ tab, active }: { tab: Tab; active: boolean }) {
       <span
         className={cn(
           'overflow-hidden transition-[max-width,margin] duration-(--duration-normal) ease-out',
-          active ? 'ml-2 max-w-40' : 'sr-only max-w-0',
+          // Abaixo de 380px as 5 abas não cabem com o nome em pixel 16: a pílula fica só com o ícone
+          // (o título da tela diz onde você está; o leitor de tela continua lendo o nome)
+          active ? 'ml-2 max-w-40 max-[380px]:sr-only' : 'sr-only max-w-0',
         )}
       >
         <PixelText>{tab.label}</PixelText>

@@ -79,8 +79,8 @@
 
   /* Sombras duras, sem desfoque */
   --shadow-card: inset 0 0 0 2px var(--color-border-strong);
-  --shadow-float: inset 0 0 0 2px var(--color-border-strong), 4px 4px 0 #000;
-  --shadow-key: inset 0 0 0 3px #000, 4px 4px 0 #000;
+  --shadow-float: inset 0 0 0 2px var(--color-border-strong), 4px 4px 0 var(--color-shadow);
+  --shadow-key: inset 0 0 0 3px #000, 4px 4px 0 var(--color-shadow);
   --shadow-key-pressed: inset 0 0 0 3px #000;
 
   /* Curvas */
@@ -106,6 +106,9 @@
   --touch-min: 44px;
   --border-width: 2px;
 
+  /* Sombra dura (fora do @theme para não virar utilitário bg-shadow); o Noite troca */
+  --color-shadow: #000000;
+
   /* Fundo Noite (opção nas configurações) */
   --color-bg-night: #0a0f0c;
   --color-surface-night: #141a16;
@@ -114,6 +117,7 @@
   --color-border-night: #2a332d;
   --color-border-strong-night: #667069;
   --color-floodlight-night: rgb(236 244 214 / 16%);
+  --color-shadow-night: #2a332d;
 }
 
 /* Reduzir movimento: o resto troca sem animar (os grandes momentos vão direto ao quadro final) */
@@ -134,4 +138,5 @@
   --color-border: var(--color-border-night);
   --color-border-strong: var(--color-border-strong-night);
   --color-floodlight: var(--color-floodlight-night);
+  --color-shadow: var(--color-shadow-night);
 }

@@ -49,3 +49,16 @@
   -webkit-font-smoothing: none;
   font-smooth: never;
 }
+
+/* Partes que o navegador desenha também seguem o DS: seleção e cursor de digitação */
+@layer base {
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-accent);
+  }
+}

@@ -11,11 +11,12 @@ export function SignInPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-content flex-col justify-end gap-8 px-4 pt-6 pb-10">
+      <title>Entrar · Fut Stats</title>
       <h1 className="flex flex-col">
         <PixelText size={32}>Fut</PixelText>
         <PixelText size={32}>Stats</PixelText>
       </h1>
-      <ButtonLink href={LOGIN_URL} label="Entrar" block />
+      <ButtonLink href={LOGIN_URL} label="Entrar com Google" block />
     </main>
   );
 }

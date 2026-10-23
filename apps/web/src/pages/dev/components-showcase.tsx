@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui/badge';
 import { Button, IconButton } from '../../components/ui/button';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
-import { ErrorState, SkeletonList } from '../../components/ui/states';
+import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states';
 import { Surface } from '../../components/ui/surface';
 import { Switch } from '../../components/ui/switch';
 import { TabBarPreview } from '../../components/ui/tab-bar';
@@ -22,6 +22,7 @@ export function ComponentsShowcasePage() {
 
   return (
     <main className="mx-auto flex max-w-mobile flex-col gap-18 px-4 pt-18 pb-10">
+      <title>Componentes · Fut Stats</title>
       <header className="flex flex-col gap-5">
         <PixelText className="text-gold">Componentes de base</PixelText>
         <h1 className="flex flex-col">
@@ -206,8 +207,15 @@ export function ComponentsShowcasePage() {
         </Surface>
       </Section>
 
-      <Section title="Estados" lede="Toda tela sabe dizer quando está carregando e quando falhou.">
+      <Section
+        title="Estados"
+        lede="Toda tela sabe dizer quando está carregando, quando está vazia e quando falhou."
+      >
         <SkeletonList />
+        <EmptyState
+          title="Nenhuma rodada marcada"
+          message="Quando o admin marcar a próxima, ela aparece aqui e você recebe um aviso."
+        />
         <ErrorState
           title="Não deu para carregar o ranking"
           message="Parece que a internet caiu. Suas notas estão salvas."
