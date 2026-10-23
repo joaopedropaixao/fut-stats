@@ -76,7 +76,12 @@ export function useSetAttendance(groupId: string, roundId: string) {
   const queryClient = useQueryClient();
   const key = roundKey(groupId, roundId);
 
+  const mutationKey = ['attendance', groupId, roundId];
+  /** Com outro envio em andamento, a previsão dele está na tela: só a última resposta pode refazer o estado. */
+  const othersInFlight = () => queryClient.isMutating({ mutationKey }) > 1;
+
   return useMutation({
+    mutationKey,
     mutationFn: ({ membershipId, confirmed }: AttendanceVars) =>
       apiPut(
         `${roundsPath(groupId)}/${roundId}/attendances/${membershipId}`,
@@ -91,11 +96,16 @@ export function useSetAttendance(groupId: string, roundId: string) {
       return { previous };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(key, context.previous);
+      if (context?.previous && !othersInFlight()) queryClient.setQueryData(key, context.previous);
     },
     onSuccess: (round) => {
-      queryClient.setQueryData(key, round);
+      if (!othersInFlight()) queryClient.setQueryData(key, round);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true }),
+    onSettled: () => {
+      if (othersInFlight()) return;
+      // Sozinho, a resposta (ou o estado de antes do erro) já está na tela; o resto só confere com a API
+      void queryClient.invalidateQueries({ queryKey: key });
+      return queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true });
+    },
   });
 }

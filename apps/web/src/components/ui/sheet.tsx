@@ -14,17 +14,21 @@ type SheetProps = {
 /** Gaveta de confirmação (DS): sobe de baixo sobre um véu escuro. Esc e toque no véu fecham. */
 export function Sheet({ title, children, actions, onClose }: SheetProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     ref.current?.querySelector<HTMLElement>('button')?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCloseRef.current();
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
       previous?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   return createPortal(
     <div className="fixed inset-0 z-(--z-sheet)">

@@ -59,7 +59,7 @@ async function send(method: Method, path: string, body?: unknown, signal?: Abort
 
 /** Daqui para dentro o front confia nos tipos; se a API mudar o contrato, o erro aparece aqui. */
 async function parse<S extends z.ZodType>(res: Response, path: string, schema: S) {
-  const parsed = schema.safeParse(await res.json());
+  const parsed = schema.safeParse(await res.json().catch(() => undefined));
   if (!parsed.success) throw new ApiContractError(path, parsed.error.issues);
   return parsed.data;
 }
