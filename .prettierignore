@@ -3,3 +3,4 @@ dist
 coverage
 .turbo
 *.md
+docs/design/folha/*.html

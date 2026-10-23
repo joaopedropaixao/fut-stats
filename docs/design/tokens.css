@@ -6,39 +6,39 @@
  */
 :root {
   /* Fundo e superfícies: Gramado (padrão) */
-  --color-bg: #0D2717;
+  --color-bg: #0d2717;
   --color-surface: #143521;
-  --color-surface-raised: #1A3F29;
-  --color-surface-3: #1E472E;
-  --color-border: #2F6444;
-  --color-border-strong: #77A285;
-  --color-track: #09190F;
-  --color-field: #1B4F2D;
+  --color-surface-raised: #1a3f29;
+  --color-surface-3: #1e472e;
+  --color-border: #2f6444;
+  --color-border-strong: #77a285;
+  --color-track: #09190f;
+  --color-field: #1b4f2d;
 
   /* Fundo e superfícies: Noite (opção) */
-  --color-bg-night: #0A0F0C;
-  --color-surface-night: #141A16;
-  --color-surface-raised-night: #1E2520;
-  --color-surface-3-night: #262E28;
-  --color-border-night: #2A332D;
+  --color-bg-night: #0a0f0c;
+  --color-surface-night: #141a16;
+  --color-surface-raised-night: #1e2520;
+  --color-surface-3-night: #262e28;
+  --color-border-night: #2a332d;
   --color-border-strong-night: #667069;
 
   /* Texto */
-  --color-text: #F3EAD3;
-  --color-text-muted: #CFCAB5;
-  --color-disabled: #9DB0A2;
+  --color-text: #f3ead3;
+  --color-text-muted: #cfcab5;
+  --color-disabled: #9db0a2;
 
   /* Papéis fixos de cor */
-  --color-accent: #FACC15;        /* só ação (tecla) */
-  --color-accent-pressed: #E0B20A;
+  --color-accent: #facc15; /* só ação (tecla) */
+  --color-accent-pressed: #e0b20a;
   --color-on-accent: #111111;
   --color-game: var(--color-accent); /* exceção aprovada: a palavra VS */
-  --color-gold: #E8A93A;          /* mérito / recompensa (Craque, líder, aviso de resultado) */
-  --color-flop: #C4A07C;          /* madeira: Perna de Pau */
-  --color-success: #22C55E;       /* vitória, presença confirmada, aviso de presença */
-  --color-danger: #EF4444;        /* derrota, perigo, ausência */
-  --color-warning: #FB923C;       /* atenção: prazo e aviso de votação */
-  --color-team-white: #FFFFFF;
+  --color-gold: #e8a93a; /* mérito / recompensa (Craque, líder, aviso de resultado) */
+  --color-flop: #c4a07c; /* madeira: Perna de Pau */
+  --color-success: #22c55e; /* vitória, presença confirmada, aviso de presença */
+  --color-danger: #ef4444; /* derrota, perigo, ausência */
+  --color-warning: #fb923c; /* atenção: prazo e aviso de votação */
+  --color-team-white: #ffffff;
   --color-team-black: #000000;
 
   /* Luz e camadas */
@@ -50,8 +50,8 @@
 
   /* Fontes: pixel na interface, Inter no texto corrido e nos campos.
      Números de jogador usam os dígitos pixel próprios (SVG, grade 6x9), não uma fonte. */
-  --font-pixel: "Silkscreen", ui-monospace, monospace;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-pixel: 'Silkscreen', ui-monospace, monospace;
+  --font-sans: 'Inter', system-ui, sans-serif;
 
   /* Tamanhos permitidos da Silkscreen (grade de 8px) */
   --text-pixel-sm: 16px;
@@ -77,9 +77,9 @@
 
   /* Forma: canto reto em tudo; exceções abaixo */
   --radius-none: 0;
-  --radius-nav: 20px;      /* barra de abas */
+  --radius-nav: 20px; /* barra de abas */
   --radius-nav-pill: 14px; /* aba ativa */
-  --radius-full: 999px;    /* avatar, ponto, bolinha do slider, selo de goleiro */
+  --radius-full: 999px; /* avatar, ponto, bolinha do slider, selo de goleiro */
   --border-width: 2px;
 
   /* Sombras duras (sem desfoque) */
@@ -91,7 +91,7 @@
   /* Movimento */
   --duration-fast: 150ms;
   --duration-normal: 250ms;
-  --duration-moment: 400ms;   /* grandes momentos: até 2 s no total, sempre com "Pular" */
+  --duration-moment: 400ms; /* grandes momentos: até 2 s no total, sempre com "Pular" */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-pixel: steps(2, jump-none); /* pixel anda em degraus */
 
@@ -116,7 +116,7 @@
 }
 
 /* Tema Noite: aplicar com [data-theme="night"] na raiz */
-[data-theme="night"] {
+[data-theme='night'] {
   --color-bg: var(--color-bg-night);
   --color-surface: var(--color-surface-night);
   --color-surface-raised: var(--color-surface-raised-night);
