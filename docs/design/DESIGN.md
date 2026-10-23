@@ -53,7 +53,8 @@ A seção "Daltonismo" da folha tem a simulação.
 
 ## Forma
 
-- Canto reto (raio 0) em tudo. Redondos: avatar, ponto, bolinha do slider e o selo "G" de goleiro.
+- Canto reto (raio 0) em tudo. Redondos: avatar, ponto, bolinha do slider, o selo "G" de goleiro e a moeda pixel
+  com o G do Google no botão "Entrar com Google" (decisão do dono, 23 out 2026).
 - **Exceção "controle redondo":** a barra de abas tem raio 20 e flutua. Só a aba ativa mostra o nome, numa pílula
   de raio 14 com um quadradinho creme em cima; as outras são só ícone, com nome para leitor de tela. Ao trocar de
   aba, a pílula cresce até caber o nome (250 ms, ease-out).

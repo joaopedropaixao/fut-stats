@@ -1,20 +1,26 @@
 /**
- * "G" do Google em pixel art: grade 9x9 com traço de 2, como os dígitos pixel, nas 4 cores da marca.
- * Fica num quadrado branco porque o amarelo do G sumiria sobre a tecla amarela.
+ * "G" do Google em pixel art (grade 9x9, traço de 2, como os dígitos pixel) dentro de uma moeda pixel branca
+ * com contorno preto. A moeda deixa o amarelo do G legível sobre a tecla amarela.
  */
-const G = [
-  '..RRRRR..',
-  '.RRRRRRR.',
-  'RR.......',
-  'YY...BBBB',
-  'YY...BBBB',
-  'YY.....BB',
-  'GG.....BB',
-  '.GGGGGGG.',
-  '..GGGGG..',
+const COIN = [
+  '....KKKKK....',
+  '..KKWWWWWKK..',
+  '.KWWRRRRRWWK.',
+  '.KWRRRRRRRWK.',
+  'KWRRWWWWWWWWK',
+  'KWYYWWWBBBBWK',
+  'KWYYWWWBBBBWK',
+  'KWYYWWWWWBBWK',
+  'KWGGWWWWWBBWK',
+  '.KWGGGGGGGWK.',
+  '.KWWGGGGGWWK.',
+  '..KKWWWWWKK..',
+  '....KKKKK....',
 ];
 
 const COLORS: Record<string, string> = {
+  K: '#111111',
+  W: '#ffffff',
   R: '#ea4335',
   Y: '#fbbc05',
   G: '#34a853',
@@ -24,7 +30,7 @@ const COLORS: Record<string, string> = {
 /** Um retângulo por sequência de pixels da mesma cor numa linha, agrupados por cor. */
 function paths() {
   const byColor = new Map<string, string[]>();
-  G.forEach((line, y) => {
+  COIN.forEach((line, y) => {
     let x = 0;
     while (x < line.length) {
       const c = line[x]!;
@@ -46,13 +52,15 @@ const PATHS = paths();
 /** Marca do Google para o botão de entrar. Decorativa: o rótulo do botão já diz "com Google". */
 export function GoogleMark() {
   return (
-    <span
+    <svg
       aria-hidden
-      className="inline-flex size-6 shrink-0 items-center justify-center bg-team-white"
+      width="26"
+      height="26"
+      viewBox="0 0 13 13"
+      shapeRendering="crispEdges"
+      className="shrink-0"
     >
-      <svg width="18" height="18" viewBox="0 0 9 9" shapeRendering="crispEdges">
-        {PATHS}
-      </svg>
-    </span>
+      {PATHS}
+    </svg>
   );
 }
