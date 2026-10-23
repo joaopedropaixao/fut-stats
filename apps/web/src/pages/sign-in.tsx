@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router';
 import { ButtonLink } from '../components/ui/button';
+import { GoogleMark } from '../components/ui/google-mark';
 import { PixelText } from '../components/ui/pixel-text';
 import { useSession } from '../features/session/use-session';
 import { LOGIN_URL } from '../lib/api';
@@ -16,7 +17,7 @@ export function SignInPage() {
         <PixelText size={32}>Fut</PixelText>
         <PixelText size={32}>Stats</PixelText>
       </h1>
-      <ButtonLink href={LOGIN_URL} label="Entrar com Google" block />
+      <ButtonLink href={LOGIN_URL} label="Entrar com Google" mark={<GoogleMark />} block />
     </main>
   );
 }

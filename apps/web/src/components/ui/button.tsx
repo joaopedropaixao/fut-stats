@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react';
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 import { Icon, Spinner, type IconName } from './icons';
 import { PixelText } from './pixel-text';
@@ -61,12 +61,14 @@ function buttonClasses({
 function Content({
   label,
   icon,
+  mark,
   variant,
   loading,
   disabled,
 }: {
   label: string;
   icon?: IconName;
+  mark?: ReactNode;
   variant: ButtonVariant;
   loading?: boolean;
   disabled?: boolean;
@@ -80,7 +82,9 @@ function Content({
         <Icon name="lock" size={16} />
       ) : icon ? (
         <Icon name={icon} size={18} className={cn('shrink-0', iconColor)} />
-      ) : null}
+      ) : (
+        mark
+      )}
       <PixelText>{label}</PixelText>
     </>
   );
@@ -131,12 +135,18 @@ export function Button({
 }
 
 type ButtonLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'children'> &
-  Omit<ButtonStyleOptions, 'disabled'> & { label: string; icon?: IconName };
+  Omit<ButtonStyleOptions, 'disabled'> & {
+    label: string;
+    icon?: IconName;
+    /** Marca que não é ícone de traço, antes do rótulo (ex.: <GoogleMark />). */
+    mark?: ReactNode;
+  };
 
 /** Botão que navega com recarga de página (ex.: /api/auth/google). Para rota interna, use o Link do router. */
 export function ButtonLink({
   label,
   icon,
+  mark,
   variant = 'primary',
   size,
   block,
@@ -145,7 +155,7 @@ export function ButtonLink({
 }: ButtonLinkProps) {
   return (
     <a className={buttonClasses({ variant, size, block, className })} {...rest}>
-      <Content label={label} icon={icon} variant={variant} />
+      <Content label={label} icon={icon} mark={mark} variant={variant} />
     </a>
   );
 }
