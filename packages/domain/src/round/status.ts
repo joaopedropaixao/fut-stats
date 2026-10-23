@@ -117,7 +117,17 @@ export function canTransitionRound(
   return validateRoundTransition(round, to, options).length === 0;
 }
 
+/** Antes do jogo: agendada ou com os times publicados. */
+function isBeforeMatch(status: RoundStatus): boolean {
+  return status === 'SCHEDULED' || status === 'TEAMS_PUBLISHED';
+}
+
 /** Rodada só pode ser apagada antes do jogo (não há status de cancelada). */
 export function isRoundDeletable(status: RoundStatus): boolean {
-  return status === 'SCHEDULED' || status === 'TEAMS_PUBLISHED';
+  return isBeforeMatch(status);
+}
+
+/** Data, hora e local só mudam antes do jogo; depois ficam como histórico. */
+export function isRoundEditable(status: RoundStatus): boolean {
+  return isBeforeMatch(status);
 }

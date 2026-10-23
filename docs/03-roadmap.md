@@ -74,7 +74,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Perfil do jogador (apelido, foto, posição, nota inicial definida pelo admin)
 - [ ] Cadastro dos goleiros contratados (`isHiredGoalkeeper`; goleiro é a posição `GOALKEEPER`)
 - [x] Regras da rodada no domínio: ciclo de status e quem pode lançar scout
-- [ ] Admin: criar rodada; jogadores: confirmar presença
+- [x] Admin: criar rodada; jogadores: confirmar presença
 - [ ] Admin: montar Branco x Preto manualmente e lançar o placar
 - [ ] Scouts: jogador lança os próprios gols/assistências; admin lança/corrige de todos
 - [ ] Histórico de rodadas e partidas

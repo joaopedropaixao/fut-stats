@@ -294,7 +294,7 @@ e quando a votação fecha sozinha.
   `'INVALID_TRANSITION'`, `'INVALID_LINEUP'`, `'INVALID_RESERVES'`, `'SCORE_MISSING'`, `'INVALID_SCORE'`,
   `'GOALS_MISMATCH'`, `'TOO_MANY_ASSISTS'`.
 - `validateRoundTeams(teams: RoundTeams | null, options?): RoundTransitionError[]` (só `INVALID_LINEUP`/`INVALID_RESERVES`).
-- `isRoundDeletable(status): boolean`.
+- `isRoundDeletable(status): boolean` e `isRoundEditable(status): boolean` (data, hora e local).
 - `validateMatchEvent(event: MatchEvent, actor: RoundActor, round: RoundState): MatchEventError[]` e
   `canLaunchMatchEvent(...)` (sim/não); `validateMatchEventRemoval(event, actor, round): MatchEventError[]`.
   `MatchEventError` (lista em `MATCH_EVENT_ERRORS`): `'ROUND_NOT_OPEN'`, `'NOT_OWN_EVENT'`,
@@ -348,6 +348,36 @@ devolvem só `ROUND_NOT_OPEN`. `votingCloseReason` → motivo ou `null` (segue a
 - Ler `new Date()` dentro do domínio; usar o horário agendado da rodada como `openedAt` (é quando entrou em `VOTING`).
 - Pular etapas ou mudar `status` sem `validateRoundTransition`; modelar várias partidas por rodada.
 - Passar `Attendance` (confirmados) como `teams` ou `playedIds`.
+
+### Presença: `validateAttendanceChange` 🚧
+**O que é:** quem pode marcar Vou / Não vou numa rodada e até quando (`src/round/attendance.ts`). Regras decididas
+pelo dono em 23 out 2026.
+
+**Assinaturas:**
+- `validateAttendanceChange(playerId: string, actor: RoundActor, status: RoundStatus): AttendanceError[]` e
+  `canChangeAttendance(...)` (sim/não). `AttendanceError` (lista em `ATTENDANCE_ERRORS`): `'ATTENDANCE_CLOSED'`,
+  `'NOT_OWN_ATTENDANCE'`, `'TEAMS_ALREADY_PUBLISHED'`.
+- `isRoundEditable(status)` (em `status.ts`): data, hora e local só mudam antes do jogo, a mesma janela de apagar.
+
+**Faz:**
+- **Prazo:** jogador marca **só a própria** presença, e só com a rodada `SCHEDULED`. Com os times publicados
+  (`TEAMS_PUBLISHED`), só o admin muda, de qualquer membro (inclusive a dele). Do jogo em diante (`IN_PROGRESS`+),
+  trava para todos e devolve só `ATTENDANCE_CLOSED`.
+- **Sem limite de confirmados** e sem lista de espera: acima do que o seletor aceita (18), o admin ajusta a lista.
+- **Goleiro contratado** é membro como os outros: confirma pelo app, e o admin também pode marcar por ele.
+- **Data no passado vale** (criar ou mover): serve para registrar pelada que já aconteceu; não há trava de data.
+
+**Não faz:** não sabe se o alvo é membro ativo do grupo (a API confere: inativo ou de outro grupo → 404);
+não lê relógio (o prazo é pelo status, não pela hora marcada); não tem texto de UI (`ATTENDANCE_ERROR_LABELS` no shared).
+
+**Na API** (`apps/api/src/rounds`, rotas sob `/api/groups/:groupId/rounds`): criar (`POST`), editar (`PATCH /:roundId`)
+e apagar (`DELETE /:roundId`) são só do admin; listar (`GET`, próximas e passadas pela hora marcada) e detalhe
+(`GET /:roundId`, com confirmados, não vão e não responderam, só membros ativos) são de qualquer membro.
+Presença: `PUT /:roundId/attendances/:membershipId` com `{ confirmed }`. `NOT_OWN_ATTENDANCE` → 403; os outros
+códigos, e rodada fora da janela de editar/apagar (`ROUND_NOT_EDITABLE`/`ROUND_NOT_DELETABLE`), → 409 `{ code, message }`.
+
+**Evite:** deixar o jogador mudar a presença com os times publicados; contar confirmado que ficou inativo;
+travar confirmação por número; usar o horário marcado como prazo da presença.
 
 ### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `DEFAULT_INITIAL_RATING` 🚧
 **O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).
@@ -404,4 +434,5 @@ usar `isHiredGoalkeeper` como posição (quem joga no gol é quem tem `GOALKEEPE
 `TeamPlayer` = jogador escalado num time da rodada, com a posição e `isReserve`. Quem está no `TeamPlayer` (titular
 ou reserva) **jogou**: é a lista de `playedIds` das notas. Por time: 7 titulares e até 2 reservas.
 Os times da rodada viram `RoundTeams` no domínio (ver "Rodada, placar e scouts").
+Quem marca a presença e até quando: ver "Presença" acima.
 **Evite:** usar `Attendance` como "jogou" (confirmou ≠ jogou); o mesmo membro nos dois times.
