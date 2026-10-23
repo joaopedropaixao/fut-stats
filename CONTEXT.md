@@ -349,7 +349,7 @@ devolvem só `ROUND_NOT_OPEN`. `votingCloseReason` → motivo ou `null` (segue a
 - Pular etapas ou mudar `status` sem `validateRoundTransition`; modelar várias partidas por rodada.
 - Passar `Attendance` (confirmados) como `teams` ou `playedIds`.
 
-**API do jogo (`apps/api/src/match`, rotas sob `/api/groups/:groupId/rounds/:roundId/match`):** `GET` (membro) devolve
+**API do jogo (`apps/api/src/match`, rotas sob `/api/groups/:groupId/rounds/:roundId/match`):** `GET` (membro) devolve o dia da rodada,
 placar, quem jogou, lances e `next` (começar/encerrar, com o motivo do domain quando não dá); `PATCH /status` (admin)
 só aceita `IN_PROGRESS` e `VOTING`; `PUT /score` (placar, regra `validateScoreEntry`); `POST /events` e
 `DELETE /events/:eventId` (regras `validateMatchEvent`/`validateMatchEventRemoval`). Só `GOAL` e `ASSIST` são aceitos
