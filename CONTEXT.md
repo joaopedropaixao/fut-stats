@@ -36,7 +36,14 @@ Status: ✅ implementado · 🚧 em PR · 📋 planejado (só nos docs, nomes no
   manda nota para **todos** que jogaram (menos ele mesmo, sem pular ninguém) + Craque + Perna de Pau.
 - **Voto pode ser alterado enquanto a votação está aberta**: até o prazo (`Group.votingDeadlineHours`, valor ainda
   não definido), ou antes, se todos votarem ou o admin encerrar. Fechou, não muda mais.
-- **Apelido com até 10 letras** (regra do `Membership`; implementação no perfil do jogador).
+- **Apelido com até 10 letras** (regra do `Membership`; `validateNickname`, ver "Grupo, convite e entrada").
+- **Nota inicial padrão 6** (dono, 23 out 2026): quem entra no grupo (pelo convite ou criando) começa com nota 6,
+  só como referência visual e ponto de partida do seletor, até o admin ajustar no perfil. A primeira média medida
+  de fato sai da primeira rodada que o jogador completar e receber votos.
+- **Convite não reativa membro** (dono, 23 out 2026): membro desativado pelo admin que usa o link recebe erro e
+  precisa falar com o admin. Reativar é do admin (perfil do jogador).
+- **Prévia do convite é pública** (dono, 23 out 2026): sem login, mostra só o nome da pelada e quantos membros ativos
+  ela tem. Nada de nomes de membros.
 - **Nota da rodada com poucos votos:** com 3 votos ou menos, média simples; a partir de 4, média aparada.
 
 ---
@@ -342,6 +349,33 @@ devolvem só `ROUND_NOT_OPEN`. `votingCloseReason` → motivo ou `null` (segue a
 - Pular etapas ou mudar `status` sem `validateRoundTransition`; modelar várias partidas por rodada.
 - Passar `Attendance` (confirmados) como `teams` ou `playedIds`.
 
+### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `DEFAULT_INITIAL_RATING` 🚧
+**O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).
+- `toSlug(nome)`: minúsculo, sem acento, letras/números separados por hífen (`"Pelada do Zé"` → `pelada-do-ze`);
+  nome sem letra nem número vira `pelada`. `nextAvailableSlug(base, ocupados)`: a base, ou o menor sufixo livre a
+  partir de 2 (`pelada-2`).
+- `validateNickname` (até `NICKNAME_MAX_LENGTH` = 10) e `validateGroupName` (até `GROUP_NAME_MAX_LENGTH` = 50):
+  contam caracteres (acento e emoji contam 1), sem os espaços das pontas → `'EMPTY'`, `'TOO_LONG'` ou `null`
+  (`TEXT_FIELD_ERRORS`; textos em `NICKNAME_ERROR_LABELS`/`GROUP_NAME_ERROR_LABELS` no shared).
+- `validateJoinGroup(participaçãoAtual)`: sem participação ou ativo → `null`; inativo → `'MEMBERSHIP_INACTIVE'`
+  (`JOIN_GROUP_ERRORS`; texto em `JOIN_GROUP_ERROR_LABELS`).
+- `DEFAULT_INITIAL_RATING` = 6: nota inicial de quem entra (ver Decisões fixas).
+
+**Na API** (`apps/api/src/groups`, contratos em `packages/shared/src/group.ts`):
+- `POST /api/groups` `{ name, nickname, primaryPosition }`: cria o grupo com slug único e código de convite; quem
+  cria vira `ADMIN` (também jogador, nota 6). Devolve o grupo com `role` e `memberCount`.
+- `GET /api/groups/:groupId` e `GET /api/groups/:groupId/members` (membro): o grupo; os membros **ativos** por
+  apelido, sem nota (nota é assunto do admin).
+- `GET`/`POST /api/groups/:groupId/invite` (admin): vê o código / gera um novo. O antigo deixa de valer na hora.
+- `GET /api/invites/:code` (**público**): `{ groupName, memberCount }`. Código inexistente ou trocado → 404.
+- `POST /api/invites/:code/join` `{ nickname, primaryPosition }`: entra como `PLAYER`, nota 6 → 201. Já é membro
+  ativo → 200 com o grupo, sem duplicar nem mudar os dados. Inativo → 409 `{ code: 'MEMBERSHIP_INACTIVE', message }`.
+
+**Não faz:** editar perfil (foto, secundárias, nota, goleiro contratado, ativo/inativo: `feature/perfil-jogador`);
+aprovar entrada (grupo de confiança: tem o link, entra); sair do grupo.
+**Evite:** tratar a nota 6 como média medida; reativar membro pelo convite; mostrar membros na prévia pública;
+reaproveitar o código antigo depois de gerar um novo; slug como identificador nas rotas (rotas usam `groupId`).
+
 ---
 
 ## Conceitos ainda não implementados 📋
@@ -352,7 +386,8 @@ sem regras nem rotas. Rodada e Scout já têm regras (ver "Rodada, placar e scou
 ### Grupo e participação (`Group` / `Membership`)
 **O que é:** grupo = uma pelada. Membership = um usuário num grupo, com papel (`ADMIN` ou `PLAYER`) e os dados de
 jogador daquele grupo: apelido, foto, posição principal e secundárias, nota inicial (dada pelo admin), se é goleiro
-contratado (`isHiredGoalkeeper`) e se está ativo. **Apelido com até 10 letras** (decisão do dono; regra a implementar). Um usuário pode estar em vários grupos, com papéis diferentes.
+contratado (`isHiredGoalkeeper`) e se está ativo. **Apelido com até 10 letras** (`validateNickname`). Criar grupo e
+entrar pelo convite: ver "Grupo, convite e entrada". Um usuário pode estar em vários grupos, com papéis diferentes.
 **Admin também é jogador:** tem posição e nota como todo mundo, mais as permissões de admin.
 **Acesso ao grupo na API** ✅ (`apps/api/src/auth`): rota com `:groupId` usa `@GroupMember()` (qualquer membro)
 ou `@GroupRole('ADMIN')`. Só passa quem tem Membership **ativa** naquele grupo.
