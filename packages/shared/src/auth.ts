@@ -11,12 +11,13 @@ export const sessionUserSchema = z.object({
   avatarUrl: z.string().nullable(),
 });
 
-/** Um grupo em que o usuário é membro ativo, com o papel dele ali. */
+/** Um grupo em que o usuário é membro ativo, com o papel dele ali e o id da participação (para achar "você"). */
 export const myGroupSchema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
   role: roleSchema,
+  membershipId: z.string(),
 });
 
 /** Resposta de GET /api/me. */

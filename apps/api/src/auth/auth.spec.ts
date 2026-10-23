@@ -120,8 +120,8 @@ describe('sessão', () => {
       const player = await createGroup(t, { name: 'B pelada' });
       const inactive = await createGroup(t, { name: 'C pelada' });
       await createGroup(t, { name: 'D pelada (não é membro)' });
-      await addMember(t, user.id, admin.id, { role: 'ADMIN' });
-      await addMember(t, user.id, player.id);
+      const adminMembership = await addMember(t, user.id, admin.id, { role: 'ADMIN' });
+      const playerMembership = await addMember(t, user.id, player.id);
       await addMember(t, user.id, inactive.id, { active: false });
 
       const res = await request(server())
@@ -133,8 +133,20 @@ describe('sessão', () => {
       expect(res.body).toEqual({
         user: { id: user.id, name: 'Fulano', email: 'fulano@example.com', avatarUrl: null },
         groups: [
-          { id: admin.id, name: 'A pelada', slug: admin.slug, role: 'ADMIN' },
-          { id: player.id, name: 'B pelada', slug: player.slug, role: 'PLAYER' },
+          {
+            id: admin.id,
+            name: 'A pelada',
+            slug: admin.slug,
+            role: 'ADMIN',
+            membershipId: adminMembership.id,
+          },
+          {
+            id: player.id,
+            name: 'B pelada',
+            slug: player.slug,
+            role: 'PLAYER',
+            membershipId: playerMembership.id,
+          },
         ],
       });
     });

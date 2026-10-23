@@ -58,6 +58,7 @@ describe('grupos e convite', () => {
       const membership = await t.prisma.membership.findUniqueOrThrow({
         where: { userId_groupId: { userId: user.id, groupId: res.body.id } },
       });
+      expect(res.body.membershipId).toBe(membership.id);
       expect(membership).toMatchObject({
         role: 'ADMIN',
         nickname: 'Zé',
@@ -105,7 +106,7 @@ describe('grupos e convite', () => {
     it('membro vê o grupo, o papel dele e o nº de membros ativos', async () => {
       const group = await createGroup(t, { name: 'Pelada X' });
       const player = await createUser(t);
-      await addMember(t, player.id, group.id);
+      const playerMembership = await addMember(t, player.id, group.id);
       await addMember(t, (await createUser(t)).id, group.id, { role: 'ADMIN' });
       await addMember(t, (await createUser(t)).id, group.id, { active: false });
 
@@ -119,6 +120,7 @@ describe('grupos e convite', () => {
         name: 'Pelada X',
         slug: group.slug,
         role: 'PLAYER',
+        membershipId: playerMembership.id,
         memberCount: 2,
       });
     });
@@ -287,6 +289,7 @@ describe('grupos e convite', () => {
         name: 'Pelada X',
         slug: group.slug,
         role: 'PLAYER',
+        membershipId: expect.any(String),
         memberCount: 2,
       });
       const membership = await t.prisma.membership.findUniqueOrThrow({
@@ -297,6 +300,7 @@ describe('grupos e convite', () => {
         nickname: 'Baixinho',
         primaryPosition: 'DEFENDER',
         initialRating: DEFAULT_INITIAL_RATING,
+        id: res.body.membershipId,
         active: true,
       });
       // Agora é membro: vê o grupo.
@@ -314,7 +318,12 @@ describe('grupos e convite', () => {
         .send(entry)
         .expect(200);
 
-      expect(res.body).toMatchObject({ id: group.id, role: 'ADMIN', memberCount: 1 });
+      expect(res.body).toMatchObject({
+        id: group.id,
+        role: 'ADMIN',
+        membershipId: existing.id,
+        memberCount: 1,
+      });
       const memberships = await t.prisma.membership.findMany({ where: { groupId: group.id } });
       expect(memberships).toHaveLength(1);
       expect(memberships[0]).toMatchObject({ id: existing.id, role: 'ADMIN', nickname: 'Apelido' });

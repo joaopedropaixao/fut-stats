@@ -4,7 +4,7 @@ import { ApiContractError, ApiError, apiGet } from './api';
 
 const me = {
   user: { id: 'u1', name: 'Ronaldo', email: 'ro@exemplo.com', avatarUrl: null },
-  groups: [{ id: 'g1', name: 'Pelada', slug: 'pelada', role: 'ADMIN' }],
+  groups: [{ id: 'g1', name: 'Pelada', slug: 'pelada', role: 'ADMIN', membershipId: 'm1' }],
 };
 
 function mockFetch(status: number, body: unknown) {

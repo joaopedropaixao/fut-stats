@@ -20,7 +20,7 @@ Preto é a identidade. A nostalgia de jogo 2D aparece em três camadas:
 |---|---|---|
 | Fundo padrão "Gramado" | `--color-bg` e superfícies | Verde. O tema **"Noite"** (escuro) é opção nas configurações e troca só os tokens de fundo. |
 | Texto | `--color-text` (creme) | Branco puro só no time Branco. |
-| Ação | `--color-accent` (amarelo) | Só tecla de ação, **uma por tela**, sem brilho. Exceção aprovada: a palavra **VS** (`--color-game`). |
+| Ação | `--color-accent` (amarelo) | Só tecla de ação, **uma por tela**, sem brilho. Exceções aprovadas: a palavra **VS** (`--color-game`), o **Desfazer** dentro do aviso e o selo **ADMIN**. |
 | Recompensa | `--color-gold` | Craque, líder do ranking, aviso de resultado. |
 | Atenção | `--color-warning` | Prazo e aviso de votação. |
 | Convite / vitória | `--color-success` | Presença confirmada, aviso de presença, vitória. |

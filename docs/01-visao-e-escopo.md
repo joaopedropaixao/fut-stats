@@ -19,7 +19,7 @@ arquitetura, deploy e desenvolvimento assistido por IA.
 
 - **Semanal**, com mensalidade.
 - **Fut7**, sempre **dois times: Branco x Preto**, ou seja, **uma partida por rodada**.
-- Formação **1-2-3-1**: 1 Goleiro, 2 Zagueiros, 2 Alas, 1 Meio-Campo, 1 Atacante
+- Formação **1-2-3-1**: 1 Goleiro, 2 Zagueiros, 2 Alas, 1 Meia, 1 Atacante
   (6 na linha + goleiro).
 - **Goleiros** são contratados por fora, mas existe um grupo fixo que sempre vem.
   Eles entram no app como jogadores do grupo (tipo `GOLEIRO`), são sorteados

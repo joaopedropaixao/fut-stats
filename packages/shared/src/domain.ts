@@ -57,7 +57,7 @@ export const POSITION_LABELS: Readonly<Record<Position, string>> = {
   GOALKEEPER: 'Goleiro',
   DEFENDER: 'Zagueiro',
   WINGER: 'Ala',
-  MIDFIELDER: 'Meio-campo',
+  MIDFIELDER: 'Meia',
   FORWARD: 'Atacante',
 };
 

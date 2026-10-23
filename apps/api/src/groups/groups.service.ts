@@ -65,8 +65,16 @@ export class GroupsService {
               },
             },
           },
+          include: { memberships: { select: { id: true } } },
         });
-        return { id: group.id, name: group.name, slug: group.slug, role: 'ADMIN', memberCount: 1 };
+        return {
+          id: group.id,
+          name: group.name,
+          slug: group.slug,
+          role: 'ADMIN',
+          membershipId: group.memberships[0]!.id,
+          memberCount: 1,
+        };
       } catch (e) {
         if (isUniqueViolation(e) && attempt < SLUG_ATTEMPTS) continue;
         throw e;
@@ -76,7 +84,7 @@ export class GroupsService {
 
   /** O grupo visto pelo membro da rota (já conferido pelo guard). */
   async get(membership: GroupMembership): Promise<GroupResponse> {
-    return this.toResponse(membership.groupId, membership.role);
+    return this.toResponse(membership.groupId, membership.role, membership.id);
   }
 
   /** Membros ativos do grupo, por apelido. Sem nota: isso é do admin. */
@@ -130,7 +138,7 @@ export class GroupsService {
 
     const existing = await this.prisma.membership.findUnique({
       where,
-      select: { role: true, active: true },
+      select: { id: true, role: true, active: true },
     });
     if (validateJoinGroup(existing) === 'MEMBERSHIP_INACTIVE') {
       throw new ConflictException({
@@ -138,10 +146,13 @@ export class GroupsService {
         message: JOIN_GROUP_ERROR_LABELS.MEMBERSHIP_INACTIVE,
       });
     }
-    if (existing) return { group: await this.toResponse(group.id, existing.role), created: false };
+    if (existing) {
+      return { group: await this.toResponse(group.id, existing.role, existing.id), created: false };
+    }
 
+    let membershipId: string;
     try {
-      await this.prisma.membership.create({
+      ({ id: membershipId } = await this.prisma.membership.create({
         data: {
           userId,
           groupId: group.id,
@@ -150,13 +161,14 @@ export class GroupsService {
           primaryPosition: input.primaryPosition,
           initialRating: DEFAULT_INITIAL_RATING,
         },
-      });
+        select: { id: true },
+      }));
     } catch (e) {
       // Dois cliques ao mesmo tempo: o outro já criou. Trata como "já é membro".
       if (isUniqueViolation(e)) return this.join(userId, code, input);
       throw e;
     }
-    return { group: await this.toResponse(group.id, 'PLAYER'), created: true };
+    return { group: await this.toResponse(group.id, 'PLAYER', membershipId), created: true };
   }
 
   private async findByInviteCode(code: string) {
@@ -172,11 +184,15 @@ export class GroupsService {
     return this.prisma.membership.count({ where: { groupId, active: true } });
   }
 
-  private async toResponse(groupId: string, role: Role): Promise<GroupResponse> {
+  private async toResponse(
+    groupId: string,
+    role: Role,
+    membershipId: string,
+  ): Promise<GroupResponse> {
     const group = await this.prisma.group.findUniqueOrThrow({
       where: { id: groupId },
       select: { id: true, name: true, slug: true },
     });
-    return { ...group, role, memberCount: await this.countActive(groupId) };
+    return { ...group, role, membershipId, memberCount: await this.countActive(groupId) };
   }
 }
