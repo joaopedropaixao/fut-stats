@@ -26,27 +26,6 @@ export class ApiContractError extends Error {
 
 type RequestOptions = { signal?: AbortSignal };
 
-/**
- * GET em /api{path}, validando a resposta com o schema Zod do @fut-stats/shared.
- * Daqui para dentro o front confia nos tipos; se a API mudar o contrato, o erro aparece aqui.
- */
-export async function apiGet<S extends z.ZodType>(
-  path: string,
-  schema: S,
-  { signal }: RequestOptions = {},
-): Promise<z.output<S>> {
-  const res = await fetch(`/api${path}`, {
-    signal,
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' },
-  });
-  if (!res.ok) throw new ApiError(res.status, path, await readErrorBody(res));
-
-  const parsed = schema.safeParse(await res.json());
-  if (!parsed.success) throw new ApiContractError(path, parsed.error.issues);
-  return parsed.data;
-}
-
 async function readErrorBody(res: Response): Promise<ApiError['body']> {
   try {
     const json: unknown = await res.json();
@@ -61,7 +40,7 @@ async function readErrorBody(res: Response): Promise<ApiError['body']> {
   }
 }
 
-async function send(method: string, path: string, body: unknown, signal?: AbortSignal) {
+async function send(method: 'GET' | 'POST', path: string, body?: unknown, signal?: AbortSignal) {
   const res = await fetch(`/api${path}`, {
     method,
     signal,
@@ -76,6 +55,22 @@ async function send(method: string, path: string, body: unknown, signal?: AbortS
   return res;
 }
 
+/** Daqui para dentro o front confia nos tipos; se a API mudar o contrato, o erro aparece aqui. */
+async function parse<S extends z.ZodType>(res: Response, path: string, schema: S) {
+  const parsed = schema.safeParse(await res.json());
+  if (!parsed.success) throw new ApiContractError(path, parsed.error.issues);
+  return parsed.data;
+}
+
+/** GET em /api{path}, validando a resposta com o schema Zod do @fut-stats/shared. */
+export async function apiGet<S extends z.ZodType>(
+  path: string,
+  schema: S,
+  { signal }: RequestOptions = {},
+): Promise<z.output<S>> {
+  return parse(await send('GET', path, undefined, signal), path, schema);
+}
+
 /** POST em /api{path} com corpo JSON, validando a resposta com o schema do @fut-stats/shared. */
 export async function apiPost<S extends z.ZodType>(
   path: string,
@@ -83,10 +78,7 @@ export async function apiPost<S extends z.ZodType>(
   body?: unknown,
   { signal }: RequestOptions = {},
 ): Promise<z.output<S>> {
-  const res = await send('POST', path, body, signal);
-  const parsed = schema.safeParse(await res.json());
-  if (!parsed.success) throw new ApiContractError(path, parsed.error.issues);
-  return parsed.data;
+  return parse(await send('POST', path, body, signal), path, schema);
 }
 
 /** POST que responde sem corpo (204), como o logout. */
