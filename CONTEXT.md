@@ -349,6 +349,14 @@ devolvem só `ROUND_NOT_OPEN`. `votingCloseReason` → motivo ou `null` (segue a
 - Pular etapas ou mudar `status` sem `validateRoundTransition`; modelar várias partidas por rodada.
 - Passar `Attendance` (confirmados) como `teams` ou `playedIds`.
 
+**API do jogo (`apps/api/src/match`, rotas sob `/api/groups/:groupId/rounds/:roundId/match`):** `GET` (membro) devolve o dia da rodada,
+placar, quem jogou, lances e `next` (começar/encerrar, com o motivo do domain quando não dá); `PATCH /status` (admin)
+só aceita `IN_PROGRESS` e `VOTING`; `PUT /score` (placar, regra `validateScoreEntry`); `POST /events` e
+`DELETE /events/:eventId` (regras `validateMatchEvent`/`validateMatchEventRemoval`). Só `GOAL` e `ASSIST` são aceitos
+(`OWN_GOAL` ainda não existe no Prisma). Erro de regra = `{ code, message }`: "não pode ser você" (`NOT_ADMIN`,
+`NOT_OWN_EVENT`) vira 403, o resto 409. O lance mostra `createdBy`; desfazer a remoção na tela é lançar de novo (o
+autor passa a ser quem desfez).
+
 ### Presença: `validateAttendanceChange` 🚧
 **O que é:** quem pode marcar Vou / Não vou numa rodada e até quando (`src/round/attendance.ts`). Regras decididas
 pelo dono em 23 out 2026.
