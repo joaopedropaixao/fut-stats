@@ -202,7 +202,11 @@ function MatchBoard({
                     icon="plus"
                     label="Meu gol"
                     block
-                    loading={actions.launchEvent.isPending}
+                    loading={
+                      actions.launchEvent.isPending &&
+                      actions.launchEvent.variables?.type === 'GOAL'
+                    }
+                    disabled={actions.launchEvent.isPending}
                     onClick={() => launch(membershipId, 'GOAL', me?.nickname ?? '')}
                   />
                   <Button
@@ -210,7 +214,11 @@ function MatchBoard({
                     icon="plus"
                     label="Minha assistência"
                     block
-                    loading={actions.launchEvent.isPending}
+                    loading={
+                      actions.launchEvent.isPending &&
+                      actions.launchEvent.variables?.type === 'ASSIST'
+                    }
+                    disabled={actions.launchEvent.isPending}
                     onClick={() => launch(membershipId, 'ASSIST', me?.nickname ?? '')}
                   />
                 </>
@@ -265,7 +273,7 @@ function MatchBoard({
           />
         )}
       </Sheet>
-      {toast && <Toast {...toast} onDismiss={dismissToast} />}
+      {toast && <Toast data={toast} onDismiss={dismissToast} />}
     </>
   );
 }

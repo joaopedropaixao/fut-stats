@@ -29,7 +29,10 @@ export function Sheet({ open, title, onClose, children }: SheetProps) {
     <dialog
       ref={ref}
       aria-label={title}
-      onClose={onClose}
+      onClose={() => {
+        // Fechar por código (open virou false) já foi decidido pelo pai
+        if (open) onClose();
+      }}
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}

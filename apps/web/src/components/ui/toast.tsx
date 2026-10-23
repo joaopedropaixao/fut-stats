@@ -11,18 +11,21 @@ export type ToastData = {
   action?: { label: string; onClick: () => void };
 };
 
-type ToastProps = ToastData & {
+type ToastProps = {
+  data: ToastData;
   onDismiss: () => void;
   /** Some sozinho depois disto (ms). */
   duration?: number;
 };
 
 /** Aviso que flutua acima da barra de abas, com "Desfazer" quando a ação dá para voltar. */
-export function Toast({ text, kind = 'success', action, onDismiss, duration = 6000 }: ToastProps) {
+export function Toast({ data, onDismiss, duration = 6000 }: ToastProps) {
+  const { text, kind = 'success', action } = data;
   useEffect(() => {
     const timer = setTimeout(onDismiss, duration);
     return () => clearTimeout(timer);
-  }, [text, duration, onDismiss]);
+    // `data` muda a cada aviso novo (mesmo com o mesmo texto): o tempo recomeça
+  }, [data, duration, onDismiss]);
 
   return (
     <div className="fixed inset-x-0 bottom-[calc(88px+env(safe-area-inset-bottom))] z-(--z-toast) px-4">
