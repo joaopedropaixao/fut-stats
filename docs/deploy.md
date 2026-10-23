@@ -2,9 +2,15 @@
 
 Staging = o que está na `develop`, publicado na internet. Três serviços, todos no plano gratuito:
 
+| O quê | Endereço |
+|---|---|
+| App (Vercel) | <https://fut-stats-three.vercel.app> |
+| API pelo app (rewrite) | <https://fut-stats-three.vercel.app/api/health> |
+| API direto (Render) | <https://fut-stats-api-staging.onrender.com/api/health> |
+
 ```
 Navegador ──► Vercel (web, React)  ──/api/*──►  Render (API, NestJS)  ──►  Neon (Postgres, branch dev)
-              https://<projeto>.vercel.app      https://fut-stats-api-staging.onrender.com
+              https://fut-stats-three.vercel.app https://fut-stats-api-staging.onrender.com
 ```
 
 O navegador só conversa com a Vercel. Quem chama `/api/...` na Vercel é repassado ao Render pelo
@@ -156,7 +162,7 @@ Preencha assim:
 
 | Campo | Valor |
 |---|---|
-| **Project Name** | `fut-stats` (vira o endereço `fut-stats.vercel.app`; se já existir, a Vercel sugere outro) |
+| **Project Name** | `fut-stats` (o endereço `fut-stats.vercel.app` já era de outra pessoa; a Vercel deu `fut-stats-three.vercel.app`) |
 | **Framework Preset** | `Vite` (se não der para escolher, deixe o que vier) |
 | **Root Directory** | deixe como está (`./`) por enquanto |
 | **Build and Output Settings** | não mexa (o `vercel.json` define) |
