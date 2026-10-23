@@ -279,8 +279,8 @@ e quando a votação fecha sozinha.
 - `RoundStatus` (lista em `ROUND_STATUSES`, igual ao enum do Prisma): `SCHEDULED` (agendada) →
   `TEAMS_PUBLISHED` (times publicados) → `IN_PROGRESS` (em jogo) → `VOTING` (votação) → `CLOSED` (encerrada).
   Para onde cada um pode ir: `ROUND_TRANSITIONS`.
-- `MatchEventType` (lista em `MATCH_EVENT_TYPES`): `GOAL`, `ASSIST`, `OWN_GOAL` (gol contra). **`OWN_GOAL` ainda
-  não está no enum do Prisma** (`MatchEventType`): entra no PR da API que usar estas regras.
+- `MatchEventType` (lista em `MATCH_EVENT_TYPES`): `GOAL`, `ASSIST`, `OWN_GOAL` (gol contra). O enum do Prisma
+  (`MatchEventType`) tem os mesmos três valores (`domain-enums.spec.ts` garante).
 - `MatchEvent = { playerId, type }`: quem fez o lance (no banco, `MatchEvent.membershipId`).
 - `MatchScore = { WHITE, BLACK }`: placar (no banco, `whiteGoals`/`blackGoals`).
 - `RoundTeams` = `RoundLineup` + `reserves: TeamReserves` (mesmo formato do `BalancedRound`). Quem está aqui jogou.
@@ -395,6 +395,20 @@ na tela.
 
 **Evite:** escolher "a primeira das próximas" na tela (a rodada some do início na hora do jogo); repetir a regra no front.
 
+### Número da rodada: `Round.number` 🚧
+**O que é:** o número da rodada dentro do grupo (1, 2, 3...), para a tela mostrar "RODADA 12" e o grupo citar no
+WhatsApp. Decidido pelo dono em 23 out 2026: guardado no banco, não contado pela ordem.
+
+**Faz:** quem dá o número é o **banco**: um trigger (`round_assign_number`, migration `round_number`) grava o maior
+número do grupo + 1 em todo insert, com lock por grupo (duas rodadas criadas juntas não repetem). Conta a **ordem de
+criação**, não a data: pelada antiga registrada depois ganha o próximo número. Apagar a última rodada libera o número;
+apagar outra deixa um buraco (raro, só dá para apagar antes do jogo). Rodadas que já existiam foram numeradas pela data.
+Sai no `roundSummarySchema` (`number`).
+
+**Não faz:** não renumera; não é regra do `domain` (é identidade do registro).
+
+**Evite:** calcular o número no front ou pela posição na lista; passar `number` no `create` (o trigger sobrescreve).
+
 ### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `DEFAULT_INITIAL_RATING` 🚧
 **O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).
 - `toSlug(nome)`: minúsculo, sem acento, letras/números separados por hífen (`"Pelada do Zé"` → `pelada-do-ze`);
@@ -428,7 +442,7 @@ reaproveitar o código antigo depois de gerar um novo; slug como identificador n
 
 ## Conceitos ainda não implementados 📋
 
-Já existem como tabelas no banco (`apps/api/prisma/schema.prisma`, enums iguais aos do domain, menos o `OWN_GOAL`), mas ainda
+Já existem como tabelas no banco (`apps/api/prisma/schema.prisma`, enums iguais aos do domain), mas ainda
 sem regras nem rotas. Rodada e Scout já têm regras (ver "Rodada, placar e scouts" acima).
 
 ### Grupo e participação (`Group` / `Membership`)

@@ -85,13 +85,13 @@ Membership      userId, groupId, role (ADMIN|PLAYER), nickname, photoUrl,
                 posições: GOALKEEPER | DEFENDER | WINGER | MIDFIELDER | FORWARD
                 (goleiro é posição; "goleiro contratado" é só um dado de cadastro)
 
-Round           id, groupId, scheduledAt, location, whiteGoals, blackGoals,
+Round           id, groupId, number (1, 2, 3... por grupo), scheduledAt, location, whiteGoals, blackGoals,
                 status: SCHEDULED → TEAMS_PUBLISHED → IN_PROGRESS → VOTING → CLOSED
                 (1 rodada = 1 partida Branco x Preto)
 Attendance      roundId, membershipId, confirmed        (única por rodada + membro)
 TeamPlayer      roundId, membershipId, team (WHITE|BLACK), position, isReserve
                 (única por rodada + membro; quem está aqui jogou)
-MatchEvent      roundId, membershipId, type (GOAL|ASSIST; gol sofrido sai do placar), createdById
+MatchEvent      roundId, membershipId, type (GOAL|ASSIST|OWN_GOAL; gol sofrido sai do placar), createdById
                 (jogador lança os próprios; admin, de qualquer um)
 ```
 

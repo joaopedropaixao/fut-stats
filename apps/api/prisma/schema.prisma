@@ -42,11 +42,13 @@ enum RoundStatus {
   CLOSED
 }
 
-/// Tipo de lance registrado na rodada.
+/// Tipo de lance registrado na rodada. Igual a `MatchEventType` do domain.
+/// OWN_GOAL = gol contra: fica com quem fez e conta no placar do adversário.
 /// Gols sofridos não são lance: saem do placar (gols do time adversário).
 enum MatchEventType {
   GOAL
   ASSIST
+  OWN_GOAL
 }
 
 /// Pessoa que faz login (Google). Não tem dado de pelada: isso fica na Membership de cada grupo.
@@ -110,6 +112,10 @@ model Membership {
 model Round {
   id          String      @id @default(cuid())
   groupId     String
+  /// Número da rodada no grupo (1, 2, 3...), "RODADA 12". Quem preenche é o banco: um trigger
+  /// (migration round_number) grava o maior número do grupo + 1 em todo insert; o 0 do default
+  /// nunca fica salvo. Apagar a última rodada libera o número; apagar outra deixa um buraco.
+  number      Int         @default(0)
   scheduledAt DateTime
   location    String?
   status      RoundStatus @default(SCHEDULED)
@@ -124,6 +130,7 @@ model Round {
   teamPlayers TeamPlayer[]
   matchEvents MatchEvent[]
 
+  @@unique([groupId, number])
   @@index([groupId, scheduledAt])
 }
 
