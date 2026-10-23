@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  canChangeAttendance,
   isRoundDeletable,
   isRoundEditable,
   validateAttendanceChange,
@@ -18,6 +19,7 @@ import {
   type CreateRoundInput,
   type RoundDetail,
   type RoundList,
+  type RoundPermissions,
   type RoundSummary,
   type SetAttendanceInput,
   type UpdateRoundInput,
@@ -121,7 +123,20 @@ export class RoundsService {
       if (answer === null) attendance.pending.push(item);
       else (answer ? attendance.confirmed : attendance.declined).push(item);
     }
-    return { ...toSummary(round), myAttendance, attendance };
+    const actor = toActor(membership);
+    const permissions: RoundPermissions = {
+      setOwnAttendance: canChangeAttendance(membership.id, actor, round.status),
+      setAnyAttendance: actor.isAdmin && canChangeAttendance(membership.id, actor, round.status),
+      edit: actor.isAdmin && isRoundEditable(round.status),
+      delete: actor.isAdmin && isRoundDeletable(round.status),
+    };
+    return {
+      ...toSummary(round),
+      myMembershipId: membership.id,
+      permissions,
+      myAttendance,
+      attendance,
+    };
   }
 
   /** Muda data/hora e/ou local. Só antes do jogo (`isRoundEditable`). */

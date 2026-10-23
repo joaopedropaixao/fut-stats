@@ -376,6 +376,11 @@ e apagar (`DELETE /:roundId`) são só do admin; listar (`GET`, próximas e pass
 Presença: `PUT /:roundId/attendances/:membershipId` com `{ confirmed }`. `NOT_OWN_ATTENDANCE` → 403; os outros
 códigos, e rodada fora da janela de editar/apagar (`ROUND_NOT_EDITABLE`/`ROUND_NOT_DELETABLE`), → 409 `{ code, message }`.
 
+**No detalhe da rodada** (`GET /:roundId`): `myMembershipId` (a membership de quem pediu) e `permissions`
+(`setOwnAttendance`, `setAnyAttendance`, `edit`, `delete`), calculadas com o domain para o papel e o status. O
+front não repete a regra: só habilita ou trava os botões conforme esses campos; `{ code, message }` de erro da API
+aparece como aviso. A tela "próxima rodada" é a primeira de `upcoming` (pela hora marcada).
+
 **Evite:** deixar o jogador mudar a presença com os times publicados; contar confirmado que ficou inativo;
 travar confirmação por número; usar o horário marcado como prazo da presença.
 

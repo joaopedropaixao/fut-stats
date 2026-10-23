@@ -73,8 +73,23 @@ export const attendanceMemberSchema = z.object({
   isHiredGoalkeeper: z.boolean(),
 });
 
+/** O que quem pediu pode fazer nesta rodada agora (a regra é do domain; o front só mostra). */
+export const roundPermissionsSchema = z.object({
+  /** Marcar a própria presença. */
+  setOwnAttendance: z.boolean(),
+  /** Marcar a presença de qualquer membro (admin). */
+  setAnyAttendance: z.boolean(),
+  /** Mudar data, hora e local (admin). */
+  edit: z.boolean(),
+  /** Apagar a rodada (admin). */
+  delete: z.boolean(),
+});
+
 /** Detalhe da rodada com a lista de presença (só membros ativos). */
 export const roundDetailSchema = roundSummarySchema.extend({
+  /** A membership de quem pediu, para marcar a própria presença. */
+  myMembershipId: z.string(),
+  permissions: roundPermissionsSchema,
   /** A resposta de quem pediu: `true` = Vou, `false` = Não vou, `null` = não respondeu. */
   myAttendance: z.boolean().nullable(),
   attendance: z.object({
@@ -90,4 +105,5 @@ export type SetAttendanceInput = z.infer<typeof setAttendanceSchema>;
 export type RoundSummary = z.infer<typeof roundSummarySchema>;
 export type RoundList = z.infer<typeof roundListSchema>;
 export type AttendanceMember = z.infer<typeof attendanceMemberSchema>;
+export type RoundPermissions = z.infer<typeof roundPermissionsSchema>;
 export type RoundDetail = z.infer<typeof roundDetailSchema>;

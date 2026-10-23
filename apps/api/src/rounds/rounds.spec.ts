@@ -220,6 +220,48 @@ describe('rodadas e presença', () => {
       expect(res.body.myAttendance).toBe(true);
     });
 
+    it('diz quem é o solicitante e o que ele pode fazer, conforme o papel e o status', async () => {
+      const { group, adminUser, playerUser, admin, player } = await setup();
+      const scheduled = await createRound(group.id);
+      const published = await createRound(group.id, { status: 'TEAMS_PUBLISHED' });
+      const playing = await createRound(group.id, { status: 'IN_PROGRESS' });
+
+      const get = async (userId: string, roundId: string) =>
+        (
+          await request(server())
+            .get(`${roundsPath(group.id)}/${roundId}`)
+            .set('Cookie', as(userId))
+            .expect(200)
+        ).body;
+
+      const asPlayer = await get(playerUser.id, scheduled.id);
+      expect(asPlayer.myMembershipId).toBe(player.id);
+      expect(asPlayer.permissions).toEqual({
+        setOwnAttendance: true,
+        setAnyAttendance: false,
+        edit: false,
+        delete: false,
+      });
+      expect((await get(playerUser.id, published.id)).permissions).toMatchObject({
+        setOwnAttendance: false,
+      });
+
+      const asAdmin = await get(adminUser.id, published.id);
+      expect(asAdmin.myMembershipId).toBe(admin.id);
+      expect(asAdmin.permissions).toEqual({
+        setOwnAttendance: true,
+        setAnyAttendance: true,
+        edit: true,
+        delete: true,
+      });
+      expect((await get(adminUser.id, playing.id)).permissions).toEqual({
+        setOwnAttendance: false,
+        setAnyAttendance: false,
+        edit: false,
+        delete: false,
+      });
+    });
+
     it('rodada de outro grupo → 404, mesmo para admin', async () => {
       const { group, adminUser } = await setup();
       const foreign = await createRound((await createGroup(t)).id);
