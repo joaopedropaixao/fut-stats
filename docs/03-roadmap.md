@@ -54,7 +54,7 @@ se resolve no rebase.
 - [x] Prisma conectado (schema da Fase 1, Postgres local via Docker, testes de integração no CI)
 - [x] Banco no Neon
 - [x] **Deploy "hello world"** de front e API (staging a partir da `develop`)
-- [ ] Login com Google funcionando em staging
+- [x] Login com Google funcionando em staging
 
 ## Fase 0.5: Design (Paper + Claude Code)
 Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a implementação das telas no front.**
