@@ -35,3 +35,6 @@ services:
       # Conexão direta do Neon (sem "-pooler"), só para as migrations do build.
       - key: DIRECT_URL
         sync: false
+      # Segredo que assina o JWT da sessão. O Render gera um valor aleatório na criação; trocar desloga todo mundo.
+      - key: JWT_SECRET
+        generateValue: true

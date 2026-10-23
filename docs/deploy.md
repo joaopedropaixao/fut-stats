@@ -111,6 +111,9 @@ que lê o `render.yaml` do repositório e preenche tudo sozinho.
    **Free**. Ele também pede o valor de duas variáveis (seção 1.3):
    - **`DATABASE_URL`**: a URL **com** `-pooler`
    - **`DIRECT_URL`**: a URL **sem** `-pooler`
+
+   A `JWT_SECRET` (assina a sessão) não pede valor: o Render gera uma aleatória (`generateValue`).
+   Em Blueprint já criado, ela aparece no próximo sync; confira em **Environment** do serviço.
 6. Clique em **Deploy Blueprint** (ou **Apply**).
 
 > Se o Render pedir cartão de crédito ou mostrar algum plano pago, **pare** e me avise. Este setup é
