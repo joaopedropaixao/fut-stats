@@ -134,8 +134,31 @@ describe('placar e lances da rodada', () => {
           team: 'WHITE',
           type: 'GOAL',
           createdByNickname: 'Apelido',
+          canRemove: false,
         }),
       ]);
+    });
+
+    it('canRemove: o admin e o dono do lance podem; os outros não; encerrada ninguém', async () => {
+      const c = await setup();
+      await t.prisma.matchEvent.create({
+        data: {
+          roundId: c.round.id,
+          membershipId: c.white[1]!.membership.id,
+          type: 'GOAL',
+          createdById: c.admin.id,
+        },
+      });
+      const canRemove = async (userId: string) =>
+        (await request(server()).get(matchPath(c.group.id, c.round.id)).set('Cookie', as(userId)))
+          .body.events[0].canRemove;
+
+      expect(await canRemove(c.adminUser.id)).toBe(true);
+      expect(await canRemove(c.white[1]!.user.id)).toBe(true);
+      expect(await canRemove(c.white[0]!.user.id)).toBe(false);
+
+      await t.prisma.round.update({ where: { id: c.round.id }, data: { status: 'CLOSED' } });
+      expect(await canRemove(c.adminUser.id)).toBe(false);
     });
 
     it('sem placar lançado, score é null; sem times montados, players é vazio', async () => {

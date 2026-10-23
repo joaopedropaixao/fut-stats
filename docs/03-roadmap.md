@@ -76,7 +76,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [x] Regras da rodada no domínio: ciclo de status e quem pode lançar scout
 - [x] Admin: criar rodada; jogadores: confirmar presença
 - [ ] Admin: montar Branco x Preto manualmente e lançar o placar
-- [ ] Scouts: jogador lança os próprios gols/assistências; admin lança/corrige de todos
+- [x] Scouts: jogador lança os próprios gols/assistências; admin lança/corrige de todos
 - [ ] Histórico de rodadas e partidas
 
 ## Fase 2: Seletor de times

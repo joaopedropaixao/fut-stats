@@ -38,11 +38,13 @@ export const matchEventSchema = z.object({
   createdById: z.string(),
   createdByNickname: z.string(),
   createdAt: z.iso.datetime(),
+  /** Quem pediu pode remover este lance agora (regra do domain). */
+  canRemove: z.boolean(),
 });
 
 /**
  * Resposta de GET (e de toda escrita) em /api/groups/:groupId/rounds/:roundId/match.
- * `canLaunch`/`canRemove` já vêm do domain para a tela só mostrar.
+ * `isOpen`, `next` e `canRemove` de cada lance já vêm do domain para a tela só mostrar.
  */
 export const matchViewSchema = z.object({
   roundId: z.string(),

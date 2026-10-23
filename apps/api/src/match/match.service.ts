@@ -46,6 +46,7 @@ export class MatchService {
   /** O jogo da rodada: placar, quem jogou, lances e o próximo passo do admin. */
   async view(membership: GroupMembership, roundId: string): Promise<MatchView> {
     const { state, ...data } = await this.load(membership.groupId, roundId);
+    const actor = toActor(membership);
     const { status } = state;
 
     const target =
@@ -57,7 +58,15 @@ export class MatchService {
       status,
       score: state.score ? { ...state.score } : null,
       players: data.players,
-      events: data.events,
+      events: data.events.map((event) => ({
+        ...event,
+        canRemove:
+          validateMatchEventRemoval(
+            { playerId: event.membershipId, type: event.type },
+            actor,
+            state,
+          ).length === 0,
+      })),
       me: { membershipId: membership.id, isAdmin: membership.role === 'ADMIN' },
       isOpen: isMatchOpen(status),
       next: target

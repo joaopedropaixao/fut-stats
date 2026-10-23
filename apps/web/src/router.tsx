@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { AppShell } from './app/shell';
 import { TABS } from './app/tabs';
+import { matchRoutes } from './pages/match/routes';
 import { PlaceholderPage } from './pages/placeholder';
 import { SignInPage } from './pages/sign-in';
 
@@ -13,6 +14,7 @@ export const router = createBrowserRouter([
         : { path: tab.to, element: <PlaceholderPage title={tab.label} /> },
     ),
   },
+  ...matchRoutes,
   { path: '/entrar', element: <SignInPage /> },
   // Vitrine dos componentes de base, para comparar com a folha do DS (docs/design/folha).
   // Só em dev: o build de produção nem inclui o código dela.
