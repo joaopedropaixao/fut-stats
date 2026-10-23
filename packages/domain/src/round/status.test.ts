@@ -4,6 +4,7 @@ import type { MatchEvent } from './match';
 import {
   canTransitionRound,
   isRoundDeletable,
+  isRoundEditable,
   ROUND_STATUSES,
   validateRoundTeams,
   validateRoundTransition,
@@ -190,5 +191,11 @@ describe('canTransitionRound', () => {
 describe('isRoundDeletable', () => {
   it('só antes do jogo', () => {
     expect(ROUND_STATUSES.filter(isRoundDeletable)).toEqual(['SCHEDULED', 'TEAMS_PUBLISHED']);
+  });
+});
+
+describe('isRoundEditable', () => {
+  it('data, hora e local só mudam antes do jogo', () => {
+    expect(ROUND_STATUSES.filter(isRoundEditable)).toEqual(['SCHEDULED', 'TEAMS_PUBLISHED']);
   });
 });
