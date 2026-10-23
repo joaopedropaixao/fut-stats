@@ -5,6 +5,9 @@ import { JwtModule } from '@nestjs/jwt';
 import type { Env } from '../config/env';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { GoogleAuthController } from './google-auth.controller';
+import { GoogleAuthService } from './google-auth.service';
+import { GoogleOAuthClient } from './google-oauth.client';
 import { SessionGuard } from './session.guard';
 import { SessionService } from './session.service';
 
@@ -18,8 +21,14 @@ import { SessionService } from './session.service';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, SessionService, { provide: APP_GUARD, useClass: SessionGuard }],
+  controllers: [AuthController, GoogleAuthController],
+  providers: [
+    AuthService,
+    SessionService,
+    GoogleAuthService,
+    GoogleOAuthClient,
+    { provide: APP_GUARD, useClass: SessionGuard },
+  ],
   exports: [SessionService],
 })
 export class AuthModule {}

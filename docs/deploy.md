@@ -243,3 +243,74 @@ curl -i https://<projeto>.vercel.app/api/health
   máquina com `pnpm --filter @fut-stats/api db:migrate --name <nome>`, nunca no Render.
 - **Produção** (`main` + branch `prod` do Neon) vem depois, quando houver release: outro serviço no
   Render e outro destino no rewrite. Não faz parte deste setup.
+
+---
+
+## 6. Login com Google
+
+O login usa o client OAuth **Web application** do projeto `fut-stats` no Google Cloud. A API precisa de três
+variáveis:
+
+| Variável | De onde vem |
+|---|---|
+| `GOOGLE_CLIENT_ID` | Google Cloud → **APIs & Services → Credentials** (ou **Google Auth Platform → Clients**) → o client Web → **Client ID** (termina em `.apps.googleusercontent.com`) |
+| `GOOGLE_CLIENT_SECRET` | Mesma tela, **Client secret** (começa com `GOCSPX-`) |
+| `APP_URL` | Endereço do app no navegador. Staging: já vem do `render.yaml`. Local: `http://localhost:5173` |
+
+A callback é sempre `${APP_URL}/api/auth/google/callback`. Os endereços cadastrados no Google (não mexa):
+
+- **Authorized JavaScript origins:** `https://fut-stats-three.vercel.app` e `http://localhost:5173`
+- **Authorized redirect URIs:** `https://fut-stats-three.vercel.app/api/auth/google/callback` e
+  `http://localhost:5173/api/auth/google/callback`
+
+> **Sem as duas chaves a API não sobe** (a validação do ambiente recusa). No Render, cole antes do deploy que
+> traz o login; se esquecer, o deploy falha e a versão antiga continua no ar.
+>
+> ID e secret **nunca** vão para o código, commit, PR ou chat. Só no painel do Render e no `apps/api/.env`.
+
+### 6.1 Render (staging)
+
+1. <https://dashboard.render.com> → serviço **`fut-stats-api-staging`** → menu da esquerda **Environment**.
+2. Em **Environment Variables**, clique em **+ Add** (ou **Edit**) e adicione:
+   - **Key** `GOOGLE_CLIENT_ID`, **Value** o Client ID
+   - **Key** `GOOGLE_CLIENT_SECRET`, **Value** o Client secret
+3. Confira que existe `APP_URL` = `https://fut-stats-three.vercel.app` (vem do `render.yaml`; se não
+   aparecer, adicione à mão com esse valor).
+4. **Save, rebuild, and deploy** (ou **Save changes** e depois **Manual Deploy → Deploy latest commit**).
+5. Espere o deploy ficar **Live** (aba **Events**).
+
+### 6.2 Local (`apps/api/.env`)
+
+1. Se ainda não tem: `cp apps/api/.env.example apps/api/.env`.
+2. Preencha no `apps/api/.env`:
+   ```
+   GOOGLE_CLIENT_ID=<Client ID>
+   GOOGLE_CLIENT_SECRET=<Client secret>
+   APP_URL=http://localhost:5173
+   ```
+3. `pnpm dev` e abra <http://localhost:5173/api/auth/google> (pelo Vite, porta 5173; pela 3000 o Google
+   recusa com `redirect_uri_mismatch`).
+
+### 6.3 Test users (enquanto o app estiver em "Testing")
+
+Com o consent screen em **Testing**, só entra quem estiver na lista de test users (até 100). Os outros veem
+"Access blocked: fut-stats has not completed the Google verification process".
+
+1. <https://console.cloud.google.com> → confira no topo que o projeto é **fut-stats**.
+2. Menu **Google Auth Platform → Audience** (em telas antigas: **APIs & Services → OAuth consent screen**).
+3. Em **Test users**, clique em **+ Add users** → digite os e-mails Gmail (um por linha) → **Save**.
+
+### 6.4 Testar
+
+1. Abra <https://fut-stats-three.vercel.app/api/health> primeiro (acorda a API se ela estiver dormindo).
+2. Abra <https://fut-stats-three.vercel.app/api/auth/google> → escolha a conta Google → **Continue**.
+3. Você volta para a página inicial do app. Abra <https://fut-stats-three.vercel.app/api/me>: tem que
+   mostrar seu nome e e-mail (`{"user":{...},"groups":[]}`).
+
+| Sintoma | Causa provável |
+|---|---|
+| Voltou para `/?login=erro` | Cancelou no Google, demorou mais de 10 min, ou a conta não tem e-mail verificado. O motivo aparece nos **Logs** do Render (`Login com Google recusado: ...`) |
+| `Error 400: redirect_uri_mismatch` | `APP_URL` diferente do cadastrado no Google (sem `https://`, com outro domínio, ou aberto pela porta 3000 em vez da 5173) |
+| `Access blocked ... has not completed the Google verification process` | O e-mail não está nos test users (6.3) |
+| `Error 401: invalid_client` | `GOOGLE_CLIENT_ID` ou `GOOGLE_CLIENT_SECRET` errado/com espaço sobrando. Cole de novo e redeploy |
+| `/api/me` dá 401 depois do login | Cookie de sessão não ficou: abra tudo pelo endereço da Vercel (não pelo do Render) |
