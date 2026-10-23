@@ -5,9 +5,7 @@ import { placeOnPitch, playerSummary, resultLabel } from './match-view';
 const player = (nickname: string, position: HistoryPlayer['position'], goals = 0, assists = 0) => ({
   membershipId: nickname,
   nickname,
-  photoUrl: null,
   position,
-  isHiredGoalkeeper: false,
   goals,
   assists,
 });

@@ -35,9 +35,7 @@ export const historyListSchema = z.object({
 export const historyPlayerSchema = z.object({
   membershipId: z.string(),
   nickname: z.string(),
-  photoUrl: z.string().nullable(),
   position: positionSchema,
-  isHiredGoalkeeper: z.boolean(),
   goals: z.number().int(),
   assists: z.number().int(),
 });

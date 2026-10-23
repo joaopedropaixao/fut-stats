@@ -113,13 +113,14 @@ describe('histórico de rodadas e partidas', () => {
       expect(historyDetailSchema.parse(detail.body).winner).toBeNull();
     });
 
-    it('rodada agendada que já tem placar também entra', async () => {
+    it('rodada que não começou fica de fora, mesmo com placar no banco', async () => {
       const { group, cookie } = await setup();
-      const round = await createRound(group.id, { status: 'SCHEDULED', score: [1, 0] });
+      await createRound(group.id, { status: 'SCHEDULED', score: [1, 0] });
+      await createRound(group.id, { status: 'TEAMS_PUBLISHED', score: [0, 2] });
 
       const res = await request(server()).get(listPath(group.id)).set('Cookie', cookie).expect(200);
 
-      expect(historyListSchema.parse(res.body).items.map((i) => i.roundId)).toEqual([round.id]);
+      expect(historyListSchema.parse(res.body).items).toEqual([]);
     });
 
     it('pagina com limit e nextCursor, sem repetir nem pular rodada', async () => {
@@ -174,19 +175,19 @@ describe('histórico de rodadas e partidas', () => {
       expect(historyListSchema.parse(res.body).items).toEqual([]);
     });
 
-    it('cursor de rodada de outro grupo não vaza dados', async () => {
+    it('cursor de outro grupo, inexistente ou de rodada não jogada é 400', async () => {
       const { group, cookie } = await setup();
       const other = await createGroup(t);
       const foreign = await createRound(other.id, { score: [1, 0] });
+      const scheduled = await createRound(group.id, { status: 'SCHEDULED', daysAgo: -2 });
       await createRound(group.id, { daysAgo: 3, score: [2, 0] });
 
-      const res = await request(server())
-        .get(`${listPath(group.id)}?cursor=${foreign.id}`)
-        .set('Cookie', cookie);
-
-      expect(res.status).toBeLessThan(500);
-      const ids = (res.body.items ?? []).map((i: { roundId: string }) => i.roundId);
-      expect(ids).not.toContain(foreign.id);
+      for (const cursor of [foreign.id, scheduled.id, 'nao-existe']) {
+        await request(server())
+          .get(`${listPath(group.id)}?cursor=${cursor}`)
+          .set('Cookie', cookie)
+          .expect(400);
+      }
     });
 
     it('sem login é 401; quem não é do grupo é 404', async () => {

@@ -89,6 +89,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Tela "Dê sua nota" (um jogador por vez, swipe)
 - [ ] Craque / Perna de Pau
 - [ ] Ranking geral e por posição + perfil com stats
+- [ ] Notas de cada jogador no detalhe do histórico (o histórico da Fase 1 já mostra times, placar e scouts)
 
 ## Fase 4: Feed e lançamento do MVP 🚀
 - [ ] Feed de notícias/resenhas (admin cria), reações e comentários

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { teams } from './fixtures.test-utils';
-import { roundPlayerIds, tallyMatchEvents, teamOf, validateScore } from './match';
+import {
+  roundPlayerIds,
+  tallyMatchEvents,
+  tallyPlayerEvents,
+  teamOf,
+  validateScore,
+} from './match';
 
 describe('teamOf', () => {
   it('acha o time de titulares e reservas', () => {
@@ -47,6 +53,29 @@ describe('tallyMatchEvents', () => {
       goals: { WHITE: 0, BLACK: 0 },
       assists: { WHITE: 0, BLACK: 0 },
     });
+  });
+});
+
+describe('tallyPlayerEvents', () => {
+  it('soma gols, assistências e gols contra de cada jogador', () => {
+    const tally = tallyPlayerEvents([
+      { playerId: 'a', type: 'GOAL' },
+      { playerId: 'a', type: 'GOAL' },
+      { playerId: 'a', type: 'ASSIST' },
+      { playerId: 'b', type: 'ASSIST' },
+      { playerId: 'c', type: 'OWN_GOAL' },
+    ]);
+    expect(tally.get('a')).toEqual({ goals: 2, assists: 1, ownGoals: 0 });
+    expect(tally.get('b')).toEqual({ goals: 0, assists: 1, ownGoals: 0 });
+    expect(tally.get('c')).toEqual({ goals: 0, assists: 0, ownGoals: 1 });
+  });
+
+  it('gol contra não vira gol de quem fez', () => {
+    expect(tallyPlayerEvents([{ playerId: 'c', type: 'OWN_GOAL' }]).get('c')?.goals).toBe(0);
+  });
+
+  it('quem não tem lance não aparece', () => {
+    expect(tallyPlayerEvents([]).size).toBe(0);
   });
 });
 

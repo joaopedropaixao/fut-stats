@@ -38,6 +38,13 @@ export interface MatchEventTally {
   assists: Record<Team, number>;
 }
 
+/** Lances de um jogador na rodada. `ownGoals` fica com quem fez, mas conta no placar do adversário. */
+export interface PlayerEventTally {
+  goals: number;
+  assists: number;
+  ownGoals: number;
+}
+
 export const SCORE_ERRORS = ['INVALID_SCORE'] as const;
 
 export type ScoreError = (typeof SCORE_ERRORS)[number];
@@ -76,6 +83,19 @@ export function tallyMatchEvents(
     if (event.type === 'GOAL') tally.goals[team] += 1;
     else if (event.type === 'OWN_GOAL') tally.goals[opponentOf(team)] += 1;
     else tally.assists[team] += 1;
+  }
+  return tally;
+}
+
+/** Soma os lances de cada jogador (só quem tem pelo menos um lance aparece). */
+export function tallyPlayerEvents(events: readonly MatchEvent[]): Map<string, PlayerEventTally> {
+  const tally = new Map<string, PlayerEventTally>();
+  for (const { playerId, type } of events) {
+    const entry = tally.get(playerId) ?? { goals: 0, assists: 0, ownGoals: 0 };
+    if (type === 'GOAL') entry.goals += 1;
+    else if (type === 'OWN_GOAL') entry.ownGoals += 1;
+    else entry.assists += 1;
+    tally.set(playerId, entry);
   }
   return tally;
 }

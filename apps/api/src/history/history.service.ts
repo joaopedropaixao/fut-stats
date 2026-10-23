@@ -1,5 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { matchWinner, POSITIONS, type Position } from '@fut-stats/domain';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  PLAYED_ROUND_STATUSES,
+  POSITIONS,
+  roundResult,
+  tallyPlayerEvents,
+  type Position,
+} from '@fut-stats/domain';
 import type {
   HistoryDetail,
   HistoryItem,
@@ -12,13 +18,8 @@ import type { Prisma } from '../generated/prisma/client';
 import type { RoundStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 
-/** Já foi jogada: em jogo ou depois, ou com placar lançado. */
-const PLAYED: Prisma.RoundWhereInput = {
-  OR: [
-    { status: { in: ['IN_PROGRESS', 'VOTING', 'CLOSED'] } },
-    { whiteGoals: { not: null }, blackGoals: { not: null } },
-  ],
-};
+/** Já foi jogada (`isRoundPlayed` do domain): em jogo, votação ou encerrada. */
+const PLAYED: Prisma.RoundWhereInput = { status: { in: [...PLAYED_ROUND_STATUSES] } };
 
 interface ItemRow {
   id: string;
@@ -49,8 +50,7 @@ function toItem(round: ItemRow): HistoryItem {
     location: round.location,
     status: round.status,
     score,
-    // Placar de jogo em andamento é parcial: ninguém venceu ainda
-    winner: score && round.status !== 'IN_PROGRESS' ? matchWinner(score) : null,
+    winner: roundResult(round.status, score),
   };
 }
 
@@ -60,6 +60,11 @@ export class HistoryService {
 
   /** Mais recente primeiro. `cursor` é o id da última rodada da página anterior. */
   async list(groupId: string, { limit, cursor }: HistoryQuery): Promise<HistoryList> {
+    // O Prisma acha o cursor só pelo id: um id de outro grupo mudaria onde a página começa
+    if (cursor) {
+      const known = await this.prisma.round.count({ where: { id: cursor, groupId, ...PLAYED } });
+      if (!known) throw new BadRequestException('Cursor inválido');
+    }
     const rows = await this.prisma.round.findMany({
       where: { groupId, ...PLAYED },
       orderBy: [{ scheduledAt: 'desc' }, { id: 'desc' }],
@@ -85,9 +90,7 @@ export class HistoryService {
             team: true,
             position: true,
             isReserve: true,
-            membership: {
-              select: { nickname: true, photoUrl: true, isHiredGoalkeeper: true },
-            },
+            membership: { select: { nickname: true } },
           },
         },
         matchEvents: { select: { membershipId: true, type: true } },
@@ -95,13 +98,9 @@ export class HistoryService {
     });
     if (!round) throw new NotFoundException('Partida não encontrada');
 
-    const tally = new Map<string, { goals: number; assists: number }>();
-    for (const { membershipId, type } of round.matchEvents) {
-      const entry = tally.get(membershipId) ?? { goals: 0, assists: 0 };
-      if (type === 'GOAL') entry.goals += 1;
-      if (type === 'ASSIST') entry.assists += 1;
-      tally.set(membershipId, entry);
-    }
+    const tally = tallyPlayerEvents(
+      round.matchEvents.map(({ membershipId, type }) => ({ playerId: membershipId, type })),
+    );
 
     const order = (position: Position) => POSITIONS.indexOf(position);
     const team = (side: 'WHITE' | 'BLACK'): HistoryTeam => {
@@ -110,9 +109,7 @@ export class HistoryService {
         .map((p) => ({
           membershipId: p.membershipId,
           nickname: p.membership.nickname,
-          photoUrl: p.membership.photoUrl,
           position: p.position,
-          isHiredGoalkeeper: p.membership.isHiredGoalkeeper,
           goals: tally.get(p.membershipId)?.goals ?? 0,
           assists: tally.get(p.membershipId)?.assists ?? 0,
           isReserve: p.isReserve,

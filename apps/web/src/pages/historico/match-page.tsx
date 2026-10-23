@@ -146,12 +146,16 @@ function TeamSwitch({ value, onChange }: { value: Team; onChange: (team: Team) =
 
 /** Os dois times: campo 1-2-3-1 do time escolhido e o banco embaixo. */
 function Lineups({ match }: { match: HistoryDetail }) {
-  const [team, setTeam] = useState<Team>(match.winner === 'BLACK' ? 'BLACK' : 'WHITE');
+  const hasLineup = (side: Team) =>
+    match.teams[side].starters.length > 0 || match.teams[side].reserves.length > 0;
+  // Abre no time que venceu; sem vencedor, no Branco, a não ser que só o Preto tenha escalação
+  const [team, setTeam] = useState<Team>(
+    match.winner === 'BLACK' || (!hasLineup('WHITE') && hasLineup('BLACK')) ? 'BLACK' : 'WHITE',
+  );
   const { starters, reserves } = match.teams[team];
-  const { leftover } = placeOnPitch(starters);
+  const { placed, leftover } = placeOnPitch(starters);
   const bench = [...leftover, ...reserves];
-  const noLineup =
-    match.teams.WHITE.starters.length === 0 && match.teams.BLACK.starters.length === 0;
+  const noLineup = !hasLineup('WHITE') && !hasLineup('BLACK');
 
   return (
     <section aria-label="Times" className="flex flex-col gap-2">
@@ -165,7 +169,13 @@ function Lineups({ match }: { match: HistoryDetail }) {
       ) : (
         <>
           <TeamSwitch value={team} onChange={setTeam} />
-          <Pitch team={team} starters={starters} />
+          {placed.length > 0 ? (
+            <Pitch team={team} placed={placed} />
+          ) : (
+            <p className="bg-surface px-4 py-4 text-sm text-text-muted shadow-card">
+              O {TEAM_LABELS[team]} não tem titulares registrados nesta partida.
+            </p>
+          )}
           {bench.length > 0 && (
             <div className="mt-2 flex flex-col bg-surface shadow-card">
               <PixelText as="h3" className="px-4 pt-3 pb-1 text-text-muted">

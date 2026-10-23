@@ -36,9 +36,18 @@ const SPOTS: Record<HistoryPlayer['position'], readonly { left: string; top: num
 };
 
 /** Encaixa os titulares nas vagas da posição deles. Quem não couber (escalação fora do 1-2-3-1) sobra. */
-export function placeOnPitch(starters: readonly HistoryPlayer[]) {
+export interface PlacedPlayer {
+  player: HistoryPlayer;
+  left: string;
+  top: number;
+}
+
+export function placeOnPitch(starters: readonly HistoryPlayer[]): {
+  placed: PlacedPlayer[];
+  leftover: HistoryPlayer[];
+} {
   const used = new Map<HistoryPlayer['position'], number>();
-  const placed: { player: HistoryPlayer; left: string; top: number }[] = [];
+  const placed: PlacedPlayer[] = [];
   const leftover: HistoryPlayer[] = [];
   for (const player of starters) {
     const index = used.get(player.position) ?? 0;

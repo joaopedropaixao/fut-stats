@@ -1,12 +1,11 @@
-import { TEAM_LABELS, type HistoryPlayer } from '@fut-stats/shared';
+import { TEAM_LABELS } from '@fut-stats/shared';
 import { Avatar } from '../../components/ui/avatar';
 import { PixelText } from '../../components/ui/pixel-text';
 import { pluralize } from '../../features/history/format';
-import { placeOnPitch, playerSummary, type Team } from '../../features/history/match-view';
+import { playerSummary, type PlacedPlayer, type Team } from '../../features/history/match-view';
 
 /** O campo 1-2-3-1 (assinatura 2 do DS), só para olhar: quem jogou onde e quantos gols fez. */
-export function Pitch({ team, starters }: { team: Team; starters: readonly HistoryPlayer[] }) {
-  const { placed } = placeOnPitch(starters);
+export function Pitch({ team, placed }: { team: Team; placed: readonly PlacedPlayer[] }) {
   return (
     <div className="relative h-120 overflow-hidden bg-linear-to-b from-[#1f5a33] to-field shadow-[inset_0_0_0_3px_#000,4px_4px_0_var(--color-shadow)]">
       <ChalkLines />
