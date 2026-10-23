@@ -53,12 +53,15 @@ A seção "Daltonismo" da folha tem a simulação.
 
 ## Forma
 
-- Canto reto (raio 0) em tudo. Redondos: avatar, ponto, bolinha do slider e o selo "G" de goleiro.
+- Canto reto (raio 0) em tudo. Redondos: avatar, ponto, bolinha do slider, o selo "G" de goleiro e a moeda pixel
+  com o G do Google no botão "Entrar com Google" (decisão do dono, 23 out 2026).
 - **Exceção "controle redondo":** a barra de abas tem raio 20 e flutua. Só a aba ativa mostra o nome, numa pílula
   de raio 14 com um quadradinho creme em cima; as outras são só ícone, com nome para leitor de tela. Ao trocar de
   aba, a pílula cresce até caber o nome (250 ms, ease-out).
 - Card e lista: contorno de 2px (`--shadow-card`), sem sombra.
 - O que flutua (aviso, barra de abas, gaveta, menu): contorno + sombra sólida `4px 4px 0` preta (`--shadow-float`).
+  No tema Noite a sombra vira cinza-escuro (`--color-shadow-night`), porque o preto some no fundo quase preto
+  (decisão do dono, 23 out 2026).
 - Botão principal é **tecla**: amarelo chapado, borda preta de 3px e sombra dura. Pressionado, desce 4px e perde a
   sombra.
 

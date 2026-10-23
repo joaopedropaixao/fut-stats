@@ -1,1 +1,64 @@
 @import 'tailwindcss';
+@import './styles/theme.css';
+
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Gramado à noite com holofote no topo (o tema Noite troca as cores pelos tokens) */
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+    background-image: radial-gradient(
+      320px 260px at 50% 0,
+      var(--color-floodlight) 0,
+      color-mix(in srgb, var(--color-floodlight) 33%, transparent) 260px,
+      transparent 460px
+    );
+    background-repeat: no-repeat;
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-body);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 2px;
+  }
+}
+
+/* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+  }
+}
+
+/* Texto em pixel (Silkscreen): caixa alta, sem suavizar a borda. Use com text-pixel-sm/md/lg. */
+@utility pixel {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  text-transform: uppercase;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+/* Partes que o navegador desenha também seguem o DS: seleção e cursor de digitação */
+@layer base {
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-accent);
+  }
+}

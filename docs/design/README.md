@@ -28,7 +28,7 @@ Gramado à noite com holofote, Branco x Preto como identidade e cara de fliperam
 
 - [ ] Colar a v1.3 no Paper (com ok do dono; ver [HANDOFF.md](HANDOFF.md)).
 - [ ] Wireframes e alta fidelidade das telas do MVP (roadmap, Fase 0.5).
-- [ ] `tokens.css` → tema do Tailwind no `apps/web`, com a fonte Silkscreen e o componente de dígitos pixel.
+- [x] `tokens.css` → tema do Tailwind no `apps/web`, com a fonte Silkscreen e o componente de dígitos pixel.
 - [x] Levar ao `CONTEXT.md`, no PR do domínio, as três regras de produto da seção final do [DESIGN.md](DESIGN.md).
 
 Próxima sessão de design: comece pelo [HANDOFF.md](HANDOFF.md). Ideias para os grandes momentos (animações estilo

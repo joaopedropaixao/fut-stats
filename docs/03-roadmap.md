@@ -65,12 +65,12 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Telas da Fase 1 (mobile-first): entrar/convite, rodada e presença, montar times, placar e scouts, histórico
 - [ ] Telas das Fases 2 a 4: seletor de times, notas, Craque / Perna de Pau, ranking, feed
 - [x] MCP do Playwright configurado no repo (`.mcp.json`) antes da primeira tarefa que toca telas
-- [ ] `docs/design/tokens.css` → tema do Tailwind no `apps/web` (tarefa `feature/web-foundation`)
+- [x] `docs/design/tokens.css` → tema do Tailwind no `apps/web` (tarefa `feature/web-foundation`)
 - [x] Renomear entidades para os nomes do design (mudaram junto com os ícones): MVP → **Craque**,
   Bola Murcha → **Perna de Pau** em `packages/domain`, `packages/shared` (labels), `CONTEXT.md` e docs
 
 ## Fase 1: Núcleo do grupo
-- [ ] Grupo + link de convite
+- [x] Grupo + link de convite
 - [ ] Perfil do jogador (apelido, foto, posição, nota inicial definida pelo admin)
 - [ ] Cadastro dos goleiros contratados (`isHiredGoalkeeper`; goleiro é a posição `GOALKEEPER`)
 - [x] Regras da rodada no domínio: ciclo de status e quem pode lançar scout
