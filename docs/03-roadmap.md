@@ -77,7 +77,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [x] Admin: criar rodada; jogadores: confirmar presença
 - [ ] Admin: montar Branco x Preto manualmente e lançar o placar
 - [ ] Scouts: jogador lança os próprios gols/assistências; admin lança/corrige de todos
-- [ ] Histórico de rodadas e partidas
+- [x] Histórico de rodadas e partidas
 
 ## Fase 2: Seletor de times
 - [x] Algoritmo `balanceTeams` (Branco x Preto, 1-2-3-1, um goleiro por time) com testes

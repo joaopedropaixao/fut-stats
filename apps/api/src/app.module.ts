@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
+import { HistoryModule } from './history/history.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RoundsModule } from './rounds/rounds.module';
 
@@ -14,6 +15,7 @@ import { RoundsModule } from './rounds/rounds.module';
     AuthModule,
     GroupsModule,
     HealthModule,
+    HistoryModule,
     RoundsModule,
   ],
 })

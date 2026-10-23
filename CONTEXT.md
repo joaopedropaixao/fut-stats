@@ -307,6 +307,8 @@ e quando a votação fecha sozinha.
 - `votingCloseReason(now: Date, voting: VotingState): VotingCloseReason | null` e `shouldCloseVoting(now, voting): boolean`,
   com `VotingState = { openedAt, deadlineHours, playedIds, votedIds }` e `VotingCloseReason` (lista em
   `VOTING_CLOSE_REASONS`) = `'ALL_VOTED'` | `'DEADLINE_PASSED'`. `votingDeadline(openedAt, deadlineHours): Date`.
+- `matchWinner(score: MatchScore): MatchWinner` (`src/round/winner.ts`): `'WHITE'` | `'BLACK'` | `'DRAW'`. Mais gols vence;
+  placar igual é empate (inclusive 0 a 0), sem desempate. Usado pelo histórico (API `GET /groups/:groupId/history`).
 - Apoio: `teamOf(playerId, teams)`, `roundPlayerIds(teams)` (os `playedIds` das notas),
   `tallyMatchEvents(events, teams)` → `{ goals, assists }` por time, `validateScore(score)` → `'INVALID_SCORE'` | `null`.
 
