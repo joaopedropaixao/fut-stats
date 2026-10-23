@@ -10,6 +10,14 @@ export const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   /** Quantos dias a sessão vale depois do login. */
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  /** Credenciais do client OAuth "Web application" do Google Cloud. */
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+  /**
+   * Endereço público do app, onde o navegador está (Vercel em staging, Vite em dev). A callback do Google
+   * sai dele, nunca do host da requisição: `${APP_URL}/api/auth/google/callback`.
+   */
+  APP_URL: z.url({ protocol: /^https?$/ }).transform((url) => url.replace(/\/+$/, '')),
 });
 
 export type Env = z.infer<typeof envSchema>;

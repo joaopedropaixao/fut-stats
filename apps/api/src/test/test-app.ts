@@ -14,17 +14,23 @@ export interface TestAppOptions {
   controllers?: Type[];
   /** Módulos de que esses controllers dependem (ex.: `AuthModule` para injetar o `SessionService`). */
   imports?: (Type | DynamicModule)[];
+  /** Providers trocados por outra classe. Só para o que é externo (ex.: o Google); nunca o Prisma. */
+  overrides?: { provide: Type; useClass: Type }[];
 }
 
 /** Sobe a app real (AppModule) apontando para o banco de teste. Feche com `app.close()`. */
 export async function createTestApp({
   controllers = [],
   imports = [],
+  overrides = [],
 }: TestAppOptions = {}): Promise<TestApp> {
-  const moduleRef = await Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [AppModule, ...imports],
     controllers,
-  }).compile();
+  });
+  for (const { provide, useClass } of overrides)
+    builder.overrideProvider(provide).useClass(useClass);
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication();
   setupApp(app);
   await app.init();

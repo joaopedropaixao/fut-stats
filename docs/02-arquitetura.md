@@ -26,7 +26,7 @@
 | ORM | **Prisma** | Migrations simples, tipos gerados, ótimo com IA |
 | Validação | Zod, com schemas em `packages/shared` usados no front e no back | Uma fonte de verdade para contratos |
 | Banco | **PostgreSQL** | O que você já pediu |
-| Auth | **Login com Google** (OAuth via Passport) + sessão JWT em cookie httpOnly | Ninguém precisa criar senha; todo mundo tem Gmail. Entrada no grupo por **link de convite** |
+| Auth | **Login com Google** (OAuth/OpenID Connect com `arctic`, state + PKCE) + sessão JWT em cookie httpOnly | Ninguém precisa criar senha; todo mundo tem Gmail. Entrada no grupo por **link de convite** |
 | Notificações | **Web Push** (VAPID, gratuito) + botões "Compartilhar no WhatsApp" (`wa.me`) para o admin mandar no grupo | WhatsApp oficial é pago, exige verificação de empresa e não envia para grupos; libs não-oficiais arriscam banir o número. Fica para o futuro |
 | Imagens dos posts | Cloudflare R2 ou Supabase Storage (quando o feed precisar) | Tier gratuito generoso |
 | Erros | Sentry (plano free) | Saber quando quebra antes do grupo reclamar |

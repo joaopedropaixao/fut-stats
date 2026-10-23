@@ -2,7 +2,12 @@ import { validateEnv } from './env';
 
 const DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/fut_stats';
 const JWT_SECRET = 'a'.repeat(32);
-const valid = { DATABASE_URL, JWT_SECRET };
+const google = {
+  GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com',
+  GOOGLE_CLIENT_SECRET: 'segredo',
+  APP_URL: 'http://localhost:5173',
+};
+const valid = { DATABASE_URL, JWT_SECRET, ...google };
 
 describe('validateEnv', () => {
   it('converte PORT para número', () => {
@@ -18,7 +23,7 @@ describe('validateEnv', () => {
   });
 
   it('falha sem DATABASE_URL', () => {
-    expect(() => validateEnv({ JWT_SECRET })).toThrow(/DATABASE_URL/);
+    expect(() => validateEnv({ JWT_SECRET, ...google })).toThrow(/DATABASE_URL/);
   });
 
   it('falha quando DATABASE_URL não é do Postgres', () => {
@@ -28,7 +33,7 @@ describe('validateEnv', () => {
   });
 
   it('falha sem JWT_SECRET', () => {
-    expect(() => validateEnv({ DATABASE_URL })).toThrow(/JWT_SECRET/);
+    expect(() => validateEnv({ DATABASE_URL, ...google })).toThrow(/JWT_SECRET/);
   });
 
   it('falha com JWT_SECRET de menos de 32 caracteres', () => {
@@ -50,5 +55,25 @@ describe('validateEnv', () => {
 
   it('falha com NODE_ENV desconhecido', () => {
     expect(() => validateEnv({ ...valid, NODE_ENV: 'staging' })).toThrow(/NODE_ENV/);
+  });
+
+  it.each(['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'APP_URL'] as const)(
+    'falha sem %s',
+    (key) => {
+      expect(() => validateEnv({ ...valid, [key]: undefined })).toThrow(new RegExp(key));
+    },
+  );
+
+  it('falha quando APP_URL não é http(s)', () => {
+    expect(() => validateEnv({ ...valid, APP_URL: 'fut-stats-three.vercel.app' })).toThrow(
+      /APP_URL/,
+    );
+    expect(() => validateEnv({ ...valid, APP_URL: 'ftp://exemplo.com' })).toThrow(/APP_URL/);
+  });
+
+  it('tira a barra do fim da APP_URL', () => {
+    expect(validateEnv({ ...valid, APP_URL: 'https://fut-stats-three.vercel.app/' }).APP_URL).toBe(
+      'https://fut-stats-three.vercel.app',
+    );
   });
 });
