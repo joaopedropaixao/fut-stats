@@ -83,6 +83,11 @@ e sem jogador repetido; `isValidRoundLineup` → os dois times válidos e nenhum
 **Devolvem:** contagem ou `boolean`. **Não corrigem** a escalação nem dizem o que está errado.
 **Evite:** representar escalação como `Map<jogador, time>`; supor que a ordem dos slots indica posição.
 
+### Papel: `Role` ✅
+**O que é:** papel de um membro no grupo: `ADMIN` ou `PLAYER`. Lista em `ROLES` (igual ao enum `Role` do banco).
+Schema `roleSchema` no shared.
+**Evite:** papel no `User` (é da Membership de cada grupo); tratar `ADMIN` como "não joga".
+
 ---
 
 ## Regras (`packages/domain/src/<regra>`)
@@ -250,6 +255,13 @@ sem regras nem rotas.
 jogador daquele grupo: apelido, foto, posição principal e secundárias, nota inicial (dada pelo admin), se é goleiro
 contratado (`isHiredGoalkeeper`) e se está ativo. Um usuário pode estar em vários grupos, com papéis diferentes.
 **Admin também é jogador:** tem posição e nota como todo mundo, mais as permissões de admin.
+**Acesso ao grupo na API** ✅ (`apps/api/src/auth`): rota com `:groupId` usa `@GroupMember()` (qualquer membro)
+ou `@GroupRole('ADMIN')`. Só passa quem tem Membership **ativa** naquele grupo.
+- Não membro, membro **inativo** ou grupo inexistente → **404** (não revela que o grupo existe).
+- Membro ativo sem o papel pedido → **403**.
+- `ADMIN` passa nas rotas de membro (admin também é jogador). `@CurrentMembership()` entrega `{ id, groupId, role }`.
+**Evite:** confiar em `groupId` do cliente sem um desses decorators; responder 403 para quem não é membro
+(entrega que o grupo existe); conferir o papel em outro grupo do usuário.
 **Evite:** qualquer dado de domínio sem `groupId`; checar papel pelo usuário em vez da membership daquele grupo;
 usar `isHiredGoalkeeper` como posição (quem joga no gol é quem tem `GOALKEEPER`); apagar membership (desative).
 
