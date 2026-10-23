@@ -47,6 +47,8 @@
   --color-highlight: rgb(255 255 255 / 7%);
   --color-chalk: rgb(255 255 255 / 14%);
   --color-scrim: rgb(0 0 0 / 62%);
+  --color-shadow: #000000; /* sombra dura do que flutua e da tecla */
+  --color-shadow-night: #2a332d; /* no Noite o preto some no fundo: a sombra vira cinza-escuro */
 
   /* Fontes: pixel na interface, Inter no texto corrido e nos campos.
      Números de jogador usam os dígitos pixel próprios (SVG, grade 6x9), não uma fonte. */
@@ -84,8 +86,8 @@
 
   /* Sombras duras (sem desfoque) */
   --shadow-card: inset 0 0 0 2px var(--color-border-strong);
-  --shadow-float: inset 0 0 0 2px var(--color-border-strong), 4px 4px 0 #000;
-  --shadow-key: inset 0 0 0 3px #000, 4px 4px 0 #000;
+  --shadow-float: inset 0 0 0 2px var(--color-border-strong), 4px 4px 0 var(--color-shadow);
+  --shadow-key: inset 0 0 0 3px #000, 4px 4px 0 var(--color-shadow);
   --shadow-key-pressed: inset 0 0 0 3px #000; /* e translate(4px, 4px) */
 
   /* Movimento */
@@ -124,4 +126,5 @@
   --color-border: var(--color-border-night);
   --color-border-strong: var(--color-border-strong-night);
   --color-floodlight: var(--color-floodlight-night);
+  --color-shadow: var(--color-shadow-night);
 }
