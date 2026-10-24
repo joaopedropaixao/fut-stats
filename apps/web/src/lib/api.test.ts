@@ -1,6 +1,15 @@
 import { invitePreviewSchema, meResponseSchema } from '@fut-stats/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiContractError, ApiError, apiGet, apiPost, apiPostNoContent } from './api';
+import {
+  ApiContractError,
+  ApiError,
+  apiDelete,
+  apiErrorMessage,
+  apiGet,
+  apiPost,
+  apiPostNoContent,
+  apiPut,
+} from './api';
 
 const me = {
   user: { id: 'u1', name: 'Ronaldo', email: 'ro@exemplo.com', avatarUrl: null },
@@ -75,5 +84,54 @@ describe('apiPost', () => {
       vi.fn(async () => new Response(null, { status: 204 })),
     );
     await expect(apiPostNoContent('/auth/logout')).resolves.toBeUndefined();
+  });
+});
+
+describe('escrita', () => {
+  it('apiPut manda o corpo em JSON e valida a resposta', async () => {
+    const fetchMock = mockFetch(200, me);
+
+    await expect(apiPut('/x', meResponseSchema, { confirmed: true })).resolves.toEqual(me);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/x',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ confirmed: true }),
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
+      }),
+    );
+  });
+
+  it('guarda o { code, message } da API no ApiError e mostra a mensagem', async () => {
+    mockFetch(409, { code: 'ATTENDANCE_CLOSED', message: 'O jogo já começou' });
+
+    const err = await apiPut('/x', meResponseSchema, {}).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(409);
+    expect((err as ApiError).body).toEqual({
+      code: 'ATTENDANCE_CLOSED',
+      message: 'O jogo já começou',
+    });
+    expect(apiErrorMessage(err, 'falhou')).toBe('O jogo já começou');
+  });
+
+  it('erro sem corpo { code, message } usa o texto de reserva', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('boom', { status: 500 })),
+    );
+
+    const err = await apiDelete('/x').catch((e: unknown) => e);
+    expect((err as ApiError).body).toBeUndefined();
+    expect(apiErrorMessage(err, 'falhou')).toBe('falhou');
+  });
+
+  it('apiDelete aceita 204 sem corpo', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 204 })),
+    );
+
+    await expect(apiDelete('/x')).resolves.toBeUndefined();
   });
 });

@@ -376,6 +376,11 @@ e apagar (`DELETE /:roundId`) são só do admin; listar (`GET`, próximas e pass
 Presença: `PUT /:roundId/attendances/:membershipId` com `{ confirmed }`. `NOT_OWN_ATTENDANCE` → 403; os outros
 códigos, e rodada fora da janela de editar/apagar (`ROUND_NOT_EDITABLE`/`ROUND_NOT_DELETABLE`), → 409 `{ code, message }`.
 
+**No detalhe da rodada** (`GET /:roundId`): `myMembershipId` (a membership de quem pediu) e `permissions`
+(`setOwnAttendance`, `setAnyAttendance`, `edit`, `delete`), calculadas com o domain para o papel e o status. O
+front não repete a regra: só habilita ou trava os botões conforme esses campos; `{ code, message }` de erro da API
+aparece como aviso. A tela "próxima rodada" é a primeira de `upcoming` (pela hora marcada).
+
 **Evite:** deixar o jogador mudar a presença com os times publicados; contar confirmado que ficou inativo;
 travar confirmação por número; usar o horário marcado como prazo da presença.
 
@@ -408,6 +413,39 @@ Sai no `roundSummarySchema` (`number`).
 **Não faz:** não renumera; não é regra do `domain` (é identidade do registro).
 
 **Evite:** calcular o número no front ou pela posição na lista; passar `number` no `create` (o trigger sobrescreve).
+
+### Sugestão da rodada nova: `suggestNextRoundDate` 🚧
+**O que é:** a data que a rodada nova já traz preenchida (`src/round/schedule.ts`). Decidido pelo dono em 24 out 2026:
+o grupo costuma ter dia e hora fixos, mas às vezes muda. Sem configuração de grupo e sem campo novo no banco.
+
+**Assinatura:** `suggestNextRoundDate(last: Date | null, now: Date, options?: { intervalDays?: number }): Date | null`.
+
+**Faz:** mesmo dia da semana e horário da **última rodada criada** (não a mais adiante no calendário: marcou um
+domingo agora, a próxima sugestão é domingo), na primeira data depois dela
+que ainda não passou (passos de `intervalDays`, padrão 7). Mudou o dia uma vez, a sugestão seguinte acompanha.
+
+**Não faz:** não lê relógio; não fixa dia da semana; não olha fuso (soma dias inteiros, e o Brasil não tem horário de verão).
+
+**Na API:** `GET /rounds` manda `suggestion: { scheduledAt, location } | null` (o local é o da última rodada criada). O
+formulário da rodada nova usa a sugestão; sem rodada no grupo, cai em "amanhã às 20h".
+
+**Evite:** fixar um dia da semana; calcular a sugestão no front.
+
+### Ranking pela nota: `rankByRating` 🚧
+**O que é:** a posição de cada jogador no ranking do grupo pela nota (`src/ranking/rank.ts`). Decidido pelo dono em
+24 out 2026: a lista de presença mostra a nota e a posição de cada um.
+
+**Assinatura:** `rankByRating(players: readonly { id, rating }[]): Map<string, number>` (`id → posição`).
+
+**Faz:** maior nota é 1º; empate divide a posição e pula a seguinte (1, 2, 2, 4), como tabela de campeonato.
+
+**Não faz:** não escolhe a nota. **Até a Fase 3 a nota é a inicial** (`Membership.initialRating`, definida pelo admin);
+com a votação, passa a ser a média da temporada e o ranking geral/por posição entra.
+
+**Na API:** o detalhe da rodada manda `rating` e `rank` em cada membro da lista de presença, contados entre os
+membros ativos do grupo.
+
+**Evite:** ordenar ou numerar o ranking no front; empate com posições diferentes.
 
 ### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `DEFAULT_INITIAL_RATING` 🚧
 **O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).

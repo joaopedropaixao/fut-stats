@@ -163,6 +163,45 @@ describe('rodadas e presença', () => {
       expect(res.body.upcoming.map((r: { id: string }) => r.id)).toEqual([soon.id, later.id]);
       expect(res.body.past.map((r: { id: string }) => r.id)).toEqual([yesterday.id, lastWeek.id]);
       expect(res.body.upcoming[0].confirmedCount).toBe(1);
+      expect(res.body.currentId).toBe(soon.id);
+    });
+
+    it('rodada da vez: a em jogo vem antes da próxima; sem rodada, nula', async () => {
+      const { group, playerUser } = await setup();
+      const list = () =>
+        request(server()).get(roundsPath(group.id)).set('Cookie', as(playerUser.id)).expect(200);
+
+      expect((await list()).body.currentId).toBeNull();
+
+      const soon = await createRound(group.id, { scheduledAt: new Date(Date.now() + DAY_MS) });
+      expect((await list()).body.currentId).toBe(soon.id);
+
+      const playing = await createRound(group.id, {
+        scheduledAt: new Date(Date.now() - 60 * 60 * 1000),
+        status: 'IN_PROGRESS',
+      });
+      expect((await list()).body.currentId).toBe(playing.id);
+    });
+
+    it('sugere a rodada nova no dia, hora e local da última criada (não a mais adiante); sem rodada, nula', async () => {
+      const { group, playerUser } = await setup();
+      const list = () =>
+        request(server()).get(roundsPath(group.id)).set('Cookie', as(playerUser.id)).expect(200);
+
+      expect((await list()).body.suggestion).toBeNull();
+
+      // Criada antes, mas mais adiante no calendário: não é ela que manda
+      await createRound(group.id, {
+        scheduledAt: new Date(Date.now() + 5 * DAY_MS),
+        location: 'Velho',
+      });
+      const lastAt = new Date(Date.now() + 2 * DAY_MS);
+      await createRound(group.id, { scheduledAt: lastAt, location: 'Arena Nova' });
+
+      expect((await list()).body.suggestion).toEqual({
+        scheduledAt: new Date(lastAt.getTime() + 7 * DAY_MS).toISOString(),
+        location: 'Arena Nova',
+      });
     });
 
     it('confirmado que ficou inativo não conta', async () => {
@@ -218,6 +257,98 @@ describe('rodadas e presença', () => {
       expect(ids(res.body.attendance.pending)).toEqual([pending.id]);
       expect(res.body.confirmedCount).toBe(1);
       expect(res.body.myAttendance).toBe(true);
+      expect(res.body.attendance.pending[0].respondedAt).toBeNull();
+    });
+
+    it('cada membro vem com a nota e a posição no ranking do grupo (empate divide)', async () => {
+      const { group, playerUser, admin, player } = await setup();
+      const third = await addMember(t, (await createUser(t)).id, group.id);
+      await t.prisma.membership.update({ where: { id: admin.id }, data: { initialRating: 7.5 } });
+      await t.prisma.membership.update({ where: { id: player.id }, data: { initialRating: 8 } });
+      await t.prisma.membership.update({ where: { id: third.id }, data: { initialRating: 7.5 } });
+      const round = await createRound(group.id);
+
+      const res = await request(server())
+        .get(`${roundsPath(group.id)}/${round.id}`)
+        .set('Cookie', as(playerUser.id))
+        .expect(200);
+
+      const byId = new Map(
+        (
+          res.body.attendance.pending as { membershipId: string; rating: number; rank: number }[]
+        ).map((m) => [m.membershipId, m]),
+      );
+      expect(byId.get(player.id)).toMatchObject({ rating: 8, rank: 1 });
+      expect(byId.get(admin.id)).toMatchObject({ rating: 7.5, rank: 2 });
+      expect(byId.get(third.id)).toMatchObject({ rating: 7.5, rank: 2 });
+    });
+
+    it('confirmados vêm na ordem em que confirmaram, com o horário', async () => {
+      const { group, playerUser, admin, player } = await setup();
+      const late = await addMember(t, (await createUser(t)).id, group.id);
+      const round = await createRound(group.id);
+      const at = (minutes: number) => new Date(Date.UTC(2026, 9, 20, 12, minutes));
+      await t.prisma.attendance.createMany({
+        data: [
+          { roundId: round.id, membershipId: late.id, confirmed: true, updatedAt: at(30) },
+          { roundId: round.id, membershipId: player.id, confirmed: true, updatedAt: at(10) },
+          { roundId: round.id, membershipId: admin.id, confirmed: true, updatedAt: at(20) },
+        ],
+      });
+
+      const res = await request(server())
+        .get(`${roundsPath(group.id)}/${round.id}`)
+        .set('Cookie', as(playerUser.id))
+        .expect(200);
+
+      const confirmed = res.body.attendance.confirmed as {
+        membershipId: string;
+        respondedAt: string;
+      }[];
+      expect(confirmed.map((m) => m.membershipId)).toEqual([player.id, admin.id, late.id]);
+      expect(confirmed[0]!.respondedAt).toBe(at(10).toISOString());
+    });
+
+    it('diz quem é o solicitante e o que ele pode fazer, conforme o papel e o status', async () => {
+      const { group, adminUser, playerUser, admin, player } = await setup();
+      const scheduled = await createRound(group.id);
+      const published = await createRound(group.id, { status: 'TEAMS_PUBLISHED' });
+      const playing = await createRound(group.id, { status: 'IN_PROGRESS' });
+
+      const get = async (userId: string, roundId: string) =>
+        (
+          await request(server())
+            .get(`${roundsPath(group.id)}/${roundId}`)
+            .set('Cookie', as(userId))
+            .expect(200)
+        ).body;
+
+      const asPlayer = await get(playerUser.id, scheduled.id);
+      expect(asPlayer.myMembershipId).toBe(player.id);
+      expect(asPlayer.permissions).toEqual({
+        setOwnAttendance: true,
+        setAnyAttendance: false,
+        edit: false,
+        delete: false,
+      });
+      expect((await get(playerUser.id, published.id)).permissions).toMatchObject({
+        setOwnAttendance: false,
+      });
+
+      const asAdmin = await get(adminUser.id, published.id);
+      expect(asAdmin.myMembershipId).toBe(admin.id);
+      expect(asAdmin.permissions).toEqual({
+        setOwnAttendance: true,
+        setAnyAttendance: true,
+        edit: true,
+        delete: true,
+      });
+      expect((await get(adminUser.id, playing.id)).permissions).toEqual({
+        setOwnAttendance: false,
+        setAnyAttendance: false,
+        edit: false,
+        delete: false,
+      });
     });
 
     it('rodada de outro grupo → 404, mesmo para admin', async () => {

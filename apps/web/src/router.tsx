@@ -1,20 +1,31 @@
-import { createBrowserRouter, Navigate } from 'react-router';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { AppShell } from './app/shell';
 import { TABS } from './app/tabs';
+import type { Tab } from './components/ui/tab-bar';
 import { PlaceholderPage } from './pages/placeholder';
 import { profileRoute, startRoutes } from './pages/entrar-e-grupo/routes';
+import { HomePage } from './pages/rounds/home';
+import { roundsRoutes } from './pages/rounds/routes';
 import { SignInPage } from './pages/sign-in';
+
+/** Página de cada aba (pela rota da aba). Cada tela nova entra com uma linha aqui. */
+const TAB_PAGES: Partial<Record<string, RouteObject>> = {
+  '/': { index: true, element: <HomePage /> },
+  '/perfil': profileRoute,
+};
+
+function placeholderRoute(tab: Tab): RouteObject {
+  const element = <PlaceholderPage title={tab.label} />;
+  return tab.to === '/' ? { index: true, element } : { path: tab.to, element };
+}
 
 export const router = createBrowserRouter([
   {
     element: <AppShell />,
     children: [
-      ...TABS.filter((tab) => tab.to !== '/perfil').map((tab) =>
-        tab.to === '/'
-          ? { index: true, element: <PlaceholderPage title={tab.label} /> }
-          : { path: tab.to, element: <PlaceholderPage title={tab.label} /> },
-      ),
-      profileRoute,
+      // Cada aba aponta para a página dela; aba sem página ainda fica no placeholder.
+      ...TABS.map((tab) => TAB_PAGES[tab.to] ?? placeholderRoute(tab)),
+      ...roundsRoutes,
     ],
   },
   ...startRoutes,

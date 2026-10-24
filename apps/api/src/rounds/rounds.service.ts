@@ -5,8 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  canChangeAttendance,
   isRoundDeletable,
   isRoundEditable,
+  pickCurrentRound,
+  rankByRating,
+  suggestNextRoundDate,
   validateAttendanceChange,
   type RoundActor,
 } from '@fut-stats/domain';
@@ -18,6 +22,7 @@ import {
   type CreateRoundInput,
   type RoundDetail,
   type RoundList,
+  type RoundPermissions,
   type RoundSummary,
   type SetAttendanceInput,
   type UpdateRoundInput,
@@ -74,9 +79,12 @@ export class RoundsService {
     return this.detail(membership, round.id);
   }
 
-  /** Próximas (a partir de agora, mais perto primeiro) e passadas (mais recente primeiro). */
+  /**
+   * Próximas (a partir de agora, mais perto primeiro), passadas (mais recente primeiro) e qual é a
+   * rodada da vez (`pickCurrentRound`), para o início não repetir a regra.
+   */
   async list(groupId: string, now = new Date()): Promise<RoundList> {
-    const [upcoming, past] = await Promise.all([
+    const [upcoming, past, lastCreated] = await Promise.all([
       this.prisma.round.findMany({
         where: { groupId, scheduledAt: { gte: now } },
         select: summarySelect,
@@ -87,8 +95,24 @@ export class RoundsService {
         select: summarySelect,
         orderBy: { scheduledAt: 'desc' },
       }),
+      // A última rodada que o admin criou dá o dia, a hora e o local da sugestão (não a mais adiante no
+      // calendário: se ele marcou um domingo agora, a próxima sugestão é domingo)
+      this.prisma.round.findFirst({
+        where: { groupId },
+        select: { scheduledAt: true, location: true },
+        orderBy: { createdAt: 'desc' },
+      }),
     ]);
-    return { upcoming: upcoming.map(toSummary), past: past.map(toSummary) };
+    const current = pickCurrentRound([...upcoming, ...past], now);
+    const suggestedAt = suggestNextRoundDate(lastCreated?.scheduledAt ?? null, now);
+    return {
+      upcoming: upcoming.map(toSummary),
+      past: past.map(toSummary),
+      currentId: current?.id ?? null,
+      suggestion: suggestedAt
+        ? { scheduledAt: suggestedAt.toISOString(), location: lastCreated!.location }
+        : null,
+    };
   }
 
   /** A rodada com a lista de presença dos membros ativos: Vou, Não vou e quem não respondeu. */
@@ -107,21 +131,45 @@ export class RoundsService {
         photoUrl: true,
         primaryPosition: true,
         isHiredGoalkeeper: true,
-        attendances: { where: { roundId }, select: { confirmed: true } },
+        initialRating: true,
+        attendances: { where: { roundId }, select: { confirmed: true, updatedAt: true } },
       },
       orderBy: [{ nickname: 'asc' }, { createdAt: 'asc' }],
     });
 
     const attendance: RoundDetail['attendance'] = { confirmed: [], declined: [], pending: [] };
     let myAttendance: boolean | null = null;
-    for (const { id, attendances, ...member } of members) {
+    // Ranking do grupo pela nota (até a Fase 3, a inicial), entre os membros ativos
+    const ranks = rankByRating(members.map((m) => ({ id: m.id, rating: m.initialRating })));
+    for (const { id, attendances, initialRating, ...member } of members) {
       const answer = attendances[0]?.confirmed ?? null;
       if (id === membership.id) myAttendance = answer;
-      const item: AttendanceMember = { membershipId: id, ...member };
+      const item: AttendanceMember = {
+        membershipId: id,
+        ...member,
+        respondedAt: attendances[0]?.updatedAt.toISOString() ?? null,
+        rating: initialRating,
+        rank: ranks.get(id)!,
+      };
       if (answer === null) attendance.pending.push(item);
       else (answer ? attendance.confirmed : attendance.declined).push(item);
     }
-    return { ...toSummary(round), myAttendance, attendance };
+    // Quem vai, na ordem em que confirmou (a lista de chamada da pelada)
+    attendance.confirmed.sort((a, b) => a.respondedAt!.localeCompare(b.respondedAt!));
+    const actor = toActor(membership);
+    const permissions: RoundPermissions = {
+      setOwnAttendance: canChangeAttendance(membership.id, actor, round.status),
+      setAnyAttendance: actor.isAdmin && canChangeAttendance(membership.id, actor, round.status),
+      edit: actor.isAdmin && isRoundEditable(round.status),
+      delete: actor.isAdmin && isRoundDeletable(round.status),
+    };
+    return {
+      ...toSummary(round),
+      myMembershipId: membership.id,
+      permissions,
+      myAttendance,
+      attendance,
+    };
   }
 
   /** Muda data/hora e/ou local. Só antes do jogo (`isRoundEditable`). */

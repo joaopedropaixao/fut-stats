@@ -40,7 +40,9 @@ async function readErrorBody(res: Response): Promise<ApiError['body']> {
   }
 }
 
-async function send(method: 'GET' | 'POST', path: string, body?: unknown, signal?: AbortSignal) {
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+async function send(method: Method, path: string, body?: unknown, signal?: AbortSignal) {
   const res = await fetch(`/api${path}`, {
     method,
     signal,
@@ -57,7 +59,7 @@ async function send(method: 'GET' | 'POST', path: string, body?: unknown, signal
 
 /** Daqui para dentro o front confia nos tipos; se a API mudar o contrato, o erro aparece aqui. */
 async function parse<S extends z.ZodType>(res: Response, path: string, schema: S) {
-  const parsed = schema.safeParse(await res.json());
+  const parsed = schema.safeParse(await res.json().catch(() => undefined));
   if (!parsed.success) throw new ApiContractError(path, parsed.error.issues);
   return parsed.data;
 }
@@ -79,6 +81,36 @@ export async function apiPost<S extends z.ZodType>(
   { signal }: RequestOptions = {},
 ): Promise<z.output<S>> {
   return parse(await send('POST', path, body, signal), path, schema);
+}
+
+/** PUT em /api{path} com corpo JSON, validando a resposta como no `apiPost`. */
+export async function apiPut<S extends z.ZodType>(
+  path: string,
+  schema: S,
+  body: unknown,
+  { signal }: RequestOptions = {},
+): Promise<z.output<S>> {
+  return parse(await send('PUT', path, body, signal), path, schema);
+}
+
+/** PATCH em /api{path} com corpo JSON, validando a resposta como no `apiPost`. */
+export async function apiPatch<S extends z.ZodType>(
+  path: string,
+  schema: S,
+  body: unknown,
+  { signal }: RequestOptions = {},
+): Promise<z.output<S>> {
+  return parse(await send('PATCH', path, body, signal), path, schema);
+}
+
+/** DELETE em /api{path}; a API responde 204 sem corpo. */
+export async function apiDelete(path: string, { signal }: RequestOptions = {}): Promise<void> {
+  await send('DELETE', path, undefined, signal);
+}
+
+/** O texto de uma falha para mostrar à pessoa: a mensagem da API quando há, senão o `fallback`. */
+export function apiErrorMessage(err: unknown, fallback: string): string {
+  return (err instanceof ApiError && err.body?.message) || fallback;
 }
 
 /** POST que responde sem corpo (204), como o logout. */

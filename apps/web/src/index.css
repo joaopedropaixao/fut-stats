@@ -66,6 +66,22 @@
   animation: ball-in 700ms steps(14, end) 450ms both;
 }
 
+/* Carimbo da presença: bate na tela em degraus quando a resposta muda. */
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-stamp {
+  animation: stamp 200ms steps(4, end) both;
+}
+
 /* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */
 @media (prefers-reduced-motion: reduce) {
   *,
