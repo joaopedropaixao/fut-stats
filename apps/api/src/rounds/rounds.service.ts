@@ -100,7 +100,8 @@ export class RoundsService {
       this.prisma.round.findFirst({
         where: { groupId },
         select: { scheduledAt: true, location: true },
-        orderBy: { createdAt: 'desc' },
+        // number desempata rodadas criadas no mesmo milissegundo
+        orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
       }),
     ]);
     const current = pickCurrentRound([...upcoming, ...past], now);
