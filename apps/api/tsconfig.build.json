@@ -4,5 +4,6 @@
     // Sem tipos do Jest no código de produção: um `describe` perdido em src quebra o build.
     "types": ["node"]
   },
-  "exclude": ["src/**/*.spec.ts", "src/test/**"]
+  // O seed (src/seed) só roda pelo `prisma db seed`, via tsx: fica fora do build da API.
+  "exclude": ["src/**/*.spec.ts", "src/test/**", "src/seed/**"]
 }

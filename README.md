@@ -28,9 +28,13 @@ cp apps/api/.env.example apps/api/.env      # variáveis da API
 cp apps/web/.env.example apps/web/.env      # variáveis do front
 docker compose up -d                        # Postgres de dev (5432) e de testes (5433)
 pnpm --filter @fut-stats/api db:migrate     # cria as tabelas
-pnpm --filter @fut-stats/api db:seed        # dados fictícios (1 grupo, 17 membros)
+pnpm --filter @fut-stats/api db:seed        # dados fictícios (1 grupo, 21 membros, 8 rodadas + a atual)
 pnpm dev                                    # sobe API e web juntas
 ```
+
+O seed recria as rodadas do grupo do seed a cada execução. A rodada atual sai no estado do cenário:
+`agendada` (padrão), `times` (times publicados) ou `em-jogo` (com alguns lances), por exemplo
+`pnpm --filter @fut-stats/api db:seed -- --cenario=em-jogo`.
 
 - Web: http://localhost:5173 (mostra o status da API)
 - API: http://localhost:3000/api/health → `{ "status": "ok" }` (todas as rotas ficam sob `/api`)
