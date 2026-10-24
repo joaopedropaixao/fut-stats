@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Navigate, useSearchParams } from 'react-router';
+import { PixelLogo } from '../components/brand/pixel-logo';
 import { ButtonLink } from '../components/ui/button';
 import { GoogleMark } from '../components/ui/google-mark';
 import { Icon } from '../components/ui/icons';
@@ -26,33 +27,35 @@ export function SignInPage() {
   if (session.data) return <Navigate to={destination ?? '/'} replace />;
 
   return (
-    <main className="relative mx-auto flex min-h-dvh max-w-content flex-col justify-end gap-8 overflow-hidden px-4 pt-6 pb-10">
+    <main className="relative mx-auto flex min-h-dvh max-w-content flex-col justify-between gap-10 overflow-hidden px-4 pt-14 pb-10">
       <title>Entrar · Fut Stats</title>
-      <ChalkPitch />
-      <div className="relative flex flex-col gap-4">
-        <h1 className="flex flex-col">
-          <PixelText size={32}>Fut</PixelText>
-          <PixelText size={32}>Stats</PixelText>
-        </h1>
-        <p className="max-w-80 text-base">
-          Todo dia de pelada tem clássico. Branco contra Preto, nota pra todo mundo e um craque por
-          rodada.
-        </p>
-      </div>
-      <div className="relative flex flex-col gap-4">
-        {destination && (
-          <p className="flex gap-3 bg-success/8 p-4 text-sm shadow-[inset_0_0_0_2px_var(--color-success)]">
-            <Icon name="check" size={20} strokeWidth={2.4} className="shrink-0 text-success" />
-            Você tem um convite. Entre com o Google e a gente te leva direto para ele.
-          </p>
-        )}
-        <ButtonLink
-          href={LOGIN_URL}
-          label="Entrar com Google"
-          mark={<GoogleMark />}
-          block
-          onClick={() => destination && savePendingDestination(destination)}
-        />
+      <ChalkPitch className="top-30" ballDrop />
+      <h1 className="relative">
+        <PixelLogo scale={9} />
+      </h1>
+      <div className="relative flex flex-col gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="flex flex-col">
+            <PixelText size={24}>Bem-vindo,</PixelText>
+            <PixelText size={24}>peladeiro!</PixelText>
+          </h2>
+          <p className="text-base text-text-muted">Faça seu login e não perca a resenha.</p>
+        </div>
+        <div className="flex flex-col gap-4">
+          {destination && (
+            <p className="flex gap-3 bg-success/8 p-4 text-sm shadow-[inset_0_0_0_2px_var(--color-success)]">
+              <Icon name="check" size={20} strokeWidth={2.4} className="shrink-0 text-success" />
+              Você tem um convite. Entre com o Google e a gente te leva direto para ele.
+            </p>
+          )}
+          <ButtonLink
+            href={LOGIN_URL}
+            label="Entrar com Google"
+            mark={<GoogleMark />}
+            block
+            onClick={() => destination && savePendingDestination(destination)}
+          />
+        </div>
       </div>
     </main>
   );

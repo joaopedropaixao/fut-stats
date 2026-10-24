@@ -34,7 +34,14 @@ function PixelBall({ x, y, scale }: { x: number; y: number; scale: number }) {
  * Capa do app: linhas de giz do meio-campo (como a capa da folha) e a bola pixel no ponto central.
  * Fica atrás do conteúdo, no topo da tela; é só desenho.
  */
-export function ChalkPitch({ className }: { className?: string }) {
+export function ChalkPitch({
+  className,
+  ballDrop = false,
+}: {
+  className?: string;
+  /** A bola cai e quica até o ponto central (capa); com "reduzir movimento", já está lá. */
+  ballDrop?: boolean;
+}) {
   return (
     <svg
       aria-hidden
@@ -47,7 +54,9 @@ export function ChalkPitch({ className }: { className?: string }) {
       <rect x="-60" y="-40" width="170" height="110" className="stroke-highlight" />
       <line x1="-20" y1="300" x2="410" y2="300" className="stroke-chalk" />
       <circle cx="270" cy="300" r="112" className="stroke-chalk" />
-      <PixelBall x={270} y={300} scale={8} />
+      <g className={ballDrop ? 'animate-ball-drop' : undefined}>
+        <PixelBall x={270} y={300} scale={8} />
+      </g>
     </svg>
   );
 }

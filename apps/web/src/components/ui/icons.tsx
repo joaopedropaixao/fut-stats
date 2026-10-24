@@ -46,21 +46,8 @@ const PATHS = {
   ),
   // Abas
   feed: <path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" />,
-  teams: (
-    <>
-      <rect x="3" y="4" width="18" height="16" />
-      <path d="M12 4v16" />
-      <circle cx="12" cy="12" r="3" />
-    </>
-  ),
   ranking: (
     <path d="M8 4h8v5a4 4 0 0 1-8 0zM12 13v4M8 20h8M8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3" />
-  ),
-  calendar: (
-    <>
-      <rect x="4" y="5" width="16" height="15" />
-      <path d="M4 10h16M9 3v4M15 3v4" />
-    </>
   ),
   profile: (
     <>
@@ -70,7 +57,54 @@ const PATHS = {
   ),
 } satisfies Record<string, ReactNode>;
 
-export type IconName = keyof typeof PATHS;
+/**
+ * Ícones em pixel art (grade 12x12, pixel de 2 no viewBox 24 = o mesmo peso do traço de 2).
+ * `#` sempre aceso; `H` só aceso quando o ícone está preenchido (aba ativa).
+ */
+const PIXELS = {
+  // Aba Times: o VS dos grandes momentos
+  teams: [
+    '............',
+    '............',
+    '#...#..####.',
+    '#...#.#.....',
+    '#...#.#.....',
+    '#...#..###..',
+    '.#.#......#.',
+    '.#.#......#.',
+    '..#...####..',
+    '............',
+    '............',
+    '............',
+  ],
+  // Aba Histórico: folhinha de parede com argolas e a ponta dobrada
+  calendar: [
+    '...#....#...',
+    '.##########.',
+    '.#HHHHHHHH#.',
+    '.##########.',
+    '.#........#.',
+    '.#.#.#.#..#.',
+    '.#........#.',
+    '.#.#.#.#..#.',
+    '.#........#.',
+    '.#.......#..',
+    '.########...',
+    '............',
+  ],
+} satisfies Record<string, readonly string[]>;
+
+function pixelPath(rows: readonly string[], filled: boolean): string {
+  return rows
+    .flatMap((row, y) =>
+      [...row].map((c, x) =>
+        c === '#' || (filled && c === 'H') ? `M${x * 2} ${y * 2}h2v2h-2z` : '',
+      ),
+    )
+    .join('');
+}
+
+export type IconName = keyof typeof PATHS | keyof typeof PIXELS;
 
 type IconProps = Omit<SVGProps<SVGSVGElement>, 'name'> & {
   name: IconName;
@@ -82,6 +116,24 @@ type IconProps = Omit<SVGProps<SVGSVGElement>, 'name'> & {
 
 /** Ícone decorativo: quem dá o nome para leitor de tela é o botão ou o texto ao lado. */
 export function Icon({ name, size = 20, strokeWidth = 2, filled, ...rest }: IconProps) {
+  if (name in PIXELS) {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        shapeRendering="crispEdges"
+        aria-hidden
+        className="shrink-0"
+        {...rest}
+      >
+        <path
+          d={pixelPath(PIXELS[name as keyof typeof PIXELS], Boolean(filled))}
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
   return (
     <svg
       width={size}
@@ -96,7 +148,7 @@ export function Icon({ name, size = 20, strokeWidth = 2, filled, ...rest }: Icon
       className="shrink-0"
       {...rest}
     >
-      {PATHS[name]}
+      {PATHS[name as keyof typeof PATHS]}
     </svg>
   );
 }
