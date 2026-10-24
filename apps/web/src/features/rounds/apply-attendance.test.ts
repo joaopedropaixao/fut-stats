@@ -8,6 +8,7 @@ const member = (id: string, nickname: string): AttendanceMember => ({
   photoUrl: null,
   primaryPosition: 'MIDFIELDER',
   isHiredGoalkeeper: false,
+  respondedAt: null,
 });
 
 const round: RoundDetail = {
@@ -28,10 +29,12 @@ const round: RoundDetail = {
 };
 
 describe('applyAttendance', () => {
-  it('quem não tinha respondido passa para confirmados, em ordem de apelido, e conta', () => {
-    const next = applyAttendance(round, 'm-ana', true);
+  it('quem não tinha respondido entra no fim dos confirmados (ordem de chegada), com o horário, e conta', () => {
+    const now = new Date('2026-10-24T15:00:00.000Z');
+    const next = applyAttendance(round, 'm-ana', true, now);
 
-    expect(next.attendance.confirmed.map((m) => m.nickname)).toEqual(['Ana', 'Zeca']);
+    expect(next.attendance.confirmed.map((m) => m.nickname)).toEqual(['Zeca', 'Ana']);
+    expect(next.attendance.confirmed[1]!.respondedAt).toBe(now.toISOString());
     expect(next.attendance.pending.map((m) => m.nickname)).toEqual(['Eu']);
     expect(next.confirmedCount).toBe(2);
     expect(next.myAttendance).toBeNull();

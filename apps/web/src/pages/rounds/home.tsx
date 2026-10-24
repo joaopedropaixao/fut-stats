@@ -1,5 +1,9 @@
 import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states';
+import { Badge } from '../../components/ui/badge';
+import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
+import { cn } from '../../lib/cn';
+import { formatRespondedAt } from '../../lib/round-format';
 import { useCurrentGroup } from '../../features/group/use-current-group';
 import { MyPresence } from '../../features/rounds/my-presence';
 import { useRound, useRounds } from '../../features/rounds/queries';
@@ -101,20 +105,43 @@ function NextRound({
           <p className="px-1 text-sm text-text-muted">Ninguém confirmou ainda. Seja o primeiro.</p>
         ) : (
           <ul className="flex flex-col bg-surface shadow-card">
-            {going.map((m) => (
-              <li
-                key={m.membershipId}
-                className="flex min-h-18 items-center gap-2.5 px-3 py-2 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none"
-              >
-                <MemberAvatar nickname={m.nickname} goalkeeper={m.isHiredGoalkeeper} />
-                <div className="flex min-w-0 flex-col gap-1">
-                  <PixelText>{m.nickname}</PixelText>
-                  <PixelText className="text-text-muted">
-                    {POSITION_LABELS[m.primaryPosition]}
-                  </PixelText>
-                </div>
-              </li>
-            ))}
+            {going.map((m, i) => {
+              const me = m.membershipId === round.myMembershipId;
+              return (
+                <li
+                  key={m.membershipId}
+                  className={cn(
+                    'flex min-h-18 items-center gap-2.5 px-3 py-2 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none',
+                    me && 'bg-success/8',
+                  )}
+                >
+                  <MemberAvatar nickname={m.nickname} goalkeeper={m.isHiredGoalkeeper} />
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="flex items-center gap-2">
+                      <PixelText>{m.nickname}</PixelText>
+                      {me && <Badge label="Você" />}
+                    </span>
+                    <PixelText className="text-text-muted">
+                      {POSITION_LABELS[m.primaryPosition]}
+                    </PixelText>
+                  </div>
+                  {/* Ordem de chegada (a lista de chamada) e a hora em que confirmou */}
+                  <div className="flex w-14 shrink-0 flex-col items-end gap-1.5">
+                    <PixelDigits
+                      value={i + 1}
+                      scale={2}
+                      label={`${i + 1}º a confirmar`}
+                      className={i === 0 ? 'text-gold' : 'text-text'}
+                    />
+                    {m.respondedAt && (
+                      <PixelText className="text-text-muted">
+                        {formatRespondedAt(m.respondedAt)}
+                      </PixelText>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

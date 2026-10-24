@@ -73,6 +73,8 @@ export const attendanceMemberSchema = z.object({
   photoUrl: z.string().nullable(),
   primaryPosition: positionSchema,
   isHiredGoalkeeper: z.boolean(),
+  /** Quando respondeu pela última vez (nulo = não respondeu). Confirmados vêm na ordem de chegada. */
+  respondedAt: z.iso.datetime().nullable(),
 });
 
 /** O que quem pediu pode fazer nesta rodada agora (a regra é do domain; o front só mostra). */

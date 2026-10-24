@@ -236,6 +236,33 @@ describe('rodadas e presença', () => {
       expect(ids(res.body.attendance.pending)).toEqual([pending.id]);
       expect(res.body.confirmedCount).toBe(1);
       expect(res.body.myAttendance).toBe(true);
+      expect(res.body.attendance.pending[0].respondedAt).toBeNull();
+    });
+
+    it('confirmados vêm na ordem em que confirmaram, com o horário', async () => {
+      const { group, playerUser, admin, player } = await setup();
+      const late = await addMember(t, (await createUser(t)).id, group.id);
+      const round = await createRound(group.id);
+      const at = (minutes: number) => new Date(Date.UTC(2026, 9, 20, 12, minutes));
+      await t.prisma.attendance.createMany({
+        data: [
+          { roundId: round.id, membershipId: late.id, confirmed: true, updatedAt: at(30) },
+          { roundId: round.id, membershipId: player.id, confirmed: true, updatedAt: at(10) },
+          { roundId: round.id, membershipId: admin.id, confirmed: true, updatedAt: at(20) },
+        ],
+      });
+
+      const res = await request(server())
+        .get(`${roundsPath(group.id)}/${round.id}`)
+        .set('Cookie', as(playerUser.id))
+        .expect(200);
+
+      const confirmed = res.body.attendance.confirmed as {
+        membershipId: string;
+        respondedAt: string;
+      }[];
+      expect(confirmed.map((m) => m.membershipId)).toEqual([player.id, admin.id, late.id]);
+      expect(confirmed[0]!.respondedAt).toBe(at(10).toISOString());
     });
 
     it('diz quem é o solicitante e o que ele pode fazer, conforme o papel e o status', async () => {

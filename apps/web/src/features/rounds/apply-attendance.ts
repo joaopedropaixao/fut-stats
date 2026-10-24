@@ -8,6 +8,7 @@ export function applyAttendance(
   round: RoundDetail,
   membershipId: string,
   confirmed: boolean,
+  now: Date = new Date(),
 ): RoundDetail {
   const { confirmed: going, declined, pending } = round.attendance;
   const member: AttendanceMember | undefined = [...going, ...declined, ...pending].find(
@@ -15,18 +16,20 @@ export function applyAttendance(
   );
   if (!member) return round;
 
+  const answered = { ...member, respondedAt: now.toISOString() };
   const without = (list: AttendanceMember[]) => list.filter((m) => m.membershipId !== membershipId);
-  const withMember = (list: AttendanceMember[]) =>
-    [...list, member].sort((a, b) => a.nickname.localeCompare(b.nickname, 'pt-BR'));
-
-  const nextGoing = confirmed ? withMember(without(going)) : without(going);
+  // Quem vai fica na ordem de chegada (entra no fim); quem não vai, em ordem alfabética, como a API manda
+  const alreadyGoing = going.some((m) => m.membershipId === membershipId);
+  const nextGoing = confirmed ? (alreadyGoing ? going : [...going, answered]) : without(going);
+  const withDeclined = (list: AttendanceMember[]) =>
+    [...list, answered].sort((a, b) => a.nickname.localeCompare(b.nickname, 'pt-BR'));
   return {
     ...round,
     confirmedCount: nextGoing.length,
     myAttendance: membershipId === round.myMembershipId ? confirmed : round.myAttendance,
     attendance: {
       confirmed: nextGoing,
-      declined: confirmed ? without(declined) : withMember(without(declined)),
+      declined: confirmed ? without(declined) : withDeclined(without(declined)),
       pending: without(pending),
     },
   };

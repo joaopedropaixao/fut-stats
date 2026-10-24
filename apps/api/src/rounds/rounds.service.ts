@@ -118,7 +118,7 @@ export class RoundsService {
         photoUrl: true,
         primaryPosition: true,
         isHiredGoalkeeper: true,
-        attendances: { where: { roundId }, select: { confirmed: true } },
+        attendances: { where: { roundId }, select: { confirmed: true, updatedAt: true } },
       },
       orderBy: [{ nickname: 'asc' }, { createdAt: 'asc' }],
     });
@@ -128,10 +128,16 @@ export class RoundsService {
     for (const { id, attendances, ...member } of members) {
       const answer = attendances[0]?.confirmed ?? null;
       if (id === membership.id) myAttendance = answer;
-      const item: AttendanceMember = { membershipId: id, ...member };
+      const item: AttendanceMember = {
+        membershipId: id,
+        ...member,
+        respondedAt: attendances[0]?.updatedAt.toISOString() ?? null,
+      };
       if (answer === null) attendance.pending.push(item);
       else (answer ? attendance.confirmed : attendance.declined).push(item);
     }
+    // Quem vai, na ordem em que confirmou (a lista de chamada da pelada)
+    attendance.confirmed.sort((a, b) => a.respondedAt!.localeCompare(b.respondedAt!));
     const actor = toActor(membership);
     const permissions: RoundPermissions = {
       setOwnAttendance: canChangeAttendance(membership.id, actor, round.status),

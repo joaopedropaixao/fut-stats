@@ -39,3 +39,13 @@ export function formatRoundTime(value: DateInput): string {
 export function formatRoundWhen(value: DateInput): string {
   return `${formatRoundDay(value)} · ${formatRoundTime(value)}`;
 }
+
+/** Quando alguém respondeu, curto para a lista: a hora se foi hoje ("14H32"), "ONTEM" ou o dia ("QUA"). */
+export function formatRespondedAt(value: DateInput, now: Date = new Date()): string {
+  const date = toDate(value);
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
+  if (days <= 0) return formatRoundTime(date);
+  if (days === 1) return 'ONTEM';
+  return WEEKDAYS[date.getDay()]!;
+}
