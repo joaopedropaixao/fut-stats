@@ -1,11 +1,33 @@
-// Gera os ícones do app (PWA, favicon, iPhone) a partir da bola pixel da folha do DS (BALL em
-// docs/design/folha/build.py), sobre o fundo Gramado. Sem dependências: PNG escrito à mão com zlib.
+// Gera os ícones do app (PWA, favicon, iPhone) a partir da bola pixel da capa (a mesma de
+// apps/web/src/pages/entrar-e-grupo/chalk.tsx, sem o rastro), sobre o fundo Gramado.
+// Sem dependências: PNG escrito à mão com zlib.
 // Rodar: node apps/web/scripts/generate-icons.mjs
 import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
-const BALL = ['..WWW..', '.WKWWW.', 'WWWWKWW', 'WKWWWWW', 'WWWKWKW', '.WWWWW.', '..WWW..'];
-const COLORS = { W: [0xf3, 0xea, 0xd3], K: [0x11, 0x11, 0x11] };
+// Contorno preto (K), gomos (P), branco (W) e a sombra creme embaixo à direita (S)
+const BALL = [
+  '.....KKKK.....',
+  '...KKPPPPKK...',
+  '..KWWPPPPWWK..',
+  '.KWWWWPPWWWWK.',
+  '.KPWWWWWWWWPK.',
+  'KPPWWWPPWWWPPK',
+  'KPPWWPPPPWWPPK',
+  'KPWWWPPPPWWWSK',
+  'KWWWWWPPWWWWSK',
+  '.KWWWWWWWWWSK.',
+  '.KWPPWWWWPPSK.',
+  '..KPPPWWPPSK..',
+  '...KKPSSPKK...',
+  '.....KKKK.....',
+];
+const COLORS = {
+  K: [0x00, 0x00, 0x00],
+  P: [0x11, 0x11, 0x11],
+  W: [0xff, 0xff, 0xff],
+  S: [0xcf, 0xca, 0xb5], // --color-text-muted
+};
 const BG = [0x0d, 0x27, 0x17]; // --color-bg (Gramado)
 const OUT = new URL('../public/', import.meta.url);
 
@@ -62,18 +84,24 @@ function png(size) {
   ]);
 }
 
+/** No favicon a bola ocupa quase tudo (fica pequeno na aba): 1 pixel de folga em volta. */
+const SVG_PAD = 1;
+const SVG_SIDE = BALL.length + SVG_PAD * 2;
+
 function svg() {
   const hex = (rgb) => '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('');
   const rects = BALL.flatMap((line, y) =>
     [...line].flatMap((c, x) =>
       COLORS[c]
-        ? [`<rect x="${x + 2}" y="${y + 2}" width="1" height="1" fill="${hex(COLORS[c])}"/>`]
+        ? [
+            `<rect x="${x + SVG_PAD}" y="${y + SVG_PAD}" width="1" height="1" fill="${hex(COLORS[c])}"/>`,
+          ]
         : [],
     ),
   );
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 11 11" shape-rendering="crispEdges">` +
-    `<rect width="11" height="11" fill="${hex(BG)}"/>${rects.join('')}</svg>\n`
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SVG_SIDE} ${SVG_SIDE}" shape-rendering="crispEdges">` +
+    `<rect width="${SVG_SIDE}" height="${SVG_SIDE}" fill="${hex(BG)}"/>${rects.join('')}</svg>\n`
   );
 }
 
