@@ -32,7 +32,7 @@ depois que você a valida no navegador. As telas seguem o `DESIGN.md` e as telas
 | # | Fatia | Modo | Parte de | Entrega |
 |---|---|---|---|---|
 | 0 | `massa-de-dados` | Back | `prisma/seed.ts` | Rodadas passadas com times, placar e lances (inclusive gol contra) para validar as telas |
-| 1 | `montar-times` | Par | PR #33 (fechar) | Admin monta Branco x Preto, arrasta entre times e publica |
+| 1 ✅ | `montar-times` | Par | PR #33 (fechar) | Admin monta Branco x Preto, arrasta entre times e publica |
 | 2 | `placar-e-lances` | Par | PR #32 (fechar) | Placar, gols, assistências e gol contra; jogador lança os próprios, admin de todos |
 | 3 | `historico` | Par | PR #31 (fechar) | Lista de rodadas e detalhe da partida |
 | 4 | `perfil-jogador` | Par | — | Editar perfil; admin define nota inicial, goleiro contratado e ativo/inativo. **Fecha a Fase 1 no ar** |
@@ -76,7 +76,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Cadastro dos goleiros contratados (`isHiredGoalkeeper`; goleiro é a posição `GOALKEEPER`)
 - [x] Regras da rodada no domínio: ciclo de status e quem pode lançar scout
 - [x] Admin: criar rodada; jogadores: confirmar presença
-- [ ] Admin: montar Branco x Preto manualmente e lançar o placar
+- [ ] Admin: montar Branco x Preto manualmente e lançar o placar (montar: `montar-times` ✅; placar: `placar-e-lances`)
 - [ ] Scouts: jogador lança os próprios gols/assistências; admin lança/corrige de todos
 - [ ] Histórico de rodadas e partidas
 

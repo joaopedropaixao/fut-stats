@@ -196,4 +196,22 @@ grava na ordem enviada, dentro de uma transação que apaga e recria o rascunho)
 - Reserva tem posição? → Sim, grava a principal (kickoff).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**1 volta, `VEREDITO: APROVADO`** (24 out 2026). Lint, typecheck, testes (domínio 281, API 166 de integração,
+web 134) e build verdes sem cache. API por curl com admin, jogador, admin de outro grupo, usuário sem grupo e membro
+inativo; tela no Playwright a 390px como admin e como jogador, console sem erros no fluxo real.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1–C4 | OK | `lineup-draft.test.ts` (repetido nos dois times e titular + reserva, posição cheia, reservas com limite ajustável, vazio/incompleto/completo) |
+| C5–C8 | OK | `status.test.ts` › `ATTENDANCE_MISMATCH` (publicar e começar acusam; `VOTING`, `CLOSED` e despublicar não) |
+| C9–C11 | OK | `lineups.spec.ts`; curl: 16 em `unassigned`, `errors` e `permissions` certos; jogador recebe tudo vazio |
+| C12–C16 | OK | `lineups.spec.ts`; curl: PUT substitui, posição da vaga e principal na reserva, ordem mantida; 400 com textos do shared; `PLAYER_NOT_CONFIRMED`; desconfirmado no rascunho passa; 409 `LINEUP_NOT_EDITABLE` |
+| C17–C22 | OK | `lineups.spec.ts`; curl: publica 14 + 2; 409 `INVALID_LINEUP`/`ATTENDANCE_MISMATCH`/`INVALID_TRANSITION`; despublica mantendo o rascunho; presença mudada depois de publicar acusa sem mexer nos times |
+| C23–C24 | OK | 403 para jogador; 404 para outro grupo, sem grupo, inativo e rodada inexistente |
+| C25–C31 | OK | Playwright: montar, tocar e tocar, trocar de time, trocar com ocupada, Pro banco, Desfazer passo a passo, salvar e recarregar |
+| C32–C35 | OK | Playwright: gaveta de publicar, motivo e Publicar desabilitado, aviso "OS TIMES PRECISAM DE AJUSTE" com "SEM PRESENÇA" (texto + ícone), despublicar |
+| C36–C40 | OK | Playwright: "VOCÊ ESTÁ NO PRETO", vazio do jogador e do admin, redirecionamento, carregando, erro com "Tentar de novo", rodada não encontrada |
+
+Pontos menores, sem reprovar: comentários do C15 e do seed (corrigidos depois do QA); `SLOTS` e
+`RESERVE_BOXES` repetidos no web (desenho; quem garante é a API, rever no #5); "SEM PRESENÇA" de um zagueiro
+fica apertado perto da área no campo publicado; `/dev/entrar` com chave duplicada (fora da fatia).
