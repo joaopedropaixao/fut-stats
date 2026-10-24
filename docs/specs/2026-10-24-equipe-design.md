@@ -52,12 +52,26 @@ Subagente não conversa com o dono nem com outro subagente. Por isso o TPL é a 
   front, que puxa a mudança. O front nunca edita o `shared`.
 - Arquivos com dono único: só o back mexe em `schema.prisma`, no `package.json` da raiz e no `pnpm-lock.yaml`.
 
+### Testes por tipo (regras do `AGENTS.md`)
+Cada DEV entrega os testes do seu tipo. O QA confere que eles existem e cobrem o spec.
+
+| Quem | O quê | Como | Não pode |
+|---|---|---|---|
+| DEV back | Regra de negócio (`packages/domain`) | Unitário (Vitest), **testes primeiro**, com casos de borda. Obrigatório. | Pular borda; regra fora do domain |
+| DEV back | Rota + service + banco (`apps/api`) | Integração: supertest na app real + Postgres de teste (Docker). Cobre permissão (membro, admin, outro grupo) e os códigos de erro do contrato. | Mockar Prisma; testar controller ou query isolados |
+| DEV front | Tela (`apps/web`) | No navegador, pelo MCP do Playwright: fluxo principal funciona e console sem erros. Prints no relatório. | Regra de negócio no front |
+| Qualquer DEV | Bug corrigido (inclusive os que o QA achar) | Vem com um teste que reproduz o bug. | Corrigir sem teste |
+
+O spec liga cada cenário Given/When/Then ao tipo de teste que o cobre (unitário, integração ou Playwright).
+
 ### 3. Verify (QA)
 1. Sobe a API (worktree do back) e a web (worktree do front).
 2. Roda `pnpm lint && pnpm typecheck && pnpm test && pnpm build`.
 3. Verifica **cada** Given/When/Then do spec, pela API e no Playwright. Inclui as permissões (jogador, admin e
    usuário de outro grupo) e confere que o console fica sem erros.
-4. Devolve uma tabela com cada cenário ✅/❌. Nas falhas, inclui a evidência (comando, resposta, print) e qual DEV
+4. Confere a tabela de testes acima: cada regra nova do domain tem unitário, cada rota tem integração (com
+   permissões e erros), não tem Prisma mockado e todo bug corrigido numa volta anterior tem um teste que o reproduz.
+5. Devolve uma tabela com cada cenário ✅/❌. Nas falhas, inclui a evidência (comando, resposta, print) e qual DEV
    corrige.
 
 **Loop:**
@@ -90,10 +104,30 @@ Fica no repo e entra no PR da fatia. O modelo está em `docs/specs/_modelo.md` e
 | `docs/specs/_modelo.md` | Modelo do spec da fatia |
 | `AGENTS.md` | Uma linha apontando para o fluxo da equipe |
 
+## Hooks
+Ficam em `.claude/settings.json`, que vai para o repo, com os scripts em `.claude/hooks/`. Valem para todas as
+sessões do projeto. Um script por hook, curto e testável à mão (`echo '<json>' | .claude/hooks/x.sh`).
+
+**Guardas (PreToolUse, bloqueiam e explicam o motivo ao agente):**
+| Hook | Bloqueia |
+|---|---|
+| `front-sem-shared` | Edit/Write em `packages/shared/**` quando a branch atual termina em `-front` |
+| `sem-env` | Read/Edit/Bash que toque um `.env` (o `.env.example` passa) |
+| `sem-merge` | `gh pr merge` e `git merge`/`push` para a `develop` ou a `main` |
+| `commit-sem-ia` | `git commit` com `Co-Authored-By` ou "Generated with" na mensagem |
+
+**Fluxo e conforto:**
+| Hook | Evento | Faz |
+|---|---|---|
+| `dev-termina-verde` | SubagentStop (só os DEVs) | Roda lint, typecheck e test do pacote. Se falhar, o DEV continua em vez de entregar quebrado |
+| `notifica` | Notification e Stop | Banner e som no macOS quando a sessão espera o dono |
+| `prettier` | PostToolUse (Edit/Write) | Formata o arquivo editado |
+| status line | `statusLine` | Mostra `<fatia> · <etapa>` (ex.: `montar-times · QA volta 2`). O TPL atualiza a etapa num arquivo local fora do git |
+
 O `.claude/briefs/par.md` sai: as regras dele passam para os agentes e para a skill `tpl`, e o contrato passa
 para o spec.
 
 ## Fora do escopo (por enquanto)
-- Hooks, automação de CI e métricas de custo.
+- Automação de CI e métricas de custo.
 - Etapas e papéis separados para Research e Plan (fica para o harness do workshop).
 - Mais de uma fatia ao mesmo tempo.
