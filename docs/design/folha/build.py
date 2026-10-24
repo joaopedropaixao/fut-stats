@@ -1,4 +1,4 @@
-"""Gera a folha do DS v1.3 (design-system-v1.3.html) com estilo inline e tokens, no formato aceito pelo Paper:
+"""Gera a folha do DS v1.4 (arquivo design-system-v1.3.html, nome mantido para não quebrar links) com estilo inline e tokens, no formato aceito pelo Paper:
 só div/span/svg, sem margin, sem calc. Rodar: python3 build.py"""
 import math
 import re
@@ -20,7 +20,7 @@ TOKENS = """
   --color-highlight: rgb(255 255 255 / 7%); --color-chalk: rgb(255 255 255 / 14%);
   --color-floodlight: rgb(214 250 190 / 18%); --color-floodlight-night: rgb(236 244 214 / 16%);
   --color-scrim: rgb(0 0 0 / 62%); --color-field: #1B4F2D;
-  --font-sans: Inter; --font-pixel: Silkscreen; --font-pixel-num: "Dígitos 6x9 (SVG próprio)";
+  --font-sans: Chakra Petch; --font-pixel: Silkscreen; --font-pixel-num: "Dígitos 6x9 (SVG próprio)";
   --text-xs: 12px; --text-caption: 13px; --text-sm: 14px; --text-base: 16px; --text-lg: 20px;
   --text-subtitle: 24px; --text-xl: 28px; --text-2xl: 40px; --text-display: 64px; --text-hero: 112px;
   --font-weight-regular: 400; --font-weight-medium: 500; --font-weight-semibold: 600;
@@ -145,11 +145,11 @@ NUMRE = re.compile(r"(\d+(?:,\d+)*)")
 
 
 def t(text, size=16, color="var(--color-text)", weight=400, lh=None, extra=""):
-    """Texto corrido em Inter: frases, explicações, mensagens e o que a pessoa digita nos campos."""
+    """Texto corrido em Chakra Petch: frases, explicações, mensagens e o que a pessoa digita nos campos."""
     lh = max(lh or round(size * 1.45), math.ceil(size * 1.4))
     if extra and "line-height" in extra:
         extra = re.sub(r"line-height:(\d+)px", lambda m: f"line-height:{max(int(m.group(1)), math.ceil(size * 1.4))}px", extra)
-    return (f'<div style="font-family:Inter;font-size:{size}px;font-weight:{weight};line-height:{lh}px;'
+    return (f'<div style="font-family:Chakra Petch;font-size:{size}px;font-weight:{weight};line-height:{lh}px;'
             f'color:{color}{";" + extra if extra else ""}">{text}</div>')
 
 
@@ -261,7 +261,7 @@ def hero():
              '<rect x="-60" y="-40" width="170" height="110" fill="none" stroke="rgb(255 255 255 / 5%)" '
              'stroke-width="2"/></svg>')
     return (f'{lines}<div layer-name="Capa" style="position:relative;display:flex;flex-direction:column;gap:20px">'
-            f'{pix("Design system v1.3", 16, "var(--color-gold)", 20)}'
+            f'{pix("Design system v1.4", 16, "var(--color-gold)", 20)}'
             f'<div style="display:flex;flex-direction:column">{pix("Fut", 80, "var(--color-text)", 84)}'
             f'{pix("Stats", 80, "var(--color-text)", 84)}</div>'
             f'{t("Todo dia de pelada tem clássico. Branco contra Preto, nota pra todo mundo e um craque por rodada.", 18, lh=27, extra="max-width:320px")}'
@@ -337,14 +337,14 @@ def tipografia():
         + row(t("12 jogos, 7 vitórias", 13, "var(--color-text-muted)", 500, 18), "Legenda 13")
         + f'<div layer-name="Regra das fontes" style="display:flex;flex-direction:column;gap:8px;padding:16px;{CARD}">'
         + t("<b>Pixel</b> = interface: títulos, botões, abas, selos, nomes e números. "
-            "<b>Inter</b> = texto corrido e campos.", 14, lh=21)
+            "<b>Chakra Petch</b> = texto corrido e campos.", 14, lh=21)
         + muted("Pixel é Silkscreen em 16, 24 ou 32px, caixa alta, e dígitos pixel para todo número. "
-                "Inter vale para frases de mais de uma linha, explicações, mensagens de erro e o texto digitado nos campos. "
+                "Chakra Petch vale para frases de mais de uma linha, explicações, mensagens de erro e o texto digitado nos campos. "
                 "A Barlow Condensed saiu da interface. Apelido tem até 10 letras: aparece inteiro em todo lugar. Em pixel não se abrevia (datas e horas são a exceção).", 13, "line-height:19px")
         + '</div>'
     )
     return section("Tipografia", "Tipografia", "Pixel é a voz do app: tudo que é rótulo, nome e número. "
-                   "Inter só entra quando é para ler uma frase.", body)
+                   "Chakra Petch só entra quando é para ler uma frase.", body)
 
 
 def pixel_legivel():
@@ -525,7 +525,7 @@ def presenca():
         f'{t("Esse apelido já está em uso no grupo.", 13, "#FCA5A5", lh=18)}</div>'
     )
     return section("Presença e campos", "Presença e campos", "Responder se vai tem que levar um toque. "
-                   "Escrever, só quando precisa. O que a pessoa digita fica em Inter.", body)
+                   "Escrever, só quando precisa. O que a pessoa digita fica em Chakra Petch.", body)
 
 
 def classico():
@@ -1097,7 +1097,7 @@ def config_admin():
             + gaveta("Remover Zagueirão?", "Ele sai do elenco do grupo. Dá para convidar de novo depois.", "Voltar", "Remover", danger=True, name="Gaveta/Remover jogador")
             + fechou)
     return section("Configurações e admin", "Configurações e admin", "Ajustes que o admin mexe de vez em quando. Mesmos padrões: "
-                   "pixel no rótulo e no título, Inter na frase, canto reto, tecla e alvo de 44px.", body, 20)
+                   "pixel no rótulo e no título, Chakra Petch na frase, canto reto, tecla e alvo de 44px.", body, 20)
 
 
 # ---------- simulação de daltonismo ----------
@@ -1179,9 +1179,9 @@ def build():
     sections = [cores(), fundo(), tipografia(), pixel_legivel(), forma(), botoes(), selos(), presenca(), classico(), campo(),
                 figurinhas(), dar_nota(), avisos(), feed(), momentos(), navegacao(), config_admin(), daltonismo()]
     html = f"""<meta charset="utf-8">
-<title>Fut Stats DS v1.3</title>
+<title>Fut Stats DS v1.4</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap">
 <style>
 :root {{ color-scheme: dark;{TOKENS}}}
 * {{ box-sizing: border-box; margin: 0; }}
@@ -1191,7 +1191,7 @@ body {{ background: #04100A; display: flex; justify-content: center; align-items
   @keyframes hop {{ 50% {{ transform: translateY(-6px); }} }}
 }}
 </style>
-<div layer-name="Design System v1.3 — Gramado" style="position:relative;width:390px;overflow:hidden;display:flex;flex-direction:column;gap:72px;padding:72px 16px 40px;background-color:var(--color-bg);background-image:radial-gradient(320px 260px at 195px 0px, var(--color-floodlight) 0px, rgb(214 250 190 / 6%) 260px, transparent 460px);font-family:Inter">
+<div layer-name="Design System v1.4 — Gramado" style="position:relative;width:390px;overflow:hidden;display:flex;flex-direction:column;gap:72px;padding:72px 16px 40px;background-color:var(--color-bg);background-image:radial-gradient(320px 260px at 195px 0px, var(--color-floodlight) 0px, rgb(214 250 190 / 6%) 260px, transparent 460px);font-family:Chakra Petch">
 {hero()}
 {"".join(chr(10) + s for s in sections)}
 {muted("Design system v1.3, outubro de 2026.", 13)}
