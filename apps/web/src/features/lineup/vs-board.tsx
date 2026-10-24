@@ -81,7 +81,7 @@ export function VsBoard({ roundId, counts, myTeam }: VsBoardProps) {
           <TeamBlock team="WHITE" phase={phase} count={counts.WHITE} />
           <TeamBlock team="BLACK" phase={phase} count={counts.BLACK} />
           {phase === 'entry' && <SpeedLines />}
-          {phase === 'clash' && <div className="animate-vs-flash absolute inset-0 bg-white" />}
+          {phase === 'clash' && <div className="animate-vs-flash absolute inset-0 bg-team-white" />}
           <span
             style={final && !animated ? { transform: 'rotate(-6deg)' } : undefined}
             className={cn(
@@ -100,7 +100,7 @@ export function VsBoard({ roundId, counts, myTeam }: VsBoardProps) {
         <button
           type="button"
           onClick={() => setPhase('final')}
-          className="absolute bottom-3 left-3 inline-flex min-h-11 items-center bg-black px-4 text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)] active:bg-surface-3"
+          className="absolute bottom-3 left-3 inline-flex min-h-11 items-center bg-team-black px-4 text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)] active:bg-surface-3"
         >
           <PixelText>Pular</PixelText>
         </button>
@@ -168,8 +168,8 @@ function SpeedLines() {
     <>
       <span style={from('-96px')} className={cn(line, 'top-6 left-1 w-3.5 bg-[#111]')} />
       <span style={from('-96px')} className={cn(line, 'top-8 left-1 w-2.5 bg-[#111]')} />
-      <span style={from('96px')} className={cn(line, 'right-1 bottom-8 w-3.5 bg-white')} />
-      <span style={from('96px')} className={cn(line, 'right-1 bottom-6 w-2.5 bg-white')} />
+      <span style={from('96px')} className={cn(line, 'right-1 bottom-8 w-3.5 bg-team-white')} />
+      <span style={from('96px')} className={cn(line, 'right-1 bottom-6 w-2.5 bg-team-white')} />
     </>
   );
 }
