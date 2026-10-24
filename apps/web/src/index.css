@@ -49,30 +49,21 @@
   animation: logo-drop 360ms steps(6, end) both;
 }
 
-/* Bola da capa: cai depois do logo e quica duas vezes no ponto central. */
-@keyframes ball-drop {
+/* Bola da capa: entra correndo pela esquerda (no sentido do rastro) depois do logo e freia no ponto. */
+@keyframes ball-in {
   0% {
-    transform: translateY(-360px);
+    transform: translateX(-360px);
   }
-  55% {
-    transform: translateY(0);
-  }
-  70% {
-    transform: translateY(-48px);
-  }
-  85% {
-    transform: translateY(0);
-  }
-  93% {
-    transform: translateY(-16px);
+  80% {
+    transform: translateX(10px);
   }
   100% {
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 
-@utility animate-ball-drop {
-  animation: ball-drop 900ms steps(18, end) 450ms both;
+@utility animate-ball-in {
+  animation: ball-in 700ms steps(14, end) 450ms both;
 }
 
 /* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */

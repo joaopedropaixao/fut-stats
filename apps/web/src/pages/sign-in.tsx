@@ -29,7 +29,7 @@ export function SignInPage() {
   return (
     <main className="relative mx-auto flex min-h-dvh max-w-content flex-col justify-between gap-10 overflow-hidden px-4 pt-14 pb-10">
       <title>Entrar · Fut Stats</title>
-      <ChalkPitch className="top-30" ballDrop />
+      <ChalkPitch className="top-30" ballIn />
       <h1 className="relative">
         <PixelLogo scale={9} />
       </h1>

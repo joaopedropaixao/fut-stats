@@ -1,31 +1,59 @@
 import { cn } from '../../lib/cn';
 
-/** A bola pixel da folha (BALL em docs/design/folha/build.py, a mesma do ícone do app). */
-const BALL = ['..WWW..', '.WKWWW.', 'WWWWKWW', 'WKWWWWW', 'WWWKWKW', '.WWWWW.', '..WWW..'];
+/**
+ * Bola pixel em movimento (14x14 e rastro de 5 colunas à esquerda): contorno preto, pentágono no
+ * centro, gomos nas bordas e sombra creme embaixo à direita. Escolhida pelo dono para a capa.
+ */
+const BALL = [
+  '..........KKKK.....',
+  '........KKPPPPKK...',
+  '.......KWWPPPPWWK..',
+  '.TTT..KWWWWPPWWWWK.',
+  '......KPWWWWWWWWPK.',
+  'TTTT.KPPWWWPPWWWPPK',
+  '.....KPPWWPPPPWWPPK',
+  '.TTT.KPWWWPPPPWWWSK',
+  '.....KWWWWWPPWWWWSK',
+  'TTTT..KWWWWWWWWWSK.',
+  '......KWPPWWWWPPSK.',
+  '.......KPPPWWPPSK..',
+  '........KKPSSPKK...',
+  '..........KKKK.....',
+];
+const BALL_WIDTH = BALL[0]!.length;
+/** O centro da bola (sem o rastro) fica no ponto central do campo. */
+const BALL_CENTER_X = 5 + 7;
 
-function ballPath(color: 'W' | 'K'): string {
+const BALL_LAYERS = [
+  { char: 'K', fill: '#000000' },
+  { char: 'P', fill: '#111111' },
+  { char: 'W', fill: '#ffffff' },
+  { char: 'S', fill: 'var(--color-text-muted)' },
+  { char: 'T', fill: 'rgb(255 255 255 / 35%)' },
+] as const;
+
+function ballPath(char: string): string {
   return BALL.flatMap((line, y) =>
-    [...line].map((c, x) => (c === color ? `M${x} ${y}h1v1h-1z` : '')),
+    [...line].map((c, x) => (c === char ? `M${x} ${y}h1v1h-1z` : '')),
   ).join('');
 }
 
-const BALL_WHITE = ballPath('W');
-const BALL_BLACK = ballPath('K');
+const BALL_PATHS = BALL_LAYERS.map(({ char, fill }) => ({ d: ballPath(char), fill }));
 
 /** Bola pixel parada no ponto: `x`/`y` é o centro, `scale` o tamanho do pixel (inteiro, para não borrar). */
 function PixelBall({ x, y, scale }: { x: number; y: number; scale: number }) {
-  const size = BALL.length * scale;
   return (
     <svg
-      x={x - size / 2}
-      y={y - size / 2}
-      width={size}
-      height={size}
-      viewBox={`0 0 ${BALL.length} ${BALL.length}`}
+      x={x - BALL_CENTER_X * scale}
+      y={y - (BALL.length / 2) * scale}
+      width={BALL_WIDTH * scale}
+      height={BALL.length * scale}
+      viewBox={`0 0 ${BALL_WIDTH} ${BALL.length}`}
       shapeRendering="crispEdges"
     >
-      <path d={BALL_WHITE} className="fill-text" />
-      <path d={BALL_BLACK} fill="#111111" />
+      {BALL_PATHS.map(({ d, fill }) => (
+        <path key={fill} d={d} fill={fill} />
+      ))}
     </svg>
   );
 }
@@ -36,11 +64,11 @@ function PixelBall({ x, y, scale }: { x: number; y: number; scale: number }) {
  */
 export function ChalkPitch({
   className,
-  ballDrop = false,
+  ballIn = false,
 }: {
   className?: string;
-  /** A bola cai e quica até o ponto central (capa); com "reduzir movimento", já está lá. */
-  ballDrop?: boolean;
+  /** A bola entra correndo até o ponto central (capa); com "reduzir movimento", já está lá. */
+  ballIn?: boolean;
 }) {
   return (
     <svg
@@ -54,8 +82,8 @@ export function ChalkPitch({
       <rect x="-60" y="-40" width="170" height="110" className="stroke-highlight" />
       <line x1="-20" y1="300" x2="410" y2="300" className="stroke-chalk" />
       <circle cx="270" cy="300" r="112" className="stroke-chalk" />
-      <g className={ballDrop ? 'animate-ball-drop' : undefined}>
-        <PixelBall x={270} y={300} scale={8} />
+      <g className={ballIn ? 'animate-ball-in' : undefined}>
+        <PixelBall x={270} y={300} scale={5} />
       </g>
     </svg>
   );
