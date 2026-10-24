@@ -80,8 +80,54 @@ Co-Authored-By: Claude <noreply@anthropic.com>"')" "commit com Co-Authored-By"
 expect commit-sem-ia 2 "$(bash_cmd 'git commit -m "feat: x" -m "🤖 Generated with Claude Code"')" "commit com Generated with"
 expect commit-sem-ia 0 "$(bash_cmd 'git commit -m "feat(shared): contrato de x"')" "commit limpo"
 
+# expect_out <hook> <saída esperada> <json> [descrição]
+expect_out() {
+  got=$(printf '%s' "$3" | "$HOOKS/$1.sh" 2>&1)
+  if [ "$got" = "$2" ]; then
+    echo "ok      $1: ${4:-$3}"
+  else
+    echo "FALHOU  $1: ${4:-$3} (esperado '$2', veio '$got')"
+    falhas=$((falhas + 1))
+  fi
+}
+
+# --- prettier (formata .ts; respeita o .prettierignore do repo do arquivo)
+FMT=$(repo_on feature/fmt)
+echo '*.md' >"$FMT/.prettierignore"
+printf 'const a   =  1\n' >"$FMT/x.ts"
+printf '# t\n\n\n\nfim\n' >"$FMT/y.md"
+cp "$FMT/y.md" "$TMP/y.md.antes"
+export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$HOOKS/../.." && pwd)}"
+expect prettier 0 "$(tool Write file_path "$FMT/x.ts")" "formata .ts"
+if [ "$(cat "$FMT/x.ts")" = "const a = 1;" ]; then echo "ok      prettier: x.ts formatado"; else
+  echo "FALHOU  prettier: x.ts não foi formatado: $(cat "$FMT/x.ts")"
+  falhas=$((falhas + 1))
+fi
+expect prettier 0 "$(tool Write file_path "$FMT/y.md")" "md ignorado"
+if cmp -s "$FMT/y.md" "$TMP/y.md.antes"; then echo "ok      prettier: y.md intacto"; else
+  echo "FALHOU  prettier: y.md mudou"
+  falhas=$((falhas + 1))
+fi
+
+# --- status line
+STATUS=$(repo_on feature/status)
+expect_out statusline "feature/status" "{\"workspace\":{\"current_dir\":\"$STATUS\"}}" "só a branch"
+mkdir -p "$STATUS/.claude" && echo "Implement" >"$STATUS/.claude/etapa.local"
+expect_out statusline "feature/status · Implement" "{\"workspace\":{\"current_dir\":\"$STATUS\"}}" "branch e etapa"
+expect_out statusline "" "{\"workspace\":{\"current_dir\":\"$TMP\"}}" "fora de repo git: vazio"
+
+# --- notificação (NOTIFICA_DRY imprime o script em vez de chamar o osascript)
+export NOTIFICA_DRY=1
+expect_out notifica "display notification \"Claude precisa de permissão\" with title \"fut-stats · montar-times\" sound name \"Glass\"" \
+  '{"hook_event_name":"Notification","message":"Claude precisa de permissão","cwd":"/x/montar-times"}' "Notification com mensagem"
+expect_out notifica "display notification \"Esperando você\" with title \"fut-stats · montar-times\" sound name \"Glass\"" \
+  '{"hook_event_name":"Stop","cwd":"/x/montar-times"}' "Stop sem mensagem"
+expect_out notifica "display notification \"diz 'oi'\" with title \"fut-stats · x\" sound name \"Glass\"" \
+  '{"message":"diz \"oi\"","cwd":"/x"}' "aspas na mensagem não quebram o script"
+unset NOTIFICA_DRY
+
 # --- falha aberta
-for h in front-sem-shared sem-env sem-merge commit-sem-ia; do
+for h in front-sem-shared sem-env sem-merge commit-sem-ia prettier statusline notifica; do
   expect "$h" 0 "não é json" "entrada inválida libera"
 done
 
