@@ -84,6 +84,7 @@ function Section({
                 className="flex min-h-20 items-center gap-3 px-4 py-3 active:bg-highlight"
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <PixelText className="text-gold">{`Rodada ${round.number}`}</PixelText>
                   <PixelText>{formatRoundWhen(round.scheduledAt)}</PixelText>
                   <PixelText className="text-text-muted">
                     {round.location ?? 'Local a combinar'}

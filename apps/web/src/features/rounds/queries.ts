@@ -83,11 +83,9 @@ export function useSetAttendance(groupId: string, roundId: string) {
   return useMutation({
     mutationKey,
     mutationFn: ({ membershipId, confirmed }: AttendanceVars) =>
-      apiPut(
-        `${roundsPath(groupId)}/${roundId}/attendances/${membershipId}`,
-        roundDetailSchema,
-        { confirmed },
-      ),
+      apiPut(`${roundsPath(groupId)}/${roundId}/attendances/${membershipId}`, roundDetailSchema, {
+        confirmed,
+      }),
     onMutate: async ({ membershipId, confirmed }) => {
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<RoundDetail>(key);

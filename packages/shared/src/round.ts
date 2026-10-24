@@ -62,6 +62,8 @@ export const roundSummarySchema = z.object({
 export const roundListSchema = z.object({
   upcoming: z.array(roundSummarySchema),
   past: z.array(roundSummarySchema),
+  /** A rodada da vez (`pickCurrentRound` do domain): em jogo, senão a próxima. Nula quando não há. */
+  currentId: z.string().nullable(),
 });
 
 /** Membro ativo na lista de presença. */

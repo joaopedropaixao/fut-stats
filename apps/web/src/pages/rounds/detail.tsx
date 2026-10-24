@@ -95,7 +95,12 @@ function Loaded({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <RoundWhen as="h1" scheduledAt={round.scheduledAt} location={round.location} />
+        <RoundWhen
+          as="h1"
+          number={round.number}
+          scheduledAt={round.scheduledAt}
+          location={round.location}
+        />
         <div className="flex items-center gap-2">
           <Badge label={ROUND_STATUS_LABELS[round.status]} />
           <PixelText className="text-text-muted">{`${round.confirmedCount} vão`}</PixelText>

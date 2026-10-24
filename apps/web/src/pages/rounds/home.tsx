@@ -7,6 +7,7 @@ import { RoundWhen } from '../../features/rounds/round-when';
 import { RouteButton } from '../../features/rounds/route-button';
 import { usePresence } from '../../features/rounds/use-presence';
 import { MemberAvatar } from '../../features/rounds/member-avatar';
+import { PresenceTally } from '../../features/rounds/presence-tally';
 import { POSITION_LABELS, type RoundDetail } from '@fut-stats/shared';
 
 /** Início (aba Feed, versão Fase 1): a próxima rodada e a presença. Sem grupo, o shell manda para /comecar. */
@@ -18,14 +19,17 @@ export function HomePage() {
 
 function Home({ groupId, isAdmin }: { groupId: string; isAdmin: boolean }) {
   const rounds = useRounds(groupId);
-  const nextId = rounds.data?.upcoming[0]?.id;
+  // A rodada da vez vem da API (pickCurrentRound): em jogo, senão a próxima
+  const all = rounds.data ? [...rounds.data.upcoming, ...rounds.data.past] : [];
+  const current = all.find((r) => r.id === rounds.data?.currentId) ?? null;
+  const nextId = current?.id;
   const next = useRound(groupId, nextId);
 
   return (
     <>
       <title>Início · Fut Stats</title>
       <PixelText as="h1" size={24} wrap className="outline-none">
-        Próxima rodada
+        {current?.status === 'IN_PROGRESS' ? 'Em jogo' : 'Próxima rodada'}
       </PixelText>
       {rounds.isError || next.isError ? (
         <ErrorState
@@ -78,8 +82,15 @@ function NextRound({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-5 bg-surface-raised p-5 shadow-card">
-        <RoundWhen scheduledAt={round.scheduledAt} location={round.location} />
+        <RoundWhen
+          number={round.number}
+          scheduledAt={round.scheduledAt}
+          location={round.location}
+        />
         <MyPresence round={round} onChange={set} />
+        <div className="shadow-[inset_0_2px_0_0_var(--color-border)] pt-5">
+          <PresenceTally round={round} />
+        </div>
       </div>
 
       <section className="flex flex-col gap-2">

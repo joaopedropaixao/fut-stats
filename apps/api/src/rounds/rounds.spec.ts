@@ -163,6 +163,24 @@ describe('rodadas e presença', () => {
       expect(res.body.upcoming.map((r: { id: string }) => r.id)).toEqual([soon.id, later.id]);
       expect(res.body.past.map((r: { id: string }) => r.id)).toEqual([yesterday.id, lastWeek.id]);
       expect(res.body.upcoming[0].confirmedCount).toBe(1);
+      expect(res.body.currentId).toBe(soon.id);
+    });
+
+    it('rodada da vez: a em jogo vem antes da próxima; sem rodada, nula', async () => {
+      const { group, playerUser } = await setup();
+      const list = () =>
+        request(server()).get(roundsPath(group.id)).set('Cookie', as(playerUser.id)).expect(200);
+
+      expect((await list()).body.currentId).toBeNull();
+
+      const soon = await createRound(group.id, { scheduledAt: new Date(Date.now() + DAY_MS) });
+      expect((await list()).body.currentId).toBe(soon.id);
+
+      const playing = await createRound(group.id, {
+        scheduledAt: new Date(Date.now() - 60 * 60 * 1000),
+        status: 'IN_PROGRESS',
+      });
+      expect((await list()).body.currentId).toBe(playing.id);
     });
 
     it('confirmado que ficou inativo não conta', async () => {

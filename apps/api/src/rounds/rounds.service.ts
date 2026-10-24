@@ -8,6 +8,7 @@ import {
   canChangeAttendance,
   isRoundDeletable,
   isRoundEditable,
+  pickCurrentRound,
   validateAttendanceChange,
   type RoundActor,
 } from '@fut-stats/domain';
@@ -76,7 +77,10 @@ export class RoundsService {
     return this.detail(membership, round.id);
   }
 
-  /** Próximas (a partir de agora, mais perto primeiro) e passadas (mais recente primeiro). */
+  /**
+   * Próximas (a partir de agora, mais perto primeiro), passadas (mais recente primeiro) e qual é a
+   * rodada da vez (`pickCurrentRound`), para o início não repetir a regra.
+   */
   async list(groupId: string, now = new Date()): Promise<RoundList> {
     const [upcoming, past] = await Promise.all([
       this.prisma.round.findMany({
@@ -90,7 +94,12 @@ export class RoundsService {
         orderBy: { scheduledAt: 'desc' },
       }),
     ]);
-    return { upcoming: upcoming.map(toSummary), past: past.map(toSummary) };
+    const current = pickCurrentRound([...upcoming, ...past], now);
+    return {
+      upcoming: upcoming.map(toSummary),
+      past: past.map(toSummary),
+      currentId: current?.id ?? null,
+    };
   }
 
   /** A rodada com a lista de presença dos membros ativos: Vou, Não vou e quem não respondeu. */

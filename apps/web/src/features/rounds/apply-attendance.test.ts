@@ -12,6 +12,7 @@ const member = (id: string, nickname: string): AttendanceMember => ({
 
 const round: RoundDetail = {
   id: 'r1',
+  number: 3,
   scheduledAt: '2026-10-29T23:00:00.000Z',
   location: 'Arena',
   status: 'SCHEDULED',
