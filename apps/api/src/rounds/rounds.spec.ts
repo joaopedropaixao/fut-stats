@@ -183,6 +183,26 @@ describe('rodadas e presença', () => {
       expect((await list()).body.currentId).toBe(playing.id);
     });
 
+    it('sugere a rodada nova no mesmo dia, hora e local da última; sem rodada, nula', async () => {
+      const { group, playerUser } = await setup();
+      const list = () =>
+        request(server()).get(roundsPath(group.id)).set('Cookie', as(playerUser.id)).expect(200);
+
+      expect((await list()).body.suggestion).toBeNull();
+
+      const lastAt = new Date(Date.now() + 2 * DAY_MS);
+      await createRound(group.id, {
+        scheduledAt: new Date(Date.now() - 5 * DAY_MS),
+        location: 'Velho',
+      });
+      await createRound(group.id, { scheduledAt: lastAt, location: 'Arena Nova' });
+
+      expect((await list()).body.suggestion).toEqual({
+        scheduledAt: new Date(lastAt.getTime() + 7 * DAY_MS).toISOString(),
+        location: 'Arena Nova',
+      });
+    });
+
     it('confirmado que ficou inativo não conta', async () => {
       const { group, playerUser, player } = await setup();
       const round = await createRound(group.id);

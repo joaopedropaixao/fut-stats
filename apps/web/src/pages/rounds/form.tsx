@@ -2,6 +2,7 @@ import {
   ROUND_LOCATION_MAX_LENGTH,
   ROUND_NOT_EDITABLE_LABEL,
   type RoundDetail,
+  type RoundList,
 } from '@fut-stats/shared';
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -17,6 +18,7 @@ import {
   useCreateRound,
   useDeleteRound,
   useRound,
+  useRounds,
   useUpdateRound,
 } from '../../features/rounds/queries';
 import { RouteButton } from '../../features/rounds/route-button';
@@ -24,7 +26,7 @@ import { apiErrorMessage } from '../../lib/api';
 
 const DEFAULT_HOUR = 20;
 
-/** Sugestão para rodada nova: amanhã à noite (o admin muda; o dia da pelada não é fixo). */
+/** Sem rodada anterior no grupo: amanhã à noite (o admin muda; o dia da pelada não é fixo). */
 function defaultWhen(): Date {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, DEFAULT_HOUR, 0);
@@ -35,7 +37,24 @@ export function NewRoundPage() {
   const { group } = useCurrentGroup();
   if (!group) return null;
   if (group.role !== 'ADMIN') return <AdminOnly />;
-  return <RoundForm groupId={group.id} />;
+  return <NewRound groupId={group.id} />;
+}
+
+/**
+ * A rodada nova já vem com a sugestão da API: mesmo dia da semana, hora e local da última. Se a lista
+ * falhar, cai em "amanhã à noite" (o admin ajusta de qualquer jeito).
+ */
+function NewRound({ groupId }: { groupId: string }) {
+  const rounds = useRounds(groupId);
+  if (rounds.isPending) {
+    return (
+      <>
+        <Back to="/rodadas" />
+        <SkeletonList rows={3} label="Carregando a sugestão" />
+      </>
+    );
+  }
+  return <RoundForm groupId={groupId} suggestion={rounds.data?.suggestion ?? null} />;
 }
 
 /** /rodadas/:roundId/editar: só o admin, e só antes do jogo. */
@@ -103,11 +122,25 @@ function Back({ to }: { to: string }) {
   );
 }
 
-function RoundForm({ groupId, round }: { groupId: string; round?: RoundDetail }) {
+function RoundForm({
+  groupId,
+  round,
+  suggestion = null,
+}: {
+  groupId: string;
+  round?: RoundDetail;
+  suggestion?: RoundList['suggestion'];
+}) {
   const navigate = useNavigate();
   const notice = useNotice();
-  const [when, setWhen] = useState(() => (round ? new Date(round.scheduledAt) : defaultWhen()));
-  const [location, setLocation] = useState(round?.location ?? '');
+  const [when, setWhen] = useState(() =>
+    round
+      ? new Date(round.scheduledAt)
+      : suggestion
+        ? new Date(suggestion.scheduledAt)
+        : defaultWhen(),
+  );
+  const [location, setLocation] = useState(round?.location ?? suggestion?.location ?? '');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const create = useCreateRound(groupId);

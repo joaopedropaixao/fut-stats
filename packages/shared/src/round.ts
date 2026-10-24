@@ -64,6 +64,13 @@ export const roundListSchema = z.object({
   past: z.array(roundSummarySchema),
   /** A rodada da vez (`pickCurrentRound` do domain): em jogo, senão a próxima. Nula quando não há. */
   currentId: z.string().nullable(),
+  /**
+   * Sugestão para a rodada nova (`suggestNextRoundDate`): mesmo dia da semana, horário e local da última
+   * rodada do grupo, na próxima data que ainda não passou. Nula quando o grupo não tem rodada.
+   */
+  suggestion: z
+    .object({ scheduledAt: z.iso.datetime(), location: z.string().nullable() })
+    .nullable(),
 });
 
 /** Membro ativo na lista de presença. */

@@ -10,6 +10,7 @@ import {
   isRoundEditable,
   pickCurrentRound,
   rankByRating,
+  suggestNextRoundDate,
   validateAttendanceChange,
   type RoundActor,
 } from '@fut-stats/domain';
@@ -96,10 +97,16 @@ export class RoundsService {
       }),
     ]);
     const current = pickCurrentRound([...upcoming, ...past], now);
+    // A última rodada marcada (a mais adiante no calendário) dá o dia, a hora e o local da sugestão
+    const last = upcoming.at(-1) ?? past[0] ?? null;
+    const suggestedAt = suggestNextRoundDate(last?.scheduledAt ?? null, now);
     return {
       upcoming: upcoming.map(toSummary),
       past: past.map(toSummary),
       currentId: current?.id ?? null,
+      suggestion: suggestedAt
+        ? { scheduledAt: suggestedAt.toISOString(), location: last!.location }
+        : null,
     };
   }
 

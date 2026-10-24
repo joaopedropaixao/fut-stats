@@ -1,5 +1,6 @@
 export * from './attendance';
 export * from './current';
+export * from './schedule';
 export * from './events';
 export * from './match';
 export * from './status';

@@ -414,6 +414,22 @@ Sai no `roundSummarySchema` (`number`).
 
 **Evite:** calcular o número no front ou pela posição na lista; passar `number` no `create` (o trigger sobrescreve).
 
+### Sugestão da rodada nova: `suggestNextRoundDate` 🚧
+**O que é:** a data que a rodada nova já traz preenchida (`src/round/schedule.ts`). Decidido pelo dono em 24 out 2026:
+o grupo costuma ter dia e hora fixos, mas às vezes muda. Sem configuração de grupo e sem campo novo no banco.
+
+**Assinatura:** `suggestNextRoundDate(last: Date | null, now: Date, options?: { intervalDays?: number }): Date | null`.
+
+**Faz:** mesmo dia da semana e horário da última rodada (a mais adiante no calendário), na primeira data depois dela
+que ainda não passou (passos de `intervalDays`, padrão 7). Mudou o dia uma vez, a sugestão seguinte acompanha.
+
+**Não faz:** não lê relógio; não fixa dia da semana; não olha fuso (soma dias inteiros, e o Brasil não tem horário de verão).
+
+**Na API:** `GET /rounds` manda `suggestion: { scheduledAt, location } | null` (o local é o da última rodada). O
+formulário da rodada nova usa a sugestão; sem rodada no grupo, cai em "amanhã às 20h".
+
+**Evite:** fixar um dia da semana; calcular a sugestão no front.
+
 ### Ranking pela nota: `rankByRating` 🚧
 **O que é:** a posição de cada jogador no ranking do grupo pela nota (`src/ranking/rank.ts`). Decidido pelo dono em
 24 out 2026: a lista de presença mostra a nota e a posição de cada um.
