@@ -63,7 +63,7 @@ function CurrentTeams({
         </>
       ) : lineup.data?.published ? (
         <>
-          <PublishedTeams lineup={lineup.data} myMembershipId={myMembershipId} />
+          <PublishedTeams lineup={lineup.data} roundId={round.id} myMembershipId={myMembershipId} />
           {isAdmin && lineup.data.permissions.unpublish && (
             <RouteButton
               to={`/rodadas/${round.id}/times`}

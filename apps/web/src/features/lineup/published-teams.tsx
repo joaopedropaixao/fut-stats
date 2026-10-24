@@ -1,45 +1,56 @@
-import { ROUND_TRANSITION_ERROR_LABELS, TEAM_LABELS, type Lineup } from '@fut-stats/shared';
+import { POSITION_LABELS, ROUND_TRANSITION_ERROR_LABELS, type Lineup } from '@fut-stats/shared';
 import { useMemo, useState } from 'react';
-import { Badge } from '../../components/ui/badge';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
 import { draftFromLineup, membersOf, TEAM_KEYS, type TeamKey } from './lineup-draft';
 import { Pitch } from './pitch';
 import { Reserves } from './reserves';
 import { TeamSegmented } from './team-segmented';
+import { VsBoard } from './vs-board';
+import { YouBanner } from './you-banner';
 
 type PublishedTeamsProps = {
   lineup: Lineup;
-  /** Quem está vendo: o time dele abre primeiro, com o selo "Você está no ...". */
+  /** A rodada: o VS só toca na primeira vez de cada rodada. Sem ela (tela do admin), não há quadro de VS. */
+  roundId?: string;
+  /** Quem está vendo: o time dele abre primeiro, com a faixa "Você joga no ...". */
   myMembershipId?: string;
 };
 
 /** Os times publicados: o mesmo campo 1-2-3-1 da montagem, só para ver, um time de cada vez. */
-export function PublishedTeams({ lineup, myMembershipId }: PublishedTeamsProps) {
+export function PublishedTeams({ lineup, roundId, myMembershipId }: PublishedTeamsProps) {
   const draft = useMemo(() => draftFromLineup(lineup), [lineup]);
   const members = useMemo(() => membersOf(lineup), [lineup]);
-  const myTeam: TeamKey | null =
-    TEAM_KEYS.find((key) =>
-      [...lineup.teams[key].starters, ...lineup.teams[key].reserves].some(
-        (p) => p.membershipId === myMembershipId,
-      ),
-    ) ?? null;
+  const me = TEAM_KEYS.flatMap((key) => [
+    ...lineup.teams[key].starters.map((p) => ({ key, player: p, reserve: false })),
+    ...lineup.teams[key].reserves.map((p) => ({ key, player: p, reserve: true })),
+  ]).find((x) => x.player.membershipId === myMembershipId);
+  const myTeam: TeamKey | null = me?.key ?? null;
+  const counts = {
+    WHITE: lineup.teams.WHITE.starters.length,
+    BLACK: lineup.teams.BLACK.starters.length,
+  };
   const [chosen, setChosen] = useState<TeamKey | null>(null);
   const team = chosen ?? myTeam ?? 'WHITE';
 
   return (
     <div className="flex flex-col gap-4">
       <Mismatch lineup={lineup} />
-      <TeamSegmented value={team} onChange={setChosen} />
-      {team === myTeam && (
-        <Badge
-          label={`Você está no ${TEAM_LABELS[team]}`}
-          variant={team === 'WHITE' ? 'white' : 'black'}
-          className="self-start"
+      {roundId && <VsBoard roundId={roundId} counts={counts} myTeam={myTeam} />}
+      {me && (
+        <YouBanner
+          team={me.key}
+          position={me.reserve ? null : POSITION_LABELS[me.player.position]}
         />
       )}
-      <Pitch team={team} draft={draft[team]} members={members} />
-      <Reserves team={team} reserves={draft[team].reserves} members={members} />
+      <TeamSegmented value={team} onChange={setChosen} />
+      <Pitch team={team} draft={draft[team]} members={members} meId={myMembershipId} />
+      <Reserves
+        team={team}
+        reserves={draft[team].reserves}
+        members={members}
+        meId={myMembershipId}
+      />
     </div>
   );
 }

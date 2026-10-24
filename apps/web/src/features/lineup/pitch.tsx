@@ -12,6 +12,7 @@ import {
   type TeamKey,
 } from './lineup-draft';
 import { NoPresence } from './no-presence';
+import { YOU_RING, YouTag } from './you-tag';
 
 /**
  * Onde cada vaga do 1-2-3-1 fica no campo (ataque em cima, goleiro embaixo).
@@ -37,6 +38,8 @@ type PitchProps = {
   targetSlot?: SlotKey | null;
   /** Sem `onSlot`, o campo é só para olhar (times publicados). */
   onSlot?: (slot: SlotKey) => void;
+  /** Quem está vendo (times publicados): ganha o anel forte e a etiqueta "Você". */
+  meId?: string;
   ref?: Ref<HTMLDivElement>;
 };
 
@@ -48,14 +51,20 @@ export function Pitch({
   pickedId = null,
   targetSlot = null,
   onSlot,
+  meId,
   ref,
 }: PitchProps) {
+  const meHere = meId !== undefined && Object.values(draft.slots).includes(meId);
   return (
     <div
       ref={ref}
       role="group"
       aria-label={`Campo do ${TEAM_LABELS[team]}`}
-      className="relative h-120 scroll-mt-4 shrink-0 overflow-hidden bg-linear-to-b from-[#1f5a33] to-field shadow-[inset_0_0_0_3px_#000,4px_4px_0_var(--color-shadow)]"
+      className={cn(
+        'relative scroll-mt-4 shrink-0 overflow-hidden bg-linear-to-b from-[#1f5a33] to-field shadow-[inset_0_0_0_3px_#000,4px_4px_0_var(--color-shadow)]',
+        // A etiqueta "Você" embaixo do goleiro pede um pouco mais de campo
+        meHere ? 'h-128' : 'h-120',
+      )}
     >
       <ChalkLines />
       {SLOTS.map(({ key, position }) => {
@@ -64,6 +73,7 @@ export function Pitch({
         const label = POSITION_LABELS[position];
         const picked = id !== null && id === pickedId;
         const target = key === targetSlot;
+        const me = id !== null && id === meId;
         const content = (
           <>
             <Marker
@@ -72,10 +82,12 @@ export function Pitch({
               goalkeeper={position === 'GOALKEEPER'}
               picked={picked}
               target={target}
+              me={me}
             />
             {member ? (
               <>
                 <PixelText>{member.nickname}</PixelText>
+                {me && <YouTag />}
                 {!member.confirmed && <NoPresence />}
               </>
             ) : (
@@ -89,7 +101,7 @@ export function Pitch({
           'absolute flex w-34 -translate-x-1/2 flex-col items-center gap-1.5 outline-offset-2';
         const style = SLOT_POSITION[key];
         const name = member
-          ? `${label}: ${member.nickname}${member.confirmed ? '' : ', sem presença'}`
+          ? `${label}: ${member.nickname}${me ? ' (você)' : ''}${member.confirmed ? '' : ', sem presença'}`
           : `${label}: vaga livre`;
         return onSlot ? (
           <button
@@ -139,20 +151,24 @@ function Marker({
   goalkeeper,
   picked,
   target,
+  me,
 }: {
   team: TeamKey;
   member: LineupMember | undefined;
   goalkeeper: boolean;
   picked: boolean;
   target: boolean;
+  me: boolean;
 }) {
   if (member) {
     return (
       <span
         className={cn(
           // O anel creme diz "na mão"; o amarelo fica só para a vaga livre da vez
-          '-m-1.5 inline-flex rounded-full p-1.5',
+          'inline-flex rounded-full',
+          me ? '-m-2 p-2' : '-m-1.5 p-1.5',
           picked && 'shadow-[inset_0_0_0_3px_var(--color-text)]',
+          me && YOU_RING,
         )}
       >
         <Avatar

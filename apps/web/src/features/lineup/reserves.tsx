@@ -5,6 +5,7 @@ import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
 import { RESERVE_BOXES, type LineupMember, type TeamKey } from './lineup-draft';
 import { NoPresence } from './no-presence';
+import { YOU_RING, YouTag } from './you-tag';
 
 type ReservesProps = {
   team: TeamKey;
@@ -14,10 +15,12 @@ type ReservesProps = {
   pickedId?: string | null;
   /** Sem `onBox`, é só para olhar. */
   onBox?: (index: number) => void;
+  /** Quem está vendo (times publicados): ganha o anel forte e a etiqueta "Você". */
+  meId?: string;
 };
 
 /** As caixas de reserva do time, embaixo do campo. Publicado, só aparecem as ocupadas. */
-export function Reserves({ team, reserves, members, pickedId = null, onBox }: ReservesProps) {
+export function Reserves({ team, reserves, members, pickedId = null, onBox, meId }: ReservesProps) {
   const boxes = onBox ? RESERVE_BOXES : reserves.length;
   if (boxes === 0) return null;
   return (
@@ -32,17 +35,21 @@ export function Reserves({ team, reserves, members, pickedId = null, onBox }: Re
         {Array.from({ length: boxes }, (_, i) => {
           const id = reserves[i];
           const member = id ? members.get(id) : undefined;
+          const me = id !== undefined && id === meId;
           const selected = id !== undefined && id === pickedId;
           const content = member ? (
             <>
-              <Avatar
-                nickname={member.nickname}
-                team={team === 'WHITE' ? 'white' : 'black'}
-                size={32}
-                gap="surface"
-              />
+              <span className={cn('inline-flex rounded-full', me && `-m-2 p-2 ${YOU_RING}`)}>
+                <Avatar
+                  nickname={member.nickname}
+                  team={team === 'WHITE' ? 'white' : 'black'}
+                  size={32}
+                  gap="surface"
+                />
+              </span>
               <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
                 <PixelText>{member.nickname}</PixelText>
+                {me && <YouTag />}
                 {!member.confirmed && <NoPresence />}
               </span>
             </>
@@ -58,11 +65,12 @@ export function Reserves({ team, reserves, members, pickedId = null, onBox }: Re
             </>
           );
           const className = cn(
-            'flex min-h-14 w-full items-center gap-2 bg-surface px-2 py-1.5 text-left',
+            'flex min-h-14 w-full items-center bg-surface py-1.5 text-left',
+            me ? 'gap-3 pr-2 pl-4' : 'gap-2 px-2',
             selected ? 'bg-surface-3 shadow-[inset_0_0_0_3px_var(--color-text)]' : 'shadow-card',
           );
           const name = member
-            ? `Reserva: ${member.nickname}${member.confirmed ? '' : ', sem presença'}`
+            ? `Reserva: ${member.nickname}${me ? ' (você)' : ''}${member.confirmed ? '' : ', sem presença'}`
             : 'Reserva: vaga livre';
           return (
             <li key={i}>
