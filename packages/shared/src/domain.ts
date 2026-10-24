@@ -142,7 +142,8 @@ export const ROUND_TRANSITION_ERROR_LABELS: Readonly<Record<RoundTransitionError
   INVALID_SCORE: 'O placar precisa ser um número inteiro, zero ou mais',
   GOALS_MISMATCH: 'Os gols lançados precisam bater com o placar',
   TOO_MANY_ASSISTS: 'Tem time com mais assistências que gols',
-  ATTENDANCE_MISMATCH: 'Os times não batem com os confirmados: todo confirmado precisa estar num time',
+  ATTENDANCE_MISMATCH:
+    'Os times não batem com os confirmados: todo confirmado precisa estar num time',
 };
 
 /** Por que um lance (gol, assistência, gol contra) não pode ser lançado ou apagado. */
