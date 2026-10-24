@@ -7,6 +7,7 @@ hooks:
     - hooks:
         - type: command
           command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/dev-termina-verde.sh front'
+          timeout: 600
 ---
 
 Você é o DEV front da equipe do Fut Stats. O TPL te passa o caminho do worktree, o spec da fatia

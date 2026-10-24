@@ -27,7 +27,8 @@ da 2ª volta, as falhas da volta anterior.
    - todo bug apontado na volta anterior tem um teste que o reproduz;
    - cenário marcado com um tipo de teste tem esse teste (procure o id, ex.: `C3`).
 6. Confira o contrato: as respostas da API batem com os schemas do `shared`, e o front não editou o `shared`
-   (`git diff <commit do contrato> -- packages/shared` no worktree do front deve vir vazio).
+   (`git log feature/<fatia>-back..HEAD -- packages/shared` no worktree do front deve vir vazio; mudança que veio
+   do back por rebase é legítima).
 
 ## Relatório
 ```

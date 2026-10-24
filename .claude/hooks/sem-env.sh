@@ -15,8 +15,17 @@ case $(field .tool_name) in
     ;;
   Bash)
     cmd=$(field .tool_input.command)
+    # Busca recursiva que ignora o .gitignore lê o .env sem citar o nome.
+    busca="$motivo Para buscar no código, use a ferramenta Grep (respeita o .gitignore) ou grep -r com --include=<padrão>."
+    if printf '%s' "$cmd" | grep -Eq '(^|[^A-Za-z0-9_-])grep[[:space:]]([^|;&]*[[:space:]])?(-[A-Za-z]*[rR][A-Za-z]*|--recursive|--dereference-recursive)([[:space:]]|$)' &&
+      ! printf '%s' "$cmd" | grep -q -- '--include'; then
+      deny "$busca"
+    fi
+    printf '%s' "$cmd" | grep -Eq '(^|[^A-Za-z0-9_-])rg[[:space:]]([^|;&]*[[:space:]])?(-[A-Za-z]*u[A-Za-z]*|--no-ignore[A-Za-z-]*|--hidden)([[:space:]]|$)' &&
+      deny "$busca"
+
     sem_example=$(printf '%s' "$cmd" | sed 's/\.env\.example//g')
-    printf '%s' "$sem_example" | grep -Eq '(^|[^A-Za-z0-9_])\.env(\.[A-Za-z0-9_-]+)?([^A-Za-z0-9_.-]|$)' || exit 0
+    printf '%s' "$sem_example" | grep -Eq '(^|[^A-Za-z0-9_])\.env([.-][A-Za-z0-9_-]+)*([^A-Za-z0-9_.-]|$)' || exit 0
     # Exceção: um cp ou ln -s sozinho, sem pipe, redirecionamento, encadeamento ou /dev.
     if printf '%s' "$cmd" | grep -Eq '^[[:space:]]*(cp|ln[[:space:]]+-s)[[:space:]]' &&
       ! printf '%s' "$cmd" | grep -q '[|<>;&`$]' &&

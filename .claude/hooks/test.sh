@@ -61,6 +61,20 @@ expect sem-env 2 "$(bash_cmd 'cp a/.env b/.env && cat b/.env')" "cp encadeado co
 expect sem-env 2 "$(bash_cmd 'cp a/.env /dev/stdout')" "cp para a saída"
 expect sem-env 2 "$(bash_cmd 'cp a/.env b/.env; cat b/.env')" "cp seguido de cat"
 
+# revisão final: buscas recursivas e nomes de várias partes
+expect sem-env 2 "$(bash_cmd 'grep -rn DATABASE_URL apps/api')" "grep -r sem --include lê o .env"
+expect sem-env 2 "$(bash_cmd 'grep -Rl X .')" "grep -R"
+expect sem-env 2 "$(bash_cmd 'grep --recursive X apps')" "grep --recursive"
+expect sem-env 0 "$(bash_cmd 'grep -rn X apps --include=*.ts')" "grep -r com --include"
+expect sem-env 0 "$(bash_cmd 'grep -n X apps/api/src/main.ts')" "grep num arquivo"
+expect sem-env 0 "$(bash_cmd 'git grep -n X')" "git grep (só arquivos versionados)"
+expect sem-env 2 "$(bash_cmd 'rg --no-ignore X')" "rg --no-ignore"
+expect sem-env 2 "$(bash_cmd 'rg -uu X')" "rg -uu"
+expect sem-env 2 "$(bash_cmd 'rg --hidden X')" "rg --hidden"
+expect sem-env 0 "$(bash_cmd 'rg -n X apps')" "rg normal respeita o .gitignore"
+expect sem-env 2 "$(bash_cmd 'cat apps/web/.env.development.local')" ".env de várias partes"
+expect sem-env 2 "$(bash_cmd 'cat apps/api/.env-backup')" ".env-backup"
+
 # --- sem-merge
 FEAT=$(repo_on feature/x)
 DEV=$(repo_on develop)
@@ -72,6 +86,14 @@ expect sem-merge 2 "$(bash_cmd 'git push origin develop')" "push para develop"
 expect sem-merge 2 "$(bash_cmd 'git push origin HEAD:main')" "push HEAD:main"
 expect sem-merge 0 "$(bash_cmd 'git push -u origin feature/x')" "push da feature"
 expect sem-merge 0 "$(bash_cmd 'git fetch origin develop && git rebase origin/develop')" "rebase na develop"
+
+# revisão final: merge-base e push sem nome de branch
+expect sem-merge 0 "$(bash_cmd 'git merge-base --is-ancestor origin/feature/a origin/develop' "$DEV")" "merge-base na develop"
+expect sem-merge 2 "$(bash_cmd 'git push' "$DEV")" "push sem argumentos estando na develop"
+expect sem-merge 2 "$(bash_cmd 'git push origin HEAD' "$DEV")" "push HEAD estando na develop"
+expect sem-merge 2 "$(bash_cmd 'git push origin HEAD:refs/heads/main')" "push para refs/heads/main"
+expect sem-merge 2 "$(bash_cmd 'git push origin +develop')" "push forçado +develop"
+expect sem-merge 0 "$(bash_cmd 'git push' "$FEAT")" "push sem argumentos na feature"
 
 # --- commit-sem-ia
 expect commit-sem-ia 2 "$(bash_cmd 'git commit -m "feat: x
@@ -156,6 +178,23 @@ dev_case "verde zera o contador" "(1/3)" back false
 dev_case "motivo traz a saída do comando" "saida-do-check" back 'echo saida-do-check; false'
 dev_case "roda no worktree -back, não no cwd do TPL" vazio back 'test "$(basename "$PWD")" = wt-back'
 dev_case "sem worktree -front, roda no cwd" vazio front "test \"\$(pwd -P)\" = \"$(cd "$TPL" && pwd -P)\""
+
+# --- configuração dos agentes (revisão final)
+AGENTS_DIR="$HOOKS/../agents"
+for a in dev-back dev-front; do
+  # O check real (lint + typecheck + jest com Postgres) passa do timeout padrão de hook.
+  if grep -Eq '^[[:space:]]+timeout: (6[0-9]{2}|[7-9][0-9]{2}|[0-9]{4,})$' "$AGENTS_DIR/$a.md"; then
+    echo "ok      $a: hook com timeout >= 600s"
+  else
+    echo "FALHOU  $a: hook sem timeout >= 600s" && falhas=$((falhas + 1))
+  fi
+done
+# Depois de um fix(shared) legítimo, o diff contra o SHA do contrato não vem vazio: o QA olha os commits do front.
+if grep -q 'git log feature/<fatia>-back..HEAD -- packages/shared' "$AGENTS_DIR/qa.md"; then
+  echo "ok      qa: confere o shared pelos commits do front"
+else
+  echo "FALHOU  qa: checagem do shared ainda pelo diff contra o SHA do contrato" && falhas=$((falhas + 1))
+fi
 
 # --- falha aberta
 for h in front-sem-shared sem-env sem-merge commit-sem-ia prettier statusline notifica; do
