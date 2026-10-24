@@ -33,6 +33,7 @@ export const ROUND_TRANSITION_ERRORS = [
   'INVALID_SCORE',
   'GOALS_MISMATCH',
   'TOO_MANY_ASSISTS',
+  'ATTENDANCE_MISMATCH',
 ] as const;
 
 export type RoundTransitionError = (typeof ROUND_TRANSITION_ERRORS)[number];
