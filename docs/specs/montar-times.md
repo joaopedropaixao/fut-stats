@@ -180,12 +180,12 @@ grava na ordem enviada, dentro de uma transação que apaga e recria o rascunho)
 - O `PUT` aceita quem já está no rascunho salvo mesmo que tenha desconfirmado (não trava salvar outras trocas); o
   publicar barra.
 - `permissions` vêm da API, como no detalhe da rodada: o front não repete a regra de status.
-- Sem o card "Equilíbrio" (notas) e sem "Sugerir times": ficam para `seletor-de-times` (#5).
-- O roadmap "Admin: montar Branco x Preto manualmente e lançar o placar" só fecha com `placar-e-lances` (#2).
+- Sem o card "Equilíbrio" (notas) e sem "Sugerir times": ficam para `seletor-de-times` (#2).
+- O roadmap "Admin: montar Branco x Preto manualmente e lançar o placar" só fecha com `placar-e-lances` (#3).
 
 ## Fora do escopo
-- Gerar times (`balanceTeams`), card de equilíbrio, regerar (#5).
-- Começar o jogo, placar e lances (#2). Aqui só o domínio passa a exigir confirmados = escalados para `IN_PROGRESS`.
+- Gerar times (`balanceTeams`), card de equilíbrio, regerar (#2, `seletor-de-times`).
+- Começar o jogo, placar e lances (#3). Aqui só o domínio passa a exigir confirmados = escalados para `IN_PROGRESS`.
 - Arrastar com o dedo.
 - Dois admins editando ao mesmo tempo (o último `PUT` vence).
 
@@ -194,6 +194,25 @@ grava na ordem enviada, dentro de uma transação que apaga e recria o rascunho)
 - Arrastar ou tocar? → Só tocar e tocar.
 - Presença mudou depois de publicar? → Os times ficam como estão e o jogo trava até o admin corrigir.
 - Reserva tem posição? → Sim, grava a principal (kickoff).
+
+## Volta 2: times publicados com cara de jogo
+
+Pedido do dono depois de testar (24 out 2026): o selo "VOCÊ ESTÁ NO BRANCO" virou só uma caixa branca, e a aba
+Times ficou simples. Só front, sem mudar o contrato. Segue a folha (`Momento/VS`, `Regras dos momentos`, `Times`,
+`Selo/Branco`/`Selo/Preto`) e o `DESIGN.md` (grandes momentos, um amarelo por tela, cor nunca é o único sinal).
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C41 | times publicados, primeira vez que quem vê abre a aba Times nesta rodada | abre `/times` | toca o **VS** da folha: entrada (jogadores entram um a um, 0–0,6 s), choque (VS bate, tela pisca e treme, 0,6–0,9 s), quadro final; até 2 s no total, pixel em degraus, sem som, com "Pular" (≥ 44px). Na segunda vez nesta rodada, vai direto ao quadro final (lembrado por rodada no navegador; sem armazenamento, toca de novo e nada quebra) | Playwright |
+| C42 | "reduzir movimento" ligado | abre `/times` | sem animação: o quadro final aparece com um fade | Playwright (`emulateMedia`) |
+| C43 | quadro final | olhar o topo da aba | card Branco x Preto com o corte diagonal da folha (`Times`), os dois nomes e a palavra VS (`--color-game`), com o número de jogadores de cada time; os dois times ficam acessíveis pelo seletor como hoje | Playwright |
+| C44 | quem vê está escalado | olhar a aba | no lugar da caixa branca, uma faixa do time: "VOCÊ JOGA NO BRANCO" com a posição por extenso (ou "RESERVA") e o selo do time; texto e forma, não só cor | Playwright |
+| C45 | quem vê está escalado | olhar o campo ou as reservas do time dele | o próprio avatar tem destaque (anel mais forte) e a etiqueta "VOCÊ" sob o nome; os outros ficam como estão | Playwright |
+| C46 | quem vê não está escalado (admin que não joga, ou desconfirmado) | abre `/times` | VS e quadro final normais, sem faixa "VOCÊ" e sem etiqueta no campo | Playwright |
+| C47 | leitor de tela | abre `/times` | a animação é decorativa (`aria-hidden`); o quadro anuncia "Times publicados: Branco x Preto" e o time de quem vê; foco vai ao conteúdo depois do VS ou do Pular; console sem erros | Playwright |
+
+Regras: um amarelo por tela continua (o VS usa `--color-game`, exceção aprovada); a tela de montar do admin não muda.
+Sem dependência nova (CSS `steps()` e SVG pixel, como a folha).
 
 ## QA
 **1 volta, `VEREDITO: APROVADO`** (24 out 2026). Lint, typecheck, testes (domínio 281, API 166 de integração,
@@ -213,5 +232,5 @@ inativo; tela no Playwright a 390px como admin e como jogador, console sem erros
 | C36–C40 | OK | Playwright: "VOCÊ ESTÁ NO PRETO", vazio do jogador e do admin, redirecionamento, carregando, erro com "Tentar de novo", rodada não encontrada |
 
 Pontos menores, sem reprovar: comentários do C15 e do seed (corrigidos depois do QA); `SLOTS` e
-`RESERVE_BOXES` repetidos no web (desenho; quem garante é a API, rever no #5); "SEM PRESENÇA" de um zagueiro
+`RESERVE_BOXES` repetidos no web (desenho; quem garante é a API, rever no `seletor-de-times`); "SEM PRESENÇA" de um zagueiro
 fica apertado perto da área no campo publicado; `/dev/entrar` com chave duplicada (fora da fatia).

@@ -32,11 +32,11 @@ depois que você a valida no navegador. As telas seguem o `DESIGN.md` e as telas
 | # | Fatia | Modo | Parte de | Entrega |
 |---|---|---|---|---|
 | 0 | `massa-de-dados` | Back | `prisma/seed.ts` | Rodadas passadas com times, placar e lances (inclusive gol contra) para validar as telas |
-| 1 ✅ | `montar-times` | Par | PR #33 (fechar) | Admin monta Branco x Preto, arrasta entre times e publica |
-| 2 | `placar-e-lances` | Par | PR #32 (fechar) | Placar, gols, assistências e gol contra; jogador lança os próprios, admin de todos |
-| 3 | `historico` | Par | PR #31 (fechar) | Lista de rodadas e detalhe da partida |
-| 4 | `perfil-jogador` | Par | — | Editar perfil; admin define nota inicial, goleiro contratado e ativo/inativo. **Fecha a Fase 1 no ar** |
-| 5 | `seletor-de-times` | Par | `montar-times` | Gerar com `balanceTeams`, arrastar, regerar e publicar |
+| 1 ✅ | `montar-times` | Par | PR #33 (fechar) | Admin monta Branco x Preto tocando no jogador e na vaga, e publica |
+| 2 | `seletor-de-times` | Par | `montar-times` | Gerar com `balanceTeams`, ajustar tocando, regerar e publicar. Subiu para depois de `montar-times` (24 out 2026): ajuda a testar as telas seguintes |
+| 3 | `placar-e-lances` | Par | PR #32 (fechar) | Placar, gols, assistências e gol contra; jogador lança os próprios, admin de todos |
+| 4 | `historico` | Par | PR #31 (fechar) | Lista de rodadas e detalhe da partida |
+| 5 | `perfil-jogador` | Par | — | Editar perfil; admin define nota inicial, goleiro contratado e ativo/inativo. **Fecha a Fase 1 no ar** |
 | 6 | `votacao` | Par | — | Tabelas do voto, abrir/fechar a votação, tela "Dê sua nota", Craque / Perna de Pau |
 | 7 | `ranking` | Par | `votacao` | Ranking geral e por posição, perfil com stats |
 | 8 | `feed` | Par | — | Resenhas do admin, reações, comentários e cards de alerta |
