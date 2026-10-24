@@ -1,4 +1,4 @@
-# Design system v1.3: regras para construir as telas
+# Design system v1.4: regras para construir as telas
 
 Este é o documento que o front segue. As peças aparecem desenhadas na folha
 [`folha/design-system-v1.3.html`](folha/design-system-v1.3.html), gerada por `python3 folha/build.py`, e os
@@ -43,7 +43,7 @@ A seção "Daltonismo" da folha tem a simulação.
 |---|---|
 | **Silkscreen** (pixel) | Toda a interface: títulos, botões, abas, selos, rótulos curtos, nomes de jogador, capa. Só caixa alta e **só em 16, 24 ou 32px** (a grade dela é de 8px; fora disso borra). |
 | **Dígitos pixel próprios** (SVG, grade 6×9, traço de 2px) | Todo número: nota, posição, placar, contagens, datas. Altura = 9 × escala inteira. O 4 é aberto, o 0 tem risco, o 2 tem topo curvo (não é Z) e a vírgula tem rabicho. |
-| **Inter** | Texto corrido (mais de uma linha), mensagens de erro, explicações e o texto digitado nos campos. Mínimo 13px, entrelinha ≥ 1,4. |
+| **Chakra Petch** | Texto corrido (mais de uma linha), mensagens de erro, explicações e o texto digitado nos campos. Mínimo 13px, entrelinha ≥ 1,4. Cantos quadrados, cara de placar eletrônico: conversa com o canto reto e a Silkscreen sem virar pixel. Pesos 400, 500 e 600. Trocou a Inter na v1.4 (decisão do dono, 23 out 2026). |
 
 - **Em pixel não se abrevia:** "RODADA 12", não "R12"; posição por extenso (Goleiro, Zagueiro, Ala, Meia, Atacante).
   Data e hora são exceção ("SÁB, 24 OUT · 9H").

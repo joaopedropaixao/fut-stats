@@ -1,6 +1,6 @@
 # Design
 
-O design system atual é a **v1.3**:
+O design system atual é a **v1.4** (a v1.3 com a **Chakra Petch** no lugar da Inter no texto corrido):
 - Regras para construir as telas: [DESIGN.md](DESIGN.md).
 - Valores (base do tema do Tailwind): [tokens.css](tokens.css).
 - Folha com todas as peças desenhadas: [folha/design-system-v1.3.html](folha/design-system-v1.3.html). Abra no

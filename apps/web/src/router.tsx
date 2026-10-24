@@ -2,17 +2,22 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import { AppShell } from './app/shell';
 import { TABS } from './app/tabs';
 import { PlaceholderPage } from './pages/placeholder';
+import { profileRoute, startRoutes } from './pages/entrar-e-grupo/routes';
 import { SignInPage } from './pages/sign-in';
 
 export const router = createBrowserRouter([
   {
     element: <AppShell />,
-    children: TABS.map((tab) =>
-      tab.to === '/'
-        ? { index: true, element: <PlaceholderPage title={tab.label} /> }
-        : { path: tab.to, element: <PlaceholderPage title={tab.label} /> },
-    ),
+    children: [
+      ...TABS.filter((tab) => tab.to !== '/perfil').map((tab) =>
+        tab.to === '/'
+          ? { index: true, element: <PlaceholderPage title={tab.label} /> }
+          : { path: tab.to, element: <PlaceholderPage title={tab.label} /> },
+      ),
+      profileRoute,
+    ],
   },
+  ...startRoutes,
   { path: '/entrar', element: <SignInPage /> },
   // Vitrine dos componentes de base, para comparar com a folha do DS (docs/design/folha).
   // Só em dev: o build de produção nem inclui o código dela.

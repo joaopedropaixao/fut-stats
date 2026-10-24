@@ -1,4 +1,6 @@
-import '@fontsource-variable/inter/wght.css';
+import '@fontsource/chakra-petch/latin-400.css';
+import '@fontsource/chakra-petch/latin-500.css';
+import '@fontsource/chakra-petch/latin-600.css';
 import '@fontsource/silkscreen/latin-700.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';

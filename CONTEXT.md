@@ -433,6 +433,13 @@ Sai no `roundSummarySchema` (`number`).
 - `POST /api/invites/:code/join` `{ nickname, primaryPosition }`: entra como `PLAYER`, nota 6 → 201. Já é membro
   ativo → 200 com o grupo, sem duplicar nem mudar os dados. Inativo → 409 `{ code: 'MEMBERSHIP_INACTIVE', message }`.
 
+**No app** (`apps/web`, telas `entrar-e-grupo`): `/entrar`, `/comecar`, `/convite/:code` e `/perfil` (aba Perfil, versão mínima).
+- Quem está logado e sem grupo é mandado para `/comecar` (criar a pelada ou colar link/código de convite).
+- Convite deslogado: o destino `/convite/:code` fica em `sessionStorage` antes do Google e é retomado na volta.
+- Depois de criar/entrar: sessão invalidada, `setCurrentGroupId` e vai para `/`.
+- Perfil: nome e foto do Google, peladas do usuário (troca do grupo atual), e, só para admin, link de convite
+  (Copiar, WhatsApp, "Gerar novo link" com confirmação). Sair chama o logout.
+
 **Não faz:** editar perfil (foto, secundárias, nota, goleiro contratado, ativo/inativo: `feature/perfil-jogador`);
 aprovar entrada (grupo de confiança: tem o link, entra); sair do grupo.
 **Evite:** tratar a nota 6 como média medida; reativar membro pelo convite; mostrar membros na prévia pública;

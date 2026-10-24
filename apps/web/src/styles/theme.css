@@ -47,7 +47,7 @@
 
   /* Fontes servidas pelo app (src/styles/fonts.css) */
   --font-pixel: 'Silkscreen', ui-monospace, monospace;
-  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Chakra Petch', system-ui, sans-serif;
 
   /* Silkscreen só em 16, 24 ou 32px (grade de 8px); entrelinha = tamanho + 4, como na folha */
   --text-pixel-sm: 16px;
@@ -57,7 +57,7 @@
   --text-pixel-lg: 32px;
   --text-pixel-lg--line-height: 36px;
 
-  /* Texto corrido (Inter): mínimo 13px, entrelinha >= 1,4 */
+  /* Texto corrido (Chakra Petch): mínimo 13px, entrelinha >= 1,4 */
   --text-caption: 13px;
   --text-caption--line-height: 18px;
   --text-sm: 14px;

@@ -1,6 +1,6 @@
-import { meResponseSchema } from '@fut-stats/shared';
+import { invitePreviewSchema, meResponseSchema } from '@fut-stats/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiContractError, ApiError, apiGet } from './api';
+import { ApiContractError, ApiError, apiGet, apiPost, apiPostNoContent } from './api';
 
 const me = {
   user: { id: 'u1', name: 'Ronaldo', email: 'ro@exemplo.com', avatarUrl: null },
@@ -42,5 +42,38 @@ describe('apiGet', () => {
     const err = await apiGet('/me', meResponseSchema).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiContractError);
     expect((err as ApiContractError).issues.length).toBeGreaterThan(0);
+  });
+});
+
+describe('apiPost', () => {
+  const preview = { groupName: 'Pelada', memberCount: 3 };
+
+  it('manda o corpo em JSON e valida a resposta', async () => {
+    const fetchMock = mockFetch(201, preview);
+
+    await expect(apiPost('/x', invitePreviewSchema, { a: 1 })).resolves.toEqual(preview);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/x',
+      expect.objectContaining({ method: 'POST', body: '{"a":1}' }),
+    );
+  });
+
+  it('guarda o { code, message } do erro no ApiError', async () => {
+    mockFetch(409, { code: 'MEMBERSHIP_INACTIVE', message: 'Fale com o admin' });
+
+    const err = await apiPost('/x', invitePreviewSchema, {}).catch((e: unknown) => e);
+    expect((err as ApiError).status).toBe(409);
+    expect((err as ApiError).body).toEqual({
+      code: 'MEMBERSHIP_INACTIVE',
+      message: 'Fale com o admin',
+    });
+  });
+
+  it('aceita resposta sem corpo (204)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 204 })),
+    );
+    await expect(apiPostNoContent('/auth/logout')).resolves.toBeUndefined();
   });
 });

@@ -159,6 +159,7 @@ export function ComponentsShowcasePage() {
           <Badge variant="black" label="Preto" />
           <Badge variant="craque" label="Craque" />
           <Badge variant="flop" label="Perna de Pau" />
+          <Badge variant="admin" label="Admin" />
           <Badge label="Zagueiro" />
           <Badge variant="deadline" label="Fecha em 2h" />
         </div>

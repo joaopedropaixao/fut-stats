@@ -50,17 +50,17 @@
   --color-shadow: #000000; /* sombra dura do que flutua e da tecla */
   --color-shadow-night: #2a332d; /* no Noite o preto some no fundo: a sombra vira cinza-escuro */
 
-  /* Fontes: pixel na interface, Inter no texto corrido e nos campos.
+  /* Fontes: pixel na interface, Chakra Petch no texto corrido e nos campos.
      Números de jogador usam os dígitos pixel próprios (SVG, grade 6x9), não uma fonte. */
   --font-pixel: 'Silkscreen', ui-monospace, monospace;
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Chakra Petch', system-ui, sans-serif;
 
   /* Tamanhos permitidos da Silkscreen (grade de 8px) */
   --text-pixel-sm: 16px;
   --text-pixel-md: 24px;
   --text-pixel-lg: 32px;
 
-  /* Escala do texto corrido (Inter) */
+  /* Escala do texto corrido (Chakra Petch) */
   --text-caption: 13px;
   --text-sm: 14px;
   --text-base: 16px;

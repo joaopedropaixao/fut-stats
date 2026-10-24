@@ -30,6 +30,42 @@
   }
 }
 
+/* Logo da capa: cai do alto em degraus (pixel art anda em degraus, sem suavizar). */
+@keyframes logo-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-48px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-logo-drop {
+  animation: logo-drop 360ms steps(6, end) both;
+}
+
+/* Bola da capa: entra correndo pela esquerda (no sentido do rastro) depois do logo e freia no ponto. */
+@keyframes ball-in {
+  0% {
+    transform: translateX(-360px);
+  }
+  80% {
+    transform: translateX(10px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@utility animate-ball-in {
+  animation: ball-in 700ms steps(14, end) 450ms both;
+}
+
 /* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */
 @media (prefers-reduced-motion: reduce) {
   *,

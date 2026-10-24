@@ -20,6 +20,12 @@ const PATHS = {
   ),
   trash: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
   share: <path d="M12 3v12M7 8l5-5 5 5M5 14v5h14v-5" />,
+  copy: (
+    <>
+      <rect x="8" y="8" width="12" height="12" />
+      <path d="M16 8V4H4v12h4" />
+    </>
+  ),
   clock: (
     <>
       <circle cx="12" cy="13" r="8" />
@@ -40,21 +46,8 @@ const PATHS = {
   ),
   // Abas
   feed: <path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" />,
-  teams: (
-    <>
-      <rect x="3" y="4" width="18" height="16" />
-      <path d="M12 4v16" />
-      <circle cx="12" cy="12" r="3" />
-    </>
-  ),
   ranking: (
     <path d="M8 4h8v5a4 4 0 0 1-8 0zM12 13v4M8 20h8M8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3" />
-  ),
-  calendar: (
-    <>
-      <rect x="4" y="5" width="16" height="15" />
-      <path d="M4 10h16M9 3v4M15 3v4" />
-    </>
   ),
   profile: (
     <>
@@ -64,7 +57,65 @@ const PATHS = {
   ),
 } satisfies Record<string, ReactNode>;
 
-export type IconName = keyof typeof PATHS;
+/**
+ * Ícones em pixel art (grade 12x12, pixel de 2 no viewBox 24 = o mesmo peso do traço de 2).
+ * `#` sempre aceso; `H` só aceso quando o ícone está preenchido (aba ativa).
+ */
+const PIXELS = {
+  // Aba Times: o VS dos grandes momentos, gordinho; a sombra dura sai sozinha (ver PIXEL_SHADOW)
+  teams: [
+    '............',
+    '............',
+    '##.##.####..',
+    '##.##.##....',
+    '##.##.##....',
+    '##.##..###..',
+    '.###.....##.',
+    '.###.....##.',
+    '..#..####...',
+    '............',
+    '............',
+    '............',
+  ],
+  // Aba Histórico: folhinha de parede com argolas e a ponta dobrada
+  calendar: [
+    '...#....#...',
+    '.##########.',
+    '.#HHHHHHHH#.',
+    '.##########.',
+    '.#........#.',
+    '.#.#.#.#..#.',
+    '.#........#.',
+    '.#.#.#.#..#.',
+    '.#........#.',
+    '.#.......#..',
+    '.########...',
+    '............',
+  ],
+} satisfies Record<string, readonly string[]>;
+
+/** Ícones que ganham a sombra dura de 1 pixel para baixo e para a direita (como o VS da folha). */
+const PIXEL_SHADOW: ReadonlySet<string> = new Set(['teams']);
+
+function isLit(rows: readonly string[], x: number, y: number, filled: boolean): boolean {
+  const c = rows[y]?.[x];
+  return c === '#' || (filled && c === 'H');
+}
+
+function pixelPath(rows: readonly string[], filled: boolean, shadow = false): string {
+  return rows
+    .flatMap((row, y) =>
+      [...row].map((_, x) => {
+        const on = shadow
+          ? !isLit(rows, x, y, filled) && isLit(rows, x - 1, y - 1, filled)
+          : isLit(rows, x, y, filled);
+        return on ? `M${x * 2} ${y * 2}h2v2h-2z` : '';
+      }),
+    )
+    .join('');
+}
+
+export type IconName = keyof typeof PATHS | keyof typeof PIXELS;
 
 type IconProps = Omit<SVGProps<SVGSVGElement>, 'name'> & {
   name: IconName;
@@ -76,6 +127,31 @@ type IconProps = Omit<SVGProps<SVGSVGElement>, 'name'> & {
 
 /** Ícone decorativo: quem dá o nome para leitor de tela é o botão ou o texto ao lado. */
 export function Icon({ name, size = 20, strokeWidth = 2, filled, ...rest }: IconProps) {
+  if (name in PIXELS) {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        shapeRendering="crispEdges"
+        aria-hidden
+        className="shrink-0"
+        {...rest}
+      >
+        {PIXEL_SHADOW.has(name) && (
+          <path
+            d={pixelPath(PIXELS[name as keyof typeof PIXELS], Boolean(filled), true)}
+            fill="currentColor"
+            opacity={0.35}
+          />
+        )}
+        <path
+          d={pixelPath(PIXELS[name as keyof typeof PIXELS], Boolean(filled))}
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
   return (
     <svg
       width={size}
@@ -90,7 +166,7 @@ export function Icon({ name, size = 20, strokeWidth = 2, filled, ...rest }: Icon
       className="shrink-0"
       {...rest}
     >
-      {PATHS[name]}
+      {PATHS[name as keyof typeof PATHS]}
     </svg>
   );
 }

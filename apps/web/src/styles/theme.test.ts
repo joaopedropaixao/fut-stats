@@ -46,11 +46,6 @@ describe('tema do Tailwind x docs/design/tokens.css', () => {
       expect(theme.base.get('--spacing')).toBe('4px');
       return;
     }
-    // A fonte do Inter é servida como "Inter Variable" (fontsource), com "Inter" de reserva
-    if (name === '--font-sans') {
-      expect(theme.base.get(name)).toContain("'inter'");
-      return;
-    }
     expect(theme.base.get(name)).toBe(value);
   });
 

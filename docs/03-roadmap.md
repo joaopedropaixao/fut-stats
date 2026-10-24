@@ -112,5 +112,5 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 
 ## Futuro
 - Notificações via WhatsApp
-- Segundo grupo (sua outra pelada)
+- Segundo grupo (sua outra pelada), com "Criar outra pelada" para quem já está num grupo
 - App nativo (Expo), se o PWA não bastar
