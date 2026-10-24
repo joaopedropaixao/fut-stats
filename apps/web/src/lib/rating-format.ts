@@ -1,4 +1,4 @@
-/** Nota no formato do app, com vírgula e sem casa à toa: 7.5 → "7,5", 8 → "8" (vira dígito pixel na tela). */
+/** Nota no formato do app: sempre uma casa, com vírgula (7.5 → "7,5", 8 → "8,0"). Vira dígito pixel na tela. */
 export function formatRating(rating: number): string {
-  return String(Math.round(rating * 10) / 10).replace('.', ',');
+  return rating.toFixed(1).replace('.', ',');
 }

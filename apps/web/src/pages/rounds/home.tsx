@@ -1,5 +1,6 @@
 import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states';
 import { Badge } from '../../components/ui/badge';
+import { Icon } from '../../components/ui/icons';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
@@ -133,9 +134,13 @@ function NextRound({
                       label={`Nota ${formatRating(m.rating)}`}
                       className={m.rank === 1 ? 'text-gold' : 'text-text'}
                     />
-                    <PixelText className="text-text-muted" aria-label={`${m.rank}º no ranking`}>
-                      {`#${m.rank}`}
-                    </PixelText>
+                    <span
+                      className="flex items-center gap-1 text-text-muted"
+                      aria-label={`${m.rank}º no ranking`}
+                    >
+                      <Icon name="ranking" size={16} />
+                      <PixelText>{String(m.rank)}</PixelText>
+                    </span>
                   </div>
                 </li>
               );
