@@ -6,11 +6,15 @@ import { VitePWA } from 'vite-plugin-pwa';
 // Cores do manifesto = fundo Gramado (--color-bg em docs/design/tokens.css)
 const THEME_COLOR = '#0d2717';
 
+// O .env fica na raiz do repositório, junto do da API.
+const ENV_DIR = '../..';
+
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, import.meta.dirname, '');
+  const env = loadEnv(mode, `${import.meta.dirname}/${ENV_DIR}`, '');
   const apiTarget = env.API_PROXY_TARGET || 'http://localhost:3000';
 
   return {
+    envDir: ENV_DIR,
     plugins: [
       react(),
       tailwindcss(),

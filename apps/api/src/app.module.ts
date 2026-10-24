@@ -10,7 +10,8 @@ import { RoundsModule } from './rounds/rounds.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    // O .env fica na raiz do repositório (a API roda a partir de apps/api).
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '../../.env', validate: validateEnv }),
     PrismaModule,
     AuthModule,
     GroupsModule,

@@ -1,8 +1,8 @@
 import { defineConfig } from 'prisma/config';
 
-// O Prisma 7 não lê o .env sozinho. Sem .env (CI, produção), vale o ambiente.
+// O Prisma 7 não lê o .env sozinho. Lê o da raiz do repositório; sem ele (CI, produção), vale o ambiente.
 try {
-  process.loadEnvFile();
+  process.loadEnvFile('../../.env');
 } catch {
   // sem .env
 }
