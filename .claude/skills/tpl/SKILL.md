@@ -38,9 +38,10 @@ Use `WT` = raiz deste worktree (`git rev-parse --show-toplevel`), `PAI` = `dirna
 2. No worktree `-back`, escreva os schemas do contrato em `packages/shared` (exatamente o spec) e faça o
    **primeiro commit: só o contrato**, `feat(shared): contrato de <fatia>`. Guarde o SHA.
 3. `git worktree add $PAI/<fatia>-front -b feature/<fatia>-front <sha>`
-4. Em cada worktree novo: `pnpm install` e copie o `.env` da raiz (é o único), **um `cp` por comando, sem encadear
-   e com os caminhos absolutos escritos por extenso, sem `$VAR`** (o hook bloqueia qualquer outra coisa), ex.:
-   `cp /Users/.../fut-stats/.env /Users/.../<fatia>-back/.env`. O mesmo para o `-front`.
+4. Em cada worktree novo: `pnpm install` e ligue o `.env` da raiz (é o único; não crie `.env` dentro de `apps/`),
+   **um `ln -s` por comando, sem encadear e com os caminhos absolutos escritos por extenso, sem `$VAR`** (o hook
+   bloqueia qualquer outra coisa), ex.: `ln -s /Users/.../fut-stats/.env /Users/.../<fatia>-back/.env`. O mesmo para
+   o `-front`.
 5. Lance `dev-back` e `dev-front` **na mesma mensagem** (em paralelo), cada um com: caminho absoluto do worktree,
    caminho do spec, os cenários dele, o SHA do contrato e as portas (API 3000, web 5173).
 
