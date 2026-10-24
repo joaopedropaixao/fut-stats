@@ -7,7 +7,7 @@
 | **Fatia** | `montar-times` (#1 da Trilha) |
 | **Modo** | Par |
 | **Parte de** | PR #33 (fechar), branch `origin/feature/tela-montar-times` |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-10-24 |
 
 ## Produto
 
