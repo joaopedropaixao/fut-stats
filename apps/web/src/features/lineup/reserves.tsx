@@ -28,7 +28,7 @@ export function Reserves({ team, reserves, members, pickedId = null, onBox }: Re
           <PixelText className="text-text-muted">{`${reserves.length} de ${RESERVE_BOXES}`}</PixelText>
         )}
       </div>
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className={cn('grid gap-3', onBox ? 'grid-cols-2' : 'grid-cols-1')}>
         {Array.from({ length: boxes }, (_, i) => {
           const id = reserves[i];
           const member = id ? members.get(id) : undefined;
@@ -41,7 +41,7 @@ export function Reserves({ team, reserves, members, pickedId = null, onBox }: Re
                 size={32}
                 gap="surface"
               />
-              <span className="flex min-w-0 flex-col items-start gap-1">
+              <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
                 <PixelText>{member.nickname}</PixelText>
                 {!member.confirmed && <NoPresence />}
               </span>
@@ -58,7 +58,7 @@ export function Reserves({ team, reserves, members, pickedId = null, onBox }: Re
             </>
           );
           const className = cn(
-            'flex min-h-14 w-full items-center gap-3 bg-surface px-3 py-1.5 text-left',
+            'flex min-h-14 w-full items-center gap-2 bg-surface px-2 py-1.5 text-left',
             selected ? 'bg-surface-3 shadow-[inset_0_0_0_3px_var(--color-text)]' : 'shadow-card',
           );
           const name = member

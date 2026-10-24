@@ -70,7 +70,9 @@ function Mismatch({ lineup }: { lineup: Lineup }) {
       </div>
       {lineup.unassigned.length > 0 && (
         <div className="flex flex-col gap-1">
-          <PixelText className="text-text-muted">Confirmaram e estão fora dos times</PixelText>
+          <PixelText wrap className="text-text-muted">
+            Confirmaram e estão fora dos times
+          </PixelText>
           <p className="text-sm">{lineup.unassigned.map((m) => m.nickname).join(', ')}</p>
         </div>
       )}
