@@ -6,11 +6,14 @@ import { PlaceholderPage } from './pages/placeholder';
 import { profileRoute, startRoutes } from './pages/entrar-e-grupo/routes';
 import { HomePage } from './pages/rounds/home';
 import { roundsRoutes } from './pages/rounds/routes';
+import { TeamsTabPage } from './pages/times/teams-tab-page';
+import { timesRoutes } from './pages/times/routes';
 import { SignInPage } from './pages/sign-in';
 
 /** Página de cada aba (pela rota da aba). Cada tela nova entra com uma linha aqui. */
 const TAB_PAGES: Partial<Record<string, RouteObject>> = {
   '/': { index: true, element: <HomePage /> },
+  '/times': { path: '/times', element: <TeamsTabPage /> },
   '/perfil': profileRoute,
 };
 
@@ -26,6 +29,7 @@ export const router = createBrowserRouter([
       // Cada aba aponta para a página dela; aba sem página ainda fica no placeholder.
       ...TABS.map((tab) => TAB_PAGES[tab.to] ?? placeholderRoute(tab)),
       ...roundsRoutes,
+      ...timesRoutes,
     ],
   },
   ...startRoutes,
