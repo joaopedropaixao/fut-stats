@@ -266,7 +266,7 @@ A callback é sempre `${APP_URL}/api/auth/google/callback`. Os endereços cadast
 > **Sem as duas chaves a API não sobe** (a validação do ambiente recusa). No Render, cole antes do deploy que
 > traz o login; se esquecer, o deploy falha e a versão antiga continua no ar.
 >
-> ID e secret **nunca** vão para o código, commit, PR ou chat. Só no painel do Render e no `apps/api/.env`.
+> ID e secret **nunca** vão para o código, commit, PR ou chat. Só no painel do Render e no `.env` da raiz.
 
 ### 6.1 Render (staging)
 
@@ -279,10 +279,10 @@ A callback é sempre `${APP_URL}/api/auth/google/callback`. Os endereços cadast
 4. **Save, rebuild, and deploy** (ou **Save changes** e depois **Manual Deploy → Deploy latest commit**).
 5. Espere o deploy ficar **Live** (aba **Events**).
 
-### 6.2 Local (`apps/api/.env`)
+### 6.2 Local (`.env` da raiz)
 
-1. Se ainda não tem: `cp apps/api/.env.example apps/api/.env`.
-2. Preencha no `apps/api/.env`:
+1. Se ainda não tem: `cp .env.example .env` (na raiz do repositório).
+2. Preencha no `.env`:
    ```
    GOOGLE_CLIENT_ID=<Client ID>
    GOOGLE_CLIENT_SECRET=<Client secret>

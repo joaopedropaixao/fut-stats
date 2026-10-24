@@ -24,8 +24,7 @@ Pré-requisitos: **Node 24** (veja `.nvmrc`), **pnpm** (via Corepack: `corepack 
 
 ```bash
 pnpm install                                # instala tudo (todas as apps e pacotes)
-cp apps/api/.env.example apps/api/.env      # variáveis da API
-cp apps/web/.env.example apps/web/.env      # variáveis do front
+cp .env.example .env                        # variáveis da API e do front (um .env só, na raiz)
 docker compose up -d                        # Postgres de dev (5432) e de testes (5433)
 pnpm --filter @fut-stats/api db:migrate     # cria as tabelas
 pnpm --filter @fut-stats/api db:seed        # dados fictícios (1 grupo, 21 membros, 8 rodadas + a atual)
