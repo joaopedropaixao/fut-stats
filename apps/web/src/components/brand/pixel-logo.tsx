@@ -5,19 +5,28 @@ import { logoWordArt, type LogoWordArt } from './logo-art';
 const FUT = logoWordArt('FUT');
 const STATS = logoWordArt('STATS');
 
-type Palette = { face: string; outline: string };
+/** Cores de cada camada de uma palavra: letra, contorno, profundidade e sombra dura. */
+type LogoColors = { face: string; outline: string; extrude: string; shadow: string };
 
-/** Uma palavra do logo, com a profundidade amarela de fliperama. `scale` é o tamanho do pixel (inteiro). */
+/** Letreiro amarelo de fliperama, como o VS da folha: letra amarela, contorno preto, profundidade branca. */
+const COLORS: LogoColors = {
+  face: 'var(--color-game)',
+  outline: '#000000',
+  extrude: 'var(--color-team-white)',
+  shadow: '#000000',
+};
+
+/** Uma palavra do logo. `scale` é o tamanho do pixel (inteiro). */
 function LogoWord({
   art,
   scale,
-  palette,
+  colors,
   className,
   style,
 }: {
   art: LogoWordArt;
   scale: number;
-  palette: Palette;
+  colors: LogoColors;
   className?: string;
   style?: CSSProperties;
 }) {
@@ -31,32 +40,27 @@ function LogoWord({
       className={cn('block', className)}
       style={style}
     >
-      <path d={art.shadow} fill="#000000" />
-      <path d={art.outline} fill={palette.outline} />
-      <path d={art.extrude} fill="var(--color-game)" />
-      <path d={art.face} fill={palette.face} />
+      <path d={art.shadow} fill={colors.shadow} />
+      <path d={art.outline} fill={colors.outline} />
+      <path d={art.extrude} fill={colors.extrude} />
+      <path d={art.face} fill={colors.face} />
     </svg>
   );
 }
 
 /**
- * Logo "FUT STATS" (grande momento da capa): letras pretas sobre contorno branco (Branco x Preto),
- * com a profundidade amarela (`--color-game`, a mesma exceção do VS). As palavras caem em degraus, uma depois da outra;
- * com "reduzir movimento", já aparecem no lugar.
+ * Logo "FUT STATS" (grande momento da capa), em letreiro de fliperama: letra amarela (`--color-game`,
+ * a mesma exceção do VS), contorno preto, profundidade branca e sombra dura. As palavras caem em
+ * degraus, uma depois da outra; com "reduzir movimento", já aparecem no lugar.
  */
 export function PixelLogo({ scale = 8, className }: { scale?: number; className?: string }) {
   return (
     <div role="img" aria-label="Fut Stats" className={cn('flex flex-col', className)}>
-      <LogoWord
-        art={FUT}
-        scale={scale}
-        palette={{ face: 'var(--color-team-black)', outline: 'var(--color-team-white)' }}
-        className="animate-logo-drop"
-      />
+      <LogoWord art={FUT} scale={scale} colors={COLORS} className="animate-logo-drop" />
       <LogoWord
         art={STATS}
         scale={scale}
-        palette={{ face: 'var(--color-team-black)', outline: 'var(--color-team-white)' }}
+        colors={COLORS}
         className="animate-logo-drop [animation-delay:180ms]"
         style={{ marginTop: -2 * scale }}
       />
