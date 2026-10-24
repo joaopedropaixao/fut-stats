@@ -187,6 +187,7 @@ describe('seed de desenvolvimento', () => {
     expect(absentStreak.length).toBeGreaterThan(0);
   });
 
+  // Roda o seed completo 3 vezes: na CI passa dos 5 s padrão do Jest.
   it('é idempotente e não mexe em outros grupos', async () => {
     const other = await createGroup(t);
     await t.prisma.round.create({ data: { groupId: other.id, scheduledAt: NOW } });
@@ -208,7 +209,7 @@ describe('seed de desenvolvimento', () => {
     expect(await t.prisma.membership.count({ where: { group: { slug: SEED_GROUP.slug } } })).toBe(
       21,
     );
-  });
+  }, 30_000);
 
   it('lê o cenário dos argumentos', () => {
     expect(parseSeedScenario([])).toBe('agendada');
