@@ -3,48 +3,49 @@
 Este arquivo **é** o quadro de tarefas: marque `[x]` no mesmo PR que entrega o item.
 Regra de ouro: **cada fase termina com algo no ar**, não só no seu computador.
 
-## Ondas (o que dá para rodar em paralelo)
+## Trilha (a ordem de entrega daqui em diante)
 
-As fases dizem **o que** o produto ganha. As ondas dizem **em que ordem** as tarefas entram e quais rodam juntas.
-Cada linha é uma tarefa: um worktree, uma branch e um PR. Uma onda começa quando as dependências dela estão
-mergeadas na `develop`, e não precisa esperar a onda anterior inteira.
+O backend da Fase 1 que dava para fazer sozinho já está na `develop`. Daqui para a frente, o produto cresce em
+**fatias**: cada fatia junta o que falta de backend com a sua tela e entra em **um PR** para a `develop`.
 
-**Limite:** até 3 agentes de código ao mesmo tempo, mais o design. O gargalo é a revisão, não o agente.
+**Uma fatia por vez:** só uma tela fica em construção de cada vez. A próxima copia os padrões da anterior
+depois que você a valida no navegador. As telas seguem o `DESIGN.md` e as telas já feitas, sem passar pelo Paper
+(decisão de 24 out 2026).
 
-### Onda 1: agora
-| Branch | Pasta principal | Depende de | Entrega |
-|---|---|---|---|
-| `feature/auth-sessao` | `apps/api/src/auth` | — | Sessão JWT em cookie httpOnly, guard, `@CurrentUser()`, checagem de membro/admin do grupo e helper de login nos testes |
-| `feature/dominio-rodada` | `packages/domain/src/round` | — | Regras puras: ciclo da rodada (`RoundStatus`), abertura/fechamento da votação e quem pode lançar scout |
-| `feature/design-system-refino` ✅ | `docs/design` | — | DS v1.3 fechado no repo (PR #23); falta colar no Paper |
-| `feature/plugin-harness` | `.mcp.json`, `.gitignore` | — | MCP do Playwright no repo e `.impeccable/` ignorado (sessão dedicada) |
-| Você, no Google Cloud | — | — | Projeto e credenciais OAuth (guia passo a passo, como no deploy) |
+### Modos
+- **Front:** a API já está na `develop`. Um agente, branch `feature/<fatia>`.
+- **Back:** só backend ou dados, sem tela. Um agente, branch `feature/<fatia>`.
+- **Par:** falta backend para a tela. O orquestrador escreve o contrato no brief: rotas, schemas Zod do `shared`
+  e códigos de erro. Dois agentes trabalham ao mesmo tempo, cada um no seu worktree:
+  - `feature/<fatia>-back`: o **primeiro commit** é só o contrato, em `packages/shared`. Depois vêm domínio (se
+    faltar), `schema.prisma`, API e testes de integração. Deixa a API rodando para o front.
+  - `feature/<fatia>-front`: sai do commit do contrato, não da `develop`. Faz a tela e a valida no Playwright
+    contra a API do back. Não edita o `shared`. Se precisar mudar o contrato, pede ao back, que faz a mudança na
+    branch dele, e o front puxa de lá.
 
-### Onda 2: depois do `auth-sessao`
-| Branch | Pasta principal | Depende de | Entrega |
-|---|---|---|---|
-| `feature/auth-google` | `apps/api/src/auth` | `auth-sessao` + credenciais | Login com Google em staging |
-| `feature/grupos-e-convite` | `apps/api/src/groups` | `auth-sessao` | Criar grupo (quem cria vira admin), link de convite, entrar no grupo |
-| `feature/perfil-jogador` | `apps/api/src/members` | `auth-sessao` | Editar perfil; admin define nota inicial, goleiro contratado e ativo/inativo |
-| `feature/rodadas-e-presenca` | `apps/api/src/rounds` | `auth-sessao`, `dominio-rodada` | Admin cria rodada; jogador confirma presença |
-| Design: telas da Fase 1 | Paper | DS fechado | Entrar/convite, rodada e presença, montar times, placar e scouts, histórico |
+  Furo no contrato, um avisa o outro direto. No fim, as duas branches se juntam em `feature/<fatia>`, que abre
+  um PR só.
+- **Arquivos com dono único:** no par, só o back mexe em `schema.prisma`, no `package.json` da raiz e no
+  `pnpm-lock.yaml`.
 
-### Onda 3: backend da Fase 1 completo + base do front
-| Branch | Pasta principal | Depende de | Entrega |
-|---|---|---|---|
-| `feature/times-e-placar` | `apps/api/src/lineups` | `rodadas-e-presenca` | Admin monta Branco x Preto, publica e lança o placar |
-| `feature/scouts` | `apps/api/src/match-events` | `rodadas-e-presenca` | Gols e assistências (jogador os próprios, admin de todos) |
-| `feature/historico` | `apps/api/src/history` | `times-e-placar`, `scouts` | Lista de rodadas e detalhe da partida |
-| `feature/web-foundation` | `apps/web` | DS fechado ✅ (já pode começar) | Tokens → Tailwind, rotas, TanStack Query, cliente da API, shell do app, PWA |
+### Fatias
+| # | Fatia | Modo | Parte de | Entrega |
+|---|---|---|---|---|
+| 0 | `massa-de-dados` | Back | `prisma/seed.ts` | Rodadas passadas com times, placar e lances (inclusive gol contra) para validar as telas |
+| 1 | `montar-times` | Par | PR #33 (fechar) | Admin monta Branco x Preto, arrasta entre times e publica |
+| 2 | `placar-e-lances` | Par | PR #32 (fechar) | Placar, gols, assistências e gol contra; jogador lança os próprios, admin de todos |
+| 3 | `historico` | Par | PR #31 (fechar) | Lista de rodadas e detalhe da partida |
+| 4 | `perfil-jogador` | Par | — | Editar perfil; admin define nota inicial, goleiro contratado e ativo/inativo. **Fecha a Fase 1 no ar** |
+| 5 | `seletor-de-times` | Par | `montar-times` | Gerar com `balanceTeams`, arrastar, regerar e publicar |
+| 6 | `votacao` | Par | — | Tabelas do voto, abrir/fechar a votação, tela "Dê sua nota", Craque / Perna de Pau |
+| 7 | `ranking` | Par | `votacao` | Ranking geral e por posição, perfil com stats |
+| 8 | `feed` | Par | — | Resenhas do admin, reações, comentários e cards de alerta |
+| 9 | `pwa-e-push` | Par | — | PWA instalável e Web Push |
+| 10 | `producao` | Back | — | `main` no ar, Sentry e backup do banco. Depois, **lançar para a pelada** |
 
-### Onda 4: telas da Fase 1
-Uma tarefa por tela aprovada no Paper, todas depois do `web-foundation` e da rota que a tela usa.
-Fecha a Fase 1 no ar. Daí em diante, cada fase segue o mesmo molde: domínio e design em paralelo, depois
-API, depois telas.
-
-**Arquivos com dono único:** `schema.prisma` já tem as tabelas da Fase 1, então as ondas 2 e 3 não devem
-mexer nele (se precisar, avise antes). `app.module.ts` e os `index.ts` só ganham uma linha por módulo; conflito ali
-se resolve no rebase.
+Os PRs #31, #32 e #33 viram pares. O back aproveita a API da branch antiga, atualiza com as decisões de
+#35/#36 e revisa. O front refaz a tela no padrão das telas de entrar e de rodadas. O PR antigo fecha quando o
+da fatia abrir. Cartola (Fase 5) e pagamentos (Fase 6) entram na trilha depois do lançamento.
 
 ## Fase 0: Fundação
 - [x] Repositório no GitHub, branches `main` e `develop`, proteção de branch
@@ -62,8 +63,8 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [x] Mini design system: cores (Branco x Preto), tipografia, espaçamentos, componentes base ([docs/design](design/README.md))
 - [x] Design system fechado: v1.3 com `DESIGN.md` e `tokens.css` ([docs/design](design/README.md))
 - [ ] v1.3 colada no Paper (depende do limite semanal do plano grátis)
-- [ ] Telas da Fase 1 (mobile-first): entrar/convite, rodada e presença, montar times, placar e scouts, histórico
-- [ ] Telas das Fases 2 a 4: seletor de times, notas, Craque / Perna de Pau, ranking, feed
+- [x] ~~Telas no Paper antes do código~~: substituído (24 out 2026). As telas seguem o `DESIGN.md` e as telas já
+  feitas, e você as valida no navegador (ver Trilha)
 - [x] MCP do Playwright configurado no repo (`.mcp.json`) antes da primeira tarefa que toca telas
 - [x] `docs/design/tokens.css` → tema do Tailwind no `apps/web` (tarefa `feature/web-foundation`)
 - [x] Renomear entidades para os nomes do design (mudaram junto com os ícones): MVP → **Craque**,
