@@ -62,17 +62,17 @@ const PATHS = {
  * `#` sempre aceso; `H` só aceso quando o ícone está preenchido (aba ativa).
  */
 const PIXELS = {
-  // Aba Times: o VS dos grandes momentos
+  // Aba Times: o VS dos grandes momentos, gordinho; a sombra dura sai sozinha (ver PIXEL_SHADOW)
   teams: [
     '............',
     '............',
-    '#...#..####.',
-    '#...#.#.....',
-    '#...#.#.....',
-    '#...#..###..',
-    '.#.#......#.',
-    '.#.#......#.',
-    '..#...####..',
+    '##.##.####..',
+    '##.##.##....',
+    '##.##.##....',
+    '##.##..###..',
+    '.###.....##.',
+    '.###.....##.',
+    '..#..####...',
     '............',
     '............',
     '............',
@@ -94,12 +94,23 @@ const PIXELS = {
   ],
 } satisfies Record<string, readonly string[]>;
 
-function pixelPath(rows: readonly string[], filled: boolean): string {
+/** Ícones que ganham a sombra dura de 1 pixel para baixo e para a direita (como o VS da folha). */
+const PIXEL_SHADOW: ReadonlySet<string> = new Set(['teams']);
+
+function isLit(rows: readonly string[], x: number, y: number, filled: boolean): boolean {
+  const c = rows[y]?.[x];
+  return c === '#' || (filled && c === 'H');
+}
+
+function pixelPath(rows: readonly string[], filled: boolean, shadow = false): string {
   return rows
     .flatMap((row, y) =>
-      [...row].map((c, x) =>
-        c === '#' || (filled && c === 'H') ? `M${x * 2} ${y * 2}h2v2h-2z` : '',
-      ),
+      [...row].map((_, x) => {
+        const on = shadow
+          ? !isLit(rows, x, y, filled) && isLit(rows, x - 1, y - 1, filled)
+          : isLit(rows, x, y, filled);
+        return on ? `M${x * 2} ${y * 2}h2v2h-2z` : '';
+      }),
     )
     .join('');
 }
@@ -127,6 +138,13 @@ export function Icon({ name, size = 20, strokeWidth = 2, filled, ...rest }: Icon
         className="shrink-0"
         {...rest}
       >
+        {PIXEL_SHADOW.has(name) && (
+          <path
+            d={pixelPath(PIXELS[name as keyof typeof PIXELS], Boolean(filled), true)}
+            fill="currentColor"
+            opacity={0.35}
+          />
+        )}
         <path
           d={pixelPath(PIXELS[name as keyof typeof PIXELS], Boolean(filled))}
           fill="currentColor"

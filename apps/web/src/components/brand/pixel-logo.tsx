@@ -40,8 +40,8 @@ function LogoWord({
 }
 
 /**
- * Logo "FUT STATS" (grande momento da capa): FUT em Branco, STATS em Preto, os dois com a profundidade
- * amarela (`--color-game`, a mesma exceção do VS). As palavras caem em degraus, uma depois da outra;
+ * Logo "FUT STATS" (grande momento da capa): letras pretas sobre contorno branco (Branco x Preto),
+ * com a profundidade amarela (`--color-game`, a mesma exceção do VS). As palavras caem em degraus, uma depois da outra;
  * com "reduzir movimento", já aparecem no lugar.
  */
 export function PixelLogo({ scale = 8, className }: { scale?: number; className?: string }) {
@@ -50,7 +50,7 @@ export function PixelLogo({ scale = 8, className }: { scale?: number; className?
       <LogoWord
         art={FUT}
         scale={scale}
-        palette={{ face: 'var(--color-team-white)', outline: '#000000' }}
+        palette={{ face: 'var(--color-team-black)', outline: 'var(--color-team-white)' }}
         className="animate-logo-drop"
       />
       <LogoWord
