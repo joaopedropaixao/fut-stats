@@ -26,10 +26,11 @@ case $(field .tool_name) in
 
     sem_example=$(printf '%s' "$cmd" | sed 's/\.env\.example//g')
     printf '%s' "$sem_example" | grep -Eq '(^|[^A-Za-z0-9_])\.env([.-][A-Za-z0-9_-]+)*([^A-Za-z0-9_.-]|$)' || exit 0
-    # Exceção: um cp ou ln -s sozinho, sem pipe, redirecionamento, encadeamento ou /dev.
+    # Exceção: um cp ou ln -s sozinho, sem pipe, redirecionamento, encadeamento nem argumento em /dev/
+    # (só o argumento que começa com /dev/: o checkout principal fica em ~/dev/...).
     if printf '%s' "$cmd" | grep -Eq '^[[:space:]]*(cp|ln[[:space:]]+-s)[[:space:]]' &&
       ! printf '%s' "$cmd" | grep -q '[|<>;&`$]' &&
-      ! printf '%s' "$cmd" | grep -q '/dev/' &&
+      ! printf '%s' "$cmd" | grep -Eq '(^|[[:space:]])/dev/' &&
       [ "$(printf '%s' "$cmd" | wc -l)" -eq 0 ]; then
       exit 0
     fi
