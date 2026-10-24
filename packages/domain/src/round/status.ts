@@ -1,5 +1,11 @@
 import { isValidRoundLineup, MAX_RESERVES_PER_TEAM, TEAMS } from '../core';
-import { roundPlayerIds, tallyMatchEvents, validateScore, type RoundState, type RoundTeams } from './match';
+import {
+  roundPlayerIds,
+  tallyMatchEvents,
+  validateScore,
+  type RoundState,
+  type RoundTeams,
+} from './match';
 
 /** Ciclo da rodada, na ordem. Textos em `packages/shared` (`ROUND_STATUS_LABELS`). */
 export const ROUND_STATUSES = [
