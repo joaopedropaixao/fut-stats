@@ -46,7 +46,8 @@ export function NewRoundPage() {
  */
 function NewRound({ groupId }: { groupId: string }) {
   const rounds = useRounds(groupId);
-  if (rounds.isPending) {
+  // Espera a lista desta abertura: a do cache pode ser de antes da última rodada criada
+  if (!rounds.isFetchedAfterMount && !rounds.isError) {
     return (
       <>
         <Back to="/rodadas" />

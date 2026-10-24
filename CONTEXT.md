@@ -420,12 +420,13 @@ o grupo costuma ter dia e hora fixos, mas às vezes muda. Sem configuração de 
 
 **Assinatura:** `suggestNextRoundDate(last: Date | null, now: Date, options?: { intervalDays?: number }): Date | null`.
 
-**Faz:** mesmo dia da semana e horário da última rodada (a mais adiante no calendário), na primeira data depois dela
+**Faz:** mesmo dia da semana e horário da **última rodada criada** (não a mais adiante no calendário: marcou um
+domingo agora, a próxima sugestão é domingo), na primeira data depois dela
 que ainda não passou (passos de `intervalDays`, padrão 7). Mudou o dia uma vez, a sugestão seguinte acompanha.
 
 **Não faz:** não lê relógio; não fixa dia da semana; não olha fuso (soma dias inteiros, e o Brasil não tem horário de verão).
 
-**Na API:** `GET /rounds` manda `suggestion: { scheduledAt, location } | null` (o local é o da última rodada). O
+**Na API:** `GET /rounds` manda `suggestion: { scheduledAt, location } | null` (o local é o da última rodada criada). O
 formulário da rodada nova usa a sugestão; sem rodada no grupo, cai em "amanhã às 20h".
 
 **Evite:** fixar um dia da semana; calcular a sugestão no front.

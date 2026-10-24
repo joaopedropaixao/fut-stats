@@ -84,7 +84,7 @@ export class RoundsService {
    * rodada da vez (`pickCurrentRound`), para o início não repetir a regra.
    */
   async list(groupId: string, now = new Date()): Promise<RoundList> {
-    const [upcoming, past] = await Promise.all([
+    const [upcoming, past, lastCreated] = await Promise.all([
       this.prisma.round.findMany({
         where: { groupId, scheduledAt: { gte: now } },
         select: summarySelect,
@@ -95,17 +95,22 @@ export class RoundsService {
         select: summarySelect,
         orderBy: { scheduledAt: 'desc' },
       }),
+      // A última rodada que o admin criou dá o dia, a hora e o local da sugestão (não a mais adiante no
+      // calendário: se ele marcou um domingo agora, a próxima sugestão é domingo)
+      this.prisma.round.findFirst({
+        where: { groupId },
+        select: { scheduledAt: true, location: true },
+        orderBy: { createdAt: 'desc' },
+      }),
     ]);
     const current = pickCurrentRound([...upcoming, ...past], now);
-    // A última rodada marcada (a mais adiante no calendário) dá o dia, a hora e o local da sugestão
-    const last = upcoming.at(-1) ?? past[0] ?? null;
-    const suggestedAt = suggestNextRoundDate(last?.scheduledAt ?? null, now);
+    const suggestedAt = suggestNextRoundDate(lastCreated?.scheduledAt ?? null, now);
     return {
       upcoming: upcoming.map(toSummary),
       past: past.map(toSummary),
       currentId: current?.id ?? null,
       suggestion: suggestedAt
-        ? { scheduledAt: suggestedAt.toISOString(), location: last!.location }
+        ? { scheduledAt: suggestedAt.toISOString(), location: lastCreated!.location }
         : null,
     };
   }

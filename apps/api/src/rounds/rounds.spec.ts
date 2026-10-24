@@ -183,18 +183,19 @@ describe('rodadas e presença', () => {
       expect((await list()).body.currentId).toBe(playing.id);
     });
 
-    it('sugere a rodada nova no mesmo dia, hora e local da última; sem rodada, nula', async () => {
+    it('sugere a rodada nova no dia, hora e local da última criada (não a mais adiante); sem rodada, nula', async () => {
       const { group, playerUser } = await setup();
       const list = () =>
         request(server()).get(roundsPath(group.id)).set('Cookie', as(playerUser.id)).expect(200);
 
       expect((await list()).body.suggestion).toBeNull();
 
-      const lastAt = new Date(Date.now() + 2 * DAY_MS);
+      // Criada antes, mas mais adiante no calendário: não é ela que manda
       await createRound(group.id, {
-        scheduledAt: new Date(Date.now() - 5 * DAY_MS),
+        scheduledAt: new Date(Date.now() + 5 * DAY_MS),
         location: 'Velho',
       });
+      const lastAt = new Date(Date.now() + 2 * DAY_MS);
       await createRound(group.id, { scheduledAt: lastAt, location: 'Arena Nova' });
 
       expect((await list()).body.suggestion).toEqual({
