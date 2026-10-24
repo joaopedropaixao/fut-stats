@@ -24,6 +24,12 @@ export const router = createBrowserRouter([
   ...(import.meta.env.DEV
     ? [
         {
+          path: '/dev/entrar',
+          lazy: async () => ({
+            Component: (await import('./pages/dev/dev-sign-in')).DevSignInPage,
+          }),
+        },
+        {
           path: '/dev/componentes',
           lazy: async () => ({
             Component: (await import('./pages/dev/components-showcase')).ComponentsShowcasePage,
