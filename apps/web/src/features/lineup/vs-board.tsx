@@ -100,7 +100,7 @@ export function VsBoard({ roundId, counts, myTeam }: VsBoardProps) {
         <button
           type="button"
           onClick={() => setPhase('final')}
-          className="absolute bottom-3 left-3 inline-flex min-h-11 items-center bg-team-black px-4 text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)] active:bg-surface-3"
+          className="absolute bottom-3 left-3 inline-flex min-h-11 items-center bg-team-black px-4 text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)] focus-visible:shadow-[inset_0_0_0_2px_rgb(255_255_255/35%),0_0_0_2px_var(--color-team-black)] active:bg-surface-3"
         >
           <PixelText>Pular</PixelText>
         </button>
