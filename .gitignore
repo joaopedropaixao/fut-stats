@@ -18,3 +18,6 @@ apps/api/src/generated/
 .playwright-mcp/
 .impeccable/
 .taste-skill/
+
+# Etapa da fatia (status line da equipe)
+.claude/etapa.local
