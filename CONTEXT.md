@@ -414,6 +414,22 @@ Sai no `roundSummarySchema` (`number`).
 
 **Evite:** calcular o número no front ou pela posição na lista; passar `number` no `create` (o trigger sobrescreve).
 
+### Ranking pela nota: `rankByRating` 🚧
+**O que é:** a posição de cada jogador no ranking do grupo pela nota (`src/ranking/rank.ts`). Decidido pelo dono em
+24 out 2026: a lista de presença mostra a nota e a posição de cada um.
+
+**Assinatura:** `rankByRating(players: readonly { id, rating }[]): Map<string, number>` (`id → posição`).
+
+**Faz:** maior nota é 1º; empate divide a posição e pula a seguinte (1, 2, 2, 4), como tabela de campeonato.
+
+**Não faz:** não escolhe a nota. **Até a Fase 3 a nota é a inicial** (`Membership.initialRating`, definida pelo admin);
+com a votação, passa a ser a média da temporada e o ranking geral/por posição entra.
+
+**Na API:** o detalhe da rodada manda `rating` e `rank` em cada membro da lista de presença, contados entre os
+membros ativos do grupo.
+
+**Evite:** ordenar ou numerar o ranking no front; empate com posições diferentes.
+
 ### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `DEFAULT_INITIAL_RATING` 🚧
 **O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).
 - `toSlug(nome)`: minúsculo, sem acento, letras/números separados por hífen (`"Pelada do Zé"` → `pelada-do-ze`);

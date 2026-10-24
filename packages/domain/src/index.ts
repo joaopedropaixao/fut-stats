@@ -6,3 +6,4 @@ export * from './round-score';
 export * from './cartola';
 export * from './round';
 export * from './group';
+export * from './ranking';

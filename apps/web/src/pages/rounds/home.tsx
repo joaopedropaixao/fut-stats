@@ -3,7 +3,7 @@ import { Badge } from '../../components/ui/badge';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
-import { formatRespondedAt } from '../../lib/round-format';
+import { formatRating } from '../../lib/rating-format';
 import { useCurrentGroup } from '../../features/group/use-current-group';
 import { MyPresence } from '../../features/rounds/my-presence';
 import { useRound, useRounds } from '../../features/rounds/queries';
@@ -105,7 +105,7 @@ function NextRound({
           <p className="px-1 text-sm text-text-muted">Ninguém confirmou ainda. Seja o primeiro.</p>
         ) : (
           <ul className="flex flex-col bg-surface shadow-card">
-            {going.map((m, i) => {
+            {going.map((m) => {
               const me = m.membershipId === round.myMembershipId;
               return (
                 <li
@@ -125,19 +125,17 @@ function NextRound({
                       {POSITION_LABELS[m.primaryPosition]}
                     </PixelText>
                   </div>
-                  {/* Ordem de chegada (a lista de chamada) e a hora em que confirmou */}
-                  <div className="flex w-14 shrink-0 flex-col items-end gap-1.5">
+                  {/* Nota do jogador e a posição dele no ranking do grupo */}
+                  <div className="flex w-16 shrink-0 flex-col items-end gap-1.5">
                     <PixelDigits
-                      value={i + 1}
+                      value={formatRating(m.rating)}
                       scale={2}
-                      label={`${i + 1}º a confirmar`}
-                      className={i === 0 ? 'text-gold' : 'text-text'}
+                      label={`Nota ${formatRating(m.rating)}`}
+                      className={m.rank === 1 ? 'text-gold' : 'text-text'}
                     />
-                    {m.respondedAt && (
-                      <PixelText className="text-text-muted">
-                        {formatRespondedAt(m.respondedAt)}
-                      </PixelText>
-                    )}
+                    <PixelText className="text-text-muted" aria-label={`${m.rank}º no ranking`}>
+                      {`#${m.rank}`}
+                    </PixelText>
                   </div>
                 </li>
               );

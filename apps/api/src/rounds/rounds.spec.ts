@@ -239,6 +239,29 @@ describe('rodadas e presença', () => {
       expect(res.body.attendance.pending[0].respondedAt).toBeNull();
     });
 
+    it('cada membro vem com a nota e a posição no ranking do grupo (empate divide)', async () => {
+      const { group, playerUser, admin, player } = await setup();
+      const third = await addMember(t, (await createUser(t)).id, group.id);
+      await t.prisma.membership.update({ where: { id: admin.id }, data: { initialRating: 7.5 } });
+      await t.prisma.membership.update({ where: { id: player.id }, data: { initialRating: 8 } });
+      await t.prisma.membership.update({ where: { id: third.id }, data: { initialRating: 7.5 } });
+      const round = await createRound(group.id);
+
+      const res = await request(server())
+        .get(`${roundsPath(group.id)}/${round.id}`)
+        .set('Cookie', as(playerUser.id))
+        .expect(200);
+
+      const byId = new Map(
+        (
+          res.body.attendance.pending as { membershipId: string; rating: number; rank: number }[]
+        ).map((m) => [m.membershipId, m]),
+      );
+      expect(byId.get(player.id)).toMatchObject({ rating: 8, rank: 1 });
+      expect(byId.get(admin.id)).toMatchObject({ rating: 7.5, rank: 2 });
+      expect(byId.get(third.id)).toMatchObject({ rating: 7.5, rank: 2 });
+    });
+
     it('confirmados vêm na ordem em que confirmaram, com o horário', async () => {
       const { group, playerUser, admin, player } = await setup();
       const late = await addMember(t, (await createUser(t)).id, group.id);

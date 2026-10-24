@@ -75,6 +75,10 @@ export const attendanceMemberSchema = z.object({
   isHiredGoalkeeper: z.boolean(),
   /** Quando respondeu pela última vez (nulo = não respondeu). Confirmados vêm na ordem de chegada. */
   respondedAt: z.iso.datetime().nullable(),
+  /** Nota do jogador (até a Fase 3, a inicial definida pelo admin). */
+  rating: z.number(),
+  /** Posição no ranking do grupo pela nota (`rankByRating`: empate divide a posição). */
+  rank: z.number().int().positive(),
 });
 
 /** O que quem pediu pode fazer nesta rodada agora (a regra é do domain; o front só mostra). */

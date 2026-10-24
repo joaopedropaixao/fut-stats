@@ -9,6 +9,8 @@ const member = (id: string, nickname: string): AttendanceMember => ({
   primaryPosition: 'MIDFIELDER',
   isHiredGoalkeeper: false,
   respondedAt: null,
+  rating: 6,
+  rank: 1,
 });
 
 const round: RoundDetail = {

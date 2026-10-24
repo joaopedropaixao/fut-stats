@@ -9,6 +9,7 @@ import {
   isRoundDeletable,
   isRoundEditable,
   pickCurrentRound,
+  rankByRating,
   validateAttendanceChange,
   type RoundActor,
 } from '@fut-stats/domain';
@@ -118,6 +119,7 @@ export class RoundsService {
         photoUrl: true,
         primaryPosition: true,
         isHiredGoalkeeper: true,
+        initialRating: true,
         attendances: { where: { roundId }, select: { confirmed: true, updatedAt: true } },
       },
       orderBy: [{ nickname: 'asc' }, { createdAt: 'asc' }],
@@ -125,13 +127,17 @@ export class RoundsService {
 
     const attendance: RoundDetail['attendance'] = { confirmed: [], declined: [], pending: [] };
     let myAttendance: boolean | null = null;
-    for (const { id, attendances, ...member } of members) {
+    // Ranking do grupo pela nota (até a Fase 3, a inicial), entre os membros ativos
+    const ranks = rankByRating(members.map((m) => ({ id: m.id, rating: m.initialRating })));
+    for (const { id, attendances, initialRating, ...member } of members) {
       const answer = attendances[0]?.confirmed ?? null;
       if (id === membership.id) myAttendance = answer;
       const item: AttendanceMember = {
         membershipId: id,
         ...member,
         respondedAt: attendances[0]?.updatedAt.toISOString() ?? null,
+        rating: initialRating,
+        rank: ranks.get(id)!,
       };
       if (answer === null) attendance.pending.push(item);
       else (answer ? attendance.confirmed : attendance.declined).push(item);
