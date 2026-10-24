@@ -126,6 +126,37 @@ expect_out notifica "display notification \"diz 'oi'\" with title \"fut-stats ·
   '{"message":"diz \"oi\"","cwd":"/x"}' "aspas na mensagem não quebram o script"
 unset NOTIFICA_DRY
 
+# --- dev-termina-verde (DEV_CHECK_CMD troca a checagem real por um comando de teste)
+# dev_case <descrição> <esperado: vazio ou trecho da saída> <lado> <comando>
+dev_case() {
+  got=$(printf '%s' "$STOP" | TMPDIR="$TMP" DEV_CHECK_CMD="$4" "$HOOKS/dev-termina-verde.sh" "$3" 2>&1)
+  case "$2:$got" in
+    "vazio:") ok=1 ;;
+    vazio:*) ok=0 ;;
+    *) case $got in *"$2"*) ok=1 ;; *) ok=0 ;; esac ;;
+  esac
+  if [ "$ok" = 1 ]; then echo "ok      dev-termina-verde: $1"; else
+    echo "FALHOU  dev-termina-verde: $1 (esperado '$2', veio '$got')"
+    falhas=$((falhas + 1))
+  fi
+}
+TPL=$(repo_on feature/z)
+git -C "$TPL" commit -q --allow-empty -m init
+git -C "$TPL" worktree add -q -b feature/z-back "$TMP/wt-back"
+STOP=$(jq -nc --arg cwd "$TPL" '{hook_event_name: "SubagentStop", session_id: "s1", agent_id: "a1", cwd: $cwd}')
+
+dev_case "verde termina" vazio back true
+dev_case "vermelho bloqueia" '"decision": "block"' back false
+dev_case "2ª vez vermelho" "(2/3)" back false
+dev_case "3ª vez vermelho" "(3/3)" back false
+dev_case "4ª vez vermelho libera (sem loop infinito)" vazio back false
+dev_case "depois de liberar, recomeça" "(1/3)" back false
+dev_case "verde no meio" vazio back true
+dev_case "verde zera o contador" "(1/3)" back false
+dev_case "motivo traz a saída do comando" "saida-do-check" back 'echo saida-do-check; false'
+dev_case "roda no worktree -back, não no cwd do TPL" vazio back 'test "$(basename "$PWD")" = wt-back'
+dev_case "sem worktree -front, roda no cwd" vazio front "test \"\$(pwd -P)\" = \"$(cd "$TPL" && pwd -P)\""
+
 # --- falha aberta
 for h in front-sem-shared sem-env sem-merge commit-sem-ia prettier statusline notifica; do
   expect "$h" 0 "não é json" "entrada inválida libera"
