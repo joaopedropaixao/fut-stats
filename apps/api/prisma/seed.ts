@@ -1,188 +1,27 @@
-// Dados fictícios para desenvolvimento: 1 grupo, 14 jogadores de linha (2 deles admins) e 3 goleiros.
-// Rodar: pnpm --filter @fut-stats/api db:seed. Pode rodar de novo: atualiza em vez de duplicar.
+// Dados fictícios para desenvolvimento: o grupo "Pelada de Quinta" (convite `convite-dev`) com 18 jogadores
+// de linha (2 deles admins) e 3 goleiros, 8 rodadas encerradas (uma por semana, até a semana passada, com
+// times, placar e lances) e a rodada atual no estado do cenário:
+//   agendada (padrão)  confirmados, recusas e quem não respondeu
+//   times              times publicados
+//   em-jogo            jogo rolando, com alguns lances lançados e sem placar
+// Rodar: pnpm --filter @fut-stats/api db:seed -- --cenario=em-jogo   (sem --cenario: agendada)
+// Pode rodar de novo: atualiza os membros e recria só as rodadas desse grupo. A lógica fica em src/seed.
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient, type Position, type Role } from '../src/generated/prisma/client';
-
-interface SeedMember {
-  name: string;
-  nickname: string;
-  role?: Role;
-  primaryPosition: Position;
-  secondaryPositions: Position[];
-  initialRating: number;
-  isHiredGoalkeeper?: boolean;
-}
-
-const MEMBERS: SeedMember[] = [
-  // Admins (também jogam)
-  {
-    name: 'Carlos Andrade',
-    nickname: 'Carlão',
-    role: 'ADMIN',
-    primaryPosition: 'MIDFIELDER',
-    secondaryPositions: ['WINGER'],
-    initialRating: 7,
-  },
-  {
-    name: 'Rafael Moura',
-    nickname: 'Rafa',
-    role: 'ADMIN',
-    primaryPosition: 'DEFENDER',
-    secondaryPositions: ['MIDFIELDER'],
-    initialRating: 6.5,
-  },
-  // Jogadores de linha
-  {
-    name: 'Bruno Lima',
-    nickname: 'Bruninho',
-    primaryPosition: 'DEFENDER',
-    secondaryPositions: ['WINGER'],
-    initialRating: 6,
-  },
-  {
-    name: 'Diego Souza',
-    nickname: 'Diegão',
-    primaryPosition: 'DEFENDER',
-    secondaryPositions: [],
-    initialRating: 7.5,
-  },
-  {
-    name: 'Eduardo Ramos',
-    nickname: 'Dudu',
-    primaryPosition: 'DEFENDER',
-    secondaryPositions: ['MIDFIELDER'],
-    initialRating: 5.5,
-  },
-  {
-    name: 'Felipe Costa',
-    nickname: 'Felipinho',
-    primaryPosition: 'WINGER',
-    secondaryPositions: ['FORWARD'],
-    initialRating: 8,
-  },
-  {
-    name: 'Gustavo Pereira',
-    nickname: 'Guga',
-    primaryPosition: 'WINGER',
-    secondaryPositions: ['DEFENDER'],
-    initialRating: 6.5,
-  },
-  {
-    name: 'Henrique Alves',
-    nickname: 'Rique',
-    primaryPosition: 'WINGER',
-    secondaryPositions: ['MIDFIELDER'],
-    initialRating: 7,
-  },
-  {
-    name: 'Igor Martins',
-    nickname: 'Igão',
-    primaryPosition: 'WINGER',
-    secondaryPositions: ['DEFENDER'],
-    initialRating: 5,
-  },
-  {
-    name: 'João Ferreira',
-    nickname: 'Jota',
-    primaryPosition: 'MIDFIELDER',
-    secondaryPositions: ['FORWARD'],
-    initialRating: 8.5,
-  },
-  {
-    name: 'Lucas Rocha',
-    nickname: 'Luquinha',
-    primaryPosition: 'MIDFIELDER',
-    secondaryPositions: ['WINGER', 'DEFENDER'],
-    initialRating: 6,
-  },
-  {
-    name: 'Marcelo Dias',
-    nickname: 'Marcelinho',
-    primaryPosition: 'FORWARD',
-    secondaryPositions: ['WINGER'],
-    initialRating: 7.5,
-  },
-  {
-    name: 'Nicolas Teixeira',
-    nickname: 'Nico',
-    primaryPosition: 'FORWARD',
-    secondaryPositions: ['MIDFIELDER'],
-    initialRating: 6.5,
-  },
-  {
-    name: 'Otávio Barros',
-    nickname: 'Tavinho',
-    primaryPosition: 'FORWARD',
-    secondaryPositions: [],
-    initialRating: 5.5,
-  },
-  // Goleiros: 2 contratados e 1 mensalista que joga no gol
-  {
-    name: 'Paulo Santos',
-    nickname: 'Paredão',
-    primaryPosition: 'GOALKEEPER',
-    secondaryPositions: [],
-    initialRating: 7.5,
-    isHiredGoalkeeper: true,
-  },
-  {
-    name: 'Ricardo Nunes',
-    nickname: 'Muralha',
-    primaryPosition: 'GOALKEEPER',
-    secondaryPositions: [],
-    initialRating: 7,
-    isHiredGoalkeeper: true,
-  },
-  {
-    name: 'Sérgio Melo',
-    nickname: 'Serginho',
-    primaryPosition: 'GOALKEEPER',
-    secondaryPositions: [],
-    initialRating: 6,
-  },
-];
-
-function emailFor(nickname: string): string {
-  const slug = nickname.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  return `${slug}@example.com`;
-}
+import { PrismaClient } from '../src/generated/prisma/client';
+import { parseSeedScenario, seed } from '../src/seed/seed';
 
 async function main(): Promise<void> {
+  const scenario = parseSeedScenario(process.argv.slice(2));
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
   });
 
   try {
-    const group = await prisma.group.upsert({
-      where: { slug: 'pelada-de-quinta' },
-      update: {},
-      create: { name: 'Pelada de Quinta', slug: 'pelada-de-quinta', inviteCode: 'convite-dev' },
-    });
-
-    for (const member of MEMBERS) {
-      const email = emailFor(member.nickname);
-      const user = await prisma.user.upsert({
-        where: { email },
-        update: { name: member.name },
-        create: { name: member.name, email, googleId: `seed-${email}` },
-      });
-
-      const data = {
-        role: member.role ?? 'PLAYER',
-        nickname: member.nickname,
-        primaryPosition: member.primaryPosition,
-        secondaryPositions: member.secondaryPositions,
-        initialRating: member.initialRating,
-        isHiredGoalkeeper: member.isHiredGoalkeeper ?? false,
-      };
-      await prisma.membership.upsert({
-        where: { userId_groupId: { userId: user.id, groupId: group.id } },
-        update: data,
-        create: { ...data, userId: user.id, groupId: group.id },
-      });
-    }
-
-    console.log(`Seed ok: grupo "${group.name}" com ${MEMBERS.length} membros.`);
+    const summary = await seed(prisma, { scenario });
+    console.log(
+      `Seed ok (cenário ${summary.scenario}): grupo "${summary.groupName}" com ${summary.members} membros ` +
+        `e ${summary.rounds} rodadas.`,
+    );
   } finally {
     await prisma.$disconnect();
   }
