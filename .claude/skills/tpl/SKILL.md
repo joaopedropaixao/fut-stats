@@ -16,7 +16,7 @@ A cada mudança de etapa, escreva a etapa em `.claude/etapa.local` (a status lin
 `Research` → `Spec: esperando ok` → `Implement` → `QA volta N` → `PR` → `Esperando o dono`.
 
 Use `WT` = raiz deste worktree (`git rev-parse --show-toplevel`), `PAI` = `dirname $WT` e
-`MAIN` = primeiro caminho de `git worktree list` (checkout principal, de onde vêm os `.env`).
+`MAIN` = primeiro caminho de `git worktree list` (checkout principal, de onde vem o `.env` da raiz).
 
 ## 1. Research/Plan
 1. Confira que está na branch `feature/<fatia>` e atualizada com a `origin/develop`.
@@ -38,10 +38,9 @@ Use `WT` = raiz deste worktree (`git rev-parse --show-toplevel`), `PAI` = `dirna
 2. No worktree `-back`, escreva os schemas do contrato em `packages/shared` (exatamente o spec) e faça o
    **primeiro commit: só o contrato**, `feat(shared): contrato de <fatia>`. Guarde o SHA.
 3. `git worktree add $PAI/<fatia>-front -b feature/<fatia>-front <sha>`
-4. Em cada worktree novo: `pnpm install` e copie os `.env`, **um `cp` por comando, sem encadear e com os caminhos
-   absolutos escritos por extenso, sem `$VAR`** (o hook bloqueia qualquer outra coisa), ex.:
-   `cp /Users/.../fut-stats/apps/api/.env /Users/.../<fatia>-back/apps/api/.env`. O mesmo para `apps/web/.env` e
-   para o `-front`.
+4. Em cada worktree novo: `pnpm install` e copie o `.env` da raiz (é o único), **um `cp` por comando, sem encadear
+   e com os caminhos absolutos escritos por extenso, sem `$VAR`** (o hook bloqueia qualquer outra coisa), ex.:
+   `cp /Users/.../fut-stats/.env /Users/.../<fatia>-back/.env`. O mesmo para o `-front`.
 5. Lance `dev-back` e `dev-front` **na mesma mensagem** (em paralelo), cada um com: caminho absoluto do worktree,
    caminho do spec, os cenários dele, o SHA do contrato e as portas (API 3000, web 5173).
 

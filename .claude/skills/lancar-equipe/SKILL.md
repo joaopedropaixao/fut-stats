@@ -18,10 +18,9 @@ abrir no worktree novo (skill `tpl`; fluxo em `docs/specs/2026-10-24-equipe-desi
    pergunte antes de qualquer coisa.
 5. Crie o worktree (aparece no Orca):
    `git worktree add ~/orca/workspaces/fut-stats/<fatia> -b feature/<fatia> origin/develop`
-6. No worktree novo, rode `pnpm install` e copie os `.env` do checkout principal, **um `cp` por comando, com os
-   caminhos absolutos escritos por extenso** (o hook de `.env` só libera assim). Nunca leia o conteúdo:
-   - `cp <checkout principal>/apps/api/.env ~/orca/workspaces/fut-stats/<fatia>/apps/api/.env`
-   - `cp <checkout principal>/apps/web/.env ~/orca/workspaces/fut-stats/<fatia>/apps/web/.env`
+6. No worktree novo, rode `pnpm install` e copie o `.env` da raiz do checkout principal (é o único), **num `cp`
+   sozinho, com os caminhos absolutos escritos por extenso** (o hook de `.env` só libera assim). Nunca leia o conteúdo:
+   - `cp <checkout principal>/.env ~/orca/workspaces/fut-stats/<fatia>/.env`
 7. Responda ao dono com:
    - onde abrir: worktree `<fatia>` no Orca, sessão nova com Opus;
    - o kickoff, num bloco para copiar:

@@ -60,6 +60,7 @@ expect sem-env 0 "$(bash_cmd 'ln -s ../fut-stats/apps/api/.env apps/api/.env')" 
 expect sem-env 2 "$(bash_cmd 'cp a/.env b/.env && cat b/.env')" "cp encadeado com cat"
 expect sem-env 2 "$(bash_cmd 'cp a/.env /dev/stdout')" "cp para a saída"
 expect sem-env 0 "$(bash_cmd 'cp /Users/joaopedropaixao/dev/personal/fut-stats/apps/api/.env /Users/joaopedropaixao/orca/workspaces/fut-stats/x/apps/api/.env')" "cp com origem em ~/dev/ (checkout principal)"
+expect sem-env 0 "$(bash_cmd 'cp /Users/joaopedropaixao/dev/personal/fut-stats/.env /Users/joaopedropaixao/orca/workspaces/fut-stats/x/.env')" "cp do .env da raiz (o que as skills mandam)"
 expect sem-env 2 "$(bash_cmd 'ln -s a/.env /dev/fd/1')" "ln -s para /dev/"
 expect sem-env 2 "$(bash_cmd 'cp a/.env b/.env; cat b/.env')" "cp seguido de cat"
 
