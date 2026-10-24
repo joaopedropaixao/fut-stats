@@ -347,11 +347,11 @@ function planAttendance(
   return attendances;
 }
 
-/** Times pelo seletor do domínio, a partir dos confirmados e do histórico. */
 function confirmedIds(attendances: PlannedRound['attendances']): string[] {
   return attendances.filter((a) => a.confirmed).map((a) => a.membershipId);
 }
 
+/** Times pelo seletor do domínio, a partir dos confirmados e do histórico. */
 function pickTeams(
   attendances: PlannedRound['attendances'],
   members: readonly SeedMemberRow[],

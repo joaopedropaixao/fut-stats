@@ -281,7 +281,7 @@ describe('times da rodada (escalação)', () => {
       expect(starters.find((p) => p.membershipId === s.ids[3])?.confirmed).toBe(false);
       expect(starters.filter((p) => p.confirmed)).toHaveLength(6);
       expect(res.body.errors).toContain('ATTENDANCE_MISMATCH');
-      // Mas um desconfirmado que não estava no rascunho continua recusado
+      // Quem desconfirmou mas segue no rascunho pode ficar, mesmo sozinho, em outro salvamento
       await put(s, s.adminUser.id, {
         ...fullDraft(s.ids),
         BLACK: { starters: [], reserves: [] },
