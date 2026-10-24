@@ -17,9 +17,11 @@ depois que você a valida no navegador. As telas seguem o `DESIGN.md` e as telas
 - **Back:** só backend ou dados, sem tela. Um agente, branch `feature/<fatia>`.
 - **Par:** falta backend para a tela. O orquestrador escreve o contrato no brief: rotas, schemas Zod do `shared`
   e códigos de erro. Dois agentes trabalham ao mesmo tempo, cada um no seu worktree:
-  - `feature/<fatia>-back`: domínio (se faltar), `schema.prisma`, API e testes de integração. Deixa a API
-    rodando para o front.
-  - `feature/<fatia>-front`: tela e validação no Playwright contra a API do back.
+  - `feature/<fatia>-back`: o **primeiro commit** é só o contrato, em `packages/shared`. Depois vêm domínio (se
+    faltar), `schema.prisma`, API e testes de integração. Deixa a API rodando para o front.
+  - `feature/<fatia>-front`: sai do commit do contrato, não da `develop`. Faz a tela e a valida no Playwright
+    contra a API do back. Não edita o `shared`. Se precisar mudar o contrato, pede ao back, que faz a mudança na
+    branch dele, e o front puxa de lá.
 
   Furo no contrato, um avisa o outro direto. No fim, as duas branches se juntam em `feature/<fatia>`, que abre
   um PR só.
