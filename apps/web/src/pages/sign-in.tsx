@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Navigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useSearchParams } from 'react-router';
 import { PixelLogo } from '../components/brand/pixel-logo';
 import { ButtonLink } from '../components/ui/button';
 import { GoogleMark } from '../components/ui/google-mark';
@@ -55,6 +55,12 @@ export function SignInPage() {
             block
             onClick={() => destination && savePendingDestination(destination)}
           />
+          {/* Só no ambiente local: o Google não funciona aqui, então entra como alguém do banco */}
+          {import.meta.env.DEV && (
+            <Link to="/dev/entrar" className="self-center p-3 text-sm text-text-muted underline">
+              Entrar como alguém do banco (dev)
+            </Link>
+          )}
         </div>
       </div>
     </main>
