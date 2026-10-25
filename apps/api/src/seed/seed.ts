@@ -228,7 +228,7 @@ function planRounds(
   PAST_ROUNDS.forEach((plan, i) => {
     const scheduledAt = new Date(current.getTime() - (PAST_ROUNDS.length - i) * WEEK_MS);
     const round = planPastRound(plan, scheduledAt, members, history, random);
-    if (round.teams) history.push(round.teams);
+    if (round.teams) history.push({ ...round.teams, score: round.score });
     rounds.push(round);
   });
 
