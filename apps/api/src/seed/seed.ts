@@ -26,7 +26,6 @@ import type { PrismaClient } from '../generated/prisma/client';
 import type { Role } from '../generated/prisma/enums';
 import {
   CURRENT_ROUND,
-  IN_PROGRESS_GOALS,
   RESENHA_GOALS,
   RESENHA_OWN_GOALS_FOR,
   RESENHA_SCORE,
@@ -327,19 +326,9 @@ function planCurrentRound(
     label,
   );
   if (target === 'IN_PROGRESS') {
-    // Em jogo só o admin lança: os lances vêm dele e o placar ainda não foi lançado.
+    // Em jogo não há lance nem placar: o admin só finaliza com o placar, e os lances entram na Resenha.
     state = advance(state, 'IN_PROGRESS', label);
-    const events = planEvents(
-      IN_PROGRESS_GOALS,
-      {},
-      teams,
-      members,
-      scheduledAt,
-      random,
-      label,
-      state,
-    );
-    return { ...round, status: state.status, teams, events };
+    return { ...round, status: state.status, teams };
   }
   if (target === 'POST_MATCH') {
     state = advance(state, 'IN_PROGRESS', label);
@@ -499,12 +488,10 @@ function planEvents(
   }
 
   const admins = members.filter((m) => m.role === 'ADMIN');
-  // Em jogo só o admin lança; na Resenha, o próprio jogador ou o admin.
-  const adminOnly = base.status === 'IN_PROGRESS';
   const state: RoundState = { ...base, events: [] };
   const events: PlannedEvent[] = [];
   blocks.flat().forEach((event, i) => {
-    const byAdmin = adminOnly || random() >= SELF_LOGGED_CHANCE;
+    const byAdmin = random() >= SELF_LOGGED_CHANCE;
     const creator = byAdmin
       ? admins[Math.floor(random() * admins.length)]!
       : members.find((m) => m.id === event.playerId)!;

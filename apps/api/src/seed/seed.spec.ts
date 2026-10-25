@@ -1,6 +1,5 @@
 import {
   tallyMatchEvents,
-  TEAMS,
   validateRoundTeams,
   type Position,
   type RoundTeams,
@@ -108,13 +107,12 @@ describe('seed de desenvolvimento', () => {
       const teams = teamsOf(round);
       expect(validateRoundTeams(teams)).toEqual([]);
 
-      // Placar = lances; assistências ≤ gols do time
+      // Placar = gols lançados (assistência é solta, sem limite)
       const tally = tallyMatchEvents(
         round.matchEvents.map((e) => ({ playerId: e.membershipId, type: e.type })),
         teams,
       );
       expect(tally.goals).toEqual({ WHITE: round.whiteGoals, BLACK: round.blackGoals });
-      for (const team of TEAMS) expect(tally.assists[team]).toBeLessThanOrEqual(tally.goals[team]);
 
       // Quem jogou confirmou; quem lançou foi o próprio jogador ou um admin
       const confirmed = new Set(
@@ -147,28 +145,22 @@ describe('seed de desenvolvimento', () => {
     }
     expect(current.votingOpenedAt).toBeNull();
     if (scenario === 'em-jogo') {
-      expect(current.matchEvents.length).toBeGreaterThan(0);
       expect([current.whiteGoals, current.blackGoals]).toEqual([null, null]);
-    } else if (scenario !== 'resenha') {
-      expect(current.matchEvents).toHaveLength(0);
     }
+    if (scenario !== 'resenha') expect(current.matchEvents).toHaveLength(0);
   });
 
-  it('C29: em-jogo tem 2x1 em gols, todos lançados pelo admin, e placar nulo', async () => {
+  it('C48: em-jogo é IN_PROGRESS, com placar nulo e nenhum lance', async () => {
     await seed(t.prisma, { scenario: 'em-jogo', now: NOW });
     const current = (await loadRounds())[8]!;
 
     expect(current.status).toBe('IN_PROGRESS');
     expect([current.whiteGoals, current.blackGoals]).toEqual([null, null]);
-    const tally = tallyMatchEvents(
-      current.matchEvents.map((e) => ({ playerId: e.membershipId, type: e.type })),
-      teamsOf(current),
-    );
-    expect(tally.goals).toEqual({ WHITE: 2, BLACK: 1 });
-    expect(current.matchEvents.every((e) => e.createdBy.role === 'ADMIN')).toBe(true);
+    expect(current.matchEvents).toHaveLength(0);
+    expect(current.teamPlayers.length).toBeGreaterThan(0);
   });
 
-  it('C29: resenha tem placar 3x2, gols faltando e um gol contra', async () => {
+  it('resenha tem placar 3x2, gols faltando e um gol contra', async () => {
     await seed(t.prisma, { scenario: 'resenha', now: NOW });
     const current = (await loadRounds())[8]!;
 

@@ -266,9 +266,6 @@ export const CURRENT_ROUND: AttendancePlan = {
   noAnswer: ['Igão', 'Thiaguinho'],
 };
 
-/** Lances já lançados no cenário `em-jogo` (o placar ainda não foi lançado). */
-export const IN_PROGRESS_GOALS: MatchScore = { WHITE: 2, BLACK: 1 };
-
 /** Cenário `resenha`: placar final já lançado e, dos lances, só parte (faltam gols e assistências). */
 export const RESENHA_SCORE: MatchScore = { WHITE: 3, BLACK: 2 };
 
