@@ -1,4 +1,4 @@
-import { opponentOf, TEAMS } from '../core';
+import { opponentOf } from '../core';
 import {
   tallyMatchEvents,
   teamOf,
@@ -21,20 +21,12 @@ export const MATCH_EVENT_ERRORS = [
   'NOT_OWN_EVENT',
   'PLAYER_DID_NOT_PLAY',
   'GOALS_EXCEED_SCORE',
-  'ASSISTS_EXCEED_SCORE',
-  'ADMIN_ONLY_IN_MATCH',
 ] as const;
 
 export type MatchEventError = (typeof MATCH_EVENT_ERRORS)[number];
 
 /** Por que o placar não pode ser lançado. Textos em `packages/shared`. */
-export const SCORE_ENTRY_ERRORS = [
-  'ROUND_NOT_OPEN',
-  'NOT_ADMIN',
-  'INVALID_SCORE',
-  'SCORE_BELOW_GOALS',
-  'SCORE_BELOW_ASSISTS',
-] as const;
+export const SCORE_ENTRY_ERRORS = ['ROUND_NOT_OPEN', 'NOT_ADMIN', 'INVALID_SCORE'] as const;
 
 export type ScoreEntryError = (typeof SCORE_ENTRY_ERRORS)[number];
 
@@ -56,7 +48,7 @@ export function validateMatchEvent(
   round: RoundState,
 ): MatchEventError[] {
   if (!isMatchOpen(round.status)) return ['ROUND_NOT_OPEN'];
-  if (round.status === 'IN_PROGRESS' && !actor.isAdmin) return ['ADMIN_ONLY_IN_MATCH'];
+  if (round.status === 'IN_PROGRESS') return ['ROUND_NOT_OPEN'];
 
   const errors: MatchEventError[] = [];
   if (!actor.isAdmin && actor.id !== event.playerId) errors.push('NOT_OWN_EVENT');
@@ -66,9 +58,7 @@ export function validateMatchEvent(
 
   if (round.score) {
     const tally = tallyMatchEvents(round.events, round.teams);
-    if (event.type === 'ASSIST') {
-      if (tally.assists[team] + 1 > round.score[team]) errors.push('ASSISTS_EXCEED_SCORE');
-    } else {
+    if (event.type !== 'ASSIST') {
       const scoringTeam = event.type === 'GOAL' ? team : opponentOf(team);
       if (tally.goals[scoringTeam] + 1 > round.score[scoringTeam]) {
         errors.push('GOALS_EXCEED_SCORE');
@@ -97,7 +87,7 @@ export function validateMatchEventRemoval(
   round: RoundState,
 ): MatchEventError[] {
   if (!isMatchOpen(round.status)) return ['ROUND_NOT_OPEN'];
-  if (round.status === 'IN_PROGRESS' && !actor.isAdmin) return ['ADMIN_ONLY_IN_MATCH'];
+  if (round.status === 'IN_PROGRESS') return ['ROUND_NOT_OPEN'];
   return !actor.isAdmin && actor.id !== event.playerId ? ['NOT_OWN_EVENT'] : [];
 }
 
@@ -116,13 +106,5 @@ export function validateScoreEntry(
   const errors: ScoreEntryError[] = [];
   if (!actor.isAdmin) errors.push('NOT_ADMIN');
   if (validateScore(score)) return [...errors, 'INVALID_SCORE'];
-
-  if (round.teams) {
-    const tally = tallyMatchEvents(round.events, round.teams);
-    if (TEAMS.some((team) => score[team] < tally.goals[team])) errors.push('SCORE_BELOW_GOALS');
-    if (TEAMS.some((team) => score[team] < tally.assists[team])) {
-      errors.push('SCORE_BELOW_ASSISTS');
-    }
-  }
   return errors;
 }
