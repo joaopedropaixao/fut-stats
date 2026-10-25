@@ -264,6 +264,60 @@ matchViewSchema = z.object({
 - A Resenha aparece no início? → Sim, com um card "Hora da Resenha" que leva o jogador a lançar os gols e assistências.
 - Cronômetro dos reservas? → Fatia própria, logo depois desta.
 
+## Volta 2: placar primeiro, lances por jogador e cards de grande momento
+
+Pedido do dono depois de testar (25 out 2026). Muda regra de domínio, um pouco do contrato e bastante da tela.
+
+### Regras que mudam
+- **Placar primeiro, lances depois:** em `IN_PROGRESS` ninguém lança lance, nem o admin. A tela do admin em jogo só
+  tem "Finalizar jogo" com o placar. Todos os lances entram na **Resenha**, com o placar como teto.
+  `isMatchOpen` (lances) = só `POST_MATCH`; placar = `IN_PROGRESS` (via finish) e `POST_MATCH`. Lance em
+  `IN_PROGRESS` → `ROUND_NOT_OPEN` ("Os lances entram na Resenha, depois do jogo"). O código `ADMIN_ONLY_IN_MATCH`
+  sai do domínio e do shared.
+- **Placar do admin nunca é barrado pelos lances:** sai `SCORE_BELOW_GOALS`. Se o admin baixar o placar abaixo dos
+  gols já lançados, a abertura da votação acusa (`GOALS_MISMATCH`) até ele acertar.
+- **Assistência sem validação:** saem `ASSISTS_EXCEED_SCORE`, `SCORE_BELOW_ASSISTS` e `TOO_MANY_ASSISTS`.
+  Assistência é solta e não trava nada.
+- O gol continua limitado pelo placar (`GOALS_EXCEED_SCORE`, gol contra contando para o adversário) e abrir a
+  votação continua exigindo gols = placar.
+- Etapa na tela: **"Resenha"** (`ROUND_STATUS_LABELS.POST_MATCH`).
+- 403 de `start`, `finish` e `open-voting` também em `{ code: 'NOT_ADMIN', message }`.
+- Seed `em-jogo`: placar nulo e **sem lances**. `resenha`: placar 3x2 e alguns lances (sem assistência limitada).
+
+### Cenários da volta 2 (substituem os que contradizem: C6, C10, C17, C18, C19 parcial, C20, C21 de assistência, C31–C33, C38)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C44 | `IN_PROGRESS`, admin ou jogador | `validateMatchEvent` / `POST .../events` | `ROUND_NOT_OPEN` / 409 `ROUND_NOT_OPEN` | unitário + integração |
+| C45 | `IN_PROGRESS` ou `POST_MATCH` com gols lançados acima do novo placar | admin `finish` / `PUT score` com placar menor | 200, grava; `errors` da Resenha passa a ter `GOALS_MISMATCH` | unitário + integração |
+| C46 | `POST_MATCH`, placar 1x0 | lançar 3 assistências do Branco | 200 nas três; abrir votação com 1 gol do Branco passa | unitário + integração |
+| C47 | jogador comum | `start` / `finish` / `open-voting` | 403 `{ code: 'NOT_ADMIN', message }` | integração |
+| C48 | seed `em-jogo` | rodar | `IN_PROGRESS`, placar nulo, nenhum lance | integração |
+| C49 | admin em jogo | abre `/rodadas/:id/jogo` | placar grande, "Finalizar jogo" e o texto "Os lances entram na Resenha"; sem teclas de lance | Playwright |
+| C50 | admin finaliza | gaveta com −/+ começando em 0x0 | grava qualquer placar válido, sem aviso de gols | Playwright |
+| C51 | admin na Resenha | olhar a tela | seletor Branco/Preto com "BRANCO n DE m GOLS"; uma linha por jogador do time (avatar com anel, apelido, posição) com **GOL [−] n [+]** e **AST [−] n [+]**; "⋯" na linha abre "Gol contra" (lançar/apagar) | Playwright |
+| C52 | admin na linha do Bruninho | toca no + de Gol / no − de Gol | lança um gol dele (o número sobe com animação curta) / apaga o último gol dele; passando do placar, o + fica desabilitado ou avisa com o texto do shared | Playwright |
+| C53 | assistências | + de Assist várias vezes | sobe sem limite | Playwright |
+| C54 | aviso de lance | lançar e apagar assistência | "Assistência de Diegão lançada" / "apagada" (feminino); gol e gol contra no masculino | unitário (texto) + Playwright |
+| C55 | qualquer gaveta | fechar (confirmar, cancelar, tocar fora) | some em ≤ 150 ms; abrir ≤ 200 ms | Playwright |
+| C56 | cards de grande momento: placar do jogo, YOU WIN / YOU LOSE / EMPATE, "Em jogo" e "Hora da Resenha" no início | abrir | **borda grossa** (contorno 3px `--color-border-strong` + sombra dura `--shadow-float`), entrada animada em degraus (≤ 400 ms; com reduzir movimento, só fade); o YOU WIN com mais festa: confete/estrelas pixel, dígitos que batem, faixa do time | Playwright |
+| C57 | placar mudou (finish, −/+) | olhar o placar | o dígito que mudou "bate" (escala em degraus, 150–250 ms) | Playwright |
+| C58 | jogador na Resenha | olhar | igual à volta 1 (está bom), com os cards novos e os textos no feminino | Playwright |
+
+### Contrato
+- `MATCH_EVENT_ERRORS` sem `ASSISTS_EXCEED_SCORE` e `ADMIN_ONLY_IN_MATCH`; `SCORE_ENTRY_ERRORS` sem
+  `SCORE_BELOW_GOALS` e `SCORE_BELOW_ASSISTS`; `ROUND_TRANSITION_ERRORS` sem `TOO_MANY_ASSISTS`. Labels juntos.
+- `permissions.launchAny` = admin e `POST_MATCH`; `launchOwn` = jogou e `POST_MATCH`.
+- `MatchView` não muda de forma: a contagem por jogador sai de `events` (apresentação; o − apaga o último lance
+  daquele tipo do jogador com `canRemove`).
+- Exportar do shared os tipos `MatchScore` e `MatchResult` (furo da volta 1).
+
+### Visual (critérios para o dev-front)
+- Todo card de jogo é grande momento: contorno grosso e sombra dura, nunca card chapado. Ver folha (`Partida`,
+  `Grandes momentos`) e `DESIGN.md` (Forma, Movimento).
+- "RESENHA" não cola no dígito do Branco; nada rente à barra de abas no fim da rolagem.
+- Movimento em degraus (`steps()`), 150–250 ms nas microinterações, grandes momentos até 2 s com Pular.
+
 ## QA
 **1 volta, `VEREDITO: APROVADO`** (25 out 2026). Lint, typecheck, testes (domínio 293, API 207 de integração,
 web 151) e build verdes com back e front juntos; na raiz do `feature/placar-e-lances`, depois do merge, de novo
