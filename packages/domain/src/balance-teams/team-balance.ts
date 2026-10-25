@@ -28,20 +28,57 @@ export interface TeamBalance {
 export type BalancePlayer = Pick<Player, 'id' | 'primaryPosition' | 'rating'>;
 
 /**
- * Média de cada time e se a diferença está boa. Titular fora da principal vale nota × `offPositionFactor`;
- * reserva vale a nota cheia. Jogador que não está em `players` é ignorado.
- *
- * Contrato da fatia `seletor-de-times`: a implementação (com testes) é do dev-back.
+ * Média de cada time e se a diferença está boa. Titular fora da principal vale nota × `offPositionFactor`
+ * (esteja ou não nas secundárias); reserva vale a nota cheia. Jogador que não está em `players` é ignorado.
  */
 export function teamBalance(
-  _teams: RoundTeams,
-  _players: readonly BalancePlayer[],
-  _config: Partial<TeamBalanceConfig> = {},
+  teams: RoundTeams,
+  players: readonly BalancePlayer[],
+  config: Partial<TeamBalanceConfig> = {},
 ): TeamBalance {
-  return {
-    average: { WHITE: null, BLACK: null },
-    difference: null,
-    balanced: null,
-    stronger: null,
+  const cfg = { ...DEFAULT_TEAM_BALANCE_CONFIG, ...config };
+  const byId = new Map(players.map((p) => [p.id, p]));
+
+  const average = (team: Team): number | null => {
+    const values: number[] = [];
+    for (const slot of teams[team]) {
+      const player = byId.get(slot.playerId);
+      if (!player) continue;
+      values.push(
+        slot.position === player.primaryPosition
+          ? player.rating
+          : player.rating * cfg.offPositionFactor,
+      );
+    }
+    for (const id of teams.reserves[team]) {
+      const player = byId.get(id);
+      if (player) values.push(player.rating);
+    }
+    if (values.length === 0) return null;
+    return round2(values.reduce((sum, v) => sum + v, 0) / values.length);
   };
+
+  const white = average('WHITE');
+  const black = average('BLACK');
+  if (white === null || black === null) {
+    return {
+      average: { WHITE: white, BLACK: black },
+      difference: null,
+      balanced: null,
+      stronger: null,
+    };
+  }
+
+  const difference = round2(Math.abs(white - black));
+  const balanced = difference <= cfg.balancedThreshold;
+  return {
+    average: { WHITE: white, BLACK: black },
+    difference,
+    balanced,
+    stronger: balanced ? null : white > black ? 'WHITE' : 'BLACK',
+  };
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }
