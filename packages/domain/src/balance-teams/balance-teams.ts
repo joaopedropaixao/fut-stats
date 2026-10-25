@@ -365,7 +365,9 @@ function pairStats(
     }
   });
 
-  newestFirst.slice(0, cfg.cliqueRecencyWeights.length).forEach((round, k) => {
+  // A janela da panelinha conta só rodadas com placar: rodada sem placar não ocupa lugar.
+  const scored = newestFirst.filter((round) => round.score);
+  scored.slice(0, cfg.cliqueRecencyWeights.length).forEach((round, k) => {
     const score = round.score;
     if (!score || score.WHITE === score.BLACK) return;
     const weight = cfg.cliqueRecencyWeights[k]!;

@@ -136,6 +136,8 @@ editar antes de publicar. Agora também olha **vitórias** (panelinha).
     cair junto)` nas rodadas da janela. Chance de cair junto = `(tamanho do time de linha − 1) / (total de linha − 1)`.
   - Panelinha, por dupla de linha: `saldo = Σ peso · ±min(diferença de gols, cap) / cap` nas rodadas com placar
     (`+` venceram no mesmo time, `−` perderam juntos, `0` empate ou sem placar); entra como `max(0, saldo)`.
+    A janela da panelinha (`cliqueRecencyWeights`) conta só rodadas **com placar**: rodada sem placar não ocupa lugar nela.
+    A janela da repetição (`recencyWeights`) conta as últimas rodadas, com ou sem placar.
 - Sorteia entre as divisões com custo até melhor + τ e, com `avoid`, descarta a divisão a evitar se houver outra.
   Com `tolerance: 0` volta ao comportamento antigo (só as de custo mínimo).
 - Média do time = soma das notas ÷ jogadores (reserva vale igual a titular).

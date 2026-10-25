@@ -497,6 +497,12 @@ describe('C7 balanceTeams: saldo da panelinha', () => {
     expect(seedsTogether('d1', 'd2', apart, config)).toBeGreaterThan(0);
   });
 
+  it('C7: rodada sem placar não ocupa lugar na janela da panelinha', () => {
+    const history = [win(4), ...Array.from({ length: 10 }, () => filler())];
+    const heavy = { repeatedPairWeight: 0, cliqueWeight: 10 };
+    expect(seedsTogether('d1', 'd2', history, heavy)).toBe(0);
+  });
+
   it('C7: o peso cai com a recência (derrota antiga não cancela a vitória recente)', () => {
     const decaying = { ...config, cliqueRecencyWeights: [1, 0.5] };
     expect(seedsTogether('d1', 'd2', [loss(4), win(4)], decaying)).toBe(0);
