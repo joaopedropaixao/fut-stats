@@ -272,7 +272,7 @@ Pedido do dono depois de testar (25 out 2026). Muda regra de domínio, um pouco 
 - **Placar primeiro, lances depois:** em `IN_PROGRESS` ninguém lança lance, nem o admin. A tela do admin em jogo só
   tem "Finalizar jogo" com o placar. Todos os lances entram na **Resenha**, com o placar como teto.
   `isMatchOpen` (lances) = só `POST_MATCH`; placar = `IN_PROGRESS` (via finish) e `POST_MATCH`. Lance em
-  `IN_PROGRESS` → `ROUND_NOT_OPEN` ("Os lances entram na Resenha, depois do jogo"). O código `ADMIN_ONLY_IN_MATCH`
+  `IN_PROGRESS` → `ROUND_NOT_OPEN` ("Só dá para lançar e apagar lances na Resenha"). O código `ADMIN_ONLY_IN_MATCH`
   sai do domínio e do shared.
 - **Placar do admin nunca é barrado pelos lances:** sai `SCORE_BELOW_GOALS`. Se o admin baixar o placar abaixo dos
   gols já lançados, a abertura da votação acusa (`GOALS_MISMATCH`) até ele acertar.
