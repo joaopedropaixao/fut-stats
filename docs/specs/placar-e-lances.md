@@ -237,6 +237,7 @@ matchViewSchema = z.object({
 - Histórico e detalhe de rodadas passadas (`historico`, #4).
 - Voltar da Resenha para em jogo; dois admins ao mesmo tempo (o último vence).
 - Som no card de resultado.
+- Cronômetro de rodízio dos reservas: fatia própria `rodizio-reservas` (3b), logo depois desta (dono).
 
 ## Perguntas respondidas pelo dono
 - Que etapas entram? → Começar e encerrar (abrir a votação), gravando `votingOpenedAt`.
@@ -248,6 +249,7 @@ matchViewSchema = z.object({
 - Card YOU WIN / YOU LOSE? → Entra, uma vez por jogador.
 - Jogador confirma? → Não, só lança e apaga os próprios.
 - Na votação? → Congela.
+- Cronômetro dos reservas? → Fatia própria, logo depois desta.
 
 ## QA
 <Preenchido no fim.>
