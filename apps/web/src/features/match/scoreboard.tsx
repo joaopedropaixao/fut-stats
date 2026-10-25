@@ -14,11 +14,12 @@ const DIAGONAL = {
 /** O traço do placar ainda não lançado, no lugar dos dígitos. */
 function Dash({ scale, className }: { scale: number; className: string }) {
   return (
-    <span
-      aria-hidden
-      style={{ width: scale * 6, height: scale * 2, marginBottom: scale * 3.5 }}
-      className={cn('inline-block', className)}
-    />
+    <span aria-hidden className="flex items-center" style={{ height: scale * 9 }}>
+      <span
+        style={{ width: scale * 6, height: scale * 2 }}
+        className={cn('inline-block', className)}
+      />
+    </span>
   );
 }
 

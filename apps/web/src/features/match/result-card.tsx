@@ -99,7 +99,7 @@ export function ResultCard({ roundId, result, score, myTeam }: ResultCardProps) 
           </div>
           <span
             className={cn(
-              'pixel absolute inset-x-0 top-[84px] flex justify-center text-[48px] leading-[56px] tracking-[-2px] text-game',
+              'pixel absolute inset-x-0 top-[68px] flex justify-center text-[40px] leading-[48px] tracking-[-2px] text-game',
               TITLE_SHADOW,
               phase === 'entry' && 'invisible',
               phase === 'clash' && 'animate-vs-pop',
@@ -139,14 +139,15 @@ function ScoreSide({ team, value, mine }: { team: Team; value: number; mine: boo
   return (
     <div
       className={cn(
-        'flex flex-col gap-1.5 px-3 pt-3 pb-2',
+        'flex w-[46%] flex-col gap-1.5 px-3 pt-3 pb-2',
         white
           ? 'items-start bg-team-white text-team-black'
           : 'items-end bg-team-black text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)]',
       )}
     >
       <PixelDigits value={value} scale={8} decorative />
-      <PixelText>{mine ? `${TEAM_LABELS[team]} · você` : TEAM_LABELS[team]}</PixelText>
+      <PixelText>{TEAM_LABELS[team]}</PixelText>
+      {mine && <PixelText>Você</PixelText>}
     </div>
   );
 }
