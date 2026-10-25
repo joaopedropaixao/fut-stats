@@ -42,11 +42,11 @@ export function GenerateBlock({ regenerate, loading, onGenerate }: GenerateBlock
         key={hops}
         aria-hidden
         className={cn(
-          'flex size-10 shrink-0 items-center justify-center bg-[#8a6a3f] text-text shadow-[inset_0_0_0_3px_#000]',
+          'flex size-12 shrink-0 items-center justify-center bg-[#8a6a3f] text-text shadow-[inset_0_0_0_3px_#000]',
           hops > 0 && 'animate-block-hop',
         )}
       >
-        {loading ? <Spinner /> : <PixelText size={24}>?</PixelText>}
+        {loading ? <Spinner /> : <PixelText size={32}>?</PixelText>}
       </span>
       <PixelText>{loading ? 'Gerando' : regenerate ? 'Regerar' : 'Gerar times'}</PixelText>
     </button>
