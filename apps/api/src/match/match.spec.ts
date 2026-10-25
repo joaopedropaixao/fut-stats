@@ -209,7 +209,7 @@ describe('placar e lances da rodada', () => {
         ],
         [
           'IN_PROGRESS',
-          { start: false, setScore: true, finish: true, openVoting: false, launchAny: true },
+          { start: false, setScore: true, finish: true, openVoting: false, launchAny: false },
           [],
         ],
         [
@@ -233,7 +233,7 @@ describe('placar e lances da rodada', () => {
       }
     });
 
-    it('C14: em jogo o jogador não lança (launchOwn falso) e nenhum lance é dele para apagar', async () => {
+    it('C44: em jogo ninguém lança (launchOwn e launchAny falsos) e nenhum lance pode ser apagado', async () => {
       const c = await setup('IN_PROGRESS');
       await addEvent(c, c.white[6]!.membership.id, 'GOAL');
 
@@ -242,7 +242,16 @@ describe('placar e lances da rodada', () => {
       expect(res.body.permissions).toMatchObject({ launchOwn: false, launchAny: false });
       expect(res.body.events[0].canRemove).toBe(false);
       const admin = await get(c, c.adminUser.id).expect(200);
-      expect(admin.body.events[0].canRemove).toBe(true);
+      expect(admin.body.permissions).toMatchObject({ launchOwn: false, launchAny: false });
+      expect(admin.body.events[0].canRemove).toBe(false);
+    });
+
+    it('C14: na Resenha o admin tem launchAny e o jogador que jogou, launchOwn', async () => {
+      const c = await setup('POST_MATCH');
+      const admin = await get(c, c.adminUser.id).expect(200);
+      expect(admin.body.permissions).toMatchObject({ launchAny: true, launchOwn: false });
+      const player = await get(c, c.black[2]!.user.id).expect(200);
+      expect(player.body.permissions).toMatchObject({ launchAny: false, launchOwn: true });
     });
 
     it('C14: quem não jogou vê a rodada, sem time e sem poder lançar', async () => {
@@ -328,59 +337,50 @@ describe('placar e lances da rodada', () => {
   });
 
   describe('em jogo (IN_PROGRESS)', () => {
-    it('C17: admin lança o placar e lances de qualquer um, dos 3 tipos, como createdBy', async () => {
+    it('admin lança e corrige o placar em jogo, como placar da rodada', async () => {
       const c = await setup();
 
-      await putScore(c, c.adminUser.id, { WHITE: 3, BLACK: 2 }).expect(200);
-      for (const [person, type] of [
-        [c.white[6]!, 'GOAL'],
-        [c.black[5]!, 'ASSIST'],
-        [c.black[1]!, 'OWN_GOAL'],
-      ] as const) {
-        await postEvent(c, c.adminUser.id, person.membership.id, type).expect(200);
-      }
+      const res = await putScore(c, c.adminUser.id, { WHITE: 3, BLACK: 2 }).expect(200);
 
+      expect(matchViewSchema.safeParse(res.body).success).toBe(true);
+      expect(res.body.score).toEqual({ WHITE: 3, BLACK: 2 });
       const round = await t.prisma.round.findUniqueOrThrow({ where: { id: c.round.id } });
       expect([round.whiteGoals, round.blackGoals]).toEqual([3, 2]);
-      const events = await t.prisma.matchEvent.findMany({ where: { roundId: c.round.id } });
-      expect(events).toHaveLength(3);
-      expect(events.every((e) => e.createdById === c.admin.id)).toBe(true);
     });
 
-    it('C17: a resposta já traz a rodada atualizada', async () => {
+    it('C44: em jogo nenhum lance é lançado, nem pelo admin: 409 ROUND_NOT_OPEN e nada gravado', async () => {
       const c = await setup();
-      const res = await postEvent(c, c.adminUser.id, c.white[6]!.membership.id, 'GOAL').expect(200);
-      expect(matchViewSchema.safeParse(res.body).success).toBe(true);
-      expect(res.body.tally.goals).toEqual({ WHITE: 1, BLACK: 0 });
-      expect(res.body.events).toHaveLength(1);
-    });
+      await putScore(c, c.adminUser.id, { WHITE: 3, BLACK: 2 }).expect(200);
 
-    it('C18: jogador comum lançando o próprio gol leva 403 ADMIN_ONLY_IN_MATCH e nada é gravado', async () => {
-      const c = await setup();
-      const res = await postEvent(c, c.white[6]!.user.id, c.white[6]!.membership.id, 'GOAL').expect(
-        403,
-      );
-      expect(res.body).toEqual(
-        expect.objectContaining(
-          rule('ADMIN_ONLY_IN_MATCH', MATCH_EVENT_ERROR_LABELS.ADMIN_ONLY_IN_MATCH),
-        ),
-      );
+      for (const [userId, person] of [
+        [c.adminUser.id, c.white[6]!],
+        [c.white[6]!.user.id, c.white[6]!],
+        [c.white[6]!.user.id, c.white[5]!],
+      ] as const) {
+        for (const type of ['GOAL', 'ASSIST', 'OWN_GOAL'] as const) {
+          const res = await postEvent(c, userId, person.membership.id, type).expect(409);
+          expect(res.body).toEqual(
+            expect.objectContaining(
+              rule('ROUND_NOT_OPEN', MATCH_EVENT_ERROR_LABELS.ROUND_NOT_OPEN),
+            ),
+          );
+        }
+      }
       expect(await eventCount(c)).toBe(0);
     });
 
-    it('C18: jogador comum também não apaga o próprio lance durante o jogo', async () => {
+    it('C44: em jogo ninguém apaga lance, nem o admin: 409 ROUND_NOT_OPEN', async () => {
       const c = await setup();
       const event = await addEvent(c, c.white[6]!.membership.id, 'GOAL');
-      const res = await delEvent(c, c.white[6]!.user.id, event.id).expect(403);
-      expect(res.body.code).toBe('ADMIN_ONLY_IN_MATCH');
+      for (const userId of [c.white[6]!.user.id, c.adminUser.id]) {
+        const res = await delEvent(c, userId, event.id).expect(409);
+        expect(res.body.code).toBe('ROUND_NOT_OPEN');
+      }
       expect(await eventCount(c)).toBe(1);
     });
 
     it('C19: finish com o placar informado grava o placar e vai para POST_MATCH', async () => {
       const c = await setup();
-      await addEvent(c, c.white[6]!.membership.id, 'GOAL');
-      await addEvent(c, c.white[5]!.membership.id, 'GOAL');
-      await addEvent(c, c.black[6]!.membership.id, 'GOAL');
 
       const res = await post(c, c.adminUser.id, '/finish', { WHITE: 3, BLACK: 1 }).expect(200);
 
@@ -389,19 +389,18 @@ describe('placar e lances da rodada', () => {
       expect(round).toMatchObject({ status: 'POST_MATCH', whiteGoals: 3, blackGoals: 1 });
     });
 
-    it('C20: finish abaixo dos gols lançados dá 409 SCORE_BELOW_GOALS e nada muda', async () => {
+    it('C45: finish com placar abaixo dos gols já lançados grava (200) e a Resenha acusa GOALS_MISMATCH', async () => {
       const c = await setup();
       await addEvent(c, c.white[6]!.membership.id, 'GOAL');
       await addEvent(c, c.white[5]!.membership.id, 'GOAL');
       await addEvent(c, c.black[6]!.membership.id, 'GOAL');
 
-      const res = await post(c, c.adminUser.id, '/finish', { WHITE: 1, BLACK: 1 }).expect(409);
+      const res = await post(c, c.adminUser.id, '/finish', { WHITE: 1, BLACK: 1 }).expect(200);
 
-      expect(res.body).toMatchObject(
-        rule('SCORE_BELOW_GOALS', SCORE_ENTRY_ERROR_LABELS.SCORE_BELOW_GOALS),
-      );
+      expect(res.body).toMatchObject({ status: 'POST_MATCH', score: { WHITE: 1, BLACK: 1 } });
+      expect(res.body.errors).toEqual(['GOALS_MISMATCH']);
       const round = await t.prisma.round.findUniqueOrThrow({ where: { id: c.round.id } });
-      expect(round).toMatchObject({ status: 'IN_PROGRESS', whiteGoals: null, blackGoals: null });
+      expect(round).toMatchObject({ status: 'POST_MATCH', whiteGoals: 1, blackGoals: 1 });
     });
 
     it('placar com corpo inválido leva 400, em PUT e em finish', async () => {
@@ -462,23 +461,34 @@ describe('placar e lances da rodada', () => {
       expect(await eventCount(c)).toBe(1);
     });
 
-    it('C21: passar do placar leva 409 GOALS_EXCEED_SCORE / ASSISTS_EXCEED_SCORE', async () => {
+    it('C21: gol passando do placar leva 409 GOALS_EXCEED_SCORE e nada é gravado', async () => {
       const c = await setup('POST_MATCH');
       await setScore(c, 1, 0);
       await addEvent(c, c.white[5]!.membership.id, 'GOAL');
       const me = c.white[6]!;
 
       const goal = await postEvent(c, me.user.id, me.membership.id, 'GOAL').expect(409);
+
       expect(goal.body).toMatchObject(
         rule('GOALS_EXCEED_SCORE', MATCH_EVENT_ERROR_LABELS.GOALS_EXCEED_SCORE),
       );
+      expect(await eventCount(c)).toBe(1);
+    });
 
-      await addEvent(c, c.white[4]!.membership.id, 'ASSIST');
-      const assist = await postEvent(c, me.user.id, me.membership.id, 'ASSIST').expect(409);
-      expect(assist.body).toMatchObject(
-        rule('ASSISTS_EXCEED_SCORE', MATCH_EVENT_ERROR_LABELS.ASSISTS_EXCEED_SCORE),
-      );
-      expect(await eventCount(c)).toBe(2);
+    it('C46: assistência é solta: 3 assistências do Branco com placar 1x0 entram, e a votação abre com 1 gol', async () => {
+      const c = await setup('POST_MATCH');
+      await setScore(c, 1, 0);
+      const me = c.white[6]!;
+
+      for (let i = 0; i < 3; i++) {
+        await postEvent(c, me.user.id, me.membership.id, 'ASSIST').expect(200);
+      }
+      await postEvent(c, c.adminUser.id, me.membership.id, 'GOAL').expect(200);
+
+      const res = await post(c, c.adminUser.id, '/open-voting').expect(200);
+      expect(res.body.status).toBe('VOTING');
+      expect(res.body.tally.assists).toEqual({ WHITE: 3, BLACK: 0 });
+      expect(await eventCount(c)).toBe(4);
     });
 
     it('C21: gol contra do Branco passando do placar do Preto leva 409 GOALS_EXCEED_SCORE', async () => {
@@ -517,12 +527,20 @@ describe('placar e lances da rodada', () => {
       expect(await eventCount(c)).toBe(0);
     });
 
-    it('placar abaixo dos gols lançados na Resenha leva 409 SCORE_BELOW_GOALS', async () => {
+    it('C45: placar abaixo dos gols lançados na Resenha grava (200); open-voting acusa GOALS_MISMATCH até acertar', async () => {
       const c = await setup('POST_MATCH');
       await setScore(c, 1, 0);
       await addEvent(c, c.white[6]!.membership.id, 'GOAL');
-      const res = await putScore(c, c.adminUser.id, { WHITE: 0, BLACK: 0 }).expect(409);
-      expect(res.body.code).toBe('SCORE_BELOW_GOALS');
+
+      const low = await putScore(c, c.adminUser.id, { WHITE: 0, BLACK: 0 }).expect(200);
+
+      expect(low.body.score).toEqual({ WHITE: 0, BLACK: 0 });
+      expect(low.body.errors).toEqual(['GOALS_MISMATCH']);
+      const blocked = await post(c, c.adminUser.id, '/open-voting').expect(409);
+      expect(blocked.body.code).toBe('GOALS_MISMATCH');
+
+      await putScore(c, c.adminUser.id, { WHITE: 1, BLACK: 0 }).expect(200);
+      await post(c, c.adminUser.id, '/open-voting').expect(200);
     });
 
     it('C22: open-voting com gols diferentes do placar leva 409 GOALS_MISMATCH e o status não muda', async () => {
@@ -586,17 +604,32 @@ describe('placar e lances da rodada', () => {
   });
 
   describe('permissões e etapas', () => {
-    it('C25: jogador comum leva 403 em start, score, finish e open-voting', async () => {
+    it('C47: jogador comum leva 403 { code: NOT_ADMIN, message } em start, finish e open-voting', async () => {
+      const expected = rule('NOT_ADMIN', SCORE_ENTRY_ERROR_LABELS.NOT_ADMIN);
+      const cases: [RoundStatus, string, object?][] = [
+        ['TEAMS_PUBLISHED', '/start'],
+        ['IN_PROGRESS', '/finish', { WHITE: 1, BLACK: 0 }],
+        ['POST_MATCH', '/open-voting'],
+      ];
+      for (const [status, rest, body] of cases) {
+        await resetDatabase(t.prisma);
+        const c = await setup(status);
+        await setScore(c, 1, 0);
+        const res = await post(c, c.white[1]!.user.id, rest, body).expect(403);
+        expect(res.body).toMatchObject(expected);
+        expect(await statusOf(c)).toBe(status);
+      }
+    });
+
+    it('C47: jogador comum também leva 403 NOT_ADMIN no score, e o membro que não jogou também', async () => {
       const c = await setup('TEAMS_PUBLISHED');
       const me = c.white[1]!.user.id;
-      await post(c, me, '/start').expect(403);
       await putScore(c, me, { WHITE: 1, BLACK: 0 }).expect(403);
-      await post(c, me, '/finish', { WHITE: 1, BLACK: 0 }).expect(403);
-      await post(c, me, '/open-voting').expect(403);
+      await post(c, c.benchUser.id, '/start').expect(403);
       expect(await statusOf(c)).toBe('TEAMS_PUBLISHED');
     });
 
-    it('C25: o placar de jogador comum devolve NOT_ADMIN e nada é gravado', async () => {
+    it('C47: o placar de jogador comum devolve NOT_ADMIN e nada é gravado', async () => {
       const c = await setup('POST_MATCH');
       const res = await putScore(c, c.white[1]!.user.id, { WHITE: 1, BLACK: 0 }).expect(403);
       expect(res.body).toMatchObject(rule('NOT_ADMIN', SCORE_ENTRY_ERROR_LABELS.NOT_ADMIN));
@@ -654,6 +687,9 @@ describe('placar e lances da rodada', () => {
       // Admin de outro grupo na URL do grupo deste: não é membro
       await get(c, foreignAdmin).expect(404);
       await post(c, foreignAdmin, '/open-voting').expect(404);
+      await post(c, foreignAdmin, '/start').expect(404);
+      await post(c, foreignAdmin, '/finish', { WHITE: 1, BLACK: 0 }).expect(404);
+      await post(c, c.inactiveUser.id, '/start').expect(404);
       await putScore(c, foreignAdmin, { WHITE: 5, BLACK: 5 }).expect(404);
       await postEvent(c, foreignAdmin, c.white[5]!.membership.id, 'GOAL').expect(404);
       await delEvent(c, foreignAdmin, event.id).expect(404);

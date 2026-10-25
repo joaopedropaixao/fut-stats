@@ -94,6 +94,8 @@ export const matchViewSchema = z.object({
   permissions: matchPermissionsSchema,
 });
 
+export type MatchScore = z.infer<typeof matchScoreSchema>;
+export type MatchResult = z.infer<typeof matchResultSchema>;
 export type SetMatchScoreInput = z.infer<typeof setMatchScoreSchema>;
 export type LaunchMatchEventInput = z.infer<typeof launchMatchEventSchema>;
 export type MatchPlayer = z.infer<typeof matchPlayerSchema>;
