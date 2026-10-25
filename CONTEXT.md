@@ -277,7 +277,7 @@ e quando a votação fecha sozinha.
 
 **Tipos:**
 - `RoundStatus` (lista em `ROUND_STATUSES`, igual ao enum do Prisma): `SCHEDULED` (agendada) →
-  `TEAMS_PUBLISHED` (times publicados) → `IN_PROGRESS` (em jogo) → `POST_MATCH` (Resenha pós-jogo) → `VOTING` (votação)
+  `TEAMS_PUBLISHED` (times publicados) → `IN_PROGRESS` (em jogo) → `POST_MATCH` (Resenha) → `VOTING` (votação)
   → `CLOSED` (encerrada).
   Para onde cada um pode ir: `ROUND_TRANSITIONS`.
 - `MatchEventType` (lista em `MATCH_EVENT_TYPES`): `GOAL`, `ASSIST`, `OWN_GOAL` (gol contra). O enum do Prisma
@@ -294,7 +294,7 @@ e quando a votação fecha sozinha.
 - `validateRoundTransition(round: RoundState, to: RoundStatus, { maxReservesPerTeam = MAX_RESERVES_PER_TEAM }: RoundTeamsOptions = {}): RoundTransitionError[]`
   e `canTransitionRound(...)` (sim/não). `RoundTransitionError` (lista em `ROUND_TRANSITION_ERRORS`):
   `'INVALID_TRANSITION'`, `'INVALID_LINEUP'`, `'INVALID_RESERVES'`, `'SCORE_MISSING'`, `'INVALID_SCORE'`,
-  `'GOALS_MISMATCH'`, `'TOO_MANY_ASSISTS'`, `'ATTENDANCE_MISMATCH'`.
+  `'GOALS_MISMATCH'`, `'ATTENDANCE_MISMATCH'`.
 - `validateRoundTeams(teams: RoundTeams | null, options?): RoundTransitionError[]` (só `INVALID_LINEUP`/`INVALID_RESERVES`).
 - `validateAttendanceMatch(teams: RoundTeams | null, confirmedIds): RoundTransitionError[]`: `['ATTENDANCE_MISMATCH']` se
   os escalados (titulares e reservas) não forem exatamente os confirmados; sem times, `[]`.
@@ -305,11 +305,11 @@ e quando a votação fecha sozinha.
 - `validateMatchEvent(event: MatchEvent, actor: RoundActor, round: RoundState): MatchEventError[]` e
   `canLaunchMatchEvent(...)` (sim/não); `validateMatchEventRemoval(event, actor, round): MatchEventError[]`.
   `MatchEventError` (lista em `MATCH_EVENT_ERRORS`): `'ROUND_NOT_OPEN'`, `'NOT_OWN_EVENT'`,
-  `'PLAYER_DID_NOT_PLAY'`, `'GOALS_EXCEED_SCORE'`, `'ASSISTS_EXCEED_SCORE'`, `'ADMIN_ONLY_IN_MATCH'`.
+  `'PLAYER_DID_NOT_PLAY'`, `'GOALS_EXCEED_SCORE'`.
 - `validateScoreEntry(score: MatchScore, actor: RoundActor, round: RoundState): ScoreEntryError[]`.
-  `ScoreEntryError` (lista em `SCORE_ENTRY_ERRORS`): `'ROUND_NOT_OPEN'`, `'NOT_ADMIN'`, `'INVALID_SCORE'`,
-  `'SCORE_BELOW_GOALS'`, `'SCORE_BELOW_ASSISTS'`.
-- `isMatchOpen(status): boolean`: se scouts e placar podem ser lançados/corrigidos (`IN_PROGRESS` e `POST_MATCH`).
+  `ScoreEntryError` (lista em `SCORE_ENTRY_ERRORS`): `'ROUND_NOT_OPEN'`, `'NOT_ADMIN'`, `'INVALID_SCORE'`.
+- `isMatchOpen(status): boolean`: se os **lances** podem ser lançados/apagados (só `POST_MATCH`).
+  `isScoreOpen(status): boolean`: se o **placar** pode ser lançado/corrigido (`IN_PROGRESS`, ao finalizar, e `POST_MATCH`).
 - `matchResult(score: MatchScore, team: Team): MatchResult`, com `MatchResult` (lista em `MATCH_RESULTS`) = `'WIN'` | `'LOSS'` | `'DRAW'`:
   o resultado do time pelo placar (o card YOU WIN / YOU LOSE / EMPATE de quem jogou). É o mesmo `MatchResult` do Cartola.
 - `isVotingOpen(status: RoundStatus, now: Date, voting: VotingState): boolean`: se dá para votar **ou editar** o voto.
@@ -329,19 +329,22 @@ e quando a votação fecha sozinha.
   vale só para `TEAMS_PUBLISHED` e `IN_PROGRESS`;
   ir para `POST_MATCH` (finalizar o jogo) exige só **placar lançado e válido** (`SCORE_MISSING`, `INVALID_SCORE`),
   sem exigir gols batendo: a Resenha serve para os jogadores completarem os lances;
-  ir para `VOTING` (que só sai de `POST_MATCH`: `IN_PROGRESS` não pula a Resenha) e para `CLOSED` exigem times montados (sem eles, `INVALID_LINEUP`), placar lançado e válido, **gols lançados = placar** em cada time
-  (gol contra conta para o adversário) e assistências ≤ gols do time. Etapa inválida devolve só `INVALID_TRANSITION`.
+  ir para `VOTING` (que só sai de `POST_MATCH`: `IN_PROGRESS` não pula a Resenha) e para `CLOSED` exigem times montados (sem eles, `INVALID_LINEUP`), placar lançado e válido e **gols lançados = placar** em cada time
+  (gol contra conta para o adversário). Assistência não entra na conta. Placar baixado abaixo dos gols já lançados
+  acusa `GOALS_MISMATCH` aqui, nunca ao lançar o placar. Etapa inválida devolve só `INVALID_TRANSITION`.
 - **Cancelar:** não há status de cancelada. Rodada que não vai acontecer é apagada, e só antes do jogo
   (`SCHEDULED` ou `TEAMS_PUBLISHED`, `isRoundDeletable`). `POST_MATCH` trava como `IN_PROGRESS`: não apaga nem edita a rodada.
-- **Scouts:** lança e apaga só em `IN_PROGRESS` e `POST_MATCH`; em `VOTING` e `CLOSED` congela (quem vota vê números que
-  não mudam; notas, prêmios e Cartola dependem deles). **Durante o jogo (`IN_PROGRESS`) só o admin lança e apaga**
-  (de qualquer um); jogador comum, até do próprio lance, recebe só `ADMIN_ONLY_IN_MATCH`. Na Resenha
-  (`POST_MATCH`) o jogador lança/apaga só os próprios (`NOT_OWN_EVENT` nos de outro); admin, de qualquer um.
-  Gol contra segue a mesma regra de gol e assistência. Quem fez o lance tem que ter jogado (titular ou reserva).
-  Corrigir = apagar + lançar. Assistência é solta (não aponta para um gol). Sem placar, não há limite; com placar,
-  os gols de um time não passam do placar dele, nem as assistências.
-- **Placar:** só admin, em `IN_PROGRESS` e `POST_MATCH` (congela ao abrir a votação); não fica abaixo dos gols nem das assistências já lançados.
-  Gols podem ser lançados antes do placar.
+- **Scouts (placar primeiro, lances depois, decisão do dono, 25 out 2026):** os lances (gol, assistência, gol contra)
+  só se lançam e apagam na **Resenha** (`POST_MATCH`). Em `IN_PROGRESS` ninguém lança, nem o admin (`ROUND_NOT_OPEN`: a
+  tela do admin em jogo só finaliza com o placar). Em `VOTING` e `CLOSED` congela (quem vota vê números que não mudam;
+  notas, prêmios e Cartola dependem deles). Na Resenha o jogador lança/apaga só os próprios (`NOT_OWN_EVENT` nos de
+  outro); admin, de qualquer um. Gol contra segue a mesma regra de gol. Quem fez o lance tem que ter jogado (titular ou
+  reserva). Corrigir = apagar + lançar. Com placar lançado, os gols de um time não passam do placar dele
+  (`GOALS_EXCEED_SCORE`; gol contra conta para o adversário). **Assistência é solta**: não aponta para um gol, não tem
+  limite e não trava nada (nem o placar, nem a votação).
+- **Placar:** só admin, ao finalizar o jogo (`IN_PROGRESS`) e na Resenha (`POST_MATCH`); congela ao abrir a votação. **Nunca
+  é barrado pelos lances**: o admin pode baixá-lo abaixo dos gols já lançados, e a abertura da votação acusa
+  `GOALS_MISMATCH` até ele (ou os lances) acertar.
 - **Votação:** fecha sozinha quando todos que jogaram votaram (`ALL_VOTED`, tem prioridade; com `playedIds`
   vazio não vale, só o prazo fecha) ou quando o prazo expira (`DEADLINE_PASSED`, a partir do instante
   `openedAt + deadlineHours`). Votar é opcional: sem votos, fecha no
@@ -356,8 +359,8 @@ não fecha a rodada sozinha: `shouldCloseVoting` só diz que é hora, e o `CLOSE
 (`ROUND_STATUS_LABELS`, `MATCH_EVENT_TYPE_LABELS`, `ROUND_TRANSITION_ERROR_LABELS`, `MATCH_EVENT_ERROR_LABELS`,
 `SCORE_ENTRY_ERROR_LABELS` no shared).
 
-**Devolve:** `validate*` → lista de códigos (vazia = pode); fora de `IN_PROGRESS`/`POST_MATCH`, os de scout e placar
-devolvem só `ROUND_NOT_OPEN`; durante o jogo, o jogador comum recebe só `ADMIN_ONLY_IN_MATCH`. `votingCloseReason` → motivo ou `null` (segue aberta).
+**Devolve:** `validate*` → lista de códigos (vazia = pode); os de scout e placar
+devolvem só `ROUND_NOT_OPEN` (lances: tudo fora de `POST_MATCH`; placar: tudo fora de `IN_PROGRESS`/`POST_MATCH`). `votingCloseReason` → motivo ou `null` (segue aberta).
 
 **Evite:**
 - Gravar gol sofrido como lance (sai do placar); scout sem autor; jogador lançando scout de outro.
@@ -374,8 +377,11 @@ ganhou o lance, `tally`, `me` com o resultado, `permissions` e `canRemove` calcu
 passo do admin). Admin: `POST /start` (`TEAMS_PUBLISHED` → `IN_PROGRESS`), `PUT /score`, `POST /finish` (grava o placar
 final e vai para `POST_MATCH` numa transação) e `POST /open-voting` (`POST_MATCH` → `VOTING`, grava `votingOpenedAt`).
 Lances: `POST /events` e `DELETE /events/:eventId`, de qualquer membro conforme o domain. Erro de regra vem como
-`{ code, message }`: quem pode (`NOT_ADMIN`, `NOT_OWN_EVENT`, `ADMIN_ONLY_IN_MATCH`) → 403; momento e números → 409;
-rodada, lance ou grupo que não é do usuário → 404. Seed: cenários `em-jogo` (lances só do admin) e `resenha`.
+`{ code, message }`: quem pode (`NOT_ADMIN`, `NOT_OWN_EVENT`) → 403; momento e números → 409;
+rodada, lance ou grupo que não é do usuário → 404. `start`, `finish`, `open-voting` e `score` conferem o admin no
+service (não no guard): jogador comum leva 403 `{ code: 'NOT_ADMIN', message }`; quem não é do grupo, 404.
+`permissions.launchAny` = admin e `POST_MATCH`; `launchOwn` = jogou e `POST_MATCH`; `setScore` = admin e
+`IN_PROGRESS`/`POST_MATCH`. Seed: cenários `em-jogo` (placar nulo, sem lances) e `resenha` (placar 3x2, parte dos lances).
 
 ### Presença: `validateAttendanceChange` 🚧
 **O que é:** quem pode marcar Vou / Não vou numa rodada e até quando (`src/round/attendance.ts`). Regras decididas
@@ -419,7 +425,7 @@ dono em 23 out 2026, para as telas não terem cada uma a sua regra.
 **Assinatura:** `pickCurrentRound(rounds: readonly T[], now: Date, options?: { staleAfterHours?: number }): T | null`,
 com `T extends RoundAtTime = { status, scheduledAt }`.
 
-**Faz:** a rodada **em jogo** (`IN_PROGRESS` ou `POST_MATCH`, a Resenha pós-jogo, para não sumir do início) vem primeiro (se houver mais de uma, a de horário mais recente). Sem jogo,
+**Faz:** a rodada **em jogo** (`IN_PROGRESS` ou `POST_MATCH`, a Resenha, para não sumir do início) vem primeiro (se houver mais de uma, a de horário mais recente). Sem jogo,
 a de antes do jogo (`SCHEDULED`/`TEAMS_PUBLISHED`) com o **horário mais cedo**, contando as que passaram do horário há
 menos de `staleAfterHours` (padrão 24): no dia da pelada, passou da hora e o admin ainda não começou, ela continua
 na tela.
