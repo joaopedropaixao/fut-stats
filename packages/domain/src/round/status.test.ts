@@ -231,18 +231,28 @@ describe('validateRoundTransition', () => {
       ).toEqual([]);
     });
 
-    it('mais assistências que gols do time', () => {
+    it('C46: assistência é solta, não trava a votação (3 assistências com 1 gol)', () => {
       const events: MatchEvent[] = [
         ...goals(1, 0),
         { playerId: 'w6', type: 'ASSIST' },
-        { playerId: 'w5', type: 'ASSIST' },
+        { playerId: 'w6', type: 'ASSIST' },
+        { playerId: 'w6', type: 'ASSIST' },
       ];
       expect(
         validateRoundTransition(
           round({ status: 'POST_MATCH', score: { WHITE: 1, BLACK: 0 }, events }),
           'VOTING',
         ),
-      ).toEqual(['TOO_MANY_ASSISTS']);
+      ).toEqual([]);
+    });
+
+    it('C45: placar baixado abaixo dos gols lançados acusa GOALS_MISMATCH', () => {
+      expect(
+        validateRoundTransition(
+          round({ status: 'POST_MATCH', score: { WHITE: 0, BLACK: 0 }, events: goals(1, 0) }),
+          'VOTING',
+        ),
+      ).toEqual(['GOALS_MISMATCH']);
     });
   });
 });

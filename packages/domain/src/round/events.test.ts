@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { round as baseRound } from './fixtures.test-utils';
 import {
   canLaunchMatchEvent,
+  isMatchOpen,
+  isScoreOpen,
   validateMatchEvent,
   validateMatchEventRemoval,
   validateScoreEntry,
@@ -49,26 +51,28 @@ describe('validateMatchEvent', () => {
     ]);
   });
 
-  it('C9: congela na votação e fora do jogo; só esse motivo', () => {
+  it('C9: lance só na Resenha; fora dela (inclusive congelado na votação) só ROUND_NOT_OPEN', () => {
     const open = ROUND_STATUSES.filter(
       (status) => validateMatchEvent(goal('w7'), admin, round({ status })).length === 0,
     );
-    expect(open).toEqual(['IN_PROGRESS', 'POST_MATCH']);
+    expect(open).toEqual(['POST_MATCH']);
     for (const status of ['SCHEDULED', 'TEAMS_PUBLISHED', 'VOTING', 'CLOSED'] as const) {
       expect(validateMatchEvent(goal('x'), player, round({ status }))).toEqual(['ROUND_NOT_OPEN']);
     }
   });
 
-  it('C6: durante o jogo só o admin lança, até o próprio lance do jogador', () => {
+  it('C44: durante o jogo ninguém lança lance, nem o admin: ROUND_NOT_OPEN', () => {
     const inGame = round({ status: 'IN_PROGRESS' });
     for (const type of ['GOAL', 'ASSIST', 'OWN_GOAL'] as const) {
       expect(validateMatchEvent({ playerId: 'w7', type }, player, inGame)).toEqual([
-        'ADMIN_ONLY_IN_MATCH',
+        'ROUND_NOT_OPEN',
+      ]);
+      expect(validateMatchEvent({ playerId: 'w7', type }, admin, inGame)).toEqual([
+        'ROUND_NOT_OPEN',
       ]);
     }
-    expect(validateMatchEvent(goal('w6'), player, inGame)).toEqual(['ADMIN_ONLY_IN_MATCH']);
-    expect(validateMatchEvent(goal('w7'), admin, inGame)).toEqual([]);
-    expect(validateMatchEvent(goal('b7'), admin, inGame)).toEqual([]);
+    expect(validateMatchEvent(goal('w6'), player, inGame)).toEqual(['ROUND_NOT_OPEN']);
+    expect(validateMatchEvent(goal('b7'), admin, inGame)).toEqual(['ROUND_NOT_OPEN']);
   });
 
   it('C7: na Resenha o jogador lança os 3 tipos do próprio; de outro, NOT_OWN_EVENT', () => {
@@ -108,15 +112,17 @@ describe('validateMatchEvent', () => {
       ]);
     });
 
-    it('assistências do time não passam dos gols do time no placar', () => {
+    it('C46: assistência é solta, não tem limite nem olha o placar', () => {
       const assist: MatchEvent = { playerId: 'w6', type: 'ASSIST' };
       expect(validateMatchEvent(assist, admin, round({ score }))).toEqual([]);
-      expect(validateMatchEvent(assist, admin, round({ score, events: [assist] }))).toEqual([
-        'ASSISTS_EXCEED_SCORE',
-      ]);
-      expect(validateMatchEvent(assist, admin, round({ score: { WHITE: 0, BLACK: 3 } }))).toEqual([
-        'ASSISTS_EXCEED_SCORE',
-      ]);
+      expect(validateMatchEvent(assist, admin, round({ score, events: [assist] }))).toEqual([]);
+      const tres = [assist, assist, assist];
+      expect(
+        validateMatchEvent(assist, admin, round({ score: { WHITE: 1, BLACK: 0 }, events: tres })),
+      ).toEqual([]);
+      expect(validateMatchEvent(assist, admin, round({ score: { WHITE: 0, BLACK: 3 } }))).toEqual(
+        [],
+      );
     });
   });
 
@@ -145,18 +151,24 @@ describe('validateMatchEventRemoval', () => {
     expect(validateMatchEventRemoval(goal('w7'), player, state)).toEqual([]);
   });
 
-  it('C9: só em jogo e na Resenha; votação e encerrada congelam', () => {
-    for (const status of ['SCHEDULED', 'TEAMS_PUBLISHED', 'VOTING', 'CLOSED'] as const) {
+  it('C9: só na Resenha; antes, em jogo e depois (votação, encerrada) é ROUND_NOT_OPEN', () => {
+    for (const status of [
+      'SCHEDULED',
+      'TEAMS_PUBLISHED',
+      'IN_PROGRESS',
+      'VOTING',
+      'CLOSED',
+    ] as const) {
       expect(validateMatchEventRemoval(goal('w7'), admin, round({ status }))).toEqual([
         'ROUND_NOT_OPEN',
       ]);
     }
   });
 
-  it('C6: durante o jogo jogador comum não apaga nem o próprio; admin apaga', () => {
+  it('C44: durante o jogo ninguém apaga lance, nem o admin', () => {
     const inGame = round({ status: 'IN_PROGRESS' });
-    expect(validateMatchEventRemoval(goal('w7'), player, inGame)).toEqual(['ADMIN_ONLY_IN_MATCH']);
-    expect(validateMatchEventRemoval(goal('w7'), admin, inGame)).toEqual([]);
+    expect(validateMatchEventRemoval(goal('w7'), player, inGame)).toEqual(['ROUND_NOT_OPEN']);
+    expect(validateMatchEventRemoval(goal('w7'), admin, inGame)).toEqual(['ROUND_NOT_OPEN']);
   });
 
   it('C7: na Resenha o jogador apaga o próprio GOAL, ASSIST ou OWN_GOAL, não o de outro', () => {
@@ -170,13 +182,26 @@ describe('validateMatchEventRemoval', () => {
 });
 
 describe('validateScoreEntry', () => {
-  it('C10: admin lança e corrige o placar em jogo e na Resenha; abaixo dos gols, SCORE_BELOW_GOALS', () => {
-    const events = [goal('w7'), goal('w6')];
-    expect(validateScoreEntry({ WHITE: 1, BLACK: 0 }, admin, round({ events }))).toEqual([
-      'SCORE_BELOW_GOALS',
-    ]);
+  it('admin lança e corrige o placar em jogo e na Resenha', () => {
     for (const status of ['IN_PROGRESS', 'POST_MATCH'] as const) {
       expect(validateScoreEntry({ WHITE: 2, BLACK: 1 }, admin, round({ status }))).toEqual([]);
+    }
+  });
+
+  it('C45: o placar nunca é barrado pelos lances, nem abaixo dos gols ou das assistências', () => {
+    const goals: MatchEvent[] = [goal('w7'), goal('w6'), { playerId: 'w2', type: 'OWN_GOAL' }];
+    const assists: MatchEvent[] = [
+      { playerId: 'b6', type: 'ASSIST' },
+      { playerId: 'b5', type: 'ASSIST' },
+    ];
+    for (const status of ['IN_PROGRESS', 'POST_MATCH'] as const) {
+      const events = [...goals, ...assists];
+      expect(validateScoreEntry({ WHITE: 0, BLACK: 0 }, admin, round({ status, events }))).toEqual(
+        [],
+      );
+      expect(validateScoreEntry({ WHITE: 1, BLACK: 0 }, admin, round({ status, events }))).toEqual(
+        [],
+      );
     }
   });
 
@@ -196,31 +221,17 @@ describe('validateScoreEntry', () => {
     expect(validateScoreEntry({ WHITE: 1.5, BLACK: 1 }, admin, round())).toEqual(['INVALID_SCORE']);
   });
 
-  it('placar não fica abaixo dos gols já lançados (gol contra conta para o adversário)', () => {
-    const events: MatchEvent[] = [goal('w7'), goal('w6'), { playerId: 'w2', type: 'OWN_GOAL' }];
-    expect(validateScoreEntry({ WHITE: 2, BLACK: 1 }, admin, round({ events }))).toEqual([]);
-    expect(validateScoreEntry({ WHITE: 1, BLACK: 1 }, admin, round({ events }))).toEqual([
-      'SCORE_BELOW_GOALS',
-    ]);
-    expect(validateScoreEntry({ WHITE: 2, BLACK: 0 }, admin, round({ events }))).toEqual([
-      'SCORE_BELOW_GOALS',
-    ]);
-  });
-
-  it('placar não fica abaixo das assistências já lançadas', () => {
-    const events: MatchEvent[] = [
-      { playerId: 'b6', type: 'ASSIST' },
-      { playerId: 'b5', type: 'ASSIST' },
-    ];
-    expect(validateScoreEntry({ WHITE: 0, BLACK: 1 }, admin, round({ events }))).toEqual([
-      'SCORE_BELOW_ASSISTS',
-    ]);
-  });
-
   it('não-admin com placar inválido: lista os dois', () => {
     expect(validateScoreEntry({ WHITE: -1, BLACK: 0 }, player, round())).toEqual([
       'NOT_ADMIN',
       'INVALID_SCORE',
     ]);
+  });
+});
+
+describe('isMatchOpen / isScoreOpen', () => {
+  it('lances só na Resenha; placar em jogo e na Resenha', () => {
+    expect(ROUND_STATUSES.filter(isMatchOpen)).toEqual(['POST_MATCH']);
+    expect(ROUND_STATUSES.filter(isScoreOpen)).toEqual(['IN_PROGRESS', 'POST_MATCH']);
   });
 });

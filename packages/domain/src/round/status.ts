@@ -92,7 +92,7 @@ export function validateAttendanceMatch(
 
 /**
  * Times montados (sem eles não dá para contar os lances), placar lançado e válido e batendo com os
- * lances: gols = placar e assistências ≤ gols, por time.
+ * gols lançados: gols = placar, por time (assistência é solta).
  */
 function validateScoreMatchesEvents(round: RoundState): RoundTransitionError[] {
   const { score, teams } = round;
