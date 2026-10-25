@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   isMatchOpen,
+  isScoreOpen,
   matchResult,
   opponentOf,
   tallyMatchEvents,
@@ -33,16 +34,19 @@ import type { GroupMembership } from '../auth/request';
 import type { Position } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 
-/** Erros de quem pode (dono do lance, admin, durante o jogo) saem como 403; o resto (momento, números) como 409. */
-const FORBIDDEN_CODES: ReadonlySet<string> = new Set([
-  'NOT_ADMIN',
-  'NOT_OWN_EVENT',
-  'ADMIN_ONLY_IN_MATCH',
-]);
+/** Erros de quem pode (dono do lance, admin) saem como 403; o resto (momento, números) como 409. */
+const FORBIDDEN_CODES: ReadonlySet<string> = new Set(['NOT_ADMIN', 'NOT_OWN_EVENT']);
 
 function ruleError(code: string, message: string) {
   const body = { code, message };
   return FORBIDDEN_CODES.has(code) ? new ForbiddenException(body) : new ConflictException(body);
+}
+
+/** Passos do admin (começar, finalizar, abrir a votação): quem não é admin leva 403 `NOT_ADMIN`, em qualquer etapa. */
+function assertAdmin(membership: GroupMembership): void {
+  if (membership.role !== 'ADMIN') {
+    throw ruleError('NOT_ADMIN', SCORE_ENTRY_ERROR_LABELS.NOT_ADMIN);
+  }
 }
 
 function toActor(membership: GroupMembership): RoundActor {
@@ -119,7 +123,6 @@ export class MatchService {
       status === 'TEAMS_PUBLISHED' ? 'IN_PROGRESS' : status === 'POST_MATCH' ? 'VOTING' : null;
     const errors = isAdmin && next ? validateRoundTransition(state, next) : [];
 
-    const open = isMatchOpen(status);
     // Sem placar, o limite de gols/assistências não entra na conta: só papel, momento e se jogou.
     const canLaunchOwn =
       myTeam !== null &&
@@ -143,17 +146,18 @@ export class MatchService {
       errors,
       permissions: {
         start: isAdmin && status === 'TEAMS_PUBLISHED',
-        setScore: isAdmin && open,
+        setScore: isAdmin && isScoreOpen(status),
         finish: isAdmin && status === 'IN_PROGRESS',
         openVoting: isAdmin && status === 'POST_MATCH',
         launchOwn: canLaunchOwn,
-        launchAny: isAdmin && open,
+        launchAny: isAdmin && isMatchOpen(status),
       },
     };
   }
 
   /** TEAMS_PUBLISHED → IN_PROGRESS, só com times válidos e confirmados = escalados. */
   async start(membership: GroupMembership, roundId: string): Promise<MatchView> {
+    assertAdmin(membership);
     const { state } = await this.load(membership.groupId, roundId);
     const [error] = validateRoundTransition(state, 'IN_PROGRESS');
     if (error) throw transitionError(error);
@@ -167,11 +171,11 @@ export class MatchService {
     roundId: string,
     input: SetMatchScoreInput,
   ): Promise<MatchView> {
+    // Quem não é admin leva NOT_ADMIN em qualquer etapa (o domain só o devolve com o placar aberto).
+    assertAdmin(membership);
     const { state } = await this.load(membership.groupId, roundId);
     const score: MatchScore = { WHITE: input.WHITE, BLACK: input.BLACK };
-    // Quem não é admin leva NOT_ADMIN em qualquer etapa (o domain só o devolve com o jogo aberto).
     const actor = toActor(membership);
-    if (!actor.isAdmin) throw ruleError('NOT_ADMIN', SCORE_ENTRY_ERROR_LABELS.NOT_ADMIN);
     const [error] = validateScoreEntry(score, actor, state);
     if (error) throw ruleError(error, SCORE_ENTRY_ERROR_LABELS[error]);
 
@@ -188,6 +192,7 @@ export class MatchService {
     roundId: string,
     input: SetMatchScoreInput,
   ): Promise<MatchView> {
+    assertAdmin(membership);
     const { state } = await this.load(membership.groupId, roundId);
     const score: MatchScore = { WHITE: input.WHITE, BLACK: input.BLACK };
     const withScore = { ...state, score };
@@ -210,6 +215,7 @@ export class MatchService {
 
   /** POST_MATCH → VOTING, com gols = placar. Grava quando a votação abriu; placar e lances congelam. */
   async openVoting(membership: GroupMembership, roundId: string): Promise<MatchView> {
+    assertAdmin(membership);
     const { state } = await this.load(membership.groupId, roundId);
     const [error] = validateRoundTransition(state, 'VOTING');
     if (error) throw transitionError(error);

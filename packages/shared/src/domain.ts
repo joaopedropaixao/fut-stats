@@ -167,6 +167,6 @@ export const MATCH_EVENT_ERROR_LABELS: Readonly<Record<MatchEventError, string>>
 /** Por que o placar não pode ser lançado. */
 export const SCORE_ENTRY_ERROR_LABELS: Readonly<Record<ScoreEntryError, string>> = {
   ROUND_NOT_OPEN: 'Só dá para lançar o placar durante o jogo ou na Resenha',
-  NOT_ADMIN: 'Só o admin lança o placar',
+  NOT_ADMIN: 'Só o admin pode fazer isso',
   INVALID_SCORE: 'O placar precisa ser um número inteiro, zero ou mais',
 };
