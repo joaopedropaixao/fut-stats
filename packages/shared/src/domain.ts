@@ -158,8 +158,8 @@ export const ROUND_TRANSITION_ERROR_LABELS: Readonly<Record<RoundTransitionError
 
 /** Por que um lance (gol, assistência, gol contra) não pode ser lançado ou apagado. */
 export const MATCH_EVENT_ERROR_LABELS: Readonly<Record<MatchEventError, string>> = {
-  ROUND_NOT_OPEN: 'Os lances entram na Resenha, depois do jogo',
-  NOT_OWN_EVENT: 'Você só pode lançar os seus próprios lances',
+  ROUND_NOT_OPEN: 'Só dá para lançar e apagar lances na Resenha',
+  NOT_OWN_EVENT: 'Você só mexe nos seus próprios lances',
   PLAYER_DID_NOT_PLAY: 'Esse jogador não jogou a rodada',
   GOALS_EXCEED_SCORE: 'Esse gol passa do placar do time',
 };
