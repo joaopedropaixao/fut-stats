@@ -111,7 +111,10 @@ export type { TeamBalance };
  * Equilíbrio do rascunho da tela: converte para o formato do domain e chama `teamBalance`, a mesma regra da API.
  * O front só mostra. Membro que não está em `members` é ignorado.
  */
-export function draftBalance(draft: SaveLineupInput, members: readonly BalanceMember[]): TeamBalance {
+export function draftBalance(
+  draft: SaveLineupInput,
+  members: readonly BalanceMember[],
+): TeamBalance {
   const starters = (team: 'WHITE' | 'BLACK') =>
     draft[team].starters.map((s) => ({ playerId: s.membershipId, position: s.position }));
   return teamBalance(
@@ -120,6 +123,10 @@ export function draftBalance(draft: SaveLineupInput, members: readonly BalanceMe
       BLACK: starters('BLACK'),
       reserves: { WHITE: draft.WHITE.reserves, BLACK: draft.BLACK.reserves },
     },
-    members.map((m) => ({ id: m.membershipId, primaryPosition: m.primaryPosition, rating: m.rating })),
+    members.map((m) => ({
+      id: m.membershipId,
+      primaryPosition: m.primaryPosition,
+      rating: m.rating,
+    })),
   );
 }
