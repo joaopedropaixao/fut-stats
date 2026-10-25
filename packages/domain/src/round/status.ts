@@ -12,6 +12,7 @@ export const ROUND_STATUSES = [
   'SCHEDULED',
   'TEAMS_PUBLISHED',
   'IN_PROGRESS',
+  'POST_MATCH',
   'VOTING',
   'CLOSED',
 ] as const;
@@ -25,7 +26,8 @@ export type RoundStatus = (typeof ROUND_STATUSES)[number];
 export const ROUND_TRANSITIONS: Readonly<Record<RoundStatus, readonly RoundStatus[]>> = {
   SCHEDULED: ['TEAMS_PUBLISHED'],
   TEAMS_PUBLISHED: ['SCHEDULED', 'IN_PROGRESS'],
-  IN_PROGRESS: ['VOTING'],
+  IN_PROGRESS: ['POST_MATCH'],
+  POST_MATCH: ['VOTING'],
   VOTING: ['CLOSED'],
   CLOSED: [],
 };
@@ -126,6 +128,9 @@ export function validateRoundTransition(
         ...validateRoundTeams(round.teams, options),
         ...validateAttendanceMatch(round.teams, round.confirmedIds),
       ];
+    case 'POST_MATCH':
+      // TODO(dev-back, spec C1/C2): placar lançado e válido, sem exigir gols batendo.
+      return [];
     case 'VOTING':
     case 'CLOSED':
       return validateScoreMatchesEvents(round);

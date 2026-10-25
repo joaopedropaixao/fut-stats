@@ -1,6 +1,7 @@
 import {
   isValidRating,
   MATCH_EVENT_TYPES,
+  MATCH_RESULTS,
   POSITIONS,
   RATING_MAX,
   RATING_MIN,
@@ -15,6 +16,7 @@ import type {
   CartolaSquadError,
   MatchEventError,
   MatchEventType,
+  MatchResult,
   Position,
   RatingError,
   RatingSheetError,
@@ -39,6 +41,7 @@ export const ratingSchema = z
 
 export const roundStatusSchema = z.enum(ROUND_STATUSES);
 export const matchEventTypeSchema = z.enum(MATCH_EVENT_TYPES);
+export const matchResultSchema = z.enum(MATCH_RESULTS);
 
 /** Placar da rodada: gols inteiros, zero ou mais. */
 export const matchScoreSchema = z
@@ -78,6 +81,7 @@ export const ROUND_STATUS_LABELS: Readonly<Record<RoundStatus, string>> = {
   SCHEDULED: 'Agendada',
   TEAMS_PUBLISHED: 'Times publicados',
   IN_PROGRESS: 'Em jogo',
+  POST_MATCH: 'Resenha pós-jogo',
   VOTING: 'Votação',
   CLOSED: 'Encerrada',
 };
@@ -87,6 +91,13 @@ export const MATCH_EVENT_TYPE_LABELS: Readonly<Record<MatchEventType, string>> =
   GOAL: 'Gol',
   ASSIST: 'Assistência',
   OWN_GOAL: 'Gol contra',
+};
+
+/** Textos do card de resultado de quem jogou. */
+export const MATCH_RESULT_LABELS: Readonly<Record<MatchResult, string>> = {
+  WIN: 'YOU WIN',
+  LOSS: 'YOU LOSE',
+  DRAW: 'EMPATE',
 };
 
 // Mensagens dos códigos de erro de validação do domínio. O Record obriga a ter texto para
@@ -148,16 +159,17 @@ export const ROUND_TRANSITION_ERROR_LABELS: Readonly<Record<RoundTransitionError
 
 /** Por que um lance (gol, assistência, gol contra) não pode ser lançado ou apagado. */
 export const MATCH_EVENT_ERROR_LABELS: Readonly<Record<MatchEventError, string>> = {
-  ROUND_NOT_OPEN: 'Só dá para lançar durante o jogo ou a votação',
+  ROUND_NOT_OPEN: 'Só dá para lançar durante o jogo ou na Resenha',
   NOT_OWN_EVENT: 'Você só pode lançar os seus próprios lances',
   PLAYER_DID_NOT_PLAY: 'Esse jogador não jogou a rodada',
   GOALS_EXCEED_SCORE: 'Esse gol passa do placar do time',
   ASSISTS_EXCEED_SCORE: 'Essa assistência passa dos gols do time no placar',
+  ADMIN_ONLY_IN_MATCH: 'Durante o jogo só o admin lança. Seus lances entram na Resenha',
 };
 
 /** Por que o placar não pode ser lançado. */
 export const SCORE_ENTRY_ERROR_LABELS: Readonly<Record<ScoreEntryError, string>> = {
-  ROUND_NOT_OPEN: 'Só dá para lançar o placar durante o jogo ou a votação',
+  ROUND_NOT_OPEN: 'Só dá para lançar o placar durante o jogo ou na Resenha',
   NOT_ADMIN: 'Só o admin lança o placar',
   INVALID_SCORE: 'O placar precisa ser um número inteiro, zero ou mais',
   SCORE_BELOW_GOALS: 'O placar não pode ser menor que os gols já lançados',

@@ -40,6 +40,11 @@ export interface MatchEventTally {
   assists: Record<Team, number>;
 }
 
+/** Resultado de um time no jogo, pelo placar. */
+export const MATCH_RESULTS = ['WIN', 'LOSS', 'DRAW'] as const;
+
+export type MatchResult = (typeof MATCH_RESULTS)[number];
+
 export const SCORE_ERRORS = ['INVALID_SCORE'] as const;
 
 export type ScoreError = (typeof SCORE_ERRORS)[number];

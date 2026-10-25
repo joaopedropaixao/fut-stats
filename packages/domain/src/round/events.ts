@@ -22,6 +22,7 @@ export const MATCH_EVENT_ERRORS = [
   'PLAYER_DID_NOT_PLAY',
   'GOALS_EXCEED_SCORE',
   'ASSISTS_EXCEED_SCORE',
+  'ADMIN_ONLY_IN_MATCH',
 ] as const;
 
 export type MatchEventError = (typeof MATCH_EVENT_ERRORS)[number];
