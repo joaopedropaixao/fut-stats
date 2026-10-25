@@ -265,4 +265,27 @@ matchViewSchema = z.object({
 - Cronômetro dos reservas? → Fatia própria, logo depois desta.
 
 ## QA
-<Preenchido no fim.>
+**1 volta, `VEREDITO: APROVADO`** (25 out 2026). Lint, typecheck, testes (domínio 293, API 207 de integração,
+web 151) e build verdes com back e front juntos; na raiz do `feature/placar-e-lances`, depois do merge, de novo
+verdes. API por curl com admin, jogador do Branco e do Preto, membro que não jogou, admin de outro grupo e membro
+inativo; respostas 200 conferidas com `matchViewSchema`. Tela no Playwright a 390px como admin, jogador e quem não
+jogou; console sem erros de JS no fluxo real.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1–C5 | OK | `status.test.ts` (Resenha exige placar, não pula para a votação, gols batendo para votar, gol contra) |
+| C6–C10 | OK | `events.test.ts` (só admin em jogo, próprios na Resenha, gol contra passando do placar, congela na votação, placar do admin); curl `SCORE_BELOW_GOALS` |
+| C11–C13 | OK | `match.test.ts`, `current.test.ts`, `attendance.test.ts`; curl na Resenha: `ATTENDANCE_CLOSED`, `ROUND_NOT_EDITABLE`, `ROUND_NOT_DELETABLE` |
+| C14–C21 | OK | `match.spec.ts`; curl: view com `team` do gol contra no adversário e `canRemove` por pessoa; start, `ATTENDANCE_MISMATCH`, lances do admin, 403 `ADMIN_ONLY_IN_MATCH`, finish e `SCORE_BELOW_GOALS`, regras do jogador na Resenha |
+| C22–C28 | OK | `match.spec.ts`; curl: open-voting com e sem gols batendo e `votingOpenedAt`, `ROUND_NOT_OPEN` na votação, 403 do jogador, `INVALID_TRANSITION` fora de ordem, 404 entre grupos/inativo/lance de outra rodada, `me.result` |
+| C29 | OK | `seed.spec.ts`; banco: em-jogo 2x1 só do admin e placar nulo, resenha 3x2 com gols faltando e gol contra, passadas com `votingOpenedAt` |
+| C30–C34 | OK | Playwright: começar (e motivo com tecla desabilitada), placar não lançado, seletor e gol contra na lista do time beneficiado, finalizar abaixo dos gols e para a Resenha, jogador só leitura em jogo |
+| C35–C36 | OK | YOU WIN / YOU LOSE com placar, Pular 100x44, foco em "Você venceu 3 a 2", não repete, storage quebrado não quebra, quem não jogou não vê; reduzir movimento só com fade |
+| C37–C40 | OK | jogador lança/apaga os próprios na Resenha; admin corrige placar e abre a votação; tela congela; esqueleto, erro com "Tentar de novo", não encontrada, "O jogo ainda não começou" |
+| C41–C43 | OK | início: "Hora da Resenha" (jogador, admin e quem não jogou) e "Em jogo", sem o card de presença |
+
+Pontos menores, sem reprovar: 403 de `start`/`finish`/`open-voting` vem do guard, sem `{ code, message }` (o front
+mostra um texto genérico); lançar lance e placar sem transação (dois toques juntos podem passar do placar; concorrência
+fora do escopo); aviso "Assistência ... apagado/lançado" sem concordar no feminino; na rodada não encontrada, o
+voltar aponta para a própria rodada; "já vi o resultado" é por rodada no navegador, não por usuário; rótulo
+"RESENHA PÓS-JOGO" colado no dígito do Branco e último motivo rente à barra de abas.
