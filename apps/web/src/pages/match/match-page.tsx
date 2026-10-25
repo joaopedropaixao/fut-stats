@@ -1,8 +1,9 @@
 import {
-  MATCH_EVENT_TYPE_LABELS,
+  ROUND_STATUS_LABELS,
   ROUND_TRANSITION_ERROR_LABELS,
   type LaunchMatchEventInput,
   type MatchEventItem,
+  type MatchScore,
   type MatchView,
 } from '@fut-stats/shared';
 import { useState, type ComponentProps, type ReactNode } from 'react';
@@ -15,7 +16,8 @@ import { useNotice } from '../../components/ui/use-notice';
 import { useCurrentGroup } from '../../features/group/use-current-group';
 import { RoundHeading } from '../../features/lineup/round-heading';
 import { EventList } from '../../features/match/event-list';
-import { PlayerPicker } from '../../features/match/player-picker';
+import { eventNoticeTitle } from '../../features/match/match-text';
+import { PlayerLines } from '../../features/match/player-lines';
 import { useMatch, useMatchActions } from '../../features/match/queries';
 import { ResultCard } from '../../features/match/result-card';
 import { hasSeenResult } from '../../features/match/result-seen';
@@ -23,7 +25,10 @@ import { ScoreStepper, Scoreboard } from '../../features/match/scoreboard';
 import { RouteButton } from '../../features/rounds/route-button';
 import { ApiError, apiErrorMessage } from '../../lib/api';
 
-/** /rodadas/:roundId/jogo: placar e lances; começar, finalizar e abrir a votação (admin); a Resenha dos jogadores. */
+/**
+ * /rodadas/:roundId/jogo: em jogo, o placar (o admin finaliza com ele); na Resenha, os lances (o admin por jogador,
+ * cada jogador os seus); o admin começa, finaliza e abre a votação.
+ */
 export function MatchPage() {
   const { roundId } = useParams();
   const { group } = useCurrentGroup();
@@ -45,7 +50,7 @@ function Content({ groupId, roundId }: { groupId: string; roundId: string | unde
         className="self-start"
       />
       <RoundHeading
-        title={match.data?.status === 'POST_MATCH' ? 'Resenha pós-jogo' : 'Jogo'}
+        title={match.data?.status === 'POST_MATCH' ? ROUND_STATUS_LABELS.POST_MATCH : 'Jogo'}
         round={match.data && { ...match.data, location: null }}
       />
       {match.isError ? (
@@ -79,24 +84,14 @@ const OWN_KEYS: { type: EventType; label: string }[] = [
   { type: 'ASSIST', label: 'Minha assistência' },
   { type: 'OWN_GOAL', label: 'Meu gol contra' },
 ];
-const ANY_KEYS: { type: EventType; label: string }[] = [
-  { type: 'GOAL', label: 'Gol' },
-  { type: 'ASSIST', label: 'Assistência' },
-  { type: 'OWN_GOAL', label: 'Gol contra' },
-];
-const PICKER_TITLES: Record<EventType, string> = {
-  GOAL: 'Quem fez o gol?',
-  ASSIST: 'Quem deu a assistência?',
-  OWN_GOAL: 'Quem fez o gol contra?',
-};
 
 function Board({ groupId, view }: { groupId: string; view: MatchView }) {
   const actions = useMatchActions(groupId, view.roundId);
   const notice = useNotice();
   const [confirming, setConfirming] = useState<Confirming>(null);
-  const [picking, setPicking] = useState<EventType | null>(null);
   const { permissions, me } = view;
   const started = view.status !== 'SCHEDULED' && view.status !== 'TEAMS_PUBLISHED';
+  const frozen = view.status === 'VOTING' || view.status === 'CLOSED';
 
   const fail = (error: unknown) =>
     notice.show({
@@ -105,41 +100,43 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
       message: apiErrorMessage(error, 'Confira a internet e tente de novo.'),
     });
 
-  function launch(input: LaunchMatchEventInput, who: string) {
-    actions.launch.mutate(input, {
-      onSuccess: (next) => {
-        // O lance novo é o último desse jogador e tipo, na ordem de lançamento
-        const created = next.events.findLast(
-          (e) => e.membershipId === input.membershipId && e.type === input.type,
-        );
-        notice.show({
-          kind: 'success',
-          title: `${MATCH_EVENT_TYPE_LABELS[input.type]} ${who} lançado`,
-          onUndo: created ? () => actions.remove.mutate(created.id, { onError: fail }) : undefined,
-        });
-      },
-      onError: fail,
-    });
+  // mutateAsync (e não os callbacks do mutate): toques seguidos no + não perdem o aviso nem o erro de nenhum
+  async function launch(input: LaunchMatchEventInput, nickname: string | null) {
+    try {
+      const next = await actions.launch.mutateAsync(input);
+      // O lance novo é o último desse jogador e tipo, na ordem de lançamento
+      const created = next.events.findLast(
+        (e) => e.membershipId === input.membershipId && e.type === input.type,
+      );
+      notice.show({
+        kind: 'success',
+        title: eventNoticeTitle(input.type, nickname, 'launched'),
+        onUndo: created ? () => void actions.remove.mutateAsync(created.id).catch(fail) : undefined,
+      });
+    } catch (error) {
+      fail(error);
+    }
   }
 
-  function remove(event: MatchEventItem) {
-    actions.remove.mutate(event.id, {
-      onSuccess: () =>
-        notice.show({
-          kind: 'success',
-          title: `${MATCH_EVENT_TYPE_LABELS[event.type]} de ${event.nickname} apagado`,
-          onUndo: () =>
-            launch({ membershipId: event.membershipId, type: event.type }, `de ${event.nickname}`),
-        }),
-      onError: fail,
-    });
+  async function remove(event: MatchEventItem) {
+    try {
+      await actions.remove.mutateAsync(event.id);
+      notice.show({
+        kind: 'success',
+        title: eventNoticeTitle(event.type, event.nickname, 'removed'),
+        onUndo: () =>
+          void launch({ membershipId: event.membershipId, type: event.type }, event.nickname),
+      });
+    } catch (error) {
+      fail(error);
+    }
   }
 
   const launching = (type: EventType) =>
     actions.launch.isPending && actions.launch.variables?.type === type;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-4">
       {!started ? (
         <BeforeMatch view={view} onStart={() => setConfirming('start')} />
       ) : (
@@ -156,7 +153,8 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
             status={view.status}
             score={view.score}
             editor={
-              permissions.setScore
+              // O placar se corrige na Resenha; em jogo ele só sai no "Finalizar jogo"
+              permissions.setScore && view.status === 'POST_MATCH'
                 ? {
                     busy: actions.setScore.isPending,
                     onChange: (score) => actions.setScore.mutate(score, { onError: fail }),
@@ -164,62 +162,90 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
                 : undefined
             }
           />
-          {view.status === 'VOTING' || view.status === 'CLOSED' ? (
-            <Note icon="lock">
-              {view.status === 'VOTING'
-                ? 'A votação está aberta. O placar e os lances não mudam mais.'
-                : 'A rodada foi encerrada. O placar e os lances não mudam mais.'}
-            </Note>
-          ) : permissions.launchAny || permissions.launchOwn ? (
-            <section aria-label="Lançar lance" className="flex flex-col gap-3">
-              {(permissions.launchAny ? ANY_KEYS : OWN_KEYS).map((key) => (
+          {view.status === 'IN_PROGRESS' && (
+            <>
+              <Note icon="alert">
+                {permissions.finish
+                  ? 'Os lances entram na Resenha, depois do jogo. Quando o jogo acabar, finalize com o placar.'
+                  : me.team
+                    ? 'Seus lances entram na Resenha, depois do jogo.'
+                    : 'Você não jogou esta rodada: dá para acompanhar o placar por aqui.'}
+              </Note>
+              {permissions.finish && (
                 <Button
-                  key={key.type}
-                  variant="secondary"
-                  icon="plus"
-                  label={key.label}
+                  label="Finalizar jogo"
+                  icon="check"
                   block
-                  loading={launching(key.type)}
-                  disabled={actions.launch.isPending && !launching(key.type)}
-                  onClick={() =>
-                    permissions.launchAny
-                      ? setPicking(key.type)
-                      : launch({ membershipId: me.membershipId, type: key.type }, 'seu')
-                  }
+                  loading={actions.finish.isPending}
+                  onClick={() => setConfirming('finish')}
                 />
-              ))}
-              {!permissions.launchAny && (
-                <p className="text-sm text-text-muted">
-                  Lance só os seus gols, assistências e gols contra. Eles não passam do placar.
-                </p>
               )}
-            </section>
-          ) : view.status === 'IN_PROGRESS' ? (
-            <Note icon="alert">
-              {me.team
-                ? 'Seus lances entram na Resenha, depois do jogo.'
-                : 'Você não jogou esta rodada: dá para acompanhar o placar e os lances por aqui.'}
-            </Note>
-          ) : null}
-          <EventList view={view} onRemove={remove} removing={actions.remove.isPending} />
-          {permissions.finish && (
-            <Button
-              label="Finalizar jogo"
-              icon="check"
-              block
-              onClick={() => setConfirming('finish')}
-            />
+            </>
           )}
-          {permissions.openVoting && (
-            <div className="flex flex-col gap-3">
-              <Button
-                label="Abrir votação"
-                block
-                disabled={view.errors.length > 0}
-                onClick={() => setConfirming('voting')}
-              />
-              <Reasons errors={view.errors} />
-            </div>
+          {frozen && (
+            <>
+              <Note icon="lock">
+                {view.status === 'VOTING'
+                  ? 'A votação está aberta. O placar e os lances não mudam mais.'
+                  : 'A rodada foi encerrada. O placar e os lances não mudam mais.'}
+              </Note>
+              <EventList view={view} onRemove={(event) => void remove(event)} removing />
+            </>
+          )}
+          {view.status === 'POST_MATCH' && (
+            <>
+              {permissions.launchAny ? (
+                <PlayerLines
+                  view={view}
+                  onLaunch={(player, type) =>
+                    void launch({ membershipId: player.membershipId, type }, player.nickname)
+                  }
+                  onRemove={(event) => void remove(event)}
+                  removing={actions.remove.isPending}
+                />
+              ) : (
+                <>
+                  {permissions.launchOwn && (
+                    <section aria-label="Lançar lance" className="flex flex-col gap-3">
+                      {OWN_KEYS.map((key) => (
+                        <Button
+                          key={key.type}
+                          variant="secondary"
+                          icon="plus"
+                          label={key.label}
+                          block
+                          loading={launching(key.type)}
+                          disabled={actions.launch.isPending && !launching(key.type)}
+                          onClick={() =>
+                            void launch({ membershipId: me.membershipId, type: key.type }, null)
+                          }
+                        />
+                      ))}
+                      <p className="text-sm text-text-muted">
+                        Lance só os seus gols, assistências e gols contra. Os gols não passam do
+                        placar.
+                      </p>
+                    </section>
+                  )}
+                  <EventList
+                    view={view}
+                    onRemove={(event) => void remove(event)}
+                    removing={actions.remove.isPending}
+                  />
+                </>
+              )}
+              {permissions.openVoting && (
+                <div className="flex flex-col gap-3">
+                  <Button
+                    label="Abrir votação"
+                    block
+                    disabled={view.errors.length > 0}
+                    onClick={() => setConfirming('voting')}
+                  />
+                  <Reasons errors={view.errors} />
+                </div>
+              )}
+            </>
           )}
         </>
       )}
@@ -227,14 +253,10 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
       {confirming === 'start' && (
         <ConfirmSheet
           title="Começar o jogo?"
-          message="O placar e os lances passam a valer. Durante o jogo, só você lança os lances."
+          message="A bola rola. No fim, você informa o placar e a turma lança os gols e assistências na Resenha."
           confirmLabel="Começar jogo"
-          loading={actions.start.isPending}
-          error={actions.start.error}
           onClose={() => setConfirming(null)}
-          onConfirm={() =>
-            actions.start.mutate(undefined, { onSuccess: () => setConfirming(null) })
-          }
+          onConfirm={() => void actions.start.mutateAsync().catch(fail)}
         />
       )}
       {confirming === 'voting' && (
@@ -242,47 +264,16 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
           title="Abrir a votação?"
           message="O placar e os lances ficam congelados. Quem jogou passa a votar nas notas."
           confirmLabel="Abrir votação"
-          loading={actions.openVoting.isPending}
-          error={actions.openVoting.error}
           onClose={() => setConfirming(null)}
-          onConfirm={() =>
-            actions.openVoting.mutate(undefined, { onSuccess: () => setConfirming(null) })
-          }
+          onConfirm={() => void actions.openVoting.mutateAsync().catch(fail)}
         />
       )}
       {confirming === 'finish' && (
         <FinishSheet
           view={view}
-          loading={actions.finish.isPending}
-          error={actions.finish.error}
           onClose={() => setConfirming(null)}
-          onConfirm={(score) =>
-            actions.finish.mutate(score, { onSuccess: () => setConfirming(null) })
-          }
+          onConfirm={(score) => void actions.finish.mutateAsync(score).catch(fail)}
         />
-      )}
-      {picking && (
-        <Sheet
-          title={PICKER_TITLES[picking]}
-          onClose={() => setPicking(null)}
-          actions={
-            <Button
-              variant="outline"
-              size={52}
-              label="Voltar"
-              className="flex-1"
-              onClick={() => setPicking(null)}
-            />
-          }
-        >
-          <PlayerPicker
-            players={view.players}
-            onPick={(player) => {
-              setPicking(null);
-              launch({ membershipId: player.membershipId, type: picking }, `de ${player.nickname}`);
-            }}
-          />
-        </Sheet>
       )}
       {notice.node}
     </div>
@@ -297,7 +288,10 @@ function ResultMoment(props: ComponentProps<typeof ResultCard>) {
 
 function Note({ icon, children }: { icon: 'lock' | 'alert'; children: ReactNode }) {
   return (
-    <p role="status" className="flex gap-3 bg-surface p-4 text-sm text-text-muted shadow-card">
+    <p
+      role="status"
+      className="animate-row-in flex gap-3 bg-surface p-4 text-sm text-text-muted shadow-card"
+    >
       <Icon name={icon} size={18} className="mt-px shrink-0" />
       {children}
     </p>
@@ -325,7 +319,7 @@ function BeforeMatch({ view, onStart }: { view: MatchView; onStart: () => void }
       <div className="flex flex-col gap-3">
         <EmptyState
           title="A bola ainda não rolou"
-          message="Comece o jogo quando a bola rolar. O placar e os lances passam a valer."
+          message="Comece o jogo quando a bola rolar. No fim, você informa o placar e a turma lança os lances na Resenha."
         />
         <Button label="Começar jogo" block disabled={view.errors.length > 0} onClick={onStart} />
         <Reasons errors={view.errors} />
@@ -355,31 +349,16 @@ function BeforeMatch({ view, onStart }: { view: MatchView; onStart: () => void }
   );
 }
 
-function SheetError({ error }: { error: unknown }) {
-  return (
-    <div className="pt-3">
-      <ErrorState
-        title="Não deu certo"
-        message={apiErrorMessage(error, 'Falha de conexão. Tente de novo.')}
-      />
-    </div>
-  );
-}
-
 function ConfirmSheet({
   title,
   message,
   confirmLabel,
-  loading,
-  error,
   onClose,
   onConfirm,
 }: {
   title: string;
   message: string;
   confirmLabel: string;
-  loading: boolean;
-  error: unknown;
   onClose: () => void;
   onConfirm: () => void;
 }) {
@@ -387,64 +366,60 @@ function ConfirmSheet({
     <Sheet
       title={title}
       onClose={onClose}
-      actions={
+      actions={(close) => (
         <>
-          <Button variant="outline" size={52} label="Voltar" className="flex-1" onClick={onClose} />
+          <Button variant="outline" size={52} label="Voltar" className="flex-1" onClick={close} />
           <Button
             size={52}
             label={confirmLabel}
             className="flex-1"
-            loading={loading}
-            onClick={onConfirm}
+            // Fecha na hora e deixa a chamada seguir: o erro, se vier, aparece no aviso
+            onClick={() => {
+              onConfirm();
+              close();
+            }}
           />
         </>
-      }
+      )}
     >
       <p>{message}</p>
-      {error != null && <SheetError error={error} />}
     </Sheet>
   );
 }
 
-/** Finalizar: o placar final nos −/+, partindo do placar lançado ou dos gols já lançados. */
+/** Finalizar: o placar final nos −/+, começando em 0 x 0. Qualquer placar vale; os lances vêm na Resenha. */
 function FinishSheet({
   view,
-  loading,
-  error,
   onClose,
   onConfirm,
 }: {
   view: MatchView;
-  loading: boolean;
-  error: unknown;
   onClose: () => void;
-  onConfirm: (score: { WHITE: number; BLACK: number }) => void;
+  onConfirm: (score: MatchScore) => void;
 }) {
-  const [score, setScore] = useState(view.score ?? view.tally.goals);
+  const [score, setScore] = useState<MatchScore>(view.score ?? { WHITE: 0, BLACK: 0 });
   return (
     <Sheet
       title="Finalizar o jogo?"
       onClose={onClose}
-      actions={
+      actions={(close) => (
         <>
-          <Button variant="outline" size={52} label="Voltar" className="flex-1" onClick={onClose} />
+          <Button variant="outline" size={52} label="Voltar" className="flex-1" onClick={close} />
           <Button
             size={52}
             label="Finalizar"
             className="flex-1"
-            loading={loading}
-            onClick={() => onConfirm(score)}
+            onClick={() => {
+              onConfirm(score);
+              close();
+            }}
           />
         </>
-      }
+      )}
     >
       <div className="flex flex-col gap-4">
-        <p>Informe o placar final. Depois, a turma lança os próprios lances na Resenha.</p>
+        <p>Informe o placar final. Depois, os gols e as assistências entram na Resenha.</p>
         <ScoreStepper value={score} onChange={setScore} />
-        <p className="text-sm">
-          {`Gols lançados até aqui: Branco ${view.tally.goals.WHITE}, Preto ${view.tally.goals.BLACK}.`}
-        </p>
-        {error != null && <SheetError error={error} />}
       </div>
     </Sheet>
   );
