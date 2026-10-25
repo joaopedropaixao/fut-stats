@@ -1,8 +1,11 @@
-import type { MatchView } from '@fut-stats/shared';
+import {
+  MATCH_EVENT_TYPE_LABELS,
+  type MatchEventItem,
+  type MatchResult,
+  type MatchScore,
+} from '@fut-stats/shared';
 
-// O shared ainda não exporta MatchResult nem MatchScore: derivados da visão.
-type MatchResult = NonNullable<MatchView['me']['result']>;
-type MatchScore = NonNullable<MatchView['score']>;
+type MatchEventType = MatchEventItem['type'];
 
 type Team = 'WHITE' | 'BLACK';
 
@@ -19,4 +22,26 @@ export function resultAnnouncement(result: MatchResult, score: MatchScore, myTea
   if (result === 'WIN') return `Você venceu ${pair}`;
   if (result === 'LOSS') return `Você perdeu ${pair}`;
   return `Empate em ${pair}`;
+}
+
+/** Gol e gol contra são masculinos; assistência é feminina ("lançada", "apagada"). */
+const FEMININE: Record<MatchEventType, boolean> = { GOAL: false, ASSIST: true, OWN_GOAL: false };
+
+/**
+ * O título do aviso de lance, concordando com o gênero: "Gol de Diegão lançado", "Assistência de Diegão
+ * apagada". Sem `nickname`, é o lance de quem lança: "Seu gol lançado", "Sua assistência lançada".
+ */
+export function eventNoticeTitle(
+  type: MatchEventType,
+  nickname: string | null,
+  action: 'launched' | 'removed',
+): string {
+  const feminine = FEMININE[type];
+  const participle =
+    action === 'launched' ? (feminine ? 'lançada' : 'lançado') : feminine ? 'apagada' : 'apagado';
+  const label = MATCH_EVENT_TYPE_LABELS[type];
+  if (nickname === null) {
+    return `${feminine ? 'Sua' : 'Seu'} ${label.toLowerCase()} ${participle}`;
+  }
+  return `${label} de ${nickname} ${participle}`;
 }
