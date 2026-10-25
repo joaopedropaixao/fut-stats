@@ -85,6 +85,7 @@ describe('seed de desenvolvimento', () => {
     ['agendada', 'SCHEDULED'],
     ['times', 'TEAMS_PUBLISHED'],
     ['em-jogo', 'IN_PROGRESS'],
+    ['resenha', 'POST_MATCH'],
   ])('cenário %s: 8 rodadas encerradas e a atual em %s', async (scenario, status) => {
     await seed(t.prisma, { scenario, now: NOW });
     const rounds = await loadRounds();
@@ -99,7 +100,9 @@ describe('seed de desenvolvimento', () => {
     });
     expect(rounds[7]!.scheduledAt.getTime()).toBeLessThan(NOW.getTime());
     expect(current.scheduledAt.getUTCHours()).toBe(23); // 20h em Brasília
-    expect(current.scheduledAt.getTime() > NOW.getTime()).toBe(scenario !== 'em-jogo');
+    expect(current.scheduledAt.getTime() > NOW.getTime()).toBe(
+      scenario !== 'em-jogo' && scenario !== 'resenha',
+    );
 
     for (const round of rounds.slice(0, 8)) {
       const teams = teamsOf(round);
@@ -117,6 +120,9 @@ describe('seed de desenvolvimento', () => {
       const confirmed = new Set(
         round.attendances.filter((a) => a.confirmed).map((a) => a.membershipId),
       );
+      // Passou pela Resenha e pela votação: a data de abertura está gravada, depois do jogo
+      expect(round.votingOpenedAt).not.toBeNull();
+      expect(round.votingOpenedAt!.getTime()).toBeGreaterThan(round.scheduledAt.getTime());
       expect(round.teamPlayers.every((p) => confirmed.has(p.membershipId))).toBe(true);
       for (const event of round.matchEvents) {
         expect(event.createdById === event.membershipId || event.createdBy.role === 'ADMIN').toBe(
@@ -139,12 +145,41 @@ describe('seed de desenvolvimento', () => {
     } else {
       expect(validateRoundTeams(teamsOf(current))).toEqual([]);
     }
+    expect(current.votingOpenedAt).toBeNull();
     if (scenario === 'em-jogo') {
       expect(current.matchEvents.length).toBeGreaterThan(0);
       expect([current.whiteGoals, current.blackGoals]).toEqual([null, null]);
-    } else {
+    } else if (scenario !== 'resenha') {
       expect(current.matchEvents).toHaveLength(0);
     }
+  });
+
+  it('C29: em-jogo tem 2x1 em gols, todos lançados pelo admin, e placar nulo', async () => {
+    await seed(t.prisma, { scenario: 'em-jogo', now: NOW });
+    const current = (await loadRounds())[8]!;
+
+    expect(current.status).toBe('IN_PROGRESS');
+    expect([current.whiteGoals, current.blackGoals]).toEqual([null, null]);
+    const tally = tallyMatchEvents(
+      current.matchEvents.map((e) => ({ playerId: e.membershipId, type: e.type })),
+      teamsOf(current),
+    );
+    expect(tally.goals).toEqual({ WHITE: 2, BLACK: 1 });
+    expect(current.matchEvents.every((e) => e.createdBy.role === 'ADMIN')).toBe(true);
+  });
+
+  it('C29: resenha tem placar 3x2, gols faltando e um gol contra', async () => {
+    await seed(t.prisma, { scenario: 'resenha', now: NOW });
+    const current = (await loadRounds())[8]!;
+
+    expect(current.status).toBe('POST_MATCH');
+    expect([current.whiteGoals, current.blackGoals]).toEqual([3, 2]);
+    const tally = tallyMatchEvents(
+      current.matchEvents.map((e) => ({ playerId: e.membershipId, type: e.type })),
+      teamsOf(current),
+    );
+    expect(tally.goals).toEqual({ WHITE: 2, BLACK: 1 });
+    expect(current.matchEvents.filter((e) => e.type === 'OWN_GOAL')).toHaveLength(1);
   });
 
   it('o histórico cobre os casos que as telas precisam', async () => {
@@ -215,6 +250,7 @@ describe('seed de desenvolvimento', () => {
     expect(parseSeedScenario([])).toBe('agendada');
     expect(parseSeedScenario(['--cenario=em-jogo'])).toBe('em-jogo');
     expect(parseSeedScenario(['--cenario', 'times'])).toBe('times');
+    expect(parseSeedScenario(['--cenario=resenha'])).toBe('resenha');
     expect(() => parseSeedScenario(['--cenario=votacao'])).toThrow(SEED_SCENARIOS.join(', '));
   });
 });

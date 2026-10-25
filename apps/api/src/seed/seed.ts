@@ -15,7 +15,6 @@ import {
   type PastRound,
   type Player,
   type Position,
-  roundPlayerIds,
   type RandomFn,
   type RoundActor,
   type RoundState,
@@ -28,6 +27,9 @@ import type { Role } from '../generated/prisma/enums';
 import {
   CURRENT_ROUND,
   IN_PROGRESS_GOALS,
+  RESENHA_GOALS,
+  RESENHA_OWN_GOALS_FOR,
+  RESENHA_SCORE,
   MEMBERS,
   PAST_ROUNDS,
   SEED_GROUP,
@@ -37,8 +39,8 @@ import {
   type PastRoundPlan,
 } from './seed-data';
 
-/** Estado da rodada atual: agendada (padrão), com times publicados ou em jogo. */
-export const SEED_SCENARIOS = ['agendada', 'times', 'em-jogo'] as const;
+/** Estado da rodada atual: agendada (padrão), com times publicados, em jogo ou na Resenha pós-jogo. */
+export const SEED_SCENARIOS = ['agendada', 'times', 'em-jogo', 'resenha'] as const;
 
 export type SeedScenario = (typeof SEED_SCENARIOS)[number];
 
@@ -48,6 +50,7 @@ const SCENARIO_STATUS: Record<SeedScenario, RoundStatus> = {
   agendada: 'SCHEDULED',
   times: 'TEAMS_PUBLISHED',
   'em-jogo': 'IN_PROGRESS',
+  resenha: 'POST_MATCH',
 };
 
 export interface SeedOptions {
@@ -65,7 +68,8 @@ export interface SeedSummary {
 }
 
 const MINUTE_MS = 60 * 1000;
-const DAY_MS = 24 * 60 * MINUTE_MS;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
 const WEEK_MS = 7 * DAY_MS;
 /** 20h em Brasília. */
 const MATCH_HOUR_UTC = 23;
@@ -87,13 +91,15 @@ export function parseSeedScenario(argv: readonly string[]): SeedScenario {
 /**
  * Data e hora da rodada atual; as passadas caem no mesmo dia da semana e horário, de 7 em 7 dias.
  * Sempre às 20h de Brasília (23h UTC; o Brasil não tem horário de verão). Agendada e com times:
- * depois de amanhã. Em jogo: o último 20h que já passou (hoje ou ontem).
+ * depois de amanhã. Em jogo e na Resenha: o último 20h que já passou (hoje ou ontem).
  * O dia da semana sai de `now`: nada aqui fixa um dia.
  */
 export function currentRoundDate(scenario: SeedScenario, now: Date): Date {
   const date = new Date(now);
   date.setUTCHours(MATCH_HOUR_UTC, 0, 0, 0);
-  if (scenario !== 'em-jogo') return new Date(date.getTime() + 2 * DAY_MS);
+  if (scenario !== 'em-jogo' && scenario !== 'resenha') {
+    return new Date(date.getTime() + 2 * DAY_MS);
+  }
   return date.getTime() <= now.getTime() ? date : new Date(date.getTime() - DAY_MS);
 }
 
@@ -119,6 +125,8 @@ interface PlannedRound {
   teams: RoundTeams | null;
   score: MatchScore | null;
   events: PlannedEvent[];
+  /** Quando entrou em votação; nulo antes. */
+  votingOpenedAt: Date | null;
 }
 
 /** Monta o grupo, os membros e as rodadas do seed. Rodar de novo recria só as rodadas deste grupo. */
@@ -179,6 +187,7 @@ export async function seed(
             status: round.status,
             whiteGoals: round.score?.WHITE ?? null,
             blackGoals: round.score?.BLACK ?? null,
+            votingOpenedAt: round.votingOpenedAt,
             createdAt: round.createdAt,
             attendances: { create: round.attendances },
             teamPlayers: { create: teamPlayerRows(round.teams, members) },
@@ -260,13 +269,14 @@ function planPastRound(
   );
   state = advance(state, 'IN_PROGRESS', label);
 
-  const events = planEvents(plan.score, plan, teams, members, scheduledAt, random, label);
-  state = { ...state, events };
-
+  // O admin finaliza o jogo com o placar; na Resenha cada um lança os seus lances (ou o admin, por ele).
   const admin = adminActor(members);
   check(validateScoreEntry(plan.score, admin, state), `${label}: placar`);
-  state = { ...state, score: plan.score };
-  state = advance(state, 'VOTING', label);
+  state = advance({ ...state, score: plan.score }, 'POST_MATCH', label);
+
+  const events = planEvents(plan.score, plan, teams, members, scheduledAt, random, label, state);
+  state = advance({ ...state, events }, 'VOTING', label);
+  const votingOpenedAt = new Date(scheduledAt.getTime() + 3 * HOUR_MS);
   state = advance(state, 'CLOSED', label);
 
   return {
@@ -277,6 +287,7 @@ function planPastRound(
     teams,
     score: plan.score,
     events,
+    votingOpenedAt,
   };
 }
 
@@ -298,6 +309,7 @@ function planCurrentRound(
     teams: null,
     score: null,
     events: [],
+    votingOpenedAt: null,
   };
   const target = SCENARIO_STATUS[scenario];
   if (target === 'SCHEDULED') return round;
@@ -315,9 +327,36 @@ function planCurrentRound(
     label,
   );
   if (target === 'IN_PROGRESS') {
+    // Em jogo só o admin lança: os lances vêm dele e o placar ainda não foi lançado.
     state = advance(state, 'IN_PROGRESS', label);
-    const events = planEvents(IN_PROGRESS_GOALS, {}, teams, members, scheduledAt, random, label);
+    const events = planEvents(
+      IN_PROGRESS_GOALS,
+      {},
+      teams,
+      members,
+      scheduledAt,
+      random,
+      label,
+      state,
+    );
     return { ...round, status: state.status, teams, events };
+  }
+  if (target === 'POST_MATCH') {
+    state = advance(state, 'IN_PROGRESS', label);
+    check(validateScoreEntry(RESENHA_SCORE, adminActor(members), state), `${label}: placar`);
+    state = advance({ ...state, score: RESENHA_SCORE }, 'POST_MATCH', label);
+    // Faltam lances para os gols baterem com o placar: é o que a turma completa na Resenha.
+    const events = planEvents(
+      RESENHA_GOALS,
+      { ownGoalsFor: RESENHA_OWN_GOALS_FOR },
+      teams,
+      members,
+      scheduledAt,
+      random,
+      label,
+      state,
+    );
+    return { ...round, status: state.status, teams, score: RESENHA_SCORE, events };
   }
   return { ...round, status: state.status, teams };
 }
@@ -403,7 +442,7 @@ const SELF_LOGGED_CHANCE = 0.5;
 /**
  * Lances que somam `goals` por time: gols de quem é do time (mais para atacante), gols contra de
  * quem é do outro e assistências de um companheiro em parte dos gols. Cada lance é lançado pelo
- * próprio jogador ou por um admin e passa por `validateMatchEvent` com a rodada em jogo.
+ * próprio jogador (na Resenha) ou por um admin e passa por `validateMatchEvent` com a rodada no status de `base`.
  */
 function planEvents(
   goals: MatchScore,
@@ -413,6 +452,7 @@ function planEvents(
   scheduledAt: Date,
   random: RandomFn,
   label: string,
+  base: RoundState,
 ): PlannedEvent[] {
   const lineOf = (team: Team) => linePlayers(team, teams, members);
   const topTeam: Team = goals.WHITE >= goals.BLACK ? 'WHITE' : 'BLACK';
@@ -459,16 +499,12 @@ function planEvents(
   }
 
   const admins = members.filter((m) => m.role === 'ADMIN');
-  const state: RoundState = {
-    status: 'IN_PROGRESS',
-    teams,
-    confirmedIds: roundPlayerIds(teams),
-    score: null,
-    events: [],
-  };
+  // Em jogo só o admin lança; na Resenha, o próprio jogador ou o admin.
+  const adminOnly = base.status === 'IN_PROGRESS';
+  const state: RoundState = { ...base, events: [] };
   const events: PlannedEvent[] = [];
   blocks.flat().forEach((event, i) => {
-    const byAdmin = random() >= SELF_LOGGED_CHANCE;
+    const byAdmin = adminOnly || random() >= SELF_LOGGED_CHANCE;
     const creator = byAdmin
       ? admins[Math.floor(random() * admins.length)]!
       : members.find((m) => m.id === event.playerId)!;
