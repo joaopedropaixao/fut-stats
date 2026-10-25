@@ -7,7 +7,7 @@
 | **Fatia** | `placar-e-lances` (#3 da Trilha) |
 | **Modo** | Par |
 | **Parte de** | PR #32 (fechar), branch `origin/feature/tela-placar-e-scouts` |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-10-25 |
 
 ## Produto
 
