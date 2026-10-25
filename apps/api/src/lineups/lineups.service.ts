@@ -7,6 +7,7 @@ import {
 import {
   balanceTeams,
   canTransitionRound,
+  DEFAULT_BALANCE_TEAMS_CONFIG,
   POSITIONS,
   rankByRating,
   TEAMS,
@@ -40,8 +41,8 @@ import { PrismaService } from '../prisma/prisma.service';
 type Db = Pick<PrismaService, 'teamPlayer' | 'membership' | 'round'>;
 
 /** Janelas do seletor: duplas repetidas olham as últimas jogadas; a panelinha, as últimas com placar. */
-const HISTORY_RECENT_ROUNDS = 4;
-const HISTORY_SCORED_ROUNDS = 10;
+const HISTORY_RECENT_ROUNDS = DEFAULT_BALANCE_TEAMS_CONFIG.recencyWeights.length;
+const HISTORY_SCORED_ROUNDS = DEFAULT_BALANCE_TEAMS_CONFIG.cliqueRecencyWeights.length;
 
 const memberSelect = {
   id: true,
