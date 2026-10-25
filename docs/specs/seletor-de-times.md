@@ -7,7 +7,7 @@
 | **Fatia** | `seletor-de-times` (#2 da Trilha) |
 | **Modo** | Par |
 | **Parte de** | `montar-times` (PR #45, já na `develop`): a tela `/rodadas/:roundId/times` e as rotas de `.../lineup` |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-10-25 |
 
 ## Produto
 
