@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { goalsOfScore, resultAnnouncement } from './match-text';
+import { eventLaunchedBy, eventNoticeTitle, goalsOfScore, resultAnnouncement } from './match-text';
 
 describe('goalsOfScore', () => {
   it('mostra quantos gols têm autor perto do placar do time', () => {
@@ -18,5 +18,41 @@ describe('resultAnnouncement', () => {
     expect(resultAnnouncement('WIN', { WHITE: 3, BLACK: 2 }, 'WHITE')).toBe('Você venceu 3 a 2');
     expect(resultAnnouncement('LOSS', { WHITE: 3, BLACK: 2 }, 'BLACK')).toBe('Você perdeu 2 a 3');
     expect(resultAnnouncement('DRAW', { WHITE: 2, BLACK: 2 }, 'WHITE')).toBe('Empate em 2 a 2');
+  });
+});
+
+describe('eventNoticeTitle (C54)', () => {
+  it('assistência concorda no feminino', () => {
+    expect(eventNoticeTitle('ASSIST', 'Diegão', 'launched')).toBe('Assistência de Diegão lançada');
+    expect(eventNoticeTitle('ASSIST', 'Diegão', 'removed')).toBe('Assistência de Diegão apagada');
+  });
+
+  it('gol e gol contra ficam no masculino', () => {
+    expect(eventNoticeTitle('GOAL', 'Diegão', 'launched')).toBe('Gol de Diegão lançado');
+    expect(eventNoticeTitle('GOAL', 'Diegão', 'removed')).toBe('Gol de Diegão apagado');
+    expect(eventNoticeTitle('OWN_GOAL', 'Diegão', 'launched')).toBe('Gol contra de Diegão lançado');
+    expect(eventNoticeTitle('OWN_GOAL', 'Diegão', 'removed')).toBe('Gol contra de Diegão apagado');
+  });
+
+  it('o lance de quem lança vem em primeira pessoa, concordando também', () => {
+    expect(eventNoticeTitle('ASSIST', null, 'launched')).toBe('Sua assistência lançada');
+    expect(eventNoticeTitle('GOAL', null, 'launched')).toBe('Seu gol lançado');
+    expect(eventNoticeTitle('OWN_GOAL', null, 'removed')).toBe('Seu gol contra apagado');
+  });
+
+  it('apagar o próprio lance também fala em primeira pessoa', () => {
+    expect(eventNoticeTitle('ASSIST', null, 'removed')).toBe('Sua assistência apagada');
+    expect(eventNoticeTitle('GOAL', null, 'removed')).toBe('Seu gol apagado');
+  });
+});
+
+describe('eventLaunchedBy (C58)', () => {
+  it('a lista do jogador diz "lançada por" para assistência', () => {
+    expect(eventLaunchedBy('ASSIST', 'Carlão')).toBe('lançada por Carlão');
+  });
+
+  it('gol e gol contra ficam "lançado por"', () => {
+    expect(eventLaunchedBy('GOAL', 'Carlão')).toBe('lançado por Carlão');
+    expect(eventLaunchedBy('OWN_GOAL', 'Carlão')).toBe('lançado por Carlão');
   });
 });

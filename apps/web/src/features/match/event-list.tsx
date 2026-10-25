@@ -1,12 +1,12 @@
 import { MATCH_EVENT_TYPE_LABELS, TEAM_LABELS, type MatchView } from '@fut-stats/shared';
-import { useId } from 'react';
+import { useId, type CSSProperties } from 'react';
 import { Avatar } from '../../components/ui/avatar';
 import { Badge } from '../../components/ui/badge';
 import { IconButton } from '../../components/ui/button';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
-import { goalsOfScore } from './match-text';
+import { eventLaunchedBy, goalsOfScore } from './match-text';
 
 type EventListProps = {
   view: Pick<MatchView, 'events' | 'score' | 'tally'>;
@@ -54,8 +54,9 @@ export function EventList({ view, onRemove, removing }: EventListProps) {
               {list.map((event, i) => (
                 <li
                   key={event.id}
+                  style={{ '--moment-delay': `${Math.min(i, 6) * 40}ms` } as CSSProperties}
                   className={cn(
-                    'flex min-h-16 items-center gap-3 py-2 pr-3 pl-4',
+                    'animate-row-in flex min-h-16 items-center gap-3 py-2 pr-3 pl-4',
                     i > 0 && 'shadow-[inset_0_2px_0_0_var(--color-border)]',
                   )}
                 >
@@ -74,7 +75,7 @@ export function EventList({ view, onRemove, removing }: EventListProps) {
                       {event.type === 'OWN_GOAL' &&
                         ` · jogador do ${TEAM_LABELS[event.playerTeam]}`}
                       {event.createdByNickname !== event.nickname &&
-                        ` · lançado por ${event.createdByNickname}`}
+                        ` · ${eventLaunchedBy(event.type, event.createdByNickname)}`}
                     </p>
                   </div>
                   {event.canRemove && (
