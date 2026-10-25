@@ -3,8 +3,8 @@
 // times, placar, lances e a data em que a votação abriu) e a rodada atual no estado do cenário:
 //   agendada (padrão)  confirmados, recusas e quem não respondeu
 //   times              times publicados
-//   em-jogo            jogo rolando, com alguns lances lançados pelo admin e sem placar
-//   resenha            Resenha pós-jogo: placar final lançado e só parte dos lances (faltam gols)
+//   em-jogo            jogo rolando, sem placar e sem lances (os lances entram na Resenha)
+//   resenha            Resenha: placar final lançado e só parte dos lances (faltam gols)
 // Rodar: pnpm --filter @fut-stats/api db:seed -- --cenario=em-jogo   (sem --cenario: agendada)
 // Pode rodar de novo: atualiza os membros e recria só as rodadas desse grupo. A lógica fica em src/seed.
 import { PrismaPg } from '@prisma/adapter-pg';
