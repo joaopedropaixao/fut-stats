@@ -5,18 +5,22 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  balanceTeams,
   canTransitionRound,
   POSITIONS,
   rankByRating,
   TEAMS,
   validateLineupDraft,
   validateRoundTransition,
+  type PastRound,
+  type Player,
   type RoundState,
   type RoundStatus,
   type RoundTeams,
   type Team,
 } from '@fut-stats/domain';
 import {
+  BALANCE_TEAMS_ERROR_LABELS,
   LINEUP_DRAFT_ERROR_LABELS,
   LINEUP_NOT_EDITABLE_LABEL,
   PLAYER_NOT_CONFIRMED_LABEL,
@@ -25,12 +29,17 @@ import {
   type Lineup,
   type LineupPlayer,
   type LineupPermissions,
+  type LineupSuggestion,
   type SaveLineupInput,
+  type SuggestLineupInput,
 } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
 import { PrismaService } from '../prisma/prisma.service';
 
 type Db = Pick<PrismaService, 'teamPlayer' | 'membership' | 'round'>;
+
+/** Quantas rodadas já jogadas o seletor olha (cobre as janelas de repetição e de panelinha). */
+const HISTORY_ROUNDS = 10;
 
 const memberSelect = {
   id: true,
@@ -162,6 +171,106 @@ export class LineupsService {
       errors,
       permissions,
     };
+  }
+
+  /**
+   * Sugere Branco x Preto com os confirmados ativos e o histórico das rodadas já jogadas do grupo. Só calcula:
+   * nada é gravado (o admin salva pelo PUT). `avoid` = a divisão de agora, para o Regerar trazer outra.
+   */
+  async suggest(
+    membership: GroupMembership,
+    roundId: string,
+    input: SuggestLineupInput,
+  ): Promise<LineupSuggestion> {
+    const round = await this.findRound(membership.groupId, roundId);
+    if (round.status !== 'SCHEDULED') throw notEditable();
+
+    const confirmed = await this.prisma.membership.findMany({
+      where: {
+        groupId: membership.groupId,
+        active: true,
+        attendances: { some: { roundId: round.id, confirmed: true } },
+      },
+      select: { id: true, primaryPosition: true, secondaryPositions: true, initialRating: true },
+      orderBy: [{ nickname: 'asc' }, { createdAt: 'asc' }],
+    });
+    const players: Player[] = confirmed.map((m) => ({
+      id: m.id,
+      primaryPosition: m.primaryPosition,
+      secondaryPositions: m.secondaryPositions,
+      rating: m.initialRating,
+    }));
+
+    const history = await this.playedHistory(membership.groupId, round.scheduledAt);
+    const avoid: PastRound | undefined = input.avoid && {
+      WHITE: input.avoid.WHITE.starters.map((s) => ({
+        playerId: s.membershipId,
+        position: s.position,
+      })),
+      BLACK: input.avoid.BLACK.starters.map((s) => ({
+        playerId: s.membershipId,
+        position: s.position,
+      })),
+      reserves: { WHITE: input.avoid.WHITE.reserves, BLACK: input.avoid.BLACK.reserves },
+    };
+
+    const result = balanceTeams(players, history, {}, { avoid });
+    if (!result.ok) {
+      throw new ConflictException({
+        code: result.error,
+        message: BALANCE_TEAMS_ERROR_LABELS[result.error],
+      });
+    }
+
+    const { round: teams } = result;
+    const draft = (team: Team) => ({
+      starters: teams[team].map((s) => ({ membershipId: s.playerId, position: s.position })),
+      reserves: [...teams.reserves[team]],
+    });
+    return { teams: { WHITE: draft('WHITE'), BLACK: draft('BLACK') } };
+  }
+
+  /**
+   * As rodadas do grupo já jogadas (em jogo, votação ou encerrada) marcadas antes de `before`, da mais antiga
+   * para a mais recente, com os times e o placar. Rodada agendada ou com times só publicados não conta.
+   */
+  private async playedHistory(groupId: string, before: Date): Promise<PastRound[]> {
+    const rounds = await this.prisma.round.findMany({
+      where: {
+        groupId,
+        status: { in: ['IN_PROGRESS', 'VOTING', 'CLOSED'] },
+        scheduledAt: { lt: before },
+      },
+      select: {
+        whiteGoals: true,
+        blackGoals: true,
+        teamPlayers: {
+          select: { membershipId: true, team: true, position: true, isReserve: true },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        },
+      },
+      orderBy: { scheduledAt: 'desc' },
+      take: HISTORY_ROUNDS,
+    });
+    return rounds.reverse().map((r) => {
+      const starters = (team: Team) =>
+        r.teamPlayers
+          .filter((row) => row.team === team && !row.isReserve)
+          .map((row) => ({ playerId: row.membershipId, position: row.position }));
+      const reserves = (team: Team) =>
+        r.teamPlayers
+          .filter((row) => row.team === team && row.isReserve)
+          .map((row) => row.membershipId);
+      return {
+        WHITE: starters('WHITE'),
+        BLACK: starters('BLACK'),
+        reserves: { WHITE: reserves('WHITE'), BLACK: reserves('BLACK') },
+        score:
+          r.whiteGoals !== null && r.blackGoals !== null
+            ? { WHITE: r.whiteGoals, BLACK: r.blackGoals }
+            : null,
+      };
+    });
   }
 
   /** Troca o rascunho inteiro. Só com a rodada agendada, e só com quem confirmou presença. */
@@ -326,7 +435,7 @@ export class LineupsService {
   private async findRound(groupId: string, roundId: string) {
     const round = await this.prisma.round.findFirst({
       where: { id: roundId, groupId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, scheduledAt: true },
     });
     if (!round) throw new NotFoundException();
     return round;
