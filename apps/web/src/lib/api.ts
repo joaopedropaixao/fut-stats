@@ -119,7 +119,10 @@ export async function apiDeleteJson<S extends z.ZodType>(
 
 /** O texto de uma falha para mostrar à pessoa: a mensagem da API quando há, senão o `fallback`. */
 export function apiErrorMessage(err: unknown, fallback: string): string {
-  return (err instanceof ApiError && err.body?.message) || fallback;
+  if (err instanceof ApiError && err.body?.message) return err.body.message;
+  // 403 de permissão vem sem corpo (guard da API)
+  if (err instanceof ApiError && err.status === 403) return 'Você não tem permissão para isso.';
+  return fallback;
 }
 
 /** POST que responde sem corpo (204), como o logout. */

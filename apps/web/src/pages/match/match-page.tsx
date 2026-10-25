@@ -107,11 +107,17 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
 
   function launch(input: LaunchMatchEventInput, who: string) {
     actions.launch.mutate(input, {
-      onSuccess: () =>
+      onSuccess: (next) => {
+        // O lance novo é o último desse jogador e tipo, na ordem de lançamento
+        const created = next.events.findLast(
+          (e) => e.membershipId === input.membershipId && e.type === input.type,
+        );
         notice.show({
           kind: 'success',
           title: `${MATCH_EVENT_TYPE_LABELS[input.type]} ${who} lançado`,
-        }),
+          onUndo: created ? () => actions.remove.mutate(created.id, { onError: fail }) : undefined,
+        });
+      },
       onError: fail,
     });
   }
@@ -333,7 +339,9 @@ function BeforeMatch({ view, onStart }: { view: MatchView; onStart: () => void }
         message={
           view.me.isAdmin
             ? 'Monte e publique os times da rodada. Depois é só começar o jogo aqui.'
-            : 'Quando o admin publicar os times e começar o jogo, o placar aparece aqui.'
+            : view.status === 'TEAMS_PUBLISHED'
+              ? 'Os times já saíram. Quando o admin começar o jogo, o placar aparece aqui.'
+              : 'Quando o admin publicar os times e começar o jogo, o placar aparece aqui.'
         }
       />
       <RouteButton
