@@ -1,4 +1,9 @@
-import type { AttendanceMember, Lineup, SaveLineupInput } from '@fut-stats/shared';
+import type {
+  AttendanceMember,
+  Lineup,
+  LineupSuggestion,
+  SaveLineupInput,
+} from '@fut-stats/shared';
 
 export type TeamKey = 'WHITE' | 'BLACK';
 export const TEAM_KEYS: readonly TeamKey[] = ['WHITE', 'BLACK'];
@@ -44,19 +49,43 @@ export function emptyDraft(): Draft {
   return { WHITE: emptyTeam(), BLACK: emptyTeam() };
 }
 
-/** Rascunho salvo na API → rascunho da tela: cada titular na primeira vaga livre da posição dele. */
-export function draftFromLineup(lineup: Lineup): Draft {
+/** Times no formato do PUT → rascunho da tela: cada titular na primeira vaga livre da posição dele. É o inverso do `toSaveInput`. */
+export function draftFromTeams(teams: SaveLineupInput): Draft {
   const draft = emptyDraft();
   for (const team of TEAM_KEYS) {
-    for (const player of lineup.teams[team].starters) {
+    for (const player of teams[team].starters) {
       const slot = SLOTS.find(
         (s) => s.position === player.position && draft[team].slots[s.key] === null,
       );
       if (slot) draft[team].slots[slot.key] = player.membershipId;
     }
-    draft[team].reserves = lineup.teams[team].reserves.map((p) => p.membershipId);
+    draft[team].reserves = [...teams[team].reserves];
   }
   return draft;
+}
+
+/** Rascunho salvo na API → rascunho da tela. */
+export function draftFromLineup(lineup: Lineup): Draft {
+  return draftFromTeams({
+    WHITE: {
+      starters: lineup.teams.WHITE.starters,
+      reserves: lineup.teams.WHITE.reserves.map((p) => p.membershipId),
+    },
+    BLACK: {
+      starters: lineup.teams.BLACK.starters,
+      reserves: lineup.teams.BLACK.reserves.map((p) => p.membershipId),
+    },
+  });
+}
+
+/** A sugestão da API entra no rascunho da tela. */
+export function draftFromSuggestion(suggestion: LineupSuggestion): Draft {
+  return draftFromTeams(suggestion.teams);
+}
+
+/** O rascunho tem alguém escalado (titular ou reserva)? */
+export function hasAnyone(draft: Draft): boolean {
+  return TEAM_KEYS.some((t) => countStarters(draft, t) > 0 || draft[t].reserves.length > 0);
 }
 
 /** Quem aparece na tela: o membro e se ainda está confirmado (quem está sem time vem da lista de confirmados). */
