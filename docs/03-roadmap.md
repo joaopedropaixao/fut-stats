@@ -35,6 +35,7 @@ depois que você a valida no navegador. As telas seguem o `DESIGN.md` e as telas
 | 1 ✅ | `montar-times` | Par | PR #33 (fechar) | Admin monta Branco x Preto tocando no jogador e na vaga, e publica |
 | 2 | `seletor-de-times` | Par | `montar-times` | Gerar com `balanceTeams`, ajustar tocando, regerar e publicar. Subiu para depois de `montar-times` (24 out 2026): ajuda a testar as telas seguintes |
 | 3 | `placar-e-lances` | Par | PR #32 (fechar) | Placar, gols, assistências e gol contra; jogador lança os próprios, admin de todos |
+| 3b | `rodizio-reservas` | Par | `placar-e-lances` | Botão opcional na tela do jogo: cronômetro de 60 min que divide o tempo entre os confirmados e avisa quando cada reserva entra e quem sai (pedido do dono, 25 out 2026). Em aberto: conta por time ou geral, goleiro no rodízio, relógio só no celular de quem acionou ou compartilhado |
 | 4 | `historico` | Par | PR #31 (fechar) | Lista de rodadas e detalhe da partida |
 | 5 | `perfil-jogador` | Par | — | Editar perfil; admin define nota inicial, goleiro contratado e ativo/inativo. **Fecha a Fase 1 no ar** |
 | 6 | `votacao` | Par | — | Tabelas do voto, abrir/fechar a votação, tela "Dê sua nota", Craque / Perna de Pau |
