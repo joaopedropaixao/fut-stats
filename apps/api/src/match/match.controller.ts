@@ -16,7 +16,7 @@ import {
   type MatchView,
   type SetMatchScoreInput,
 } from '@fut-stats/shared';
-import { CurrentMembership, GroupMember, GroupRole } from '../auth/group-access.decorator';
+import { CurrentMembership, GroupMember } from '../auth/group-access.decorator';
 import type { GroupMembership } from '../auth/request';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { MatchService } from './match.service';
@@ -34,7 +34,8 @@ export class MatchController {
     return this.match.view(membership, roundId);
   }
 
-  @GroupRole('ADMIN')
+  /** Só admin, conferido no service (`NOT_ADMIN` com `{ code, message }`); o guard só barra quem não é do grupo (404). */
+  @GroupMember()
   @Post('start')
   @HttpCode(HttpStatus.OK)
   start(
@@ -44,7 +45,7 @@ export class MatchController {
     return this.match.start(membership, roundId);
   }
 
-  /** Quem pode lançar o placar é do domain (`validateScoreEntry`): jogador comum → 403 `NOT_ADMIN`. */
+  /** Só admin lança o placar: jogador comum → 403 `NOT_ADMIN`. */
   @GroupMember()
   @Put('score')
   setScore(
@@ -55,7 +56,7 @@ export class MatchController {
     return this.match.setScore(membership, roundId, body);
   }
 
-  @GroupRole('ADMIN')
+  @GroupMember()
   @Post('finish')
   @HttpCode(HttpStatus.OK)
   finish(
@@ -66,7 +67,7 @@ export class MatchController {
     return this.match.finish(membership, roundId, body);
   }
 
-  @GroupRole('ADMIN')
+  @GroupMember()
   @Post('open-voting')
   @HttpCode(HttpStatus.OK)
   openVoting(
