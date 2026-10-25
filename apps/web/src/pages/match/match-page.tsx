@@ -119,13 +119,14 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
   }
 
   async function remove(event: MatchEventItem) {
+    // O próprio lance fala em primeira pessoa, como ao lançar ("Sua assistência apagada")
+    const who = event.membershipId === me.membershipId ? null : event.nickname;
     try {
       await actions.remove.mutateAsync(event.id);
       notice.show({
         kind: 'success',
-        title: eventNoticeTitle(event.type, event.nickname, 'removed'),
-        onUndo: () =>
-          void launch({ membershipId: event.membershipId, type: event.type }, event.nickname),
+        title: eventNoticeTitle(event.type, who, 'removed'),
+        onUndo: () => void launch({ membershipId: event.membershipId, type: event.type }, who),
       });
     } catch (error) {
       fail(error);

@@ -6,7 +6,7 @@ import { IconButton } from '../../components/ui/button';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
-import { goalsOfScore } from './match-text';
+import { eventLaunchedBy, goalsOfScore } from './match-text';
 
 type EventListProps = {
   view: Pick<MatchView, 'events' | 'score' | 'tally'>;
@@ -75,7 +75,7 @@ export function EventList({ view, onRemove, removing }: EventListProps) {
                       {event.type === 'OWN_GOAL' &&
                         ` · jogador do ${TEAM_LABELS[event.playerTeam]}`}
                       {event.createdByNickname !== event.nickname &&
-                        ` · lançado por ${event.createdByNickname}`}
+                        ` · ${eventLaunchedBy(event.type, event.createdByNickname)}`}
                     </p>
                   </div>
                   {event.canRemove && (

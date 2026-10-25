@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lastRemovable, playerCounts } from './player-counts';
+import { lastRemovable, ownGoalLabel, ownGoalsFor, playerCounts } from './player-counts';
 
 const events = [
   { id: 'a', membershipId: 'm1', type: 'GOAL', canRemove: true },
@@ -29,5 +29,22 @@ describe('lastRemovable', () => {
   it('pula o que quem vê não pode apagar e devolve nada quando não sobra lance', () => {
     expect(lastRemovable(events, 'm1', 'OWN_GOAL')).toBeUndefined();
     expect(lastRemovable(events, 'm2', 'ASSIST')).toBeUndefined();
+  });
+});
+
+describe('ownGoalsFor', () => {
+  const lances = [
+    { id: 'a', type: 'GOAL', team: 'WHITE', playerTeam: 'WHITE', nickname: 'Luquinha' },
+    { id: 'b', type: 'OWN_GOAL', team: 'BLACK', playerTeam: 'WHITE', nickname: 'Diegão' },
+    { id: 'c', type: 'OWN_GOAL', team: 'WHITE', playerTeam: 'BLACK', nickname: 'Nico' },
+  ] as const;
+
+  it('traz os gols contra que contam para o time, não os que ele fez', () => {
+    expect(ownGoalsFor(lances, 'BLACK').map((l) => l.id)).toEqual(['b']);
+    expect(ownGoalsFor(lances, 'WHITE').map((l) => l.id)).toEqual(['c']);
+  });
+
+  it('o rótulo diz quem fez e de que time', () => {
+    expect(ownGoalLabel('Diegão', 'Branco')).toBe('Gol contra de Diegão (Branco)');
   });
 });

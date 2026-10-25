@@ -16,7 +16,7 @@ import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
 import { TeamSegmented } from '../lineup/team-segmented';
 import { goalsOfScore } from './match-text';
-import { lastRemovable, playerCounts } from './player-counts';
+import { lastRemovable, ownGoalLabel, ownGoalsFor, playerCounts } from './player-counts';
 
 type Team = 'WHITE' | 'BLACK';
 type MatchEventType = MatchEventItem['type'];
@@ -43,6 +43,7 @@ export function PlayerLines({ view, onLaunch, onRemove, removing }: PlayerLinesP
   const goals = view.tally.goals[team];
   const scored = view.score?.[team];
   const complete = scored !== undefined && goals === scored;
+  const ownGoals = ownGoalsFor(view.events, team);
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-4">
@@ -78,6 +79,36 @@ export function PlayerLines({ view, onLaunch, onRemove, removing }: PlayerLinesP
           />
         ))}
       </ul>
+      {ownGoals.length > 0 && (
+        <ul
+          aria-label={`Gols contra a favor do ${TEAM_LABELS[team]}`}
+          className="flex flex-col bg-surface shadow-card"
+        >
+          {ownGoals.map((event, i) => (
+            <li
+              key={event.id}
+              className={cn(
+                'animate-row-in flex min-h-14 items-center gap-3 px-4 py-2',
+                i > 0 && 'shadow-[inset_0_2px_0_0_var(--color-border)]',
+              )}
+            >
+              <Avatar
+                nickname={event.nickname}
+                team={event.playerTeam === 'WHITE' ? 'white' : 'black'}
+                size={32}
+                gap="surface"
+              />
+              <p className="text-sm text-text-muted">
+                <span className="font-semibold text-text">
+                  {ownGoalLabel(event.nickname, TEAM_LABELS[event.playerTeam])}
+                </span>
+                {' · conta para o '}
+                {TEAM_LABELS[team]}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

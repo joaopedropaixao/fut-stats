@@ -83,6 +83,7 @@ export function Scoreboard({ status, score, compact, bare, editor }: ScoreboardP
             </>
           ) : (
             <>
+              <span className="sr-only">Placar ainda não lançado</span>
               <Dash scale={scale} className={cn('bg-team-black', live && 'animate-live-blink')} />
               <Dash scale={scale} className={cn('bg-team-white', live && 'animate-live-blink')} />
             </>
