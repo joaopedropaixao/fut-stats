@@ -15,6 +15,7 @@ import {
   type PastRound,
   type Player,
   type Position,
+  roundPlayerIds,
   type RandomFn,
   type RoundActor,
   type RoundState,
@@ -247,7 +248,13 @@ function planPastRound(
   const teams = pickTeams(attendances, members, history, random, label);
 
   let state = advance(
-    { status: 'SCHEDULED', teams, score: null, events: [] },
+    {
+      status: 'SCHEDULED',
+      teams,
+      confirmedIds: confirmedIds(attendances),
+      score: null,
+      events: [],
+    },
     'TEAMS_PUBLISHED',
     label,
   );
@@ -297,7 +304,13 @@ function planCurrentRound(
 
   const teams = pickTeams(attendances, members, history, random, label);
   let state = advance(
-    { status: 'SCHEDULED', teams, score: null, events: [] },
+    {
+      status: 'SCHEDULED',
+      teams,
+      confirmedIds: confirmedIds(attendances),
+      score: null,
+      events: [],
+    },
     'TEAMS_PUBLISHED',
     label,
   );
@@ -332,6 +345,10 @@ function planAttendance(
     });
   }
   return attendances;
+}
+
+function confirmedIds(attendances: PlannedRound['attendances']): string[] {
+  return attendances.filter((a) => a.confirmed).map((a) => a.membershipId);
 }
 
 /** Times pelo seletor do domínio, a partir dos confirmados e do histórico. */
@@ -442,7 +459,13 @@ function planEvents(
   }
 
   const admins = members.filter((m) => m.role === 'ADMIN');
-  const state: RoundState = { status: 'IN_PROGRESS', teams, score: null, events: [] };
+  const state: RoundState = {
+    status: 'IN_PROGRESS',
+    teams,
+    confirmedIds: roundPlayerIds(teams),
+    score: null,
+    events: [],
+  };
   const events: PlannedEvent[] = [];
   blocks.flat().forEach((event, i) => {
     const byAdmin = random() >= SELF_LOGGED_CHANCE;

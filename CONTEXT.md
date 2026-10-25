@@ -284,16 +284,22 @@ e quando a votação fecha sozinha.
 - `MatchEvent = { playerId, type }`: quem fez o lance (no banco, `MatchEvent.membershipId`).
 - `MatchScore = { WHITE, BLACK }`: placar (no banco, `whiteGoals`/`blackGoals`).
 - `RoundTeams` = `RoundLineup` + `reserves: TeamReserves` (mesmo formato do `BalancedRound`). Quem está aqui jogou.
-- `RoundState = { status, teams: RoundTeams | null, score: MatchScore | null, events: MatchEvent[] }`:
-  o que as regras precisam da rodada (`null` = ainda não montado/lançado).
+- `RoundState = { status, teams: RoundTeams | null, confirmedIds: string[], score: MatchScore | null, events: MatchEvent[] }`:
+  o que as regras precisam da rodada (`null` = ainda não montado/lançado). `confirmedIds` (obrigatório) = ids de quem
+  confirmou presença e segue ativo; a API monta a partir de `Attendance`.
 - `RoundActor = { id, isAdmin }`: quem está agindo. O domínio não conhece usuário: a API diz se é admin do grupo.
 
 **Assinaturas:**
 - `validateRoundTransition(round: RoundState, to: RoundStatus, { maxReservesPerTeam = MAX_RESERVES_PER_TEAM }: RoundTeamsOptions = {}): RoundTransitionError[]`
   e `canTransitionRound(...)` (sim/não). `RoundTransitionError` (lista em `ROUND_TRANSITION_ERRORS`):
   `'INVALID_TRANSITION'`, `'INVALID_LINEUP'`, `'INVALID_RESERVES'`, `'SCORE_MISSING'`, `'INVALID_SCORE'`,
-  `'GOALS_MISMATCH'`, `'TOO_MANY_ASSISTS'`.
+  `'GOALS_MISMATCH'`, `'TOO_MANY_ASSISTS'`, `'ATTENDANCE_MISMATCH'`.
 - `validateRoundTeams(teams: RoundTeams | null, options?): RoundTransitionError[]` (só `INVALID_LINEUP`/`INVALID_RESERVES`).
+- `validateAttendanceMatch(teams: RoundTeams | null, confirmedIds): RoundTransitionError[]`: `['ATTENDANCE_MISMATCH']` se
+  os escalados (titulares e reservas) não forem exatamente os confirmados; sem times, `[]`.
+- `validateLineupDraft(draft: RoundTeams, options?): LineupDraftError[]`: confere o **rascunho** dos times (pode estar
+  incompleto). `LineupDraftError` (lista em `LINEUP_DRAFT_ERRORS`): `'DUPLICATE_PLAYER'` (ninguém repetido, nem nos dois
+  times nem titular e reserva), `'POSITION_FULL'` (posição com mais gente que o 1-2-3-1), `'TOO_MANY_RESERVES'`.
 - `isRoundDeletable(status): boolean` e `isRoundEditable(status): boolean` (data, hora e local).
 - `validateMatchEvent(event: MatchEvent, actor: RoundActor, round: RoundState): MatchEventError[]` e
   `canLaunchMatchEvent(...)` (sim/não); `validateMatchEventRemoval(event, actor, round): MatchEventError[]`.
@@ -313,7 +319,11 @@ e quando a votação fecha sozinha.
 **Faz:**
 - **Ciclo:** só anda para frente, com uma volta: `TEAMS_PUBLISHED` → `SCHEDULED` (despublicar para refazer os times).
   `CLOSED` é definitivo (votação não reabre). Pré-condições: publicar times e começar o jogo exigem `RoundTeams`
-  válido (`isValidRoundLineup` + até `maxReservesPerTeam` reservas por time, sem repetir ninguém nem titular);
+  válido (`isValidRoundLineup` + até `maxReservesPerTeam` reservas por time, sem repetir ninguém nem titular) e
+  **confirmados = escalados** (`ATTENDANCE_MISMATCH`: decisão do dono, "quem confirmou presença jogou"; com 16
+  confirmados são 14 titulares + 2 reservas, abaixo de 14 ou acima de 18 não publica). Se a presença mudar depois de
+  publicar, os times não mudam sozinhos e `IN_PROGRESS` fica travado até o admin despublicar e acertar. A checagem
+  vale só para `TEAMS_PUBLISHED` e `IN_PROGRESS`;
   ir para `VOTING` e para `CLOSED` exigem times montados (sem eles, `INVALID_LINEUP`), placar lançado e válido, **gols lançados = placar** em cada time
   (gol contra conta para o adversário) e assistências ≤ gols do time. Etapa inválida devolve só `INVALID_TRANSITION`.
 - **Cancelar:** não há status de cancelada. Rodada que não vai acontecer é apagada, e só antes do jogo
@@ -347,7 +357,8 @@ devolvem só `ROUND_NOT_OPEN`. `votingCloseReason` → motivo ou `null` (segue a
 - Contar `OWN_GOAL` como gol do jogador no Cartola ou nas estatísticas (`CartolaScouts.goals` é só `GOAL`).
 - Ler `new Date()` dentro do domínio; usar o horário agendado da rodada como `openedAt` (é quando entrou em `VOTING`).
 - Pular etapas ou mudar `status` sem `validateRoundTransition`; modelar várias partidas por rodada.
-- Passar `Attendance` (confirmados) como `teams` ou `playedIds`.
+- Passar `Attendance` (confirmados) como `teams` ou `playedIds`; esquecer `confirmedIds` no `RoundState`; exigir o
+  1-2-3-1 completo no rascunho (`validateLineupDraft` aceita incompleto; quem exige é a publicação).
 
 ### Presença: `validateAttendanceChange` 🚧
 **O que é:** quem pode marcar Vou / Não vou numa rodada e até quando (`src/round/attendance.ts`). Regras decididas
@@ -509,7 +520,9 @@ usar `isHiredGoalkeeper` como posição (quem joga no gol é quem tem `GOALKEEPE
 ### Presença e escalação (`Attendance` / `TeamPlayer`)
 **O que é:** `Attendance` = resposta de presença de um membro na rodada (`confirmed`); sem linha = não respondeu.
 `TeamPlayer` = jogador escalado num time da rodada, com a posição e `isReserve`. Quem está no `TeamPlayer` (titular
-ou reserva) **jogou**: é a lista de `playedIds` das notas. Por time: 7 titulares e até 2 reservas.
+ou reserva) **jogou**: é a lista de `playedIds` das notas. Para publicar os times e começar o jogo, **confirmou =
+escalou**: todo confirmado está num time e todo escalado está confirmado (`ATTENDANCE_MISMATCH`). Por time: 7 titulares e até 2 reservas.
 Os times da rodada viram `RoundTeams` no domínio (ver "Rodada, placar e scouts").
 Quem marca a presença e até quando: ver "Presença" acima.
-**Evite:** usar `Attendance` como "jogou" (confirmou ≠ jogou); o mesmo membro nos dois times.
+**Evite:** usar `Attendance` sozinha como "jogou" (jogou = está no `TeamPlayer`; mas publicar e começar exigem
+confirmados = escalados, então na prática quem confirmou joga); o mesmo membro nos dois times.

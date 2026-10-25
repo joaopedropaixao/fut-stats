@@ -28,6 +28,8 @@ export interface RoundTeams extends RoundLineup {
 export interface RoundState {
   status: RoundStatus;
   teams: RoundTeams | null;
+  /** Ids de quem confirmou presença (e segue ativo). Publicar e começar exigem que sejam os escalados. */
+  confirmedIds: readonly string[];
   score: MatchScore | null;
   events: readonly MatchEvent[];
 }

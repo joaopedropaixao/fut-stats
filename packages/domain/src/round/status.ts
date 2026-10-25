@@ -1,5 +1,11 @@
 import { isValidRoundLineup, MAX_RESERVES_PER_TEAM, TEAMS } from '../core';
-import { tallyMatchEvents, validateScore, type RoundState, type RoundTeams } from './match';
+import {
+  roundPlayerIds,
+  tallyMatchEvents,
+  validateScore,
+  type RoundState,
+  type RoundTeams,
+} from './match';
 
 /** Ciclo da rodada, na ordem. Textos em `packages/shared` (`ROUND_STATUS_LABELS`). */
 export const ROUND_STATUSES = [
@@ -33,6 +39,7 @@ export const ROUND_TRANSITION_ERRORS = [
   'INVALID_SCORE',
   'GOALS_MISMATCH',
   'TOO_MANY_ASSISTS',
+  'ATTENDANCE_MISMATCH',
 ] as const;
 
 export type RoundTransitionError = (typeof ROUND_TRANSITION_ERRORS)[number];
@@ -68,6 +75,21 @@ export function validateRoundTeams(
 }
 
 /**
+ * Quem confirmou presença jogou: os escalados (titulares e reservas) são exatamente os confirmados.
+ * Sem times montados não há o que comparar (quem acusa é `validateRoundTeams`).
+ */
+export function validateAttendanceMatch(
+  teams: RoundTeams | null,
+  confirmedIds: readonly string[],
+): RoundTransitionError[] {
+  if (!teams) return [];
+  const placed = new Set(roundPlayerIds(teams));
+  const confirmed = new Set(confirmedIds);
+  const same = placed.size === confirmed.size && [...placed].every((id) => confirmed.has(id));
+  return same ? [] : ['ATTENDANCE_MISMATCH'];
+}
+
+/**
  * Times montados (sem eles não dá para contar os lances), placar lançado e válido e batendo com os
  * lances: gols = placar e assistências ≤ gols, por time.
  */
@@ -86,7 +108,7 @@ function validateScoreMatchesEvents(round: RoundState): RoundTransitionError[] {
 
 /**
  * Diz por que a rodada não pode ir de `round.status` para `to` (lista vazia = pode).
- * Pré-condições: publicar e começar o jogo exigem times válidos; ir para a votação e encerrar
+ * Pré-condições: publicar e começar o jogo exigem times válidos e confirmados = escalados; ir para a votação e encerrar
  * exigem placar lançado e batendo com os gols lançados. O admin pode encerrar a votação a
  * qualquer momento: o prazo e o "todos votaram" só dizem quando fechar sozinha (`shouldCloseVoting`).
  */
@@ -100,7 +122,10 @@ export function validateRoundTransition(
   switch (to) {
     case 'TEAMS_PUBLISHED':
     case 'IN_PROGRESS':
-      return validateRoundTeams(round.teams, options);
+      return [
+        ...validateRoundTeams(round.teams, options),
+        ...validateAttendanceMatch(round.teams, round.confirmedIds),
+      ];
     case 'VOTING':
     case 'CLOSED':
       return validateScoreMatchesEvents(round);

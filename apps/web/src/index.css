@@ -82,6 +82,127 @@
   animation: stamp 200ms steps(4, end) both;
 }
 
+/* VS dos times (Momento/VS da folha): tudo em degraus, 0,9 s de animação e o quadro final fica parado. */
+@keyframes vs-run {
+  0% {
+    opacity: 0;
+    transform: translateX(var(--vs-from));
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-vs-run {
+  animation: vs-run 150ms steps(3, end) both;
+}
+
+/* Linhas de velocidade: entram junto dos jogadores e somem quando o VS bate */
+@keyframes vs-line {
+  0% {
+    opacity: 0;
+    transform: translateX(var(--vs-from));
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-vs-line {
+  animation: vs-line 450ms steps(5, end) both;
+}
+
+/* Choque: a tela pisca (branco a 55%) e treme */
+@keyframes vs-flash {
+  0% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@utility animate-vs-flash {
+  animation: vs-flash 300ms steps(3, end) both;
+}
+
+@keyframes vs-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-4px, 2px);
+  }
+  40% {
+    transform: translate(4px, -2px);
+  }
+  60% {
+    transform: translate(-2px, -2px);
+  }
+  80% {
+    transform: translate(2px, 2px);
+  }
+}
+
+@utility animate-vs-shake {
+  animation: vs-shake 300ms steps(1, end) both;
+}
+
+/* A palavra VS bate: chega grande e assenta em degraus */
+@keyframes vs-pop {
+  0% {
+    opacity: 0;
+    transform: rotate(-6deg) scale(2.2);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-6deg) scale(1.25);
+  }
+}
+
+@utility animate-vs-pop {
+  animation: vs-pop 150ms steps(3, end) both;
+}
+
+@keyframes vs-settle {
+  0% {
+    transform: rotate(-6deg) scale(1.25);
+  }
+  100% {
+    transform: rotate(-6deg) scale(1);
+  }
+}
+
+@utility animate-vs-settle {
+  animation: vs-settle 150ms steps(2, end) both;
+}
+
+/* Quadro final: aparece em degraus; com reduzir movimento é um fade (única animação que sobra) */
+@keyframes vs-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@utility animate-vs-fade {
+  animation: vs-fade 200ms steps(4, end) both;
+}
+
 /* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -90,6 +211,14 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0ms !important;
+  }
+}
+
+/* O fade do quadro final é a exceção: reduzir movimento troca os degraus por um fade suave de 200 ms */
+@media (prefers-reduced-motion: reduce) {
+  .animate-vs-fade {
+    animation-duration: 200ms !important;
+    animation-timing-function: linear !important;
   }
 }
 
