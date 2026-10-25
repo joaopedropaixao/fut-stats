@@ -18,7 +18,7 @@ const DEFAULT_STALE_AFTER_HOURS = 24;
 const HOUR_MS = 60 * 60 * 1000;
 
 /**
- * A rodada que o app mostra como "a da vez" (início e aba Times): a que está em jogo, se houver
+ * A rodada que o app mostra como "a da vez" (início e aba Times): a que está em jogo ou na Resenha pós-jogo, se houver
  * (a de horário mais recente); senão, a de antes do jogo com o horário mais cedo, contando as que
  * passaram do horário há menos de `staleAfterHours`. Votação e encerrada não contam. `now` vem de
  * fora (o domínio não lê relógio).
@@ -29,7 +29,7 @@ export function pickCurrentRound<T extends RoundAtTime>(
   options: CurrentRoundOptions = {},
 ): T | null {
   const inProgress = rounds
-    .filter((round) => round.status === 'IN_PROGRESS')
+    .filter((round) => round.status === 'IN_PROGRESS' || round.status === 'POST_MATCH')
     .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
   if (inProgress[0]) return inProgress[0];
 

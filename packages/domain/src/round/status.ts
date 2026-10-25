@@ -110,8 +110,9 @@ function validateScoreMatchesEvents(round: RoundState): RoundTransitionError[] {
 
 /**
  * Diz por que a rodada não pode ir de `round.status` para `to` (lista vazia = pode).
- * Pré-condições: publicar e começar o jogo exigem times válidos e confirmados = escalados; ir para a votação e encerrar
- * exigem placar lançado e batendo com os gols lançados. O admin pode encerrar a votação a
+ * Pré-condições: publicar e começar o jogo exigem times válidos e confirmados = escalados; ir para a Resenha
+ * (`POST_MATCH`) exige placar lançado e válido; ir para a votação e encerrar exigem placar batendo com os
+ * gols lançados. O admin pode encerrar a votação a
  * qualquer momento: o prazo e o "todos votaram" só dizem quando fechar sozinha (`shouldCloseVoting`).
  */
 export function validateRoundTransition(
@@ -129,8 +130,9 @@ export function validateRoundTransition(
         ...validateAttendanceMatch(round.teams, round.confirmedIds),
       ];
     case 'POST_MATCH':
-      // TODO(dev-back, spec C1/C2): placar lançado e válido, sem exigir gols batendo.
-      return [];
+      // Finalizar o jogo exige o placar; os gols só precisam bater para abrir a votação.
+      if (!round.score) return ['SCORE_MISSING'];
+      return validateScore(round.score) ? ['INVALID_SCORE'] : [];
     case 'VOTING':
     case 'CLOSED':
       return validateScoreMatchesEvents(round);

@@ -60,6 +60,14 @@ describe('pickCurrentRound', () => {
     expect(pickCurrentRound(rounds, now, { staleAfterHours: 3 })?.id).toBe('hoje');
   });
 
+  it('C12: a Resenha pós-jogo conta como em jogo e vem antes da próxima', () => {
+    const rounds = [
+      at('proxima', 'SCHEDULED', '2026-10-24T20:00:00Z'),
+      at('resenha', 'POST_MATCH', '2026-10-23T20:00:00Z'),
+    ];
+    expect(pickCurrentRound(rounds, now)?.id).toBe('resenha');
+  });
+
   it('rodada em votação ou encerrada não é a atual', () => {
     const rounds = [
       at('votacao', 'VOTING', '2026-10-23T20:00:00Z'),
