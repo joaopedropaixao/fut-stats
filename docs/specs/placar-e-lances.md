@@ -343,3 +343,28 @@ mostra um texto genérico); lançar lance e placar sem transação (dois toques 
 fora do escopo); aviso "Assistência ... apagado/lançado" sem concordar no feminino; na rodada não encontrada, o
 voltar aponta para a própria rodada; "já vi o resultado" é por rodada no navegador, não por usuário; rótulo
 "RESENHA PÓS-JOGO" colado no dígito do Branco e último motivo rente à barra de abas.
+
+### QA da volta 2 (placar primeiro, lances por jogador, cards de grande momento)
+**2 verificações, `VEREDITO: APROVADO`** (25 out 2026). A 1ª reprovou o C58: a lista de lances dizia "Assistência ·
+lançado por" (masculino). Corrigido com teste (`eventLaunchedBy (C58)`), junto com pontos menores: apagar o próprio
+lance em primeira pessoa, "Placar ainda não lançado" para leitor de tela, gol contra a favor na aba do time que
+ganhou o gol, e dois textos do shared (`ROUND_NOT_OPEN` de lance: "Só dá para lançar e apagar lances na Resenha";
+`NOT_OWN_EVENT`: "Você só mexe nos seus próprios lances"). Na raiz: domínio 294, API 209 de integração, web 163,
+lint, typecheck e build verdes.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C44 | OK | `events.test.ts`, `match.spec.ts`; curl: em jogo, admin e jogador levam 409 `ROUND_NOT_OPEN`; `launchOwn`/`launchAny` falsos |
+| C45 | OK | placar abaixo dos gols grava (200) e `open-voting` acusa `GOALS_MISMATCH` até acertar |
+| C46 | OK | 3 assistências com placar 1x0 entram e a votação abre |
+| C47 | OK | 403 `{ code: 'NOT_ADMIN', message: 'Só o admin pode fazer isso' }` em start, finish, open-voting e score |
+| C48 | OK | `seed.spec.ts`: em-jogo sem placar e sem lances |
+| C49–C50 | OK | admin em jogo só com placar e "Finalizar jogo"; gaveta em 0x0 grava sem aviso de gols |
+| C51–C53 | OK | linhas por jogador com −/+ de Gol e Assistência, "⋯" com gol contra, gol contra a favor na aba do time, aviso ao passar do placar, assistência sem limite |
+| C54, C58 | OK | "Assistência de X lançada/apagada", "Sua assistência apagada", "Assistência · lançada por" (testes com o id) |
+| C55 | OK | gavetas fecham em ~110 ms, abrem em 150–180 ms; erro da API depois de fechar vira aviso |
+| C56–C57 | OK | contorno de 3px + sombra dura, entrada `moment-in` 320 ms em degraus, YOU WIN com faixa, estrelas e confete; dígito bate em 220 ms; reduzir movimento só com fade |
+| Regressão volta 1 | OK | começar → finalizar → Resenha → abrir votação; YOU WIN/LOSE; início; 403/404 entre grupos e inativo; `me.result` |
+
+Pontos menores, sem reprovar: "já vi o resultado" é por rodada no navegador, não por pessoa; o + de Gol com o time
+cheio fica habilitado e avisa ao tocar (o spec aceita).
