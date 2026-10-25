@@ -1,7 +1,13 @@
-import { ROUND_TRANSITION_ERRORS, type LineupDraftError } from '@fut-stats/domain';
+import {
+  ROUND_TRANSITION_ERRORS,
+  teamBalance,
+  type BalanceTeamsError,
+  type LineupDraftError,
+  type TeamBalance,
+} from '@fut-stats/domain';
 import { z } from 'zod';
 import { positionSchema, roundStatusSchema } from './domain';
-import { attendanceMemberSchema } from './round';
+import { attendanceMemberSchema, type AttendanceMember } from './round';
 
 /** Por que o rascunho dos times não pode ser salvo (`validateLineupDraft` no domain). */
 export const LINEUP_DRAFT_ERROR_LABELS: Readonly<Record<LineupDraftError, string>> = {
@@ -77,3 +83,43 @@ export type LineupPlayer = z.infer<typeof lineupPlayerSchema>;
 export type LineupTeam = z.infer<typeof lineupTeamSchema>;
 export type LineupPermissions = z.infer<typeof lineupPermissionsSchema>;
 export type Lineup = z.infer<typeof lineupSchema>;
+
+/** Por que não deu para gerar os times (`balanceTeams` no domain). */
+export const BALANCE_TEAMS_ERROR_LABELS: Readonly<Record<BalanceTeamsError, string>> = {
+  DUPLICATE_PLAYER: 'Tem jogador repetido entre os confirmados',
+  NOT_ENOUGH_PLAYERS: 'Para gerar os times, precisa de pelo menos 14 confirmados',
+  TOO_MANY_PLAYERS: 'Com mais de 18 confirmados não dá para gerar: ajuste as presenças',
+  NOT_ENOUGH_GOALKEEPERS: 'Para gerar os times, precisa de 2 goleiros confirmados',
+  TOO_MANY_GOALKEEPERS: 'Tem mais de 2 goleiros confirmados: monte os times na mão',
+  POSITIONS_UNFILLABLE: 'Os confirmados não fecham o 1-2-3-1, nem com as posições secundárias',
+};
+
+/** Corpo de POST .../lineup/suggestion. `avoid` = a divisão de agora, para o Regerar trazer outra. */
+export const suggestLineupSchema = z.object({ avoid: saveLineupSchema.optional() });
+
+/** Resposta de POST .../lineup/suggestion: os times sugeridos, no formato do PUT. Não grava nada. */
+export const lineupSuggestionSchema = z.object({ teams: saveLineupSchema });
+
+export type SuggestLineupInput = z.infer<typeof suggestLineupSchema>;
+export type LineupSuggestion = z.infer<typeof lineupSuggestionSchema>;
+
+/** O que o card de equilíbrio precisa de cada membro (cabe um `AttendanceMember` ou `LineupPlayer`). */
+export type BalanceMember = Pick<AttendanceMember, 'membershipId' | 'primaryPosition' | 'rating'>;
+export type { TeamBalance };
+
+/**
+ * Equilíbrio do rascunho da tela: converte para o formato do domain e chama `teamBalance`, a mesma regra da API.
+ * O front só mostra. Membro que não está em `members` é ignorado.
+ */
+export function draftBalance(draft: SaveLineupInput, members: readonly BalanceMember[]): TeamBalance {
+  const starters = (team: 'WHITE' | 'BLACK') =>
+    draft[team].starters.map((s) => ({ playerId: s.membershipId, position: s.position }));
+  return teamBalance(
+    {
+      WHITE: starters('WHITE'),
+      BLACK: starters('BLACK'),
+      reserves: { WHITE: draft.WHITE.reserves, BLACK: draft.BLACK.reserves },
+    },
+    members.map((m) => ({ id: m.membershipId, primaryPosition: m.primaryPosition, rating: m.rating })),
+  );
+}

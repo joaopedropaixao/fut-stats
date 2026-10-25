@@ -44,13 +44,17 @@ export interface BalancedRound extends RoundLineup {
   readonly reserves: TeamReserves;
 }
 
-export type BalanceTeamsError =
-  | 'DUPLICATE_PLAYER'
-  | 'NOT_ENOUGH_PLAYERS'
-  | 'TOO_MANY_PLAYERS'
-  | 'NOT_ENOUGH_GOALKEEPERS'
-  | 'TOO_MANY_GOALKEEPERS'
-  | 'POSITIONS_UNFILLABLE';
+/** Por que não deu para gerar os times. O texto de cada um fica no shared (`BALANCE_TEAMS_ERROR_LABELS`). */
+export const BALANCE_TEAMS_ERRORS = [
+  'DUPLICATE_PLAYER',
+  'NOT_ENOUGH_PLAYERS',
+  'TOO_MANY_PLAYERS',
+  'NOT_ENOUGH_GOALKEEPERS',
+  'TOO_MANY_GOALKEEPERS',
+  'POSITIONS_UNFILLABLE',
+] as const;
+
+export type BalanceTeamsError = (typeof BALANCE_TEAMS_ERRORS)[number];
 
 export type BalanceTeamsResult =
   | {
