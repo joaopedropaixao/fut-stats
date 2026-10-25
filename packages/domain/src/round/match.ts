@@ -92,3 +92,10 @@ export function validateScore(score: MatchScore): ScoreError | null {
   const valid = TEAMS.every((team) => Number.isInteger(score[team]) && score[team] >= 0);
   return valid ? null : 'INVALID_SCORE';
 }
+
+/** Resultado do time no jogo, pelo placar: vitória, derrota ou empate. */
+export function matchResult(score: MatchScore, team: Team): MatchResult {
+  const diff = score[team] - score[opponentOf(team)];
+  if (diff > 0) return 'WIN';
+  return diff < 0 ? 'LOSS' : 'DRAW';
+}
