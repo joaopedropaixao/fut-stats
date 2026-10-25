@@ -108,6 +108,14 @@ Cada cenário tem um id (`C1`, `C2`...). Os testes levam o id no nome.
 | C39 | admin, Resenha, gols batendo | "Abrir votação" → gaveta → confirmar | status "Votação"; tela só leitura para todos | Playwright |
 | C40 | carregando, erro da API, rodada não encontrada, rodada antes do jogo (jogador) | abrir | esqueleto; erro com "Tentar de novo"; vazio de não encontrada; "O jogo ainda não começou" com link para os times. Console sem erros no fluxo real | Playwright |
 
+**Início** (`/`, a rodada da vez)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C41 | rodada da vez em `POST_MATCH`, jogador que jogou | abre o início | título "Hora da Resenha" e um card com o placar final (dígitos pixel, Branco x Preto) e a chamada "Lance seus gols e assistências"; a tecla "Lançar meus lances" leva a `/rodadas/:roundId/jogo`. Sem o card de presença | Playwright |
+| C42 | rodada da vez em `POST_MATCH`, admin | abre o início | o mesmo card, com "Confira os lances e abra a votação", "n de m gols" por time e a tecla "Ir para a Resenha"; membro que não jogou vê o placar e "Ver o jogo" | Playwright |
+| C43 | rodada da vez em `IN_PROGRESS` | abre o início | título "Em jogo" e card com o placar (ou "PLACAR NÃO LANÇADO") e "Ir para o jogo", no lugar da presença (que já travou) | Playwright |
+
 ## Técnico
 
 ### Contrato
@@ -218,6 +226,9 @@ matchViewSchema = z.object({
 - Card YOU WIN / YOU LOSE / EMPATE: grande momento no padrão do VS (`vs-board.tsx`, `vs-seen.ts`): CSS `steps()` e
   SVG pixel, `aria-hidden` na animação, quadro final anunciado ("Você venceu 3 a 2"), foco no conteúdo depois.
   Cor nunca é o único sinal.
+- **Início** (`pages/rounds/home.tsx`): com a rodada da vez em `IN_PROGRESS` ou `POST_MATCH`, troca o card de presença
+  pelo card do jogo (dados do `GET .../match`: `score`, `tally`, `me`, `permissions`). Textos conforme `me.team` e
+  `me.isAdmin`; o que pode fazer vem de `permissions`.
 - Nada de regra no front: o que pode vem de `permissions`, `canRemove` e `errors`; contagens de `tally`. Sem
   dependência nova.
 
@@ -229,7 +240,8 @@ matchViewSchema = z.object({
 - Placar e lances congelam ao abrir a votação — quem vota vê números que não mudam.
 - `votingOpenedAt` entra agora — abrir a votação é desta fatia (dono); a fatia `votacao` usa o campo.
 - Gol contra aparece na lista do time que ganhou o gol — a conta "n de m gols" fecha olhando só a lista do time.
-- `pickCurrentRound` trata `POST_MATCH` como em jogo — senão a rodada some do início na Resenha (decisão do TPL, confirmar no portão).
+- `pickCurrentRound` trata `POST_MATCH` como em jogo, e o início mostra o card "Hora da Resenha" chamando o jogador
+  para lançar os próprios lances (dono).
 - `finish` recebe o placar no corpo — "finalizar informando o placar final" é um passo só para o admin.
 
 ## Fora do escopo
@@ -249,6 +261,7 @@ matchViewSchema = z.object({
 - Card YOU WIN / YOU LOSE? → Entra, uma vez por jogador.
 - Jogador confirma? → Não, só lança e apaga os próprios.
 - Na votação? → Congela.
+- A Resenha aparece no início? → Sim, com um card "Hora da Resenha" que leva o jogador a lançar os gols e assistências.
 - Cronômetro dos reservas? → Fatia própria, logo depois desta.
 
 ## QA
