@@ -26,3 +26,18 @@ export function lastRemovable<T extends Counted>(
     (event) => event.membershipId === membershipId && event.type === type && event.canRemove,
   );
 }
+
+type OwnGoalFor = Pick<MatchEventItem, 'type' | 'team' | 'playerTeam' | 'nickname'>;
+
+/** Gols contra a favor do time: o lance é de um jogador do adversário, mas o gol conta para este time. */
+export function ownGoalsFor<T extends OwnGoalFor>(
+  events: readonly T[],
+  team: MatchEventItem['team'],
+): T[] {
+  return events.filter((event) => event.type === 'OWN_GOAL' && event.team === team);
+}
+
+/** "Gol contra de Diegão (Branco)": quem fez o gol contra e o time dele. */
+export function ownGoalLabel(nickname: string, playerTeamLabel: string): string {
+  return `Gol contra de ${nickname} (${playerTeamLabel})`;
+}

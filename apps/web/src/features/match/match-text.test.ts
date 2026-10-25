@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventNoticeTitle, goalsOfScore, resultAnnouncement } from './match-text';
+import { eventLaunchedBy, eventNoticeTitle, goalsOfScore, resultAnnouncement } from './match-text';
 
 describe('goalsOfScore', () => {
   it('mostra quantos gols têm autor perto do placar do time', () => {
@@ -21,7 +21,7 @@ describe('resultAnnouncement', () => {
   });
 });
 
-describe('eventNoticeTitle', () => {
+describe('eventNoticeTitle (C54)', () => {
   it('assistência concorda no feminino', () => {
     expect(eventNoticeTitle('ASSIST', 'Diegão', 'launched')).toBe('Assistência de Diegão lançada');
     expect(eventNoticeTitle('ASSIST', 'Diegão', 'removed')).toBe('Assistência de Diegão apagada');
@@ -38,5 +38,21 @@ describe('eventNoticeTitle', () => {
     expect(eventNoticeTitle('ASSIST', null, 'launched')).toBe('Sua assistência lançada');
     expect(eventNoticeTitle('GOAL', null, 'launched')).toBe('Seu gol lançado');
     expect(eventNoticeTitle('OWN_GOAL', null, 'removed')).toBe('Seu gol contra apagado');
+  });
+
+  it('apagar o próprio lance também fala em primeira pessoa', () => {
+    expect(eventNoticeTitle('ASSIST', null, 'removed')).toBe('Sua assistência apagada');
+    expect(eventNoticeTitle('GOAL', null, 'removed')).toBe('Seu gol apagado');
+  });
+});
+
+describe('eventLaunchedBy (C58)', () => {
+  it('a lista do jogador diz "lançada por" para assistência', () => {
+    expect(eventLaunchedBy('ASSIST', 'Carlão')).toBe('lançada por Carlão');
+  });
+
+  it('gol e gol contra ficam "lançado por"', () => {
+    expect(eventLaunchedBy('GOAL', 'Carlão')).toBe('lançado por Carlão');
+    expect(eventLaunchedBy('OWN_GOAL', 'Carlão')).toBe('lançado por Carlão');
   });
 });
