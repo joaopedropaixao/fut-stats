@@ -17,7 +17,7 @@ export const DEFAULT_TEAM_BALANCE_CONFIG: Readonly<TeamBalanceConfig> = {
 export interface TeamBalance {
   /** Média de cada time (2 casas); `null` se o time está vazio. */
   average: Record<Team, number | null>;
-  /** |média Branco − média Preto| (2 casas). */
+  /** |média Branco − média Preto| (1 casa, como a tela mostra). */
   difference: number | null;
   /** Diferença ≤ `balancedThreshold`. */
   balanced: boolean | null;
@@ -69,7 +69,8 @@ export function teamBalance(
     };
   }
 
-  const difference = round2(Math.abs(white - black));
+  // 1 casa, o número que a tela mostra: assim "equilibrado" nunca contradiz o texto.
+  const difference = Math.round(Math.abs(white - black) * 10) / 10;
   const balanced = difference <= cfg.balancedThreshold;
   return {
     average: { WHITE: white, BLACK: black },

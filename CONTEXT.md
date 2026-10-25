@@ -168,8 +168,9 @@ montar (o front chama `draftBalance` do shared, que converte o rascunho e chama 
 **Faz:**
 - Média de cada time = soma das notas ÷ jogadores no time (titulares e reservas), em 2 casas.
 - Titular fora da posição principal vale nota × 0,9, **esteja ou não nas secundárias**. Reserva vale a nota cheia.
-- `difference` = |média Branco − média Preto|; `balanced` = diferença ≤ 0,5; `stronger` = o time mais forte quando
-  não está equilibrado.
+- `difference` = |média Branco − média Preto| **arredondada em 1 casa** (o número que a tela mostra; as médias seguem
+  em 2 casas). `balanced` e `stronger` comparam esse valor arredondado: `balanced` = diferença ≤ 0,5 (0,54 vira 0,5 e
+  é equilibrado); `stronger` = o time mais forte quando não está equilibrado.
 - Jogador que não está em `players` é ignorado.
 
 **Devolve:** `{ average: { WHITE, BLACK }, difference, balanced, stronger }`. Time vazio: média `null` e

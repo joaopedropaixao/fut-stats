@@ -108,6 +108,16 @@ describe('teamBalance', () => {
     expect(reversed.stronger).toBe('BLACK');
   });
 
+  it('C11: a diferença é a que o usuário vê (1 casa): 0,54 vira 0,5 e é equilibrada; 0,56 vira 0,6', () => {
+    const gap = (white: number, black: number) =>
+      teamBalance(
+        { WHITE: [slot('a', 'DEFENDER')], BLACK: [slot('x', 'DEFENDER')], reserves: noReserves },
+        [p('a', 'DEFENDER', white), p('x', 'DEFENDER', black)],
+      );
+    expect(gap(6.4, 6.94)).toMatchObject({ difference: 0.5, balanced: true, stronger: null });
+    expect(gap(6.4, 6.96)).toMatchObject({ difference: 0.6, balanced: false, stronger: 'BLACK' });
+  });
+
   it('C11: time vazio: média null e sem comparação', () => {
     const teams: RoundTeams = {
       WHITE: [slot('a', 'DEFENDER')],
