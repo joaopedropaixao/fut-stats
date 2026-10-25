@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { lineup, round, teams } from './fixtures.test-utils';
-import type { MatchEvent } from './match';
+import { roundPlayerIds, type MatchEvent } from './match';
 import {
   canTransitionRound,
   isRoundDeletable,
@@ -99,6 +99,54 @@ describe('validateRoundTransition', () => {
     ).toEqual(['INVALID_LINEUP']);
   });
 
+  describe('ATTENDANCE_MISMATCH: confirmados = escalados', () => {
+    const publish = (o: Parameters<typeof round>[0]) =>
+      validateRoundTransition(round({ status: 'SCHEDULED', ...o }), 'TEAMS_PUBLISHED');
+
+    it('C5: confirmado fora dos times', () => {
+      expect(publish({ confirmedIds: [...roundPlayerIds(teams), 'x1'] })).toContain(
+        'ATTENDANCE_MISMATCH',
+      );
+    });
+
+    it('C6: escalado que não está confirmado, ao publicar e ao começar', () => {
+      const confirmedIds = roundPlayerIds(teams).filter((id) => id !== 'w3');
+      expect(publish({ confirmedIds })).toContain('ATTENDANCE_MISMATCH');
+      expect(
+        validateRoundTransition(round({ status: 'TEAMS_PUBLISHED', confirmedIds }), 'IN_PROGRESS'),
+      ).toContain('ATTENDANCE_MISMATCH');
+      expect(
+        validateRoundTransition(
+          round({ status: 'TEAMS_PUBLISHED', confirmedIds: [...roundPlayerIds(teams), 'x1'] }),
+          'IN_PROGRESS',
+        ),
+      ).toContain('ATTENDANCE_MISMATCH');
+    });
+
+    it('C7: times válidos e confirmados = escalados (em qualquer ordem)', () => {
+      expect(publish({})).toEqual([]);
+      expect(publish({ confirmedIds: [...roundPlayerIds(teams)].reverse() })).toEqual([]);
+    });
+
+    it('C8: a checagem não vale para votação, encerrar nem despublicar', () => {
+      const confirmedIds = ['outro'];
+      const score = { WHITE: 0, BLACK: 0 };
+      expect(
+        validateRoundTransition(round({ status: 'VOTING', confirmedIds, score }), 'CLOSED'),
+      ).not.toContain('ATTENDANCE_MISMATCH');
+      expect(
+        validateRoundTransition(round({ status: 'IN_PROGRESS', confirmedIds, score }), 'VOTING'),
+      ).not.toContain('ATTENDANCE_MISMATCH');
+      expect(
+        validateRoundTransition(round({ status: 'TEAMS_PUBLISHED', confirmedIds }), 'SCHEDULED'),
+      ).toEqual([]);
+    });
+
+    it('sem times montados só acusa INVALID_LINEUP', () => {
+      expect(publish({ teams: null })).toEqual(['INVALID_LINEUP']);
+    });
+  });
+
   it('começar o jogo confere os times de novo', () => {
     expect(validateRoundTransition(round({ status: 'TEAMS_PUBLISHED' }), 'IN_PROGRESS')).toEqual(
       [],
@@ -108,7 +156,7 @@ describe('validateRoundTransition', () => {
         round({ status: 'TEAMS_PUBLISHED', teams: { ...teams, WHITE: [] } }),
         'IN_PROGRESS',
       ),
-    ).toEqual(['INVALID_LINEUP']);
+    ).toEqual(['INVALID_LINEUP', 'ATTENDANCE_MISMATCH']);
   });
 
   describe('ir para a votação e encerrar exigem placar batendo com os gols', () => {

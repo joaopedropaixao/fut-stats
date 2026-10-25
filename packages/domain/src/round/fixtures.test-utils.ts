@@ -1,5 +1,5 @@
 import type { TeamLineup } from '../core';
-import type { RoundState, RoundTeams } from './match';
+import { roundPlayerIds, type RoundState, type RoundTeams } from './match';
 
 /** Monta um time 1-2-3-1 com ids `${prefix}1`..`${prefix}7`. */
 export function lineup(prefix: string): TeamLineup {
@@ -22,5 +22,12 @@ export const teams: RoundTeams = {
 };
 
 export function round(overrides: Partial<RoundState> = {}): RoundState {
-  return { status: 'IN_PROGRESS', teams, score: null, events: [], ...overrides };
+  return {
+    status: 'IN_PROGRESS',
+    teams,
+    confirmedIds: roundPlayerIds(teams),
+    score: null,
+    events: [],
+    ...overrides,
+  };
 }

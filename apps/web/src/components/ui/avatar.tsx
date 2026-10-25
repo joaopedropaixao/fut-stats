@@ -26,7 +26,7 @@ type AvatarProps = {
   /** Mostra o selo "G" de goleiro. */
   goalkeeper?: boolean;
   /** Cor do vão entre o avatar e o anel: a do fundo onde ele está. */
-  gap?: 'bg' | 'surface' | 'surface-raised';
+  gap?: 'bg' | 'surface' | 'surface-raised' | 'surface-3' | 'field';
   className?: string;
 };
 
