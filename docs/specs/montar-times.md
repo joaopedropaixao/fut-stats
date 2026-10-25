@@ -234,3 +234,20 @@ inativo; tela no Playwright a 390px como admin e como jogador, console sem erros
 Pontos menores, sem reprovar: comentários do C15 e do seed (corrigidos depois do QA); `SLOTS` e
 `RESERVE_BOXES` repetidos no web (desenho; quem garante é a API, rever no `seletor-de-times`); "SEM PRESENÇA" de um zagueiro
 fica apertado perto da área no campo publicado; `/dev/entrar` com chave duplicada (fora da fatia).
+
+### QA da volta 2 (visual dos times publicados)
+**3 verificações, `VEREDITO: APROVADO`** (24 out 2026). A 1ª reprovou o C41: o "Pular" do VS estava invisível
+(`bg-black` não existe no tema, que zera as cores padrão do Tailwind). Corrigido com as cores do tema
+(`team-black`/`team-white`), um teste que barra `white`/`black` crus nos arquivos do VS e foco com anel preto +
+creme. Só front mudou.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C41 | OK | Pular visível (preto, 100x44, 1ª parada do Tab, foco visível); VS em ~0,92 s com `steps()`; 2ª abertura direto ao quadro; storage quebrado toca de novo sem erro |
+| C42 | OK | reduzir movimento: só o fade de 0,2 s, sem Pular |
+| C43 | OK | corte diagonal, BRANCO/PRETO, "7 JOGADORES", VS em `--color-game` |
+| C44 | OK | "VOCÊ JOGA NO PRETO" + selo + posição ou RESERVA (Dedé, Nico, Carlão) |
+| C45 | OK | anel de 4px e etiqueta "VOCÊ" no campo e nas reservas; aria "(você)" |
+| C46 | OK | não escalado: sem faixa e sem etiqueta |
+| C47 | OK | animação `aria-hidden`; h2 anuncia os times e recebe o foco; console sem erros |
+| C25–C40 | OK | regressão: tocar e tocar, desfazer, publicar e despublicar; montar do admin sem VS |
