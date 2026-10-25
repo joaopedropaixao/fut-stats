@@ -107,45 +107,76 @@ Schema `roleSchema` no shared.
 
 ### Seletor de times: `balanceTeams` ✅
 **O que é:** gera Branco x Preto equilibrados a partir dos confirmados da rodada. É sugestão: o admin pode
-editar antes de publicar.
-**Assinatura:** `balanceTeams(players: readonly Player[], history: readonly PastRound[] = [], config: Partial<BalanceTeamsConfig> = {})`.
-- `history`: rodadas anteriores, **da mais antiga para a mais recente**. `PastRound` = `RoundLineup` + `reserves?` opcional.
-- `config` (defaults em `DEFAULT_BALANCE_TEAMS_CONFIG`):
-  - `repeatedPairWeight` (λ) = `0.5`: custo de cada dupla repetida, em pontos de força.
-  - `lookbackRounds` = `3`: quantas rodadas recentes do histórico contam.
+editar antes de publicar. Agora também olha **vitórias** (panelinha).
+**Assinatura:** `balanceTeams(players: readonly Player[], history: readonly PastRound[] = [], config: Partial<BalanceTeamsConfig> = {}, options: { avoid?: PastRound } = {})`.
+- `history`: rodadas anteriores, **da mais antiga para a mais recente**. `PastRound` = `RoundLineup` + `reserves?` +
+  `score?: MatchScore | null` (sem placar, a rodada não conta na panelinha).
+- `options.avoid`: a divisão de agora (o Regerar). Compara só **quem está com quem**, ignorando lado e posição.
+- `config` (defaults em `DEFAULT_BALANCE_TEAMS_CONFIG`; pesos calibrados na simulação de 25 out 2026, recalibrar
+  com dados reais; `pnpm --filter @fut-stats/api simular:seletor`):
+  - `repeatedPairWeight` (λ) = `0.02`: custo por unidade de repetição em excesso, **em média de nota**.
+  - `recencyWeights` = `[1, 0.75, 0.5, 0.25]`: peso das últimas rodadas (mais recente primeiro); o tamanho da lista é a
+    janela. Substitui `lookbackRounds`.
+  - `cliqueWeight` (μ) = `0.05` e `cliqueRecencyWeights` = 10 pesos `1 − 0.09·k`: panelinha.
+  - `cliqueMarginCap` = `4`: diferença de gols a partir da qual a vitória pesa o máximo.
+  - `tolerance` (τ) = `0.1`: folga sobre o melhor custo; o sorteio é entre as divisões dentro dela.
   - `offPositionFactor` = `0.9`: multiplica a nota de quem joga na posição secundária.
   - `maxReservesPerTeam` = `MAX_RESERVES_PER_TEAM` (2).
-  - `random` = `Math.random`: desempate. Use `seededRandom(seed)` (exportado) para ter determinismo.
+  - `random` = `Math.random`: sorteio. Use `seededRandom(seed)` (exportado) para ter determinismo.
 
 **Faz:**
 - Aceita de 14 a `14 + 2 · maxReservesPerTeam` confirmados (18 por padrão), com **exatamente 2 goleiros**
   (`primaryPosition === 'GOALKEEPER'`), um em cada time.
-- Quem passa de 14 vira reserva de um time, com no máximo 1 de diferença de reservas entre os times
-  (15 → 1x0, 16 → 1x1...).
-- Jogador de linha joga na posição principal ou numa secundária, com o **mínimo possível** fora da principal.
-- Minimiza `|força Branco − força Preto| + λ · duplas repetidas` testando **todas** as divisões possíveis
-  (≈ 90 ms com 18). Empates são sorteados com `random`.
-- Força = soma das notas do time, com reserva valendo igual a titular (há revezamento), normalizada para 7
-  jogadores. Dupla repetida = par de jogadores de linha (inclusive reservas) no mesmo time numa das últimas
-  `lookbackRounds` rodadas. Cada rodada conta 1.
+- Quem passa de 14 vira reserva de um time, com no máximo 1 de diferença de reservas entre os times.
+- Jogador de linha joga na posição principal ou numa secundária, com o **mínimo possível** fora da principal
+  (a posição vem antes do custo).
+- Custo = `|média Branco − média Preto| + λ · repetição em excesso + μ · panelinha` (tudo em média de nota),
+  testando **todas** as divisões possíveis.
+  - Repetição em excesso, por dupla de linha (reservas incluídos): `max(0, Σ peso · juntos − Σ peso · chance de
+    cair junto)` nas rodadas da janela. Chance de cair junto = `(tamanho do time de linha − 1) / (total de linha − 1)`.
+  - Panelinha, por dupla de linha: `saldo = Σ peso · ±min(diferença de gols, cap) / cap` nas rodadas com placar
+    (`+` venceram no mesmo time, `−` perderam juntos, `0` empate ou sem placar); entra como `max(0, saldo)`.
+- Sorteia entre as divisões com custo até melhor + τ e, com `avoid`, descarta a divisão a evitar se houver outra.
+  Com `tolerance: 0` volta ao comportamento antigo (só as de custo mínimo).
+- Média do time = soma das notas ÷ jogadores (reserva vale igual a titular).
 
 **Não faz:**
 - Não põe jogador de linha no gol, nem usa `GOALKEEPER` como posição secundária.
 - Não põe ninguém em posição fora da principal e das secundárias.
 - Não gera time incompleto nem revezamento com menos de 14.
-- Não olha histórico de vitórias e não recalcula `rating`.
+- Goleiro não entra em dupla repetida nem em panelinha.
+- Não recalcula `rating`.
 
-**Devolve:** `{ ok: true, round: BalancedRound, strength: { WHITE, BLACK }, repeatedPairs }`, onde
-`BalancedRound` = `RoundLineup` (válido em `isValidRoundLineup`) + `reserves: { WHITE: string[], BLACK: string[] }`.
-Ou `{ ok: false, error }`, com `error` sendo `DUPLICATE_PLAYER`, `NOT_ENOUGH_PLAYERS`, `TOO_MANY_PLAYERS`,
-`NOT_ENOUGH_GOALKEEPERS`, `TOO_MANY_GOALKEEPERS` ou `POSITIONS_UNFILLABLE`. **Não lança.**
+**Devolve:** `{ ok: true, round: BalancedRound, strength: { WHITE, BLACK }, repeatedPairs }`. `strength` segue sendo a
+soma normalizada para 7 jogadores; `repeatedPairs` é a contagem crua de duplas do mesmo time na janela de
+`recencyWeights`. `BalancedRound` = `RoundLineup` (válido em `isValidRoundLineup`) + `reserves`.
+Ou `{ ok: false, error }`, com `error` em `BALANCE_TEAMS_ERRORS` (`DUPLICATE_PLAYER`, `NOT_ENOUGH_PLAYERS`,
+`TOO_MANY_PLAYERS`, `NOT_ENOUGH_GOALKEEPERS`, `TOO_MANY_GOALKEEPERS`, `POSITIONS_UNFILLABLE`). **Não lança.**
 
 **Evite:**
-- Aleatoriedade sem seed em testes.
+- Aleatoriedade sem seed em testes; testes de custo exato sem `tolerance: 0`.
 - Passar o histórico em ordem invertida (a mais recente primeiro).
-- Tratar `strength` como soma crua (é normalizada para 7).
-- Fixar λ e os outros pesos fora da config.
+- Fixar λ, μ e os outros pesos fora da config.
 - Contar o goleiro nas duplas.
+
+### Equilíbrio dos times: `teamBalance` ✅
+**O que é:** média de nota de Branco e Preto e se a diferença está boa. Mostrada no card de equilíbrio da tela de
+montar (o front chama `draftBalance` do shared, que converte o rascunho e chama esta função).
+**Assinatura:** `teamBalance(teams: RoundTeams, players: readonly Pick<Player, 'id' | 'primaryPosition' | 'rating'>[], config: Partial<TeamBalanceConfig> = {})`.
+- `config` (`DEFAULT_TEAM_BALANCE_CONFIG`): `offPositionFactor` = `0.9`, `balancedThreshold` = `0.5`.
+
+**Faz:**
+- Média de cada time = soma das notas ÷ jogadores no time (titulares e reservas), em 2 casas.
+- Titular fora da posição principal vale nota × 0,9, **esteja ou não nas secundárias**. Reserva vale a nota cheia.
+- `difference` = |média Branco − média Preto|; `balanced` = diferença ≤ 0,5; `stronger` = o time mais forte quando
+  não está equilibrado.
+- Jogador que não está em `players` é ignorado.
+
+**Devolve:** `{ average: { WHITE, BLACK }, difference, balanced, stronger }`. Time vazio: média `null` e
+`difference`, `balanced` e `stronger` `null` (sem comparação).
+
+**Evite:** usar a força normalizada do `balanceTeams` aqui (é outra escala); contar a posição secundária como
+posição principal.
 
 ### Nota da rodada, Craque e Perna de Pau: `roundScore` ✅
 **O que é:** nota final de um jogador na rodada = **média aparada** das notas recebidas (descarta a maior e a menor).
