@@ -34,12 +34,14 @@ import {
   type SuggestLineupInput,
 } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
+import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 type Db = Pick<PrismaService, 'teamPlayer' | 'membership' | 'round'>;
 
-/** Quantas rodadas já jogadas o seletor olha (cobre as janelas de repetição e de panelinha). */
-const HISTORY_ROUNDS = 10;
+/** Janelas do seletor: duplas repetidas olham as últimas jogadas; a panelinha, as últimas com placar. */
+const HISTORY_RECENT_ROUNDS = 4;
+const HISTORY_SCORED_ROUNDS = 10;
 
 const memberSelect = {
   id: true,
@@ -231,28 +233,45 @@ export class LineupsService {
   }
 
   /**
-   * As rodadas do grupo já jogadas (em jogo, votação ou encerrada) marcadas antes de `before`, da mais antiga
-   * para a mais recente, com os times e o placar. Rodada agendada ou com times só publicados não conta.
+   * As rodadas do grupo já jogadas (em jogo, votação ou encerrada) marcadas antes de `before`: as 4 últimas e as
+   * 10 últimas com placar, da mais antiga para a mais recente, com os times e o placar. Rodada agendada ou com times só publicados não conta.
    */
   private async playedHistory(groupId: string, before: Date): Promise<PastRound[]> {
-    const rounds = await this.prisma.round.findMany({
-      where: {
-        groupId,
-        status: { in: ['IN_PROGRESS', 'VOTING', 'CLOSED'] },
-        scheduledAt: { lt: before },
+    const select = {
+      id: true,
+      scheduledAt: true,
+      whiteGoals: true,
+      blackGoals: true,
+      teamPlayers: {
+        select: { membershipId: true, team: true, position: true, isReserve: true },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       },
-      select: {
-        whiteGoals: true,
-        blackGoals: true,
-        teamPlayers: {
-          select: { membershipId: true, team: true, position: true, isReserve: true },
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        },
-      },
-      orderBy: { scheduledAt: 'desc' },
-      take: HISTORY_ROUNDS,
-    });
-    return rounds.reverse().map((r) => {
+    } satisfies Prisma.RoundSelect;
+    const played = {
+      groupId,
+      status: { in: ['IN_PROGRESS', 'VOTING', 'CLOSED'] as RoundStatus[] },
+      scheduledAt: { lt: before },
+    } satisfies Prisma.RoundWhereInput;
+    // A repetição olha as últimas jogadas (com ou sem placar); a panelinha, as últimas com placar.
+    const [recent, scored] = await Promise.all([
+      this.prisma.round.findMany({
+        where: played,
+        select,
+        orderBy: { scheduledAt: 'desc' },
+        take: HISTORY_RECENT_ROUNDS,
+      }),
+      this.prisma.round.findMany({
+        where: { ...played, whiteGoals: { not: null }, blackGoals: { not: null } },
+        select,
+        orderBy: { scheduledAt: 'desc' },
+        take: HISTORY_SCORED_ROUNDS,
+      }),
+    ]);
+    const byId = new Map([...recent, ...scored].map((r) => [r.id, r]));
+    const rounds = [...byId.values()].sort(
+      (a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime(),
+    );
+    return rounds.map((r) => {
       const starters = (team: Team) =>
         r.teamPlayers
           .filter((row) => row.team === team && !row.isReserve)

@@ -651,6 +651,49 @@ describe('times da rodada (escalação)', () => {
       expect(otherGroupTogether).toBeGreaterThan(0);
     });
 
+    it('seletor C16: rodadas jogadas sem placar não tiram da janela as com placar', async () => {
+      const s = await setupSuggest();
+      const day = (n: number) => new Date(Date.now() - n * DAY_MS);
+      const pair = [s.ids[2]!, s.ids[3]!];
+      const teamPlayers = {
+        create: pair.map((membershipId) => ({
+          membershipId,
+          team: 'WHITE' as const,
+          position: 'DEFENDER' as const,
+          isReserve: false,
+        })),
+      };
+      // 5 goleadas da dupla (as mais antigas) e depois 10 rodadas jogadas sem placar
+      for (let i = 0; i < 5; i += 1) {
+        await t.prisma.round.create({
+          data: {
+            groupId: s.group.id,
+            scheduledAt: day(100 + i),
+            status: 'CLOSED',
+            whiteGoals: 4,
+            blackGoals: 0,
+            teamPlayers,
+          },
+        });
+      }
+      for (let i = 0; i < 10; i += 1) {
+        await t.prisma.round.create({
+          data: { groupId: s.group.id, scheduledAt: day(10 + i), status: 'CLOSED' },
+        });
+      }
+
+      for (let i = 0; i < 15; i += 1) {
+        const { teams } = (await suggest(s, s.adminUser.id).expect(200)).body as {
+          teams: SaveLineupInput;
+        };
+        const together = (['WHITE', 'BLACK'] as const).some((team) => {
+          const ids = teams[team].starters.map((x) => x.membershipId);
+          return pair.every((id) => ids.includes(id));
+        });
+        expect(together).toBe(false);
+      }
+    });
+
     it('seletor C17: 409 com o código e o texto do shared (13 confirmados, 1 goleiro, 3 goleiros, 19)', async () => {
       const expectError = async (s: Setup, code: keyof typeof BALANCE_TEAMS_ERROR_LABELS) => {
         const res = await suggest(s, s.adminUser.id).expect(409);
