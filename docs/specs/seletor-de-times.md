@@ -234,4 +234,14 @@ Em `packages/domain/src/balance-teams/`:
 - Treinar um modelo? → Ainda não: guardar o script de simulação e um item futuro para calibrar com dados reais.
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**2 voltas. Veredito: APROVADO** (volta 2, 25 out 2026).
+
+| Id | Resultado | Evidência |
+|---|---|---|
+| C1–C12 | OK | Unitários com o id no nome em `balance-teams.test.ts`, `team-balance.test.ts` e `shared/src/lineup.test.ts` (domain 309, shared 2) |
+| C13–C21 | OK | Integração "seletor C13"–"seletor C21" em `lineups.spec.ts` (api 180) e conferidos ao vivo pela API: 200 sem gravar, só confirmados ativos, `avoid` traz outra divisão, os quatro 409 do `balanceTeams` com o texto do shared, 400, 403, 404 |
+| C22–C30 | OK | Playwright a 390px contra a API real: gerar, gaveta, Regerar + Desfazer, card recalculando, "Preto mais forte por 0,6." com ícone, erro com 13 confirmados, publicar, Reduzir movimento, carregando. Console sem erros na tela |
+| F1 (volta 1) | Corrigido | Janela da panelinha contava rodadas sem placar. Corrigido no domain e na API, com testes que reproduzem (C7 e "seletor C16") |
+| Fora da tabela | — | Antes do QA, o card dizia "mais forte por 0,5" com diferença 0,54: o `teamBalance` passou a comparar a diferença arredondada em 1 casa (teste C11) |
+
+Pronto na raiz (`turbo --force`, sem cache): lint, typecheck, test e build verdes. `schema.prisma` intocado.
