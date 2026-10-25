@@ -40,7 +40,6 @@ export const ROUND_TRANSITION_ERRORS = [
   'SCORE_MISSING',
   'INVALID_SCORE',
   'GOALS_MISMATCH',
-  'TOO_MANY_ASSISTS',
   'ATTENDANCE_MISMATCH',
 ] as const;
 
@@ -104,7 +103,6 @@ function validateScoreMatchesEvents(round: RoundState): RoundTransitionError[] {
   const tally = tallyMatchEvents(round.events, teams);
   const errors: RoundTransitionError[] = [];
   if (TEAMS.some((team) => tally.goals[team] !== score[team])) errors.push('GOALS_MISMATCH');
-  if (TEAMS.some((team) => tally.assists[team] > score[team])) errors.push('TOO_MANY_ASSISTS');
   return errors;
 }
 

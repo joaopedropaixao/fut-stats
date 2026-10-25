@@ -81,7 +81,7 @@ export const ROUND_STATUS_LABELS: Readonly<Record<RoundStatus, string>> = {
   SCHEDULED: 'Agendada',
   TEAMS_PUBLISHED: 'Times publicados',
   IN_PROGRESS: 'Em jogo',
-  POST_MATCH: 'Resenha pós-jogo',
+  POST_MATCH: 'Resenha',
   VOTING: 'Votação',
   CLOSED: 'Encerrada',
 };
@@ -152,19 +152,16 @@ export const ROUND_TRANSITION_ERROR_LABELS: Readonly<Record<RoundTransitionError
   SCORE_MISSING: 'Lance o placar antes',
   INVALID_SCORE: 'O placar precisa ser um número inteiro, zero ou mais',
   GOALS_MISMATCH: 'Os gols lançados precisam bater com o placar',
-  TOO_MANY_ASSISTS: 'Tem time com mais assistências que gols',
   ATTENDANCE_MISMATCH:
     'Os times não batem com os confirmados: todo confirmado precisa estar num time',
 };
 
 /** Por que um lance (gol, assistência, gol contra) não pode ser lançado ou apagado. */
 export const MATCH_EVENT_ERROR_LABELS: Readonly<Record<MatchEventError, string>> = {
-  ROUND_NOT_OPEN: 'Só dá para lançar durante o jogo ou na Resenha',
+  ROUND_NOT_OPEN: 'Os lances entram na Resenha, depois do jogo',
   NOT_OWN_EVENT: 'Você só pode lançar os seus próprios lances',
   PLAYER_DID_NOT_PLAY: 'Esse jogador não jogou a rodada',
   GOALS_EXCEED_SCORE: 'Esse gol passa do placar do time',
-  ASSISTS_EXCEED_SCORE: 'Essa assistência passa dos gols do time no placar',
-  ADMIN_ONLY_IN_MATCH: 'Durante o jogo só o admin lança. Seus lances entram na Resenha',
 };
 
 /** Por que o placar não pode ser lançado. */
@@ -172,6 +169,4 @@ export const SCORE_ENTRY_ERROR_LABELS: Readonly<Record<ScoreEntryError, string>>
   ROUND_NOT_OPEN: 'Só dá para lançar o placar durante o jogo ou na Resenha',
   NOT_ADMIN: 'Só o admin lança o placar',
   INVALID_SCORE: 'O placar precisa ser um número inteiro, zero ou mais',
-  SCORE_BELOW_GOALS: 'O placar não pode ser menor que os gols já lançados',
-  SCORE_BELOW_ASSISTS: 'O placar não pode ser menor que as assistências já lançadas',
 };
