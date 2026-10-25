@@ -108,6 +108,15 @@ export async function apiDelete(path: string, { signal }: RequestOptions = {}): 
   await send('DELETE', path, undefined, signal);
 }
 
+/** DELETE em /api{path} que responde 200 com corpo (a visão atualizada), validado como no `apiPost`. */
+export async function apiDeleteJson<S extends z.ZodType>(
+  path: string,
+  schema: S,
+  { signal }: RequestOptions = {},
+): Promise<z.output<S>> {
+  return parse(await send('DELETE', path, undefined, signal), path, schema);
+}
+
 /** O texto de uma falha para mostrar à pessoa: a mensagem da API quando há, senão o `fallback`. */
 export function apiErrorMessage(err: unknown, fallback: string): string {
   return (err instanceof ApiError && err.body?.message) || fallback;
