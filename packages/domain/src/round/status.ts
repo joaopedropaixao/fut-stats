@@ -12,6 +12,7 @@ export const ROUND_STATUSES = [
   'SCHEDULED',
   'TEAMS_PUBLISHED',
   'IN_PROGRESS',
+  'POST_MATCH',
   'VOTING',
   'CLOSED',
 ] as const;
@@ -25,7 +26,8 @@ export type RoundStatus = (typeof ROUND_STATUSES)[number];
 export const ROUND_TRANSITIONS: Readonly<Record<RoundStatus, readonly RoundStatus[]>> = {
   SCHEDULED: ['TEAMS_PUBLISHED'],
   TEAMS_PUBLISHED: ['SCHEDULED', 'IN_PROGRESS'],
-  IN_PROGRESS: ['VOTING'],
+  IN_PROGRESS: ['POST_MATCH'],
+  POST_MATCH: ['VOTING'],
   VOTING: ['CLOSED'],
   CLOSED: [],
 };
@@ -108,8 +110,9 @@ function validateScoreMatchesEvents(round: RoundState): RoundTransitionError[] {
 
 /**
  * Diz por que a rodada não pode ir de `round.status` para `to` (lista vazia = pode).
- * Pré-condições: publicar e começar o jogo exigem times válidos e confirmados = escalados; ir para a votação e encerrar
- * exigem placar lançado e batendo com os gols lançados. O admin pode encerrar a votação a
+ * Pré-condições: publicar e começar o jogo exigem times válidos e confirmados = escalados; ir para a Resenha
+ * (`POST_MATCH`) exige placar lançado e válido; ir para a votação e encerrar exigem placar batendo com os
+ * gols lançados. O admin pode encerrar a votação a
  * qualquer momento: o prazo e o "todos votaram" só dizem quando fechar sozinha (`shouldCloseVoting`).
  */
 export function validateRoundTransition(
@@ -126,6 +129,10 @@ export function validateRoundTransition(
         ...validateRoundTeams(round.teams, options),
         ...validateAttendanceMatch(round.teams, round.confirmedIds),
       ];
+    case 'POST_MATCH':
+      // Finalizar o jogo exige o placar; os gols só precisam bater para abrir a votação.
+      if (!round.score) return ['SCORE_MISSING'];
+      return validateScore(round.score) ? ['INVALID_SCORE'] : [];
     case 'VOTING':
     case 'CLOSED':
       return validateScoreMatchesEvents(round);

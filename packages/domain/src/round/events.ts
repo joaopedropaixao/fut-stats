@@ -22,6 +22,7 @@ export const MATCH_EVENT_ERRORS = [
   'PLAYER_DID_NOT_PLAY',
   'GOALS_EXCEED_SCORE',
   'ASSISTS_EXCEED_SCORE',
+  'ADMIN_ONLY_IN_MATCH',
 ] as const;
 
 export type MatchEventError = (typeof MATCH_EVENT_ERRORS)[number];
@@ -37,16 +38,17 @@ export const SCORE_ENTRY_ERRORS = [
 
 export type ScoreEntryError = (typeof SCORE_ENTRY_ERRORS)[number];
 
-/** Scouts e placar só se lançam e corrigem com o jogo em andamento ou na votação; encerrou, congela. */
+/** Scouts e placar só se lançam e corrigem em jogo ou na Resenha pós-jogo; abriu a votação, congela. */
 export function isMatchOpen(status: RoundStatus): boolean {
-  return status === 'IN_PROGRESS' || status === 'VOTING';
+  return status === 'IN_PROGRESS' || status === 'POST_MATCH';
 }
 
 /**
- * Diz por que o lance não pode ser lançado (lista vazia = pode). Jogador lança só os próprios;
+ * Diz por que o lance não pode ser lançado (lista vazia = pode). Durante o jogo (`IN_PROGRESS`) só o
+ * admin lança (`ADMIN_ONLY_IN_MATCH` para os demais); na Resenha, jogador lança só os próprios;
  * admin, de qualquer um; quem fez o lance tem que ter jogado (titular ou reserva). Com placar
  * lançado, os gols de um time não passam do placar dele, nem as assistências.
- * Fora de `IN_PROGRESS`/`VOTING`, devolve só `ROUND_NOT_OPEN`.
+ * Fora de `IN_PROGRESS`/`POST_MATCH`, devolve só `ROUND_NOT_OPEN`.
  */
 export function validateMatchEvent(
   event: MatchEvent,
@@ -54,6 +56,7 @@ export function validateMatchEvent(
   round: RoundState,
 ): MatchEventError[] {
   if (!isMatchOpen(round.status)) return ['ROUND_NOT_OPEN'];
+  if (round.status === 'IN_PROGRESS' && !actor.isAdmin) return ['ADMIN_ONLY_IN_MATCH'];
 
   const errors: MatchEventError[] = [];
   if (!actor.isAdmin && actor.id !== event.playerId) errors.push('NOT_OWN_EVENT');
@@ -94,13 +97,14 @@ export function validateMatchEventRemoval(
   round: RoundState,
 ): MatchEventError[] {
   if (!isMatchOpen(round.status)) return ['ROUND_NOT_OPEN'];
+  if (round.status === 'IN_PROGRESS' && !actor.isAdmin) return ['ADMIN_ONLY_IN_MATCH'];
   return !actor.isAdmin && actor.id !== event.playerId ? ['NOT_OWN_EVENT'] : [];
 }
 
 /**
  * Diz por que o placar não pode ser lançado ou corrigido (lista vazia = pode). Só admin, com o
- * jogo em andamento ou na votação; o placar não pode ficar abaixo dos gols nem das assistências
- * já lançados de cada time. Fora de `IN_PROGRESS`/`VOTING`, devolve só `ROUND_NOT_OPEN`.
+ * jogo em andamento ou na Resenha; o placar não pode ficar abaixo dos gols nem das assistências
+ * já lançados de cada time. Fora de `IN_PROGRESS`/`POST_MATCH`, devolve só `ROUND_NOT_OPEN`.
  */
 export function validateScoreEntry(
   score: MatchScore,
