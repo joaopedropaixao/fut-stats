@@ -203,6 +203,23 @@
   animation: vs-fade 200ms steps(4, end) both;
 }
 
+/* Bloco "?" dos times: pula e volta em degraus (pixel art anda em degraus), 240 ms. */
+@keyframes block-hop {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@utility animate-block-hop {
+  animation: block-hop 240ms steps(4, end) both;
+}
+
 /* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */
 @media (prefers-reduced-motion: reduce) {
   *,

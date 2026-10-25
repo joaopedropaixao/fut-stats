@@ -1,4 +1,5 @@
 import {
+  draftBalance,
   POSITION_LABELS,
   ROUND_TRANSITION_ERROR_LABELS,
   TEAM_LABELS,
@@ -13,10 +14,13 @@ import { ErrorState } from '../../components/ui/states';
 import { useNotice } from '../../components/ui/use-notice';
 import { apiErrorMessage } from '../../lib/api';
 import { MemberAvatar } from '../rounds/member-avatar';
+import { BalanceCard } from './balance-card';
 import { Bench } from './bench';
 import { FloatingAction, FloatingBar } from './floating-bar';
 import {
   draftFromLineup,
+  draftFromSuggestion,
+  hasAnyone,
   isDirty,
   pushDraft,
   startHistory,
@@ -32,9 +36,10 @@ import {
   type SlotKey,
   type TeamKey,
 } from './lineup-draft';
+import { GenerateBlock } from './generate-block';
 import { LineupStatus } from './lineup-status';
 import { Pitch } from './pitch';
-import { usePublishLineup, useSaveLineup } from './queries';
+import { usePublishLineup, useSaveLineup, useSuggestLineup } from './queries';
 import { Reserves } from './reserves';
 import { TeamSegmented } from './team-segmented';
 
@@ -44,6 +49,7 @@ type LineupBuilderProps = { groupId: string; roundId: string; lineup: Lineup };
 export function LineupBuilder({ groupId, roundId, lineup }: LineupBuilderProps) {
   const save = useSaveLineup(groupId, roundId);
   const publish = usePublishLineup(groupId, roundId);
+  const suggest = useSuggestLineup(groupId, roundId);
   const notice = useNotice();
 
   const [{ draft, past }, setHistory] = useState<DraftHistory>(() =>
@@ -52,6 +58,7 @@ export function LineupBuilder({ groupId, roundId, lineup }: LineupBuilderProps) 
   const [team, setTeam] = useState<TeamKey>('WHITE');
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [confirmingGenerate, setConfirmingGenerate] = useState(false);
   const pitchRef = useRef<HTMLDivElement>(null);
 
   const members = useMemo(() => membersOf(lineup), [lineup]);
@@ -61,6 +68,7 @@ export function LineupBuilder({ groupId, roundId, lineup }: LineupBuilderProps) 
     [members, draft],
   );
 
+  const balance = draftBalance(toSaveInput(draft), [...members.values()]);
   const dirty = isDirty(draft, lineup);
   const picked = pickedId ? members.get(pickedId) : undefined;
   const pickedSpot = pickedId ? locate(draft, pickedId) : null;
@@ -125,6 +133,25 @@ export function LineupBuilder({ groupId, roundId, lineup }: LineupBuilderProps) 
     );
   }
 
+  /** Pede a sugestão (não grava): entra no rascunho como um passo, com Desfazer. */
+  function generate() {
+    setConfirmingGenerate(false);
+    notice.dismiss();
+    suggest.mutate(hasAnyone(draft) ? { avoid: toSaveInput(draft) } : {}, {
+      onSuccess: (suggestion) => {
+        setPickedId(null);
+        setHistory((h) => pushDraft(h, draftFromSuggestion(suggestion)));
+        notice.show({ kind: 'success', title: 'Times gerados', onUndo: undo });
+      },
+      onError: (err) =>
+        notice.show({
+          kind: 'error',
+          title: 'Não gerou',
+          message: apiErrorMessage(err, 'Falha de conexão. Tente de novo.'),
+        }),
+    });
+  }
+
   function saveDraft() {
     notice.dismiss();
     save.mutate(toSaveInput(draft), {
@@ -151,7 +178,15 @@ export function LineupBuilder({ groupId, roundId, lineup }: LineupBuilderProps) 
             notice.dismiss();
           }}
         />
+        <BalanceCard balance={balance} />
         <LineupStatus draft={draft} errors={lineup.errors} dirty={dirty} />
+        {lineup.permissions.edit && (
+          <GenerateBlock
+            regenerate={hasAnyone(draft)}
+            loading={suggest.isPending}
+            onGenerate={() => (hasAnyone(draft) ? setConfirmingGenerate(true) : generate())}
+          />
+        )}
 
         <Pitch
           ref={pitchRef}
@@ -249,6 +284,27 @@ export function LineupBuilder({ groupId, roundId, lineup }: LineupBuilderProps) 
         </FloatingBar>
       )}
       {!picked && notice.node}
+
+      {confirmingGenerate && (
+        <Sheet
+          title="Gerar times novos?"
+          onClose={() => setConfirmingGenerate(false)}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size={52}
+                label="Voltar"
+                className="flex-1"
+                onClick={() => setConfirmingGenerate(false)}
+              />
+              <Button size={52} label="Gerar" className="flex-1" onClick={generate} />
+            </>
+          }
+        >
+          <p>Os times de agora saem do rascunho. Dá para desfazer.</p>
+        </Sheet>
+      )}
 
       {confirming && (
         <Sheet
