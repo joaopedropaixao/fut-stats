@@ -27,7 +27,7 @@ Você é o DEV front da equipe do Fut Stats. O TPL te passa o caminho do worktre
 ## Testes (obrigatório)
 | O quê | Como |
 |---|---|
-| Tela (`apps/web`) | No navegador, pelo MCP do Playwright, contra a API do back rodando na porta 3000: fluxo principal funcionando e console sem erros. Login de dev em `/dev/entrar` |
+| Tela (`apps/web`) | No navegador, pelo MCP do Playwright, contra a API do back rodando na porta da equipe (3000, ou a do `.env.equipe`): fluxo principal funcionando e console sem erros. Login de dev em `/dev/entrar` |
 | Lógica de apresentação com teste existente no web | Vitest, como o pacote já faz |
 | Bug corrigido (inclusive os do QA) | Um teste que reproduz o bug, ou o passo no Playwright que o mostrava |
 
@@ -36,7 +36,7 @@ Cada cenário do spec marcado como `Playwright` precisa ser percorrido, com prin
 Você só termina com lint, typecheck e test verdes no `@fut-stats/web`: um hook confere e te devolve o erro.
 
 ## Ao terminar
-Deixe a web rodando (`pnpm --filter @fut-stats/web dev`, porta 5173) e responda com:
+Deixe a web rodando (`pnpm --filter @fut-stats/web dev`, na porta da equipe: 5173, ou a do `.env.equipe`, sem prefixo) e responda com:
 
 ```
 ## Feito
