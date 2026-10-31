@@ -716,6 +716,147 @@ describe('placar e lances da rodada', () => {
     });
   });
 
+  /**
+   * Várias pessoas escrevendo na mesma rodada ao mesmo tempo (volta 3). Sem a trava por rodada, cada pedido
+   * carrega, valida e grava sozinho e os dois passam. Cada teste repete a corrida: uma passada limpa não prova nada.
+   */
+  describe('concorrência na mesma rodada (C59 a C61)', () => {
+    const RUNS = 20;
+
+    it('C59: dois gols do Branco ao mesmo tempo com o placar no limite: um 200, um 409 GOALS_EXCEED_SCORE', async () => {
+      const c = await setup('POST_MATCH');
+      await setScore(c, 2, 0);
+      const first = c.white[5]!;
+      const second = c.white[6]!;
+      const wins = { first: 0, second: 0 };
+
+      for (let run = 0; run < RUNS; run++) {
+        await t.prisma.matchEvent.deleteMany({ where: { roundId: c.round.id } });
+        await addEvent(c, c.white[4]!.membership.id, 'GOAL');
+
+        const [a, b] = await Promise.all([
+          postEvent(c, first.user.id, first.membership.id, 'GOAL'),
+          postEvent(c, second.user.id, second.membership.id, 'GOAL'),
+        ]);
+
+        expect([a.status, b.status].sort()).toEqual([200, 409]);
+        const loser = a.status === 409 ? a : b;
+        expect(loser.body).toMatchObject(
+          rule('GOALS_EXCEED_SCORE', MATCH_EVENT_ERROR_LABELS.GOALS_EXCEED_SCORE),
+        );
+        expect(await eventCount(c)).toBe(2);
+        if (a.status === 200) wins.first++;
+        else wins.second++;
+      }
+      expect(wins.first + wins.second).toBe(RUNS);
+    });
+
+    it('C60: open-voting e um lance ao mesmo tempo: nunca lance gravado depois do VOTING', async () => {
+      const c = await setup('POST_MATCH');
+      const player = c.white[5]!;
+      const outcomes = { eventFirst: 0, voteFirst: 0 };
+
+      for (let run = 0; run < RUNS; run++) {
+        await t.prisma.matchEvent.deleteMany({ where: { roundId: c.round.id } });
+        await t.prisma.round.update({
+          where: { id: c.round.id },
+          data: { status: 'POST_MATCH', votingOpenedAt: null, whiteGoals: 1, blackGoals: 0 },
+        });
+        await addEvent(c, c.white[4]!.membership.id, 'GOAL');
+
+        const [vote, assist] = await Promise.all([
+          post(c, c.adminUser.id, '/open-voting'),
+          postEvent(c, player.user.id, player.membership.id, 'ASSIST'),
+        ]);
+
+        expect(vote.status).toBe(200);
+        expect(await statusOf(c)).toBe('VOTING');
+        const { votingOpenedAt } = await t.prisma.round.findUniqueOrThrow({
+          where: { id: c.round.id },
+        });
+        const events = await t.prisma.matchEvent.findMany({ where: { roundId: c.round.id } });
+        if (assist.status === 200) {
+          outcomes.eventFirst++;
+          expect(events).toHaveLength(2);
+        } else {
+          outcomes.voteFirst++;
+          expect(assist.status).toBe(409);
+          expect(assist.body).toMatchObject(
+            rule('ROUND_NOT_OPEN', MATCH_EVENT_ERROR_LABELS.ROUND_NOT_OPEN),
+          );
+          expect(events).toHaveLength(1);
+        }
+        // Todo lance existente foi gravado antes de a votação abrir.
+        for (const event of events) {
+          expect(event.createdAt.getTime()).toBeLessThanOrEqual(votingOpenedAt!.getTime());
+        }
+      }
+      expect(outcomes.eventFirst + outcomes.voteFirst).toBe(RUNS);
+    });
+
+    it('C60: open-voting e apagar um gol ao mesmo tempo: a votação nunca abre com gols diferentes do placar', async () => {
+      const c = await setup('POST_MATCH');
+      const scorer = c.white[5]!;
+      const outcomes = { deleteFirst: 0, voteFirst: 0 };
+
+      for (let run = 0; run < RUNS; run++) {
+        await t.prisma.matchEvent.deleteMany({ where: { roundId: c.round.id } });
+        await t.prisma.round.update({
+          where: { id: c.round.id },
+          data: { status: 'POST_MATCH', votingOpenedAt: null, whiteGoals: 1, blackGoals: 0 },
+        });
+        const goal = await addEvent(c, scorer.membership.id, 'GOAL');
+
+        const [vote, removal] = await Promise.all([
+          post(c, c.adminUser.id, '/open-voting'),
+          delEvent(c, scorer.user.id, goal.id),
+        ]);
+
+        const goals = await t.prisma.matchEvent.count({
+          where: { roundId: c.round.id, type: { in: ['GOAL', 'OWN_GOAL'] } },
+        });
+        if (vote.status === 200) {
+          outcomes.voteFirst++;
+          expect(removal.status).toBe(409);
+          expect(removal.body).toMatchObject(
+            rule('ROUND_NOT_OPEN', MATCH_EVENT_ERROR_LABELS.ROUND_NOT_OPEN),
+          );
+          expect(await statusOf(c)).toBe('VOTING');
+          expect(goals).toBe(1);
+        } else {
+          outcomes.deleteFirst++;
+          expect(vote.status).toBe(409);
+          expect(vote.body).toMatchObject(
+            rule('GOALS_MISMATCH', ROUND_TRANSITION_ERROR_LABELS.GOALS_MISMATCH),
+          );
+          expect(removal.status).toBe(200);
+          expect(await statusOf(c)).toBe('POST_MATCH');
+          expect(goals).toBe(0);
+        }
+      }
+      expect(outcomes.deleteFirst + outcomes.voteFirst).toBe(RUNS);
+    });
+
+    it('C61: dois DELETE do mesmo lance ao mesmo tempo: um 200 e um 404, nunca 500', async () => {
+      const c = await setup('POST_MATCH');
+      await setScore(c, 2, 0);
+      const scorer = c.white[5]!;
+
+      for (let run = 0; run < RUNS; run++) {
+        await t.prisma.matchEvent.deleteMany({ where: { roundId: c.round.id } });
+        const goal = await addEvent(c, scorer.membership.id, 'GOAL');
+
+        const [a, b] = await Promise.all([
+          delEvent(c, c.adminUser.id, goal.id),
+          delEvent(c, scorer.user.id, goal.id),
+        ]);
+
+        expect([a.status, b.status].sort()).toEqual([200, 404]);
+        expect(await eventCount(c)).toBe(0);
+      }
+    });
+  });
+
   it('sem login leva 401', async () => {
     const c = await setup();
     await request(server()).get(path(c)).expect(401);
