@@ -389,3 +389,21 @@ lint, typecheck e build verdes.
 
 Pontos menores, sem reprovar: "já vi o resultado" é por rodada no navegador, não por pessoa; o + de Gol com o time
 cheio fica habilitado e avisa ao tocar (o spec aceita).
+
+### QA da volta 3 de robustez (C59–C65)
+**1 verificação, `VEREDITO: APROVADO`** (30 out 2026). Na raiz: domínio 23 arquivos, API 213 de integração, web 166;
+lint, typecheck e build verdes ("dist sem jsxDEV").
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C59 | OK | teste com 20 repetições; curl: 20 rodadas de 3 gols simultâneos e 10 de 8 pedidos (gol e gol contra) sempre com um 200 e o resto 409 `GOALS_EXCEED_SCORE`, nunca acima do placar, nenhum 500 |
+| C60 | OK | dois testes (assistência e apagar gol); curl: 24 rodadas de open-voting com lance/apagar, as duas ordens aparecem e nunca há lance depois do `votingOpenedAt` nem votação com gols ≠ placar |
+| C61 | OK | teste com 20 repetições; curl: 15 rodadas de 4 DELETE simultâneos, sempre `200 404 404 404` |
+| C62 | OK | todas as escritas passam por `withRoundLock` (`$transaction` + `SELECT ... FOR UPDATE` + mesmo `tx`); dois admins abrindo a votação juntos: um 200 e três 409 |
+| C63 | OK | com `NODE_ENV=development` no shell, `index` 573 kB (170 kB gzip) sem `jsxDEV`; forçado sem o script, 857 kB com 965 `jsxDEV` e a checagem sai com 1 |
+| C64 | OK | Resenha a cada 5 s, lance de outra pessoa aparece em 1,8–3,2 s; em jogo 15 s; VOTING/CLOSED e aba escondida sem pedidos; voltar à aba atualiza em 5 ms |
+| C65 | OK | moldura de 3 px nos dois números do EMPATE; YOU WIN/LOSE a 320 e 390 px sem estourar |
+| Regressão | OK | começar → finalizar → Resenha → abrir votação; 401/403/404/409 |
+
+Pontos menores: o aviso do `pg` "client.query() when the client is already executing a query" nos testes (não quebra,
+some no pg@9); `/dev/entrar` não existe no preview de produção (só em dev).
