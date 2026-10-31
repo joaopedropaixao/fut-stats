@@ -7,25 +7,24 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiDeleteJson, apiGet, apiPost, apiPut } from '../../lib/api';
 import { roundKey, roundsKey } from '../rounds/queries';
+import { matchRefreshInterval } from './refresh-interval';
 
 const matchPath = (groupId: string, roundId: string) =>
   `/groups/${groupId}/rounds/${roundId}/match`;
 const matchKey = (groupId: string, roundId: string) =>
   [...roundKey(groupId, roundId), 'match'] as const;
 
-/** De quanto em quanto tempo o jogo se atualiza sozinho para quem acompanha (ms). */
-const LIVE_REFRESH = 15_000;
-
-/** O jogo da rodada. Em jogo e na Resenha, atualiza sozinho: quem acompanha vê os lances dos outros. */
+/**
+ * O jogo da rodada. Em jogo (15 s) e na Resenha (5 s), atualiza sozinho: quem acompanha vê os lances dos outros.
+ * Ao voltar para a aba, também atualiza na hora.
+ */
 export function useMatch(groupId: string, roundId: string | undefined) {
   return useQuery({
     queryKey: matchKey(groupId, roundId ?? ''),
     queryFn: ({ signal }) => apiGet(matchPath(groupId, roundId ?? ''), matchViewSchema, { signal }),
     enabled: roundId !== undefined,
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return status === 'IN_PROGRESS' || status === 'POST_MATCH' ? LIVE_REFRESH : false;
-    },
+    refetchInterval: (query) => matchRefreshInterval(query.state.data?.status),
+    refetchOnWindowFocus: true,
   });
 }
 

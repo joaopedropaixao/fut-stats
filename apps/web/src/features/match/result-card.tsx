@@ -286,7 +286,7 @@ function ScoreSide({
         'flex w-[46%] flex-col gap-1.5 px-3 pt-3 pb-2',
         white
           ? 'items-start bg-team-white text-team-black shadow-[inset_0_0_0_3px_#000]'
-          : 'items-end bg-team-black text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)]',
+          : 'items-end bg-team-black text-team-white shadow-[inset_0_0_0_3px_#fff]',
       )}
     >
       <span
