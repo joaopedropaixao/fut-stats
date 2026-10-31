@@ -32,6 +32,7 @@ import {
 } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
 import type { Position } from '../generated/prisma/enums';
+import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Erros de quem pode (dono do lance, admin) saem como 403; o resto (momento, números) como 409. */
@@ -52,6 +53,9 @@ function assertAdmin(membership: GroupMembership): void {
 function toActor(membership: GroupMembership): RoundActor {
   return { id: membership.id, isAdmin: membership.role === 'ADMIN' };
 }
+
+/** Client do Prisma dentro da transação da rodada (o `tx` do `$transaction` interativo). */
+type Tx = Prisma.TransactionClient;
 
 function transitionError(code: keyof typeof ROUND_TRANSITION_ERROR_LABELS) {
   return ruleError(code, ROUND_TRANSITION_ERROR_LABELS[code]);
@@ -86,7 +90,7 @@ export class MatchService {
 
   /** O jogo da rodada: placar, quem jogou, lances, o que quem pede pode fazer e o que trava o próximo passo. */
   async view(membership: GroupMembership, roundId: string): Promise<MatchView> {
-    const { state, ...data } = await this.load(membership.groupId, roundId);
+    const { state, ...data } = await this.load(this.prisma, membership.groupId, roundId);
     const actor = toActor(membership);
     const { status, teams } = state;
 
@@ -158,11 +162,13 @@ export class MatchService {
   /** TEAMS_PUBLISHED → IN_PROGRESS, só com times válidos e confirmados = escalados. */
   async start(membership: GroupMembership, roundId: string): Promise<MatchView> {
     assertAdmin(membership);
-    const { state } = await this.load(membership.groupId, roundId);
-    const [error] = validateRoundTransition(state, 'IN_PROGRESS');
-    if (error) throw transitionError(error);
+    await this.withRoundLock(membership.groupId, roundId, async (tx) => {
+      const { state } = await this.load(tx, membership.groupId, roundId);
+      const [error] = validateRoundTransition(state, 'IN_PROGRESS');
+      if (error) throw transitionError(error);
 
-    await this.moveStatus(roundId, 'TEAMS_PUBLISHED', { status: 'IN_PROGRESS' });
+      await this.moveStatus(tx, roundId, 'TEAMS_PUBLISHED', { status: 'IN_PROGRESS' });
+    });
     return this.view(membership, roundId);
   }
 
@@ -173,15 +179,16 @@ export class MatchService {
   ): Promise<MatchView> {
     // Quem não é admin leva NOT_ADMIN em qualquer etapa (o domain só o devolve com o placar aberto).
     assertAdmin(membership);
-    const { state } = await this.load(membership.groupId, roundId);
     const score: MatchScore = { WHITE: input.WHITE, BLACK: input.BLACK };
-    const actor = toActor(membership);
-    const [error] = validateScoreEntry(score, actor, state);
-    if (error) throw ruleError(error, SCORE_ENTRY_ERROR_LABELS[error]);
+    await this.withRoundLock(membership.groupId, roundId, async (tx) => {
+      const { state } = await this.load(tx, membership.groupId, roundId);
+      const [error] = validateScoreEntry(score, toActor(membership), state);
+      if (error) throw ruleError(error, SCORE_ENTRY_ERROR_LABELS[error]);
 
-    await this.prisma.round.update({
-      where: { id: roundId },
-      data: { whiteGoals: score.WHITE, blackGoals: score.BLACK },
+      await tx.round.update({
+        where: { id: roundId },
+        data: { whiteGoals: score.WHITE, blackGoals: score.BLACK },
+      });
     });
     return this.view(membership, roundId);
   }
@@ -193,22 +200,24 @@ export class MatchService {
     input: SetMatchScoreInput,
   ): Promise<MatchView> {
     assertAdmin(membership);
-    const { state } = await this.load(membership.groupId, roundId);
     const score: MatchScore = { WHITE: input.WHITE, BLACK: input.BLACK };
-    const withScore = { ...state, score };
+    await this.withRoundLock(membership.groupId, roundId, async (tx) => {
+      const { state } = await this.load(tx, membership.groupId, roundId);
+      const withScore = { ...state, score };
 
-    // A etapa errada vem primeiro: `finish` fora de IN_PROGRESS é transição inválida, não placar.
-    const transition = validateRoundTransition(withScore, 'POST_MATCH');
-    if (transition.includes('INVALID_TRANSITION')) throw transitionError('INVALID_TRANSITION');
-    const [scoreError] = validateScoreEntry(score, toActor(membership), state);
-    if (scoreError) throw ruleError(scoreError, SCORE_ENTRY_ERROR_LABELS[scoreError]);
-    const [error] = transition;
-    if (error) throw transitionError(error);
+      // A etapa errada vem primeiro: `finish` fora de IN_PROGRESS é transição inválida, não placar.
+      const transition = validateRoundTransition(withScore, 'POST_MATCH');
+      if (transition.includes('INVALID_TRANSITION')) throw transitionError('INVALID_TRANSITION');
+      const [scoreError] = validateScoreEntry(score, toActor(membership), state);
+      if (scoreError) throw ruleError(scoreError, SCORE_ENTRY_ERROR_LABELS[scoreError]);
+      const [error] = transition;
+      if (error) throw transitionError(error);
 
-    await this.moveStatus(roundId, 'IN_PROGRESS', {
-      status: 'POST_MATCH',
-      whiteGoals: score.WHITE,
-      blackGoals: score.BLACK,
+      await this.moveStatus(tx, roundId, 'IN_PROGRESS', {
+        status: 'POST_MATCH',
+        whiteGoals: score.WHITE,
+        blackGoals: score.BLACK,
+      });
     });
     return this.view(membership, roundId);
   }
@@ -216,11 +225,16 @@ export class MatchService {
   /** POST_MATCH → VOTING, com gols = placar. Grava quando a votação abriu; placar e lances congelam. */
   async openVoting(membership: GroupMembership, roundId: string): Promise<MatchView> {
     assertAdmin(membership);
-    const { state } = await this.load(membership.groupId, roundId);
-    const [error] = validateRoundTransition(state, 'VOTING');
-    if (error) throw transitionError(error);
+    await this.withRoundLock(membership.groupId, roundId, async (tx) => {
+      const { state } = await this.load(tx, membership.groupId, roundId);
+      const [error] = validateRoundTransition(state, 'VOTING');
+      if (error) throw transitionError(error);
 
-    await this.moveStatus(roundId, 'POST_MATCH', { status: 'VOTING', votingOpenedAt: new Date() });
+      await this.moveStatus(tx, roundId, 'POST_MATCH', {
+        status: 'VOTING',
+        votingOpenedAt: new Date(),
+      });
+    });
     return this.view(membership, roundId);
   }
 
@@ -230,23 +244,25 @@ export class MatchService {
     roundId: string,
     input: LaunchMatchEventInput,
   ): Promise<MatchView> {
-    const { state } = await this.load(membership.groupId, roundId);
-    const errors = validateMatchEvent(
-      { playerId: input.membershipId, type: input.type },
-      toActor(membership),
-      state,
-    );
-    // Falta de permissão ganha de número: quem não pode lançar nem chega a saber do placar.
-    const error = errors.find((code) => FORBIDDEN_CODES.has(code)) ?? errors[0];
-    if (error) throw ruleError(error, MATCH_EVENT_ERROR_LABELS[error]);
+    await this.withRoundLock(membership.groupId, roundId, async (tx) => {
+      const { state } = await this.load(tx, membership.groupId, roundId);
+      const errors = validateMatchEvent(
+        { playerId: input.membershipId, type: input.type },
+        toActor(membership),
+        state,
+      );
+      // Falta de permissão ganha de número: quem não pode lançar nem chega a saber do placar.
+      const error = errors.find((code) => FORBIDDEN_CODES.has(code)) ?? errors[0];
+      if (error) throw ruleError(error, MATCH_EVENT_ERROR_LABELS[error]);
 
-    await this.prisma.matchEvent.create({
-      data: {
-        roundId,
-        membershipId: input.membershipId,
-        type: input.type,
-        createdById: membership.id,
-      },
+      await tx.matchEvent.create({
+        data: {
+          roundId,
+          membershipId: input.membershipId,
+          type: input.type,
+          createdById: membership.id,
+        },
+      });
     });
     return this.view(membership, roundId);
   }
@@ -256,26 +272,50 @@ export class MatchService {
     roundId: string,
     eventId: string,
   ): Promise<MatchView> {
-    const { state } = await this.load(membership.groupId, roundId);
-    const event = await this.prisma.matchEvent.findFirst({
-      where: { id: eventId, roundId },
-      select: { id: true, membershipId: true, type: true },
+    await this.withRoundLock(membership.groupId, roundId, async (tx) => {
+      const { state } = await this.load(tx, membership.groupId, roundId);
+      const event = await tx.matchEvent.findFirst({
+        where: { id: eventId, roundId },
+        select: { id: true, membershipId: true, type: true },
+      });
+      if (!event) throw new NotFoundException();
+
+      const [error] = validateMatchEventRemoval(
+        { playerId: event.membershipId, type: event.type },
+        toActor(membership),
+        state,
+      );
+      if (error) throw ruleError(error, MATCH_EVENT_ERROR_LABELS[error]);
+
+      // `deleteMany` não estoura se o lance sumiu no meio do caminho: 0 apagados = 404, nunca 500.
+      const { count } = await tx.matchEvent.deleteMany({ where: { id: event.id, roundId } });
+      if (count !== 1) throw new NotFoundException();
     });
-    if (!event) throw new NotFoundException();
-
-    const [error] = validateMatchEventRemoval(
-      { playerId: event.membershipId, type: event.type },
-      toActor(membership),
-      state,
-    );
-    if (error) throw ruleError(error, MATCH_EVENT_ERROR_LABELS[error]);
-
-    await this.prisma.matchEvent.delete({ where: { id: event.id } });
     return this.view(membership, roundId);
+  }
+
+  /**
+   * Toda escrita da rodada roda aqui: uma transação que começa travando a linha da rodada (`FOR UPDATE`).
+   * Quem chega depois espera o commit de quem travou e só então carrega, valida e grava, então a validação
+   * sempre vê o que o pedido anterior gravou (placar no limite, etapa, lance já apagado). Rodada de outro grupo
+   * ou inexistente não trava nada e leva 404. A resposta (`view`) é montada depois do commit.
+   */
+  private withRoundLock<T>(
+    groupId: string,
+    roundId: string,
+    work: (tx: Tx) => Promise<T>,
+  ): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ locked: number }[]>`
+        SELECT 1 AS locked FROM "Round" WHERE id = ${roundId} AND "groupId" = ${groupId} FOR UPDATE`;
+      if (locked.length === 0) throw new NotFoundException();
+      return work(tx);
+    });
   }
 
   /** Muda a etapa só se ninguém mudou antes (dois admins ao mesmo tempo: o segundo leva 409). */
   private async moveStatus(
+    tx: Tx,
     roundId: string,
     from: RoundStatus,
     data: {
@@ -285,7 +325,7 @@ export class MatchService {
       votingOpenedAt?: Date;
     },
   ): Promise<void> {
-    const { count } = await this.prisma.round.updateMany({
+    const { count } = await tx.round.updateMany({
       where: { id: roundId, status: from },
       data,
     });
@@ -293,8 +333,8 @@ export class MatchService {
   }
 
   /** A rodada do grupo da rota (senão 404) no formato do domain, mais o que a tela mostra. */
-  private async load(groupId: string, roundId: string) {
-    const round = await this.prisma.round.findFirst({
+  private async load(db: Tx, groupId: string, roundId: string) {
+    const round = await db.round.findFirst({
       where: { id: roundId, groupId },
       select: {
         number: true,
@@ -328,7 +368,7 @@ export class MatchService {
     if (!round) throw new NotFoundException();
 
     // Quem confirmou presença e segue ativo: publicar e começar exigem que sejam os escalados.
-    const confirmed = await this.prisma.membership.findMany({
+    const confirmed = await db.membership.findMany({
       where: { groupId, active: true, attendances: { some: { roundId, confirmed: true } } },
       select: { id: true },
     });

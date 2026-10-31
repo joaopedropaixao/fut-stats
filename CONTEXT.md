@@ -381,7 +381,12 @@ Lances: `POST /events` e `DELETE /events/:eventId`, de qualquer membro conforme 
 rodada, lance ou grupo que não é do usuário → 404. `start`, `finish`, `open-voting` e `score` conferem o admin no
 service (não no guard): jogador comum leva 403 `{ code: 'NOT_ADMIN', message }`; quem não é do grupo, 404.
 `permissions.launchAny` = admin e `POST_MATCH`; `launchOwn` = jogou e `POST_MATCH`; `setScore` = admin e
-`IN_PROGRESS`/`POST_MATCH`. Seed: cenários `em-jogo` (placar nulo, sem lances) e `resenha` (placar 3x2, parte dos lances).
+`IN_PROGRESS`/`POST_MATCH`. **Trava por rodada:** toda escrita (`start`, `score`, `finish`, `open-voting`, lançar e apagar
+lance) roda numa `prisma.$transaction` que começa com `SELECT 1 FROM "Round" WHERE id = $1 AND "groupId" = $2 FOR UPDATE`;
+carregar, validar e gravar usam o mesmo `tx`. Dois pedidos na mesma rodada viram fila (o segundo valida em cima do que o
+primeiro gravou): dois gols no limite do placar dão um 200 e um 409 `GOALS_EXCEED_SCORE`, lance e `open-voting` juntos
+nunca gravam lance depois do `VOTING`, e dois `DELETE` do mesmo lance dão 200 e 404 (nunca 500). Rodadas diferentes não
+esperam uma pela outra. Seed: cenários `em-jogo` (placar nulo, sem lances) e `resenha` (placar 3x2, parte dos lances).
 
 ### Presença: `validateAttendanceChange` 🚧
 **O que é:** quem pode marcar Vou / Não vou numa rodada e até quando (`src/round/attendance.ts`). Regras decididas
