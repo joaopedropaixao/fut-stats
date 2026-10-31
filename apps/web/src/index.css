@@ -203,6 +203,191 @@
   animation: vs-fade 200ms steps(4, end) both;
 }
 
+/*
+ * Card de grande momento (placar, resultado, "Em jogo", "Hora da Resenha"): contorno de 3px e sombra dura.
+ * É a "borda" que o dono pediu; a sombra vira cinza no tema Noite, pelo --color-shadow.
+ */
+@utility moment-frame {
+  border: 3px solid var(--color-border-strong);
+  box-shadow: 4px 4px 0 var(--color-shadow);
+}
+
+/* Entrada do card em degraus (320 ms): sobe e assenta. `--moment-delay` escalona as peças. */
+@keyframes moment-in {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@utility animate-moment-in {
+  animation: moment-in 320ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* O dígito que mudou bate: chega grande e assenta em 3 degraus (220 ms) */
+@keyframes digit-bump {
+  0% {
+    transform: scale(var(--bump-scale, 1.4));
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@utility animate-digit-bump {
+  display: inline-flex;
+  transform-origin: var(--bump-origin, 50% 100%);
+  animation: digit-bump 220ms steps(3, end) var(--moment-delay, 0ms) both;
+}
+
+/* Linha de lista que entra: desliza da esquerda em degraus */
+@keyframes row-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-row-in {
+  animation: row-in 200ms steps(3, end) var(--moment-delay, 0ms) both;
+}
+
+/* Gaveta: abre em 180 ms e fecha em 100 ms (o dono achou a descida demorada) */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scrim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@utility animate-sheet-up {
+  animation: sheet-up 180ms var(--ease-out) both;
+}
+
+@utility animate-sheet-down {
+  animation: sheet-down 100ms ease-in both;
+}
+
+@utility animate-scrim-in {
+  animation: scrim-in 180ms linear both;
+}
+
+@utility animate-scrim-out {
+  animation: scrim-out 100ms linear both;
+}
+
+/* Menu pequeno (os três pontos da linha do jogador) */
+@keyframes menu-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-menu-in {
+  animation: menu-in 150ms steps(3, end) both;
+}
+
+/* Bolinha de "ao vivo": pisca em dois degraus */
+@keyframes live-blink {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+@utility animate-live-blink {
+  animation: live-blink 900ms steps(1, end) infinite alternate;
+}
+
+/* Confete pixel do YOU WIN: cai em degraus (1,4 s) e some no chão do card */
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, -24px);
+  }
+  1% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 0px), 250px);
+  }
+}
+
+@utility animate-confetti-fall {
+  animation: confetti-fall var(--dur, 1400ms) steps(10, end) var(--moment-delay, 0ms) both;
+}
+
+/* Estrelas pixel: piscam encolhendo e voltando, em dois degraus */
+@keyframes star-twinkle {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.65);
+  }
+}
+
+@utility animate-star-twinkle {
+  animation: star-twinkle 700ms steps(1, end) var(--moment-delay, 0ms) infinite alternate;
+}
+
 /* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -214,11 +399,19 @@
   }
 }
 
-/* O fade do quadro final é a exceção: reduzir movimento troca os degraus por um fade suave de 200 ms */
+/* O fade do quadro final é a exceção: reduzir movimento troca os degraus por um fade suave de 200 ms.
+   A entrada dos cards de grande momento também vira só um fade; o confete e as estrelas ficam parados. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-vs-fade {
+  .animate-vs-fade,
+  .animate-moment-in {
+    animation-name: vs-fade;
     animation-duration: 200ms !important;
     animation-timing-function: linear !important;
+    animation-delay: 0ms !important;
+  }
+
+  .animate-confetti-fall {
+    display: none;
   }
 }
 

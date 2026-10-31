@@ -6,6 +6,7 @@ import { DevModule } from './dev/dev.module';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
 import { LineupsModule } from './lineups/lineups.module';
+import { MatchModule } from './match/match.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RoundsModule } from './rounds/rounds.module';
 
@@ -19,6 +20,7 @@ import { RoundsModule } from './rounds/rounds.module';
     HealthModule,
     RoundsModule,
     LineupsModule,
+    MatchModule,
     DevModule.forEnvironment(),
   ],
 })

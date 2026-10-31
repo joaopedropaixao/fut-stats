@@ -2,16 +2,19 @@ import {
   MATCH_EVENT_TYPES,
   POSITIONS,
   ROLES,
+  ROUND_STATUSES,
   TEAMS,
   type MatchEventType,
   type Position,
   type Role,
+  type RoundStatus,
   type Team,
 } from '@fut-stats/domain';
 import {
   MatchEventType as DbMatchEventType,
   Position as DbPosition,
   Role as DbRole,
+  RoundStatus as DbRoundStatus,
   Team as DbTeam,
 } from '../generated/prisma/enums';
 
@@ -22,6 +25,7 @@ type Equals<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 const positionTypesMatch: Equals<DbPosition, Position> = true;
 const teamTypesMatch: Equals<DbTeam, Team> = true;
 const roleTypesMatch: Equals<DbRole, Role> = true;
+const roundStatusTypesMatch: Equals<DbRoundStatus, RoundStatus> = true;
 const matchEventTypesMatch: Equals<DbMatchEventType, MatchEventType> = true;
 
 describe('enums do banco x domain', () => {
@@ -43,5 +47,10 @@ describe('enums do banco x domain', () => {
   it('MatchEventType tem os mesmos valores, na mesma ordem', () => {
     expect(matchEventTypesMatch).toBe(true);
     expect(Object.values(DbMatchEventType)).toEqual([...MATCH_EVENT_TYPES]);
+  });
+
+  it('RoundStatus tem os mesmos valores, na mesma ordem', () => {
+    expect(roundStatusTypesMatch).toBe(true);
+    expect(Object.values(DbRoundStatus)).toEqual([...ROUND_STATUSES]);
   });
 });

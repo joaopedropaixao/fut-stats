@@ -74,6 +74,15 @@ describe('validateRoundTransition', () => {
     ]);
   });
 
+  it('C3: do jogo não pula a Resenha para a votação', () => {
+    expect(validateRoundTransition(round({ status: 'IN_PROGRESS' }), 'VOTING')).toEqual([
+      'INVALID_TRANSITION',
+    ]);
+    expect(validateRoundTransition(round({ status: 'POST_MATCH' }), 'IN_PROGRESS')).toEqual([
+      'INVALID_TRANSITION',
+    ]);
+  });
+
   it('só despublicar os times volta etapa', () => {
     expect(validateRoundTransition(round({ status: 'TEAMS_PUBLISHED' }), 'SCHEDULED')).toEqual([]);
     expect(validateRoundTransition(round({ status: 'IN_PROGRESS' }), 'TEAMS_PUBLISHED')).toEqual([
@@ -135,7 +144,7 @@ describe('validateRoundTransition', () => {
         validateRoundTransition(round({ status: 'VOTING', confirmedIds, score }), 'CLOSED'),
       ).not.toContain('ATTENDANCE_MISMATCH');
       expect(
-        validateRoundTransition(round({ status: 'IN_PROGRESS', confirmedIds, score }), 'VOTING'),
+        validateRoundTransition(round({ status: 'POST_MATCH', confirmedIds, score }), 'VOTING'),
       ).not.toContain('ATTENDANCE_MISMATCH');
       expect(
         validateRoundTransition(round({ status: 'TEAMS_PUBLISHED', confirmedIds }), 'SCHEDULED'),
@@ -159,9 +168,9 @@ describe('validateRoundTransition', () => {
     ).toEqual(['INVALID_LINEUP', 'ATTENDANCE_MISMATCH']);
   });
 
-  describe('ir para a votação e encerrar exigem placar batendo com os gols', () => {
+  describe('C4/C5: ir para a votação e encerrar exigem placar batendo com os gols', () => {
     for (const [from, to] of [
-      ['IN_PROGRESS', 'VOTING'],
+      ['POST_MATCH', 'VOTING'],
       ['VOTING', 'CLOSED'],
     ] as const) {
       it(`${from} → ${to}`, () => {
@@ -188,7 +197,7 @@ describe('validateRoundTransition', () => {
 
     it('sem times montados não vai para a votação nem encerra', () => {
       for (const [status, to] of [
-        ['IN_PROGRESS', 'VOTING'],
+        ['POST_MATCH', 'VOTING'],
         ['VOTING', 'CLOSED'],
       ] as const) {
         expect(
@@ -201,9 +210,12 @@ describe('validateRoundTransition', () => {
     });
 
     it('0 x 0 sem lances bate', () => {
-      expect(validateRoundTransition(round({ score: { WHITE: 0, BLACK: 0 } }), 'VOTING')).toEqual(
-        [],
-      );
+      expect(
+        validateRoundTransition(
+          round({ status: 'POST_MATCH', score: { WHITE: 0, BLACK: 0 } }),
+          'VOTING',
+        ),
+      ).toEqual([]);
     });
 
     it('gol contra conta para o adversário', () => {
@@ -212,27 +224,62 @@ describe('validateRoundTransition', () => {
         { playerId: 'b2', type: 'OWN_GOAL' },
       ];
       expect(
-        validateRoundTransition(round({ score: { WHITE: 2, BLACK: 0 }, events }), 'VOTING'),
+        validateRoundTransition(
+          round({ status: 'POST_MATCH', score: { WHITE: 2, BLACK: 0 }, events }),
+          'VOTING',
+        ),
       ).toEqual([]);
     });
 
-    it('mais assistências que gols do time', () => {
+    it('C46: assistência é solta, não trava a votação (3 assistências com 1 gol)', () => {
       const events: MatchEvent[] = [
         ...goals(1, 0),
         { playerId: 'w6', type: 'ASSIST' },
-        { playerId: 'w5', type: 'ASSIST' },
+        { playerId: 'w6', type: 'ASSIST' },
+        { playerId: 'w6', type: 'ASSIST' },
       ];
       expect(
-        validateRoundTransition(round({ score: { WHITE: 1, BLACK: 0 }, events }), 'VOTING'),
-      ).toEqual(['TOO_MANY_ASSISTS']);
+        validateRoundTransition(
+          round({ status: 'POST_MATCH', score: { WHITE: 1, BLACK: 0 }, events }),
+          'VOTING',
+        ),
+      ).toEqual([]);
     });
+
+    it('C45: placar baixado abaixo dos gols lançados acusa GOALS_MISMATCH', () => {
+      expect(
+        validateRoundTransition(
+          round({ status: 'POST_MATCH', score: { WHITE: 0, BLACK: 0 }, events: goals(1, 0) }),
+          'VOTING',
+        ),
+      ).toEqual(['GOALS_MISMATCH']);
+    });
+  });
+});
+
+describe('ir para a Resenha pós-jogo', () => {
+  const finish = (o: Parameters<typeof round>[0]) =>
+    validateRoundTransition(round({ status: 'IN_PROGRESS', ...o }), 'POST_MATCH');
+
+  it('C1: sem placar lançado, SCORE_MISSING', () => {
+    expect(finish({ score: null })).toEqual(['SCORE_MISSING']);
+  });
+
+  it('placar inválido, INVALID_SCORE', () => {
+    expect(finish({ score: { WHITE: -1, BLACK: 0 } })).toEqual(['INVALID_SCORE']);
+    expect(finish({ score: { WHITE: 1.5, BLACK: 0 } })).toEqual(['INVALID_SCORE']);
+  });
+
+  it('C2: placar 3x2 com 1 gol lançado passa; os gols não precisam bater ainda', () => {
+    expect(finish({ score: { WHITE: 3, BLACK: 2 }, events: goals(1, 0) })).toEqual([]);
+    expect(finish({ score: { WHITE: 0, BLACK: 0 } })).toEqual([]);
   });
 });
 
 describe('canTransitionRound', () => {
   it('é a versão sim/não de validateRoundTransition', () => {
     expect(canTransitionRound(round({ status: 'SCHEDULED' }), 'TEAMS_PUBLISHED')).toBe(true);
-    expect(canTransitionRound(round({ status: 'IN_PROGRESS' }), 'VOTING')).toBe(false);
+    expect(canTransitionRound(round({ status: 'IN_PROGRESS' }), 'POST_MATCH')).toBe(false);
   });
 });
 

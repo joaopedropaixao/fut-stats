@@ -3,6 +3,7 @@ import { Badge } from '../../components/ui/badge';
 import { Icon } from '../../components/ui/icons';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
+import { formatRoundWhen } from '../../lib/round-format';
 import { cn } from '../../lib/cn';
 import { formatRating } from '../../lib/rating-format';
 import { useCurrentGroup } from '../../features/group/use-current-group';
@@ -11,9 +12,11 @@ import { useRound, useRounds } from '../../features/rounds/queries';
 import { RoundWhen } from '../../features/rounds/round-when';
 import { RouteButton } from '../../features/rounds/route-button';
 import { usePresence } from '../../features/rounds/use-presence';
+import { GameCard } from '../../features/match/game-card';
+import { useMatch } from '../../features/match/queries';
 import { MemberAvatar } from '../../features/rounds/member-avatar';
 import { PresenceTally } from '../../features/rounds/presence-tally';
-import { POSITION_LABELS, type RoundDetail } from '@fut-stats/shared';
+import { POSITION_LABELS, type MatchView, type RoundDetail } from '@fut-stats/shared';
 
 /** Início (aba Feed, versão Fase 1): a próxima rodada e a presença. Sem grupo, o shell manda para /comecar. */
 export function HomePage() {
@@ -27,30 +30,66 @@ function Home({ groupId, isAdmin }: { groupId: string; isAdmin: boolean }) {
   // A rodada da vez vem da API (pickCurrentRound): em jogo, senão a próxima
   const all = rounds.data ? [...rounds.data.upcoming, ...rounds.data.past] : [];
   const current = all.find((r) => r.id === rounds.data?.currentId) ?? null;
-  const nextId = current?.id;
+  const inMatch = current?.status === 'IN_PROGRESS' || current?.status === 'POST_MATCH';
+  // Em jogo ou na Resenha o início mostra o card do jogo; a presença já travou
+  const nextId = inMatch ? undefined : current?.id;
   const next = useRound(groupId, nextId);
+  const match = useMatch(groupId, inMatch ? current?.id : undefined);
 
   return (
     <>
       <title>Início · Fut Stats</title>
       <PixelText as="h1" size={24} wrap className="outline-none">
-        {current?.status === 'IN_PROGRESS' ? 'Em jogo' : 'Próxima rodada'}
+        {current?.status === 'POST_MATCH'
+          ? 'Hora da Resenha'
+          : current?.status === 'IN_PROGRESS'
+            ? 'Em jogo'
+            : 'Próxima rodada'}
       </PixelText>
-      {rounds.isError || next.isError ? (
+      {rounds.isError || next.isError || match.isError ? (
         <ErrorState
           title="Não deu para carregar a rodada"
           message="Confira a internet e tente de novo."
-          onRetry={() => void (rounds.isError ? rounds.refetch() : next.refetch())}
-          retrying={rounds.isFetching || next.isFetching}
+          onRetry={() => void (rounds.isError ? rounds : next.isError ? next : match).refetch()}
+          retrying={rounds.isFetching || next.isFetching || match.isFetching}
         />
-      ) : rounds.isPending || (nextId !== undefined && !next.data) ? (
+      ) : rounds.isPending || (nextId !== undefined && !next.data) || (inMatch && !match.data) ? (
         <SkeletonList rows={3} label="Carregando a rodada" />
+      ) : match.data ? (
+        <MatchHome view={match.data} isAdmin={isAdmin} />
       ) : next.data ? (
         <NextRound groupId={groupId} round={next.data} isAdmin={isAdmin} />
       ) : (
         <Empty isAdmin={isAdmin} />
       )}
     </>
+  );
+}
+
+/** Rodada em jogo ou na Resenha: o card do jogo no lugar da presença, e os atalhos de sempre. */
+function MatchHome({ view, isAdmin }: { view: MatchView; isAdmin: boolean }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <PixelText className="text-gold">{`Rodada ${view.number}`}</PixelText>
+          <PixelText wrap className="text-text-muted">
+            {formatRoundWhen(view.scheduledAt)}
+          </PixelText>
+        </div>
+        <GameCard view={view} />
+      </div>
+      <div className="flex flex-col gap-3">
+        <RouteButton
+          to={`/rodadas/${view.roundId}`}
+          label={isAdmin ? 'Administrar rodada' : 'Ver rodada'}
+          variant="outline"
+          size={48}
+          block
+        />
+        <RouteButton to="/rodadas" label="Todas as rodadas" variant="outline" size={48} block />
+      </div>
+    </div>
   );
 }
 

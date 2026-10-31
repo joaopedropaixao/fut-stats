@@ -266,5 +266,11 @@ export const CURRENT_ROUND: AttendancePlan = {
   noAnswer: ['Igão', 'Thiaguinho'],
 };
 
-/** Lances já lançados no cenário `em-jogo` (o placar ainda não foi lançado). */
-export const IN_PROGRESS_GOALS: MatchScore = { WHITE: 2, BLACK: 1 };
+/** Cenário `resenha`: placar final já lançado e, dos lances, só parte (faltam gols e assistências). */
+export const RESENHA_SCORE: MatchScore = { WHITE: 3, BLACK: 2 };
+
+/** Gols lançados na `resenha` (um deles é gol contra do Preto, que conta para o Branco). */
+export const RESENHA_GOALS: MatchScore = { WHITE: 2, BLACK: 1 };
+
+/** Gols contra entre os lançados da `resenha`, por time que ganhou o gol. */
+export const RESENHA_OWN_GOALS_FOR: Partial<Record<'WHITE' | 'BLACK', number>> = { WHITE: 1 };

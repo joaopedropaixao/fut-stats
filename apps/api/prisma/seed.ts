@@ -1,9 +1,10 @@
 // Dados fictícios para desenvolvimento: o grupo "Pelada de Quinta" (convite `convite-dev`) com 18 jogadores
 // de linha (2 deles admins) e 3 goleiros, 8 rodadas encerradas (uma por semana, até a semana passada, com
-// times, placar e lances) e a rodada atual no estado do cenário:
+// times, placar, lances e a data em que a votação abriu) e a rodada atual no estado do cenário:
 //   agendada (padrão)  confirmados, recusas e quem não respondeu
 //   times              times publicados
-//   em-jogo            jogo rolando, com alguns lances lançados e sem placar
+//   em-jogo            jogo rolando, sem placar e sem lances (os lances entram na Resenha)
+//   resenha            Resenha: placar final lançado e só parte dos lances (faltam gols)
 // Rodar: pnpm --filter @fut-stats/api db:seed -- --cenario=em-jogo   (sem --cenario: agendada)
 // Pode rodar de novo: atualiza os membros e recria só as rodadas desse grupo. A lógica fica em src/seed.
 import { PrismaPg } from '@prisma/adapter-pg';
