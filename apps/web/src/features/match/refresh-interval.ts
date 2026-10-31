@@ -1,4 +1,6 @@
-import type { RoundStatus } from '@fut-stats/shared';
+import type { MatchView } from '@fut-stats/shared';
+
+type RoundStatus = MatchView['status'];
 
 /** De quanto em quanto tempo o jogo se atualiza sozinho em jogo (ms). */
 export const IN_PROGRESS_REFRESH_MS = 15_000;

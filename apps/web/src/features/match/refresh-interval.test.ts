@@ -12,7 +12,9 @@ describe('matchRefreshInterval (C64)', () => {
   });
 
   it('nos outros status e antes de carregar não faz polling', () => {
-    const others = roundStatusSchema.options.filter((s) => s !== 'POST_MATCH' && s !== 'IN_PROGRESS');
+    const others = roundStatusSchema.options.filter(
+      (s) => s !== 'POST_MATCH' && s !== 'IN_PROGRESS',
+    );
     expect(others.length).toBeGreaterThan(0);
     for (const status of others) expect(matchRefreshInterval(status)).toBe(false);
     expect(matchRefreshInterval(undefined)).toBe(false);
