@@ -240,7 +240,7 @@ Pedido do dono depois de testar (30 out 2026): o bloco de madeira ficou sem gra�
 
 - **Bloco em pixel art** (SVG em grade, `shape-rendering: crispEdges`), fiel à referência: contorno preto de
   canto chanfrado, face dourada com faixa mais clara, sombra marrom embaixo e à direita, brilho creme no canto de cima
-  à esquerda, "?" creme com contorno preto, e os quatro rebites nos cantos. Tamanho de destaque (≥ 72px) ao lado de
+  à esquerda e "?" creme com contorno preto (sem rebites: a referência não tem). Tamanho de destaque (≥ 72px) ao lado de
   "GERAR TIMES" / "REGERAR".
 - **Cor:** a família `--color-gold` (recompensa: a moeda é recompensa), com tons claro e escuro derivados como tokens
   novos em `tokens.css`, nunca hex solto no componente. O amarelo de ação (`--color-accent`) continua só no Publicar.
@@ -253,7 +253,7 @@ Pedido do dono depois de testar (30 out 2026): o bloco de madeira ficou sem gra�
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| C31 | admin na tela de montar | olhar o bloco | bloco "?" pixel fiel à referência (contorno, sombra, brilho, rebites), dourado, sem o amarelo de ação | Playwright |
+| C31 | admin na tela de montar | olhar o bloco | bloco "?" pixel fiel à referência (contorno, sombra, brilho, "?"), dourado, sem o amarelo de ação | Playwright |
 | C32 | admin | toca no bloco | o bloco pula, uma moeda sai girando e some; os times entram como antes | Playwright |
 | C33 | Reduzir movimento | toca no bloco | sem pulo e sem moeda; os times entram | Playwright |
 | C34 | gerando | esperar a API | bloco "usado", "GERANDO", desabilitado | Playwright |
@@ -270,3 +270,8 @@ Pedido do dono depois de testar (30 out 2026): o bloco de madeira ficou sem gra�
 | Fora da tabela | — | Antes do QA, o card dizia "mais forte por 0,5" com diferença 0,54: o `teamBalance` passou a comparar a diferença arredondada em 1 casa (teste C11) |
 
 Pronto na raiz (`turbo --force`, sem cache): lint, typecheck, test e build verdes. `schema.prisma` intocado.
+
+**Volta 3 do QA (bloco "?" do Mario, 30 out 2026): APROVADO.** C31–C34 OK no Playwright a 390px (sprite confere
+pixel a pixel com a referência, moeda ~560 ms, Reduzir movimento sem pulo nem moeda, bloco "usado" ao gerar);
+regressão C22–C26 OK; console sem erros; accent só no Publicar; tokens novos (`gold-light`, `gold-shadow`,
+`outline`) sem hex solto. Pronto na raiz verde (web 153).
