@@ -33,7 +33,10 @@
   --color-accent-pressed: #e0b20a;
   --color-on-accent: #111111;
   --color-game: var(--color-accent); /* exceção aprovada: a palavra VS */
-  --color-gold: #e8a93a; /* mérito / recompensa (Craque, líder, aviso de resultado) */
+  --color-gold: #e8a93a; /* mérito / recompensa (Craque, líder, aviso de resultado, bloco "?" e moeda) */
+  --color-gold-light: #f4d65e; /* família gold: faixa clara da face do bloco "?" e da moeda */
+  --color-gold-shadow: #8a5a1c; /* família gold: sombra de baixo e da direita; no bloco "usado", a face */
+  --color-outline: #000000; /* contorno preto fixo da pixel art (não vira cinza no tema Noite) */
   --color-flop: #c4a07c; /* madeira: Perna de Pau */
   --color-success: #22c55e; /* vitória, presença confirmada, aviso de presença */
   --color-danger: #ef4444; /* derrota, perigo, ausência */
