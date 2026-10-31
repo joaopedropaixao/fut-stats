@@ -1,4 +1,10 @@
-import { lineupSchema, type Lineup, type SaveLineupInput } from '@fut-stats/shared';
+import {
+  lineupSchema,
+  lineupSuggestionSchema,
+  type Lineup,
+  type SaveLineupInput,
+  type SuggestLineupInput,
+} from '@fut-stats/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPut } from '../../lib/api';
 import { roundKey, roundsKey } from '../rounds/queries';
@@ -50,4 +56,12 @@ export function useUnpublishLineup(groupId: string, roundId: string) {
   return useLineupMutation(groupId, roundId, () =>
     apiPost(`${lineupPath(groupId, roundId)}/unpublish`, lineupSchema),
   );
+}
+
+/** Sugestão de times (só calcula, não grava): não mexe no cache do lineup; quem chama põe o resultado no rascunho. */
+export function useSuggestLineup(groupId: string, roundId: string) {
+  return useMutation({
+    mutationFn: (input: SuggestLineupInput) =>
+      apiPost(`${lineupPath(groupId, roundId)}/suggestion`, lineupSuggestionSchema, input),
+  });
 }

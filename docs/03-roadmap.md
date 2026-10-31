@@ -31,9 +31,9 @@ depois que você a valida no navegador. As telas seguem o `DESIGN.md` e as telas
 ### Fatias
 | # | Fatia | Modo | Parte de | Entrega |
 |---|---|---|---|---|
-| 0 | `massa-de-dados` | Back | `prisma/seed.ts` | Rodadas passadas com times, placar e lances (inclusive gol contra) para validar as telas |
+| 0 ✅ | `massa-de-dados` | Back | `prisma/seed.ts` | Rodadas passadas com times, placar e lances (inclusive gol contra) para validar as telas |
 | 1 ✅ | `montar-times` | Par | PR #33 (fechar) | Admin monta Branco x Preto tocando no jogador e na vaga, e publica |
-| 2 | `seletor-de-times` | Par | `montar-times` | Gerar com `balanceTeams`, ajustar tocando, regerar e publicar. Subiu para depois de `montar-times` (24 out 2026): ajuda a testar as telas seguintes |
+| 2 ✅ | `seletor-de-times` | Par | `montar-times` | Gerar com `balanceTeams`, ajustar tocando, regerar e publicar. Subiu para depois de `montar-times` (24 out 2026): ajuda a testar as telas seguintes |
 | 3 | `placar-e-lances` | Par | PR #32 (fechar) | Placar, gols, assistências e gol contra; jogador lança os próprios, admin de todos |
 | 4 | `historico` | Par | PR #31 (fechar) | Lista de rodadas e detalhe da partida |
 | 5 | `perfil-jogador` | Par | — | Editar perfil; admin define nota inicial, goleiro contratado e ativo/inativo. **Fecha a Fase 1 no ar** |
@@ -82,7 +82,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 
 ## Fase 2: Seletor de times
 - [x] Algoritmo `balanceTeams` (Branco x Preto, 1-2-3-1, um goleiro por time) com testes
-- [ ] Tela do admin: gerar, arrastar entre times, regerar, publicar
+- [x] Tela do admin: gerar, ajustar tocando entre times, regerar, publicar (arrastar ficou de fora: tocar e tocar)
 - [x] Anti-vício: penalizar duplas repetidas nas últimas N rodadas
 
 ## Fase 3: Notas e ranking
@@ -112,6 +112,8 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [ ] Admin marca como pago; depois, avaliar confirmação automática via PSP
 
 ## Futuro
+- Calibrar o seletor com dados reais: gravar a sugestão x o que o admin publicou e a nota de cada um no dia da
+  rodada (muda o banco), e recalibrar λ, μ e τ com `pnpm --filter @fut-stats/api simular:seletor` e os placares reais
 - Notificações via WhatsApp
 - Segundo grupo (sua outra pelada), com "Criar outra pelada" para quem já está num grupo
 - App nativo (Expo), se o PWA não bastar

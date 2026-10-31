@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   countStarters,
   draftFromLineup,
+  draftFromSuggestion,
+  hasAnyone,
   emptyDraft,
   isDirty,
   membersOf,
@@ -221,5 +223,44 @@ describe('Desfazer', () => {
   it('movimento que não muda nada não vira passo', () => {
     const h = pushDraft(startHistory(emptyDraft()), placeInSlot(emptyDraft(), 'WHITE', 'GK', 'a'));
     expect(pushDraft(h, h.draft)).toBe(h);
+  });
+});
+
+describe('draftFromSuggestion', () => {
+  const suggestion = {
+    teams: {
+      WHITE: {
+        starters: [
+          { membershipId: 'g1', position: 'GOALKEEPER' as const },
+          { membershipId: 'd1', position: 'DEFENDER' as const },
+          { membershipId: 'd2', position: 'DEFENDER' as const },
+          { membershipId: 'f1', position: 'FORWARD' as const },
+        ],
+        reserves: ['r1'],
+      },
+      BLACK: { starters: [{ membershipId: 'g2', position: 'GOALKEEPER' as const }], reserves: [] },
+    },
+  };
+
+  it('põe cada titular na vaga da posição e mantém a ordem das reservas', () => {
+    const d = draftFromSuggestion(suggestion);
+    expect(d.WHITE.slots.GK).toBe('g1');
+    expect(d.WHITE.slots.DEF1).toBe('d1');
+    expect(d.WHITE.slots.DEF2).toBe('d2');
+    expect(d.WHITE.slots.FWD).toBe('f1');
+    expect(d.WHITE.reserves).toEqual(['r1']);
+    expect(d.BLACK.slots.GK).toBe('g2');
+  });
+
+  it('é o inverso do toSaveInput', () => {
+    expect(toSaveInput(draftFromSuggestion(suggestion))).toEqual(suggestion.teams);
+  });
+});
+
+describe('hasAnyone', () => {
+  it('só é falso com o rascunho vazio', () => {
+    expect(hasAnyone(emptyDraft())).toBe(false);
+    expect(hasAnyone(placeInSlot(emptyDraft(), 'BLACK', 'GK', 'a'))).toBe(true);
+    expect(hasAnyone(placeInReserve(emptyDraft(), 'WHITE', 'a'))).toBe(true);
   });
 });

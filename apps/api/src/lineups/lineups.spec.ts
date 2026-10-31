@@ -1,7 +1,9 @@
 import {
   LINEUP_DRAFT_ERROR_LABELS,
+  BALANCE_TEAMS_ERROR_LABELS,
   LINEUP_NOT_EDITABLE_LABEL,
   lineupSchema,
+  lineupSuggestionSchema,
   PLAYER_NOT_CONFIRMED_LABEL,
   ROUND_TRANSITION_ERROR_LABELS,
   type SaveLineupInput,
@@ -490,6 +492,289 @@ describe('times da rodada (escalação)', () => {
       await post(s, s.adminUser.id, 'publish').expect(404);
       await post(s, s.adminUser.id, 'unpublish').expect(404);
       expect(await t.prisma.teamPlayer.count()).toBe(0);
+    });
+  });
+
+  describe('POST /lineup/suggestion (seletor-de-times)', () => {
+    /** 2 goleiros (ids 0 e 1), 4 zagueiros, 4 alas, 3 meias e 3 atacantes: fecha o 1-2-3-1 com 16. */
+    const POSITIONS_16: Position[] = [
+      'GOALKEEPER',
+      'GOALKEEPER',
+      ...Array<Position>(4).fill('DEFENDER'),
+      ...Array<Position>(4).fill('WINGER'),
+      ...Array<Position>(3).fill('MIDFIELDER'),
+      ...Array<Position>(3).fill('FORWARD'),
+    ];
+
+    async function setupSuggest() {
+      const s = await setup();
+      for (const [i, id] of s.ids.entries()) {
+        await t.prisma.membership.update({
+          where: { id },
+          data: { primaryPosition: POSITIONS_16[i]! },
+        });
+      }
+      return s;
+    }
+
+    const suggest = (s: Setup, userId: string, body: object = {}) =>
+      request(server())
+        .post(`${lineupPath(s.group.id, s.round.id)}/suggestion`)
+        .set('Cookie', as(userId))
+        .send(body);
+
+    /** Quem está com quem, sem lado nem posição. */
+    function divisionOf(teams: SaveLineupInput): string {
+      const side = (team: 'WHITE' | 'BLACK') =>
+        [...teams[team].starters.map((x) => x.membershipId), ...teams[team].reserves]
+          .sort()
+          .join(',');
+      return [side('WHITE'), side('BLACK')].sort().join('|');
+    }
+
+    const suggestedIds = (teams: SaveLineupInput) =>
+      (['WHITE', 'BLACK'] as const).flatMap((team) => [
+        ...teams[team].starters.map((x) => x.membershipId),
+        ...teams[team].reserves,
+      ]);
+
+    it('seletor C13: admin recebe os 16 nos times (7 + 7, 1-2-3-1, reservas 1 x 1) e nada é gravado', async () => {
+      const s = await setupSuggest();
+
+      const res = await suggest(s, s.adminUser.id).expect(200);
+
+      expect(lineupSuggestionSchema.safeParse(res.body).success).toBe(true);
+      const { teams } = res.body as { teams: SaveLineupInput };
+      for (const team of ['WHITE', 'BLACK'] as const) {
+        expect(teams[team].starters.map((x) => x.position).sort()).toEqual(
+          [...FORMATION_ORDER].sort(),
+        );
+        expect(teams[team].reserves).toHaveLength(1);
+      }
+      expect(suggestedIds(teams).sort()).toEqual([...s.ids].sort());
+
+      expect(await t.prisma.teamPlayer.count()).toBe(0);
+      const lineup = await get(s, s.adminUser.id).expect(200);
+      expect(lineup.body.teams.WHITE).toEqual({ starters: [], reserves: [] });
+      expect(lineup.body.unassigned).toHaveLength(16);
+      expect(await statusOf(s.round.id)).toBe('SCHEDULED');
+    });
+
+    it('seletor C14: só entram os confirmados ativos do grupo', async () => {
+      const s = await setupSuggest();
+      // desconfirma um meia, desativa um atacante e põe um não respondeu: sobram 14
+      await t.prisma.attendance.update({
+        where: { roundId_membershipId: { roundId: s.round.id, membershipId: s.ids[12]! } },
+        data: { confirmed: false },
+      });
+      await t.prisma.membership.update({ where: { id: s.ids[15]! }, data: { active: false } });
+      const noAnswerUser = await createUser(t);
+      await addMember(t, noAnswerUser.id, s.group.id);
+      // outro grupo, com rodada própria e confirmados
+      const other = await setup();
+
+      const res = await suggest(s, s.adminUser.id).expect(200);
+
+      const ids = suggestedIds(res.body.teams);
+      expect(ids.sort()).toEqual(s.ids.filter((id) => id !== s.ids[12] && id !== s.ids[15]).sort());
+      for (const id of other.ids) expect(ids).not.toContain(id);
+    });
+
+    it('seletor C15: com o avoid da sugestão anterior vem outra divisão', async () => {
+      const s = await setupSuggest(); // notas iguais: há muitas divisões empatadas
+      let previous: SaveLineupInput = (await suggest(s, s.adminUser.id).expect(200)).body.teams;
+
+      for (let i = 0; i < 6; i += 1) {
+        const res = await suggest(s, s.adminUser.id, { avoid: previous }).expect(200);
+        expect(divisionOf(res.body.teams)).not.toBe(divisionOf(previous));
+        previous = res.body.teams;
+      }
+    });
+
+    it('seletor C16: separa a dupla que venceu de goleada nas rodadas jogadas; agendada e de outro grupo não contam', async () => {
+      const s = await setupSuggest();
+      const other = await setup();
+      const day = (n: number) => new Date(Date.now() - n * DAY_MS);
+      const pairRound = (
+        groupId: string,
+        pair: [string, string],
+        status: RoundStatus,
+        daysAgo: number,
+      ) =>
+        t.prisma.round.create({
+          data: {
+            groupId,
+            scheduledAt: day(daysAgo),
+            status,
+            whiteGoals: 4,
+            blackGoals: 0,
+            teamPlayers: {
+              create: pair.map((membershipId) => ({
+                membershipId,
+                team: 'WHITE' as const,
+                position: 'DEFENDER' as const,
+                isReserve: false,
+              })),
+            },
+          },
+        });
+      // zagueiros 2 e 3: venceram juntos 5 vezes (CLOSED, VOTING e IN_PROGRESS contam)
+      const played: RoundStatus[] = ['CLOSED', 'CLOSED', 'CLOSED', 'VOTING', 'IN_PROGRESS'];
+      for (const [i, status] of played.entries()) {
+        await pairRound(s.group.id, [s.ids[2]!, s.ids[3]!], status, 7 * (i + 1));
+      }
+      // alas 6 e 7: só em rodadas não jogadas do grupo; alas 8 e 9: só em rodadas de outro grupo
+      for (let i = 0; i < 5; i += 1) {
+        await pairRound(
+          s.group.id,
+          [s.ids[6]!, s.ids[7]!],
+          i % 2 ? 'TEAMS_PUBLISHED' : 'SCHEDULED',
+          40 + i,
+        );
+        await pairRound(other.group.id, [s.ids[8]!, s.ids[9]!], 'CLOSED', 40 + i);
+      }
+
+      const together = (teams: SaveLineupInput, a: string, b: string) =>
+        (['WHITE', 'BLACK'] as const).some((team) => {
+          const ids = [...teams[team].starters.map((x) => x.membershipId), ...teams[team].reserves];
+          return ids.includes(a) && ids.includes(b);
+        });
+      let notPlayedTogether = 0;
+      let otherGroupTogether = 0;
+      for (let i = 0; i < 30; i += 1) {
+        const { teams } = (await suggest(s, s.adminUser.id).expect(200)).body;
+        expect(together(teams, s.ids[2]!, s.ids[3]!)).toBe(false);
+        if (together(teams, s.ids[6]!, s.ids[7]!)) notPlayedTogether += 1;
+        if (together(teams, s.ids[8]!, s.ids[9]!)) otherGroupTogether += 1;
+      }
+      expect(notPlayedTogether).toBeGreaterThan(0);
+      expect(otherGroupTogether).toBeGreaterThan(0);
+    });
+
+    it('seletor C16: rodadas jogadas sem placar não tiram da janela as com placar', async () => {
+      const s = await setupSuggest();
+      const day = (n: number) => new Date(Date.now() - n * DAY_MS);
+      const pair = [s.ids[2]!, s.ids[3]!];
+      const teamPlayers = {
+        create: pair.map((membershipId) => ({
+          membershipId,
+          team: 'WHITE' as const,
+          position: 'DEFENDER' as const,
+          isReserve: false,
+        })),
+      };
+      // 5 goleadas da dupla (as mais antigas) e depois 10 rodadas jogadas sem placar
+      for (let i = 0; i < 5; i += 1) {
+        await t.prisma.round.create({
+          data: {
+            groupId: s.group.id,
+            scheduledAt: day(100 + i),
+            status: 'CLOSED',
+            whiteGoals: 4,
+            blackGoals: 0,
+            teamPlayers,
+          },
+        });
+      }
+      for (let i = 0; i < 10; i += 1) {
+        await t.prisma.round.create({
+          data: { groupId: s.group.id, scheduledAt: day(10 + i), status: 'CLOSED' },
+        });
+      }
+
+      for (let i = 0; i < 15; i += 1) {
+        const { teams } = (await suggest(s, s.adminUser.id).expect(200)).body as {
+          teams: SaveLineupInput;
+        };
+        const together = (['WHITE', 'BLACK'] as const).some((team) => {
+          const ids = teams[team].starters.map((x) => x.membershipId);
+          return pair.every((id) => ids.includes(id));
+        });
+        expect(together).toBe(false);
+      }
+    });
+
+    it('seletor C17: 409 com o código e o texto do shared (13 confirmados, 1 goleiro, 3 goleiros, 19)', async () => {
+      const expectError = async (s: Setup, code: keyof typeof BALANCE_TEAMS_ERROR_LABELS) => {
+        const res = await suggest(s, s.adminUser.id).expect(409);
+        expect(res.body).toMatchObject({ code, message: BALANCE_TEAMS_ERROR_LABELS[code] });
+        expect(await t.prisma.teamPlayer.count()).toBe(0);
+      };
+
+      const few = await setupSuggest();
+      await t.prisma.attendance.updateMany({
+        where: { roundId: few.round.id, membershipId: { in: few.ids.slice(13) } },
+        data: { confirmed: false },
+      });
+      await expectError(few, 'NOT_ENOUGH_PLAYERS');
+
+      const oneGk = await setupSuggest();
+      await t.prisma.membership.update({
+        where: { id: oneGk.ids[1]! },
+        data: { primaryPosition: 'DEFENDER' },
+      });
+      await expectError(oneGk, 'NOT_ENOUGH_GOALKEEPERS');
+
+      const threeGk = await setupSuggest();
+      await t.prisma.membership.update({
+        where: { id: threeGk.ids[2]! },
+        data: { primaryPosition: 'GOALKEEPER' },
+      });
+      await expectError(threeGk, 'TOO_MANY_GOALKEEPERS');
+
+      const many = await setupSuggest();
+      for (let i = 0; i < 3; i += 1) {
+        const user = await createUser(t);
+        const member = await addMember(t, user.id, many.group.id);
+        await t.prisma.attendance.create({
+          data: { roundId: many.round.id, membershipId: member.id, confirmed: true },
+        });
+      }
+      await expectError(many, 'TOO_MANY_PLAYERS');
+    });
+
+    it('seletor C18: rodada com os times publicados (ou depois) é 409 LINEUP_NOT_EDITABLE', async () => {
+      const s = await setupSuggest();
+      for (const status of ['TEAMS_PUBLISHED', 'IN_PROGRESS', 'VOTING', 'CLOSED'] as const) {
+        await t.prisma.round.update({ where: { id: s.round.id }, data: { status } });
+        const res = await suggest(s, s.adminUser.id).expect(409);
+        expect(res.body).toMatchObject({
+          code: 'LINEUP_NOT_EDITABLE',
+          message: LINEUP_NOT_EDITABLE_LABEL,
+        });
+      }
+    });
+
+    it('seletor C19: avoid fora do schema é 400', async () => {
+      const s = await setupSuggest();
+      await suggest(s, s.adminUser.id, { avoid: { WHITE: 'x' } }).expect(400);
+      await suggest(s, s.adminUser.id, {
+        avoid: {
+          ...emptyDraft,
+          WHITE: { starters: [{ membershipId: s.ids[0], position: 'GOLEIRO' }], reserves: [] },
+        },
+      }).expect(400);
+    });
+
+    it('seletor C20: jogador comum não gera (403)', async () => {
+      const s = await setupSuggest();
+      await suggest(s, s.playerUser.id).expect(403);
+    });
+
+    it('seletor C21: rodada de outro grupo, não membro e membro inativo são 404', async () => {
+      const s = await setupSuggest();
+      const other = await setupSuggest();
+      await request(server())
+        .post(`${lineupPath(s.group.id, other.round.id)}/suggestion`)
+        .set('Cookie', as(s.adminUser.id))
+        .send({})
+        .expect(404);
+
+      const outsider = await createUser(t);
+      await suggest(s, outsider.id).expect(404);
+
+      await t.prisma.membership.update({ where: { id: s.admin.id }, data: { active: false } });
+      await suggest(s, s.adminUser.id).expect(404);
     });
   });
 });

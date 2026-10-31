@@ -32,6 +32,9 @@
   --color-on-accent: #111111;
   --color-game: var(--color-accent);
   --color-gold: #e8a93a;
+  --color-gold-light: #f4d65e;
+  --color-gold-shadow: #8a5a1c;
+  --color-outline: #000000;
   --color-flop: #c4a07c;
   --color-success: #22c55e;
   --color-danger: #ef4444;

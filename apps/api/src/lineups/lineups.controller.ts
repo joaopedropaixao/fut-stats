@@ -1,5 +1,12 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Put } from '@nestjs/common';
-import { saveLineupSchema, type Lineup, type SaveLineupInput } from '@fut-stats/shared';
+import {
+  saveLineupSchema,
+  suggestLineupSchema,
+  type Lineup,
+  type LineupSuggestion,
+  type SaveLineupInput,
+  type SuggestLineupInput,
+} from '@fut-stats/shared';
 import { CurrentMembership, GroupMember, GroupRole } from '../auth/group-access.decorator';
 import type { GroupMembership } from '../auth/request';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
@@ -26,6 +33,18 @@ export class LineupsController {
     @Body(new ZodValidationPipe(saveLineupSchema)) body: SaveLineupInput,
   ): Promise<Lineup> {
     return this.lineups.save(membership, roundId, body);
+  }
+
+  /** Sugere os times com o `balanceTeams`. Não grava: quem salva é o PUT. */
+  @GroupRole('ADMIN')
+  @Post('suggestion')
+  @HttpCode(HttpStatus.OK)
+  suggest(
+    @CurrentMembership() membership: GroupMembership,
+    @Param('roundId') roundId: string,
+    @Body(new ZodValidationPipe(suggestLineupSchema)) body: SuggestLineupInput,
+  ): Promise<LineupSuggestion> {
+    return this.lineups.suggest(membership, roundId, body);
   }
 
   @GroupRole('ADMIN')
