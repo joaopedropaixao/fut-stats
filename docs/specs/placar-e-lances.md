@@ -318,6 +318,27 @@ Pedido do dono depois de testar (25 out 2026). Muda regra de domínio, um pouco 
 - "RESENHA" não cola no dígito do Branco; nada rente à barra de abas no fim da rolagem.
 - Movimento em degraus (`steps()`), 150–250 ms nas microinterações, grandes momentos até 2 s com Pular.
 
+## Volta 3: robustez com várias pessoas ao mesmo tempo
+
+Parecer do Head de Engenharia (30 out 2026), aprovado pelo dono. Mediu a API (3–18 ms com 10 pedidos simultâneos),
+as animações (só `transform`/`opacity`) e o polling (≈0,2% de um núcleo): nada disso pesa. O que pesa: o build do
+web sai com o React de desenvolvimento (`NODE_ENV=development` herdado do arquivo de ambiente da raiz pelo `envDir`
+do Vite) e o dono testou no servidor de dev. O risco real com ~10 pessoas num pod é escrita concorrente na mesma
+rodada (checa e grava fora de transação). Threads, filas e eventos assíncronos não entram: o Postgres serializa por
+rodada.
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C59 | Resenha, placar 2x0, 1 gol do Branco lançado | dois `POST .../events` de gol do Branco ao mesmo tempo (`Promise.all`) | um 200 e um 409 `GOALS_EXCEED_SCORE`; ficam 2 gols | integração |
+| C60 | Resenha com gols batendo | `open-voting` e um `POST .../events` ao mesmo tempo | ou o lance entra antes e a votação é recusada (`GOALS_MISMATCH`), ou a votação abre e o lance leva 409 `ROUND_NOT_OPEN`; nunca lance gravado depois do `VOTING` | integração |
+| C61 | lance existente | dois `DELETE` do mesmo lance ao mesmo tempo | um 200 e um 404; nunca 500 | integração |
+| C62 | qualquer escrita da rodada (`start`, `score`, `finish`, `open-voting`, lançar, apagar) | — | roda em `prisma.$transaction` que começa travando a rodada (`SELECT ... FROM "Round" WHERE id = $1 FOR UPDATE`) e faz carregar, validar e gravar com o mesmo `tx` | integração (C59–C61) |
+| C63 | build do web com `NODE_ENV=development` no ambiente | `pnpm --filter @fut-stats/web build` | sai com o React de produção; o build falha se aparecer `jsxDEV` no `dist` | checagem no build |
+| C64 | tela do jogo na Resenha | outra pessoa lança | aparece em até 5 s (polling de 5 s na Resenha; em jogo segue 15 s; atualiza ao voltar para a aba) | Playwright |
+| C65 | card EMPATE | olhar | os dois números com a mesma moldura (o do Branco hoje não tem) | Playwright |
+
+Fica para fatias próprias na Trilha: 3c `auditoria-da-rodada`, 3d `jogo-ao-vivo`, 3e `orcamento-de-bundle`.
+
 ## QA
 **1 volta, `VEREDITO: APROVADO`** (25 out 2026). Lint, typecheck, testes (domínio 293, API 207 de integração,
 web 151) e build verdes com back e front juntos; na raiz do `feature/placar-e-lances`, depois do merge, de novo
