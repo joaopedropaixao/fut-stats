@@ -220,6 +220,52 @@
   animation: block-hop 240ms steps(4, end) both;
 }
 
+/*
+ * Moeda do bloco "?": sai de dentro do bloco, sobe em degraus e some (560 ms). O giro é a largura do sprite
+ * em degraus (cheia, meia, fina, meia), 4 voltas de 140 ms. A moeda tem 24px de largura (escala 3).
+ */
+@keyframes coin-rise {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-76px);
+  }
+  99% {
+    opacity: 1;
+    transform: translateY(-76px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-76px);
+  }
+}
+
+@keyframes coin-spin {
+  0% {
+    transform: scaleX(1);
+  }
+  25% {
+    transform: scaleX(0.5);
+  }
+  50% {
+    transform: scaleX(0.125);
+  }
+  75% {
+    transform: scaleX(0.5);
+  }
+}
+
+@utility animate-coin-rise {
+  animation: coin-rise 560ms steps(7, end) both;
+}
+
+@utility animate-coin-spin {
+  animation: coin-spin 140ms steps(1, end) 4;
+}
+
 /* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */
 @media (prefers-reduced-motion: reduce) {
   *,
