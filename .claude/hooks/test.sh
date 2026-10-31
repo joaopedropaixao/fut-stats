@@ -79,6 +79,16 @@ expect sem-env 0 "$(bash_cmd 'rg -n X apps')" "rg normal respeita o .gitignore"
 expect sem-env 2 "$(bash_cmd 'cat apps/web/.env.development.local')" ".env de várias partes"
 expect sem-env 2 "$(bash_cmd 'cat apps/api/.env-backup')" ".env-backup"
 
+# modo paralelo: o .env.equipe só tem portas e o banco local, e passa como o .env.example
+expect sem-env 0 "$(tool Read file_path .env.equipe)" "Read .env.equipe"
+expect sem-env 0 "$(tool Write file_path /Users/x/orca/workspaces/fut-stats/placar/.env.equipe)" "Write .env.equipe"
+expect sem-env 0 "$(bash_cmd 'cat /Users/x/orca/workspaces/fut-stats/placar/.env.equipe')" "cat .env.equipe"
+expect sem-env 0 "$(bash_cmd 'grep -h PORT= .env.equipe')" "grep .env.equipe"
+expect sem-env 2 "$(bash_cmd 'cat .env.equipe .env')" ".env.equipe junto com o .env"
+expect sem-env 2 "$(bash_cmd 'cat .env.equipe && cat .env')" ".env.equipe encadeado com o .env"
+expect sem-env 2 "$(bash_cmd 'cat .env.equipe.bak')" ".env.equipe.bak (outro nome)"
+expect sem-env 2 "$(tool Read file_path .env.equipe.local)" "Read .env.equipe.local (outro nome)"
+
 # --- sem-merge
 FEAT=$(repo_on feature/x)
 DEV=$(repo_on develop)
@@ -199,6 +209,24 @@ if grep -q 'git log feature/<fatia>-back..HEAD -- packages/shared' "$AGENTS_DIR/
 else
   echo "FALHOU  qa: checagem do shared ainda pelo diff contra o SHA do contrato" && falhas=$((falhas + 1))
 fi
+
+# --- modo paralelo (spec 2026-10-30-equipe-paralela.md): as skills precisam carregar o que o spec manda
+SKILLS_DIR="$HOOKS/../skills"
+# skill_diz <arquivo> <trecho> <descrição>
+skill_diz() {
+  if grep -Fq -- "$2" "$SKILLS_DIR/$1/SKILL.md"; then
+    echo "ok      $1: $3"
+  else
+    echo "FALHOU  $1: $3 (falta '$2')" && falhas=$((falhas + 1))
+  fi
+}
+skill_diz lancar-equipe 'em paralelo' "tem o modo paralelo"
+skill_diz lancar-equipe '.env.equipe' "cria o arquivo da equipe"
+skill_diz lancar-equipe 'no máximo 3 equipes' "limita as vagas"
+skill_diz lancar-equipe 'DIRECT_URL' "põe a DIRECT_URL no arquivo (migration não vai para o banco principal)"
+skill_diz tpl '.env.equipe' "liga o arquivo da equipe nos worktrees do par"
+skill_diz tpl 'seção Banco' "checa o Banco das outras equipes no Portão 1"
+skill_diz tpl 'apague a pasta da sua migration' "refaz a migration no rebase"
 
 # --- falha aberta
 for h in front-sem-shared sem-env sem-merge commit-sem-ia prettier statusline notifica; do

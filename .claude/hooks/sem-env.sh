@@ -9,7 +9,7 @@ case $(field .tool_name) in
     path=$(field .tool_input.file_path)
     [ -n "$path" ] || path=$(field .tool_input.path)
     case $(basename "$path") in
-      .env.example) ;;
+      .env.example | .env.equipe) ;;
       .env | .env.*) deny "$motivo" ;;
     esac
     ;;
@@ -24,7 +24,8 @@ case $(field .tool_name) in
     printf '%s' "$cmd" | grep -Eq '(^|[^A-Za-z0-9_-])rg[[:space:]]([^|;&]*[[:space:]])?(-[A-Za-z]*u[A-Za-z]*|--no-ignore[A-Za-z-]*|--hidden)([[:space:]]|$)' &&
       deny "$busca"
 
-    sem_example=$(printf '%s' "$cmd" | sed 's/\.env\.example//g')
+    # .env.example e .env.equipe (só portas e banco local, nunca segredo) passam; um nome maior, como .env.equipe.bak, não.
+    sem_example=$(printf '%s' "$cmd" | sed -E 's/\.env\.(example|equipe)([^A-Za-z0-9_.-]|$)/\2/g')
     printf '%s' "$sem_example" | grep -Eq '(^|[^A-Za-z0-9_])\.env([.-][A-Za-z0-9_-]+)*([^A-Za-z0-9_.-]|$)' || exit 0
     # Exceção: um cp ou ln -s sozinho, sem pipe, redirecionamento, encadeamento nem argumento em /dev/
     # (só o argumento que começa com /dev/: o checkout principal fica em ~/dev/...).

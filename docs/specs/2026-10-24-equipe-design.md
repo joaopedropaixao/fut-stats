@@ -130,4 +130,4 @@ para o spec.
 ## Fora do escopo (por enquanto)
 - Automação de CI e métricas de custo.
 - Etapas e papéis separados para Research e Plan (fica para o harness do workshop).
-- Mais de uma fatia ao mesmo tempo.
+- Mais de uma fatia ao mesmo tempo como padrão. Opcional, a pedido do dono: `2026-10-30-equipe-paralela.md`.
