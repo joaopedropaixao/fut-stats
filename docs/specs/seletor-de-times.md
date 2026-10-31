@@ -233,6 +233,31 @@ Em `packages/domain/src/balance-teams/`:
   tolerância; placar pegado pesa menos. Pesos calibrados na simulação.
 - Treinar um modelo? → Ainda não: guardar o script de simulação e um item futuro para calibrar com dados reais.
 
+## Volta 2: bloco "?" do Mario
+
+Pedido do dono depois de testar (30 out 2026): o bloco de madeira ficou sem graça e o marrom apagado. Ele quer o bloco
+"?" do Mario de verdade, e que **saia uma moedinha** ao tocar.
+
+- **Bloco em pixel art** (SVG em grade, `shape-rendering: crispEdges`), fiel à referência: contorno preto de
+  canto chanfrado, face dourada com faixa mais clara, sombra marrom embaixo e à direita, brilho creme no canto de cima
+  à esquerda, "?" creme com contorno preto, e os quatro rebites nos cantos. Tamanho de destaque (≥ 72px) ao lado de
+  "GERAR TIMES" / "REGERAR".
+- **Cor:** a família `--color-gold` (recompensa: a moeda é recompensa), com tons claro e escuro derivados como tokens
+  novos em `tokens.css`, nunca hex solto no componente. O amarelo de ação (`--color-accent`) continua só no Publicar.
+  Entra no `DESIGN.md` como exceção aprovada, igual ao VS (decisão do dono, 30 out 2026).
+- **Ao tocar:** o bloco sobe e desce em degraus (o pulo atual, aprovado) e uma **moeda pixel** sai de dentro dele,
+  sobe girando (largura em degraus, como sprite) e some. Tudo em até ~600 ms. Com Reduzir movimento, nada anda e a
+  moeda não aparece.
+- **Gerando:** o bloco fica "usado" (sem o "?", tom apagado, como o bloco vazio do Mario) até a resposta chegar;
+  o rótulo diz "GERANDO".
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C31 | admin na tela de montar | olhar o bloco | bloco "?" pixel fiel à referência (contorno, sombra, brilho, rebites), dourado, sem o amarelo de ação | Playwright |
+| C32 | admin | toca no bloco | o bloco pula, uma moeda sai girando e some; os times entram como antes | Playwright |
+| C33 | Reduzir movimento | toca no bloco | sem pulo e sem moeda; os times entram | Playwright |
+| C34 | gerando | esperar a API | bloco "usado", "GERANDO", desabilitado | Playwright |
+
 ## QA
 **2 voltas. Veredito: APROVADO** (volta 2, 25 out 2026).
 
