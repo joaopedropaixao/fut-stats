@@ -3,13 +3,30 @@
  * `spritePaths` junta os pixels vizinhos da mesma cor num retângulo só (como o `rle_paths` da folha).
  */
 
-/** O bonequinho dos grandes momentos (8x12). */
-export const PLAYER_SPRITE = [
-  '..hhhh..',
-  '..hsss..',
-  '..ssss..',
-  '...ss...',
-  '.TTTTTT.',
+import type { PlayerAvatar } from '@fut-stats/shared';
+import { DEFAULT_AVATAR, type AvatarHair } from '../../lib/avatar';
+
+/** Mapa de pixels: uma letra por cor, `.` é vazio. */
+export type SpriteMap = readonly string[];
+
+export const SPRITE_PLAYER_WIDTH = 8;
+export const SPRITE_PLAYER_HEIGHT = 12;
+
+/**
+ * O bonequinho dos grandes momentos (8x12). Letras: `h` cabelo, `s` pele, `e` olho, `T` camisa, `k` calção,
+ * `b` chuteira. O estilo do cabelo troca as linhas de cima (cabeça, e no cabelo comprido também o ombro);
+ * o resto do corpo é o da folha.
+ */
+const HEAD: Record<AvatarHair, readonly string[]> = {
+  BALD: ['..ssss..', '.ssssss.', '.sesses.', '...ss...', '.TTTTTT.'],
+  SHORT: ['..hhhh..', '.hssssh.', '.sesses.', '...ss...', '.TTTTTT.'],
+  CURLY: ['.h.hh.h.', '.hhhhhh.', 'hsessesh', '...ss...', '.TTTTTT.'],
+  AFRO: ['.hhhhhh.', 'hhhhhhhh', 'hsessesh', '...ss...', '.TTTTTT.'],
+  LONG: ['..hhhh..', '.hhhhhh.', 'hsessesh', 'h..ss..h', 'hTTTTTTh'],
+  MOHAWK: ['...hh...', '.sshhss.', '.sesses.', '...ss...', '.TTTTTT.'],
+};
+
+const BODY_BELOW = [
   'sTTTTTTs',
   'sTTTTTTs',
   '..TTTT..',
@@ -19,21 +36,90 @@ export const PLAYER_SPRITE = [
   '.bb..bb.',
 ] as const;
 
-export const SPRITE_PLAYER_WIDTH = 8;
-export const SPRITE_PLAYER_HEIGHT = 12;
+/** O mapa do corpo para um estilo de cabelo. */
+export function bodySprite(hair: AvatarHair): SpriteMap {
+  return [...HEAD[hair], ...BODY_BELOW];
+}
+
+/** O bonequinho padrão (o `DEFAULT_AVATAR`). */
+export const PLAYER_SPRITE = bodySprite(DEFAULT_AVATAR.hair);
 
 export type SpriteTeam = 'white' | 'black';
 
-/** Paleta do bonequinho por time (camisa, calção e chuteira mudam; pele e cabelo não). */
-export function teamPalette(team: SpriteTeam): Record<string, string> {
+/** Camisa do time; sem time, uma camisa neutra (cor de giz, calção e chuteira escuros). */
+export function shirtColors(team: SpriteTeam | null): { T: string; k: string; b: string } {
+  if (team === null)
+    return { T: 'var(--color-text-muted)', k: 'var(--color-track)', b: 'var(--color-track)' };
   const white = team === 'white';
   return {
-    h: '#3A2414',
-    s: '#D9A07A',
     T: white ? '#FFFFFF' : '#2E2E2E',
     k: white ? '#1B1B1B' : '#FFFFFF',
     b: white ? '#111111' : '#555555',
   };
+}
+
+/** A cor (token) de cada tom de pele e de cada cor de cabelo, para amostras e paletas. */
+export const SKIN_VAR = {
+  LIGHT: 'var(--color-skin-1)',
+  FAIR: 'var(--color-skin-2)',
+  TAN: 'var(--color-skin-3)',
+  BROWN: 'var(--color-skin-4)',
+  DARK: 'var(--color-skin-5)',
+} as const satisfies Record<PlayerAvatar['skin'], string>;
+
+export const HAIR_VAR = {
+  BLACK: 'var(--color-hair-black)',
+  BROWN: 'var(--color-hair-brown)',
+  BLOND: 'var(--color-hair-blond)',
+  RED: 'var(--color-hair-red)',
+  GRAY: 'var(--color-hair-gray)',
+} as const satisfies Record<PlayerAvatar['hairColor'], string>;
+
+/** Preto sobre a pele mais escura some: a borda do cabelo ganha um tom mais claro (1 px). */
+export function needsRim(avatar: PlayerAvatar): boolean {
+  return avatar.hair !== 'BALD' && avatar.hairColor === 'BLACK' && avatar.skin === 'DARK';
+}
+
+/**
+ * Pele e cabelo do bonequinho (`s`, `h`, e `o` = o pixel de cabelo que encosta na pele). Careca ignora a cor
+ * do cabelo.
+ */
+export function avatarPalette(avatar: PlayerAvatar): Record<string, string> {
+  const hair = HAIR_VAR[avatar.hairColor];
+  return {
+    s: SKIN_VAR[avatar.skin],
+    h: hair,
+    o: needsRim(avatar) ? 'var(--color-hair-black-rim)' : hair,
+    e: 'var(--color-outline)',
+  };
+}
+
+/** Marca com `o` o cabelo que encosta na pele (acima, abaixo, esquerda ou direita). */
+export function markHairRim(map: SpriteMap): SpriteMap {
+  const at = (x: number, y: number) => map[y]?.[x];
+  return map.map((line, y) =>
+    [...line]
+      .map((c, x) =>
+        c === 'h' && [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)].includes('s')
+          ? 'o'
+          : c,
+      )
+      .join(''),
+  );
+}
+
+/** Paleta completa do corpo: pele, cabelo, olho e a camisa do time. */
+export function playerPalette(
+  avatar: PlayerAvatar,
+  team: SpriteTeam | null,
+): Record<string, string> {
+  return { ...avatarPalette(avatar), ...shirtColors(team) };
+}
+
+/** Mapa do corpo já com a marcação do contorno (só quando o preto precisa dele). */
+export function playerSpriteMap(avatar: PlayerAvatar): SpriteMap {
+  const map = bodySprite(avatar.hair);
+  return needsRim(avatar) ? markHairRim(map) : map;
 }
 
 /** Caminhos SVG por cor: `{ cor: 'M0 0h2v1h-2z...' }`. Letra fora da paleta (e `.`) fica vazia. */
