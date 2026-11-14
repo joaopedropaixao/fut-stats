@@ -41,6 +41,7 @@ export function usePlayerFields({ nicknameError, onNicknameInput }: PlayerFields
         }}
         autoCapitalize="words"
         error={state.errors.nickname ?? nicknameError}
+        data-field="nickname"
         autoComplete="off"
       />
       <AvatarBuilder
@@ -56,5 +57,9 @@ export function usePlayerFields({ nicknameError, onNicknameInput }: PlayerFields
     </>
   );
 
-  return { fields, validate };
+  const errors = {
+    nickname: state.errors.nickname ?? nicknameError,
+    primaryPosition: state.errors.primaryPosition,
+  };
+  return { fields, validate, errors };
 }

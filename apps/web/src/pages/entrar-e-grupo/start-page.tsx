@@ -5,6 +5,8 @@ import { Button } from '../../components/ui/button';
 import { PixelText } from '../../components/ui/pixel-text';
 import { TextField } from '../../components/ui/text-field';
 import { extractInviteCode } from '../../features/group/invite-code';
+import { FieldErrorNotice } from '../../features/group/field-error-notice';
+import { useRevealFieldError } from '../../features/group/use-reveal-field-error';
 import { usePlayerFields } from '../../features/group/player-fields';
 import {
   enterGroupErrorMessage,
@@ -88,22 +90,36 @@ function CreateGroupForm() {
   const [nameError, setNameError] = useState<string>();
   const create = useCreateGroup();
   const nicknameError = nicknameTakenMessage(create.error);
-  const { fields, validate } = usePlayerFields({
+  const { fields, validate, errors } = usePlayerFields({
     nicknameError,
     onNicknameInput: () => nicknameError && create.reset(),
   });
+  const { formRef, failed, notice } = useRevealFieldError(
+    ['name', 'nickname', 'primaryPosition'],
+    { name: nameError, ...errors },
+    nicknameError ? create.error : null,
+  );
 
   function submit(event: FormEvent) {
     event.preventDefault();
     const player = validate();
     const nameResult = createGroupSchema.shape.name.safeParse(name);
     setNameError(nameResult.success ? undefined : nameResult.error.issues[0]?.message);
-    if (!player || !nameResult.success) return;
+    if (!player || !nameResult.success) {
+      failed();
+      return;
+    }
     create.mutate({ name: nameResult.data, ...player });
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-6" aria-label="Criar a pelada">
+    <form
+      ref={formRef}
+      onSubmit={submit}
+      noValidate
+      className="flex flex-col gap-6"
+      aria-label="Criar a pelada"
+    >
       <TextField
         label="Nome da pelada"
         hint="Você vira o admin e também joga."
@@ -113,6 +129,7 @@ function CreateGroupForm() {
           setNameError(undefined);
         }}
         error={nameError}
+        data-field="name"
         autoComplete="off"
         autoCapitalize="words"
         placeholder="Ex.: Pelada do Zé"
@@ -123,6 +140,7 @@ function CreateGroupForm() {
           {enterGroupErrorMessage(create.error)}
         </p>
       )}
+      <FieldErrorNotice message={notice} />
       <Button type="submit" label="Criar pelada" block loading={create.isPending} />
     </form>
   );

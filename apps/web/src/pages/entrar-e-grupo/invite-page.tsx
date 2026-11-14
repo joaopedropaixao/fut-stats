@@ -8,6 +8,8 @@ import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { ErrorState } from '../../components/ui/states';
 import { clearPendingDestination, savePendingDestination } from '../../features/group/invite-code';
+import { FieldErrorNotice } from '../../features/group/field-error-notice';
+import { useRevealFieldError } from '../../features/group/use-reveal-field-error';
 import { usePlayerFields } from '../../features/group/player-fields';
 import {
   enterGroupErrorMessage,
@@ -131,13 +133,19 @@ function InvalidInvite() {
 function JoinForm({ code }: { code: string }) {
   const join = useJoinGroup(code);
   const nicknameError = nicknameTakenMessage(join.error);
-  const { fields, validate } = usePlayerFields({
+  const { fields, validate, errors } = usePlayerFields({
     nicknameError,
     onNicknameInput: () => nicknameError && join.reset(),
   });
+  const { formRef, failed, notice } = useRevealFieldError(
+    ['nickname', 'primaryPosition'],
+    errors,
+    nicknameError ? join.error : null,
+  );
 
   return (
     <form
+      ref={formRef}
       noValidate
       aria-label="Entrar na pelada"
       className="flex flex-col gap-6"
@@ -145,6 +153,7 @@ function JoinForm({ code }: { code: string }) {
         event.preventDefault();
         const player = validate();
         if (player) join.mutate(player);
+        else failed();
       }}
     >
       {fields}
@@ -153,6 +162,7 @@ function JoinForm({ code }: { code: string }) {
           {enterGroupErrorMessage(join.error)}
         </p>
       )}
+      <FieldErrorNotice message={notice} />
       <Button type="submit" label="Entrar na pelada" block loading={join.isPending} />
     </form>
   );

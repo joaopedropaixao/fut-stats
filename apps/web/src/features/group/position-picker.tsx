@@ -28,7 +28,11 @@ export function PositionPicker({
   const id = useId();
   const errorId = `${id}-erro`;
   return (
-    <fieldset className="flex flex-col gap-2" aria-describedby={error ? errorId : undefined}>
+    <fieldset
+      data-field="primaryPosition"
+      className="flex flex-col gap-2"
+      aria-describedby={error ? errorId : undefined}
+    >
       <legend className="mb-2">
         <PixelText>{label}</PixelText>
       </legend>

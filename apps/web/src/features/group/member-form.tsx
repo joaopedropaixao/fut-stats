@@ -1,5 +1,4 @@
 import {
-  NICKNAME_TAKEN_LABEL,
   updateMemberSchema,
   type Member,
   type RosterMember,
@@ -12,14 +11,18 @@ import { PixelText } from '../../components/ui/pixel-text';
 import { Sheet } from '../../components/ui/sheet';
 import { Switch } from '../../components/ui/switch';
 import { TextField } from '../../components/ui/text-field';
-import { ApiError, apiErrorMessage } from '../../lib/api';
+import { apiErrorMessage } from '../../lib/api';
 import { AvatarBuilder } from './avatar-builder';
+import { FieldErrorNotice } from './field-error-notice';
+import { nicknameErrorFromIssues } from './field-errors';
 import { memberChanges, type MemberFormValues } from './member-changes';
 import { useUpdateMember } from './members';
 import { PositionPicker, type Position } from './position-picker';
 import { RatingStepper } from './rating-stepper';
 import { SecondaryPicker } from './secondary-picker';
 import { secondariesAfterPrimary, type PositionsError } from './secondary-positions';
+import { nicknameTakenMessage } from './use-enter-group';
+import { useRevealFieldError } from './use-reveal-field-error';
 
 type MemberFormProps = {
   groupId: string;
@@ -56,6 +59,13 @@ export function MemberForm({ groupId, member, adminFields, isMe, onSaved }: Memb
   const [positionsError, setPositionsError] = useState<PositionsError | null>(null);
   const update = useUpdateMember(groupId, member.id);
   const saved = useRef(false);
+  // Apelido em uso (409 NICKNAME_TAKEN) é erro do campo, não da tela
+  const takenMessage = nicknameTakenMessage(update.error);
+  const { formRef, failed, notice } = useRevealFieldError(
+    ['nickname'],
+    { nickname: nicknameError ?? takenMessage },
+    takenMessage ? update.error : null,
+  );
 
   const changes = memberChanges(initial, values, { adminFields, isMe });
   const dirty = Object.keys(changes).length > 0;
@@ -73,8 +83,8 @@ export function MemberForm({ groupId, member, adminFields, isMe, onSaved }: Memb
     if (!dirty) return;
     const parsed = updateMemberSchema.safeParse(changes satisfies UpdateMemberInput);
     if (!parsed.success) {
-      const nicknameIssue = parsed.error.issues.find((issue) => issue.path[0] === 'nickname');
-      setNicknameError(nicknameIssue?.message ?? parsed.error.issues[0]?.message);
+      setNicknameError(nicknameErrorFromIssues(parsed.error.issues));
+      failed();
       return;
     }
     update.mutate(parsed.data, {
@@ -85,15 +95,17 @@ export function MemberForm({ groupId, member, adminFields, isMe, onSaved }: Memb
     });
   }
 
-  const taken =
-    update.error instanceof ApiError &&
-    update.error.status === 409 &&
-    update.error.body?.code === 'NICKNAME_TAKEN';
-  const fieldError = nicknameError ?? (taken ? NICKNAME_TAKEN_LABEL : undefined);
+  const fieldError = nicknameError ?? takenMessage;
 
   return (
     <>
-      <form noValidate onSubmit={submit} aria-label="Editar perfil" className="flex flex-col gap-6">
+      <form
+        ref={formRef}
+        noValidate
+        onSubmit={submit}
+        aria-label="Editar perfil"
+        className="flex flex-col gap-6"
+      >
         <TextField
           label="Apelido"
           hint="Até 10 letras. É como o pessoal vai te ver."
@@ -105,6 +117,7 @@ export function MemberForm({ groupId, member, adminFields, isMe, onSaved }: Memb
           autoCapitalize="words"
           autoComplete="off"
           error={fieldError}
+          data-field="nickname"
         />
         <AvatarBuilder
           value={values.avatar}
@@ -162,11 +175,12 @@ export function MemberForm({ groupId, member, adminFields, isMe, onSaved }: Memb
           </section>
         )}
 
-        {update.isError && !taken && (
+        {update.isError && !takenMessage && (
           <p role="alert" className="text-sm text-[#fca5a5]">
             {apiErrorMessage(update.error, 'Não deu para salvar agora. Tente de novo.')}
           </p>
         )}
+        <FieldErrorNotice message={notice} />
         <Button type="submit" label="Salvar" block disabled={!dirty} loading={update.isPending} />
       </form>
 
