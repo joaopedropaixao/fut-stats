@@ -9,6 +9,9 @@
 | **Modo** | Par / Front / Back |
 | **Parte de** | <PR ou branch antiga, ou "—"> |
 | **Status** | rascunho / aprovado em <data> |
+| **Base** | develop @<sha curto> (a develop que o spec leu) |
+| **Depende de** | <fatias separadas por vírgula, ou —> |
+| **Toca em** | <prefixos de caminho que a fatia muda, separados por vírgula: models do schema, arquivos do shared, pastas de tela> |
 
 ## Produto
 

@@ -44,7 +44,9 @@ abrir no worktree novo (skill `tpl`; fluxo em `docs/specs/2026-10-24-equipe-desi
       `pnpm --filter @fut-stats/domain --filter @fut-stats/shared build`, `pnpm --filter @fut-stats/api generate`,
       `pnpm --filter @fut-stats/api db:deploy` (cria o banco se não existir) e `pnpm --filter @fut-stats/api db:seed`.
    4. **Quem mais está rodando.** Anote, para o kickoff, cada equipe em andamento com o caminho do worktree dela.
-8. Responda ao dono com:
+8. Ponha a fatia no quadro, de dentro do worktree novo:
+   `cd ~/orca/workspaces/fut-stats/<fatia> && sh .claude/scripts/quadro.sh set <fatia> Lançada "<Toca em do spec, se houver>"`.
+9. Responda ao dono com:
    - onde abrir: worktree `<fatia>` no Orca, sessão nova com Opus;
    - o kickoff, num bloco para copiar:
 

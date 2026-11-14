@@ -29,7 +29,11 @@ Para cada fatia que falta na Trilha (as linhas sem ✅), em ordem de dependênci
    depois, pelo álbum.
 3. Ponto que precisa do dono (regra de negócio em aberto, escolha de produto): **não pare**. Escreva a sua
    recomendação no spec, marque com `❓P<n>` e anote a pergunta no lote (passo 3).
-4. Commit por spec: `docs(<fatia>): spec`. Faça push da branch a cada commit.
+4. Preencha **Base** (`git rev-parse --short origin/develop` no momento em que leu o código), **Depende de** e
+   **Toca em** (prefixos de caminho: models do schema, arquivos do shared, pastas de tela). O detector de atraso
+   usa esses campos para avisar quando uma dependência entrar na develop depois da base.
+5. Commit por spec: `docs(<fatia>): spec`. Faça push da branch a cada commit e atualize o quadro:
+   `sh .claude/scripts/quadro.sh set specs-v1 "Spec <fatia>"`.
 
 ## 3. Lote de perguntas
 Junte tudo em `docs/specs/perguntas-v1.md`, numa tabela: `P<n>`, fatia, pergunta, opções, sua recomendação e por
@@ -49,7 +53,8 @@ Escreva em `docs/specs/ondas-v1.md`:
 Atualize a Trilha no roadmap se a ordem mudar ou se surgir fatia nova.
 
 ## 5. Entregar
-1. `git fetch && git rebase origin/develop`, push, e PR para a `develop` com
+1. `git fetch && git rebase origin/develop`. Entrou algo na develop desde que você começou? Confira os
+   specs cujo **Depende de** ou **Toca em** cruza o que entrou, ajuste e atualize a **Base**. Depois push, e PR para a `develop` com
    `GH_TOKEN=$(gh auth token --user joaopedropaixao) gh pr create --base develop --body-file <arquivo>`: lista dos
    specs, link do lote de perguntas respondido e as ondas.
 2. Avise o dono com o link. O merge é do orquestrador, com o ok do dono.
