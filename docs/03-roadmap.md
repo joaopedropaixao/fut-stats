@@ -8,9 +8,10 @@ Regra de ouro: **cada fase termina com algo no ar**, não só no seu computador.
 O backend da Fase 1 que dava para fazer sozinho já está na `develop`. Daqui para a frente, o produto cresce em
 **fatias**: cada fatia junta o que falta de backend com a sua tela e entra em **um PR** para a `develop`.
 
-**Uma fatia por vez:** só uma tela fica em construção de cada vez. A próxima copia os padrões da anterior
-depois que você a valida no navegador. As telas seguem o `DESIGN.md` e as telas já feitas, sem passar pelo Paper
-(decisão de 24 out 2026).
+**Uma tela de referência por vez:** uma tela de tipo novo só entra em construção depois que a referência dela foi
+validada. As telas seguem o `DESIGN.md` e as telas já feitas, sem passar pelo Paper (decisão de 24 out 2026). Desde
+14 nov 2026 a validação é pelo álbum de prints do PR, e fatias que não se parecem rodam em paralelo, em ondas (ver
+abaixo).
 
 ### Modos
 - **Front:** a API já está na `develop`. Um agente, branch `feature/<fatia>`.
@@ -35,17 +36,24 @@ depois que você a valida no navegador. As telas seguem o `DESIGN.md` e as telas
 | 1 ✅ | `montar-times` | Par | PR #33 (fechar) | Admin monta Branco x Preto tocando no jogador e na vaga, e publica |
 | 2 ✅ | `seletor-de-times` | Par | `montar-times` | Gerar com `balanceTeams`, ajustar tocando, regerar e publicar. Subiu para depois de `montar-times` (24 out 2026): ajuda a testar as telas seguintes |
 | 3 ✅ | `placar-e-lances` | Par | PR #32 (fechar) | Placar, gols, assistências e gol contra; jogador lança os próprios, admin de todos |
-| 3b | `rodizio-reservas` | Par | `placar-e-lances` | Botão opcional na tela do jogo: cronômetro de 60 min que divide o tempo entre os confirmados e avisa quando cada reserva entra e quem sai (pedido do dono, 25 out 2026). Em aberto: conta por time ou geral, goleiro no rodízio, relógio só no celular de quem acionou ou compartilhado |
-| 3c | `auditoria-da-rodada` | Back | `placar-e-lances` | Tabela `RoundLog` (quem, o quê, quando, antes/depois) gravada na mesma transação de toda escrita de placar, etapa e lance, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
-| 3d | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | SSE (`GET .../match/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling na tela do jogo e na votação |
-| 3e | `orcamento-de-bundle` | Front | — | Rotas com `lazy` e limite de tamanho do bundle no CI |
-| 4 | `historico` | Par | PR #31 (fechar) | Lista de rodadas e detalhe da partida |
-| 5 | `perfil-jogador` | Par | — | Editar perfil; admin define nota inicial, goleiro contratado e ativo/inativo. **Fecha a Fase 1 no ar** |
-| 6 | `votacao` | Par | — | Tabelas do voto, abrir/fechar a votação, tela "Dê sua nota", Craque / Perna de Pau |
-| 7 | `ranking` | Par | `votacao` | Ranking geral e por posição, perfil com stats |
-| 8 | `feed` | Par | — | Resenhas do admin, reações, comentários e cards de alerta |
-| 9 | `pwa-e-push` | Par | — | PWA instalável e Web Push |
-| 10 | `producao` | Back | — | `main` no ar, Sentry e backup do banco. Depois, **lançar para a pelada** |
+| 4 | `perfil-jogador` | Par | — | **Onda 1.** Bonequinho pixel ao escolher o apelido (cor da pele e cabelo), que vira o rosto do jogador em todo lugar; editar perfil; admin cuida do elenco (nota inicial, goleiro contratado, admin, ativo/inativo). **Fecha a Fase 1** |
+| 5 | `orcamento-de-bundle` | Front | — | **Onda 1.** Rotas com `lazy` e limite de tamanho do bundle conferido no build (e no CI) |
+| 6 | `rodizio-reservas` | Par | `placar-e-lances` | **Onda 2.** Botão opcional na tela do jogo: cronômetro (60 min por padrão) que divide o tempo entre os jogadores de linha de cada time e avisa quem entra e quem sai (pedido do dono, 25 out 2026) |
+| 7 | `historico` | Par | PR #31 (fechar) | **Onda 2.** Aba Histórico: partidas finalizadas com placar e o resultado de quem vê; detalhe com o campo e os lances |
+| 8 | `votacao` | Par | — | **Onda 3.** Tabelas do voto, tela "Dê sua nota", Craque / Perna de Pau, fechar a votação (todos votaram, prazo ou admin), apuração gravada e resultado da rodada |
+| 9 | `auditoria-da-rodada` | Back | `placar-e-lances` | **Onda 4.** Tabela `RoundLog` (quem, o quê, quando, antes/depois) gravada na mesma transação de toda escrita de placar, etapa e lance, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
+| 10 | `ranking` | Par | `votacao` | **Onda 4.** Ranking geral, por posição e de goleiros; perfil do jogador com estatísticas; a nota do seletor passa a acompanhar as rodadas |
+| 11 | `pacote-do-craque` | Front | `votacao` | **Onda 4.** Grande momento: o resultado chega como pacote, que rasga e revela a carta do Craque, com Compartilhar (fatia nova, 14 nov 2026) |
+| 12 | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
+| 13 | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Onda 5.** SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
+| 14 | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado |
+| 15 | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry e backup do banco. Depois, a release e **lançar para a pelada** |
+
+**Ondas (14 nov 2026):** o que falta roda em 6 ondas de até 3 fatias em paralelo, com uma dona do `schema.prisma`
+por onda. Ordem, dependências e telas de referência: [`specs/ondas-v1.md`](specs/ondas-v1.md). Cada fatia tem o
+spec em `docs/specs/<fatia>.md`, escrito em lote pelo líder da v1; as dúvidas e as respostas do dono estão em
+[`specs/perguntas-v1.md`](specs/perguntas-v1.md). A numeração mudou: `auditoria-da-rodada` e `jogo-ao-vivo` passaram
+para depois de `votacao`.
 
 Os PRs #31, #32 e #33 viram pares. O back aproveita a API da branch antiga, atualiza com as decisões de
 #35/#36 e revisa. O front refaz a tela no padrão das telas de entrar e de rodadas. O PR antigo fecha quando o

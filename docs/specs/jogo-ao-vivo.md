@@ -9,7 +9,7 @@
 | **Modo** | Par |
 | **Parte de** | `auditoria-da-rodada` (os pontos de escrita da rodada já passam por um lugar só) |
 | **Status** | rascunho |
-| **Base** | develop @4a1540e |
+| **Base** | develop @1021769 |
 | **Depende de** | auditoria-da-rodada, votacao, rodizio-reservas |
 | **Toca em** | packages/shared/src/live.ts, packages/shared/src/index.ts, apps/api/src/live, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/config/env.ts, .env.example, apps/web/src/features/live, apps/web/src/features/match/queries.ts, apps/web/src/features/match/refresh-interval.ts, apps/web/src/features/voting, apps/web/src/app/shell.tsx |
 

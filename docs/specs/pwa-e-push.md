@@ -10,7 +10,7 @@
 | **Modo** | Par |
 | **Parte de** | — (o manifesto, os ícones e o service worker do `vite-plugin-pwa` já estão na `develop`) |
 | **Status** | rascunho |
-| **Base** | develop @4a1540e |
+| **Base** | develop @1021769 |
 | **Depende de** | feed, votacao, perfil-jogador |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/notifications, packages/domain/src/index.ts, packages/shared/src/push.ts, packages/shared/src/index.ts, apps/api/src/push, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/match/match.service.ts, apps/api/src/voting, apps/api/src/config/env.ts, apps/api/src/app.module.ts, apps/api/package.json, pnpm-lock.yaml, .env.example, render.yaml, apps/web/vite.config.ts, apps/web/public/push-sw.js, apps/web/src/features/pwa, apps/web/src/features/feed, apps/web/src/pages/perfil, apps/web/src/features/group/use-current-group.ts, apps/web/src/app/shell.tsx |
 

@@ -10,7 +10,7 @@
 | **Modo** | Back |
 | **Parte de** | — (staging já está no ar: `docs/deploy.md`) |
 | **Status** | rascunho |
-| **Base** | develop @4a1540e |
+| **Base** | develop @1021769 |
 | **Depende de** | auditoria-da-rodada, orcamento-de-bundle |
 | **Toca em** | render.yaml, apps/web/vercel.json, .github/workflows, scripts, docs/deploy.md, docs/lancamento.md, docs/02-arquitetura.md, .env.example, apps/api/src/config/env.ts, apps/api/src/main.ts, apps/api/src/setup-app.ts, apps/api/src/common, apps/api/src/seed, apps/api/package.json, apps/web/src/main.tsx, apps/web/src/app, apps/web/package.json, pnpm-lock.yaml |
 

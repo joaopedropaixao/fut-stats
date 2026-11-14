@@ -10,7 +10,7 @@
 | **Modo** | Par |
 | **Parte de** | — |
 | **Status** | rascunho |
-| **Base** | develop @4a1540e |
+| **Base** | develop @1021769 |
 | **Depende de** | — |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/group, packages/shared/src/group.ts, packages/shared/src/auth.ts, packages/shared/src/round.ts, packages/shared/src/match.ts, apps/api/src/groups, apps/api/src/auth, apps/api/src/rounds, apps/api/src/lineups, apps/api/src/match, apps/api/src/seed, apps/web/src/components/ui/avatar.tsx, apps/web/src/components/ui/pixel-sprite, apps/web/src/features/group, apps/web/src/features/lineup, apps/web/src/features/match, apps/web/src/features/rounds, apps/web/src/pages/entrar-e-grupo, apps/web/src/pages/perfil, apps/web/src/pages/elenco, apps/web/src/router.tsx |
 

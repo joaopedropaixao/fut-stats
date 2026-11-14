@@ -10,7 +10,7 @@
 | **Modo** | Par |
 | **Parte de** | — |
 | **Status** | rascunho |
-| **Base** | develop @4a1540e |
+| **Base** | develop @1021769 |
 | **Depende de** | votacao, pacote-do-craque, perfil-jogador |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/feed, packages/domain/src/index.ts, packages/shared/src/feed.ts, packages/shared/src/index.ts, apps/api/src/feed, apps/api/src/app.module.ts, apps/api/src/seed, apps/web/src/pages/feed, apps/web/src/features/feed, apps/web/src/pages/rounds/home.tsx, apps/web/src/features/voting, apps/web/src/features/match/game-card.tsx, apps/web/src/router.tsx |
 

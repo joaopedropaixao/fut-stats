@@ -10,7 +10,7 @@
 | **Modo** | Par |
 | **Parte de** | `placar-e-lances` (a tela `/rodadas/:roundId/jogo` e as rotas de `.../match`) |
 | **Status** | rascunho |
-| **Base** | develop @4a1540e |
+| **Base** | develop @1021769 |
 | **Depende de** | perfil-jogador |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/shared/src/match.ts, packages/shared/src/domain.ts, apps/api/src/match, apps/api/src/seed, apps/web/src/features/match, apps/web/src/pages/match |
 

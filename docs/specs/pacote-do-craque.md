@@ -10,7 +10,7 @@
 | **Modo** | Front |
 | **Parte de** | `votacao` (a tela `/rodadas/:roundId/resultado` e a carta do Craque) |
 | **Status** | rascunho |
-| **Base** | develop @4a1540e |
+| **Base** | develop @1021769 |
 | **Depende de** | votacao |
 | **Toca em** | apps/web/src/features/pack, apps/web/src/features/voting, apps/web/src/pages/voting/result-page.tsx, apps/web/src/index.css, apps/web/src/components/ui/pixel-sprite-maps.ts |
 

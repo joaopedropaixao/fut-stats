@@ -10,7 +10,7 @@
 | **Modo** | Par |
 | **Parte de** | — |
 | **Status** | rascunho |
-| **Base** | develop @4a1540e |
+| **Base** | develop @1021769 |
 | **Depende de** | perfil-jogador, historico |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/domain/src/round-score, packages/shared/src/voting.ts, packages/shared/src/round.ts, packages/shared/src/history.ts, packages/shared/src/domain.ts, apps/api/src/voting, apps/api/src/match, apps/api/src/rounds, apps/api/src/history, apps/api/src/seed, apps/api/src/config/env.ts, .env.example, apps/web/src/features/voting, apps/web/src/pages/voting, apps/web/src/pages/rounds/home.tsx, apps/web/src/pages/rounds/detail.tsx, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/router.tsx |
 

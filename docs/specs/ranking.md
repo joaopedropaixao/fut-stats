@@ -10,7 +10,7 @@
 | **Modo** | Par |
 | **Parte de** | `votacao` (o resultado gravado em `TeamPlayer`) |
 | **Status** | rascunho |
-| **Base** | develop @4a1540e |
+| **Base** | develop @1021769 |
 | **Depende de** | votacao, perfil-jogador |
 | **Toca em** | packages/domain/src/ranking, packages/shared/src/ranking.ts, packages/shared/src/index.ts, apps/api/src/ranking, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/app.module.ts, apps/web/src/pages/ranking, apps/web/src/features/ranking, apps/web/src/pages/perfil, apps/web/src/router.tsx |
 
