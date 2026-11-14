@@ -6,13 +6,13 @@ Projeto de portfólio/laboratório. Esta revisão descreve o produto e o código
 
 | Rodada | Escopo | Estágios | Estado |
 |---|---|---|---|
-| 1 | Pessoas, permissões e jornadas/estados | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Corrigido após QA 1; revisão independente fresca pendente |
+| 1 | Pessoas, permissões e jornadas/estados | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Corrigido após QA 2 (C6); revisão visual C7 pendente |
 | 2 | Estrutura real, entidades e sequências de requisições/dados | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Aguardando revisão da rodada 1 |
 | 3 | Carga/capacidade, segurança da aplicação, operação/confiabilidade e decisões de evolução | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Aguardando revisão da rodada 2 |
 
 - **Validadores:** autoria TPL (esta sessão), revisão independente pelo QA lançado pelo coordenador e apresentação/validação do dono. Nenhum estágio posterior está aprovado por este rascunho.
 - **Critério por estágio:** afirmações ligadas a caminho e símbolo/seção; diferenças entre documentação e código explicitadas; diagramas nativos importáveis, legíveis e coerentes com as fontes; perguntas só quando alterarem o desenho.
-- **Estado desta revisão:** rascunho documental corrigido após QA 1; importação nativa e inspeção visual pelo TPL dos três diagramas concluídas; QA fresco e apresentação ao dono pendentes. Não aprovado pelo dono.
+- **Estado desta revisão:** rascunho documental corrigido após QA 2 em C6; a revisão independente manteve C7 visual pendente e a QA visual nativa dos três arquivos está pendente; o coordenador confirmou a importação do diagrama 01 e disponibilizou caminho para QA3. Apresentação ao dono pendente. Não aprovado pelo dono.
 - **Data:** 14/11/2026.
 - **Base inicial:** `024186f0cc935f3c835bd5e93e98e9a59654b37c`.
 - **Base de produto:** código lido no mesmo SHA inicial; documentação antiga é referência de intenção, não prova de implementação.
@@ -27,7 +27,7 @@ Projeto de portfólio/laboratório. Esta revisão descreve o produto e o código
 
 ## Revisão independente
 
-O primeiro QA documental (C1–C9) reprovou C6 (A11 tratava suporte existente como hipótese) e C7 (colisões de texto nos diagramas 01 e 03). O QA confirmou `audit-tree changed: []` e não alterou arquivos. As correções foram aplicadas, C1–C9 continuam pendentes de nova revisão independente. Relatório local fora do Git: `/tmp/fut-stats-arquitetura-qa1-relatorio.md`.
+O QA 1 (C1–C9) reprovou C6 (A11 tratava suporte existente como hipótese) e C7 (colisões nos diagramas 01 e 03); correções foram aplicadas. O QA 2 aprovou C1–C5 e C8–C9, reprovou C6 por status P incorreto para scout no diagrama 02, e manteve C7 pendente: não importou nem renderizou os arquivos nativos. O QA confirmou `audit-tree changed: []` e não alterou arquivos. Relatórios locais fora do Git: `/tmp/fut-stats-arquitetura-qa1-relatorio.md` e `/tmp/fut-stats-arquitetura-qa2-relatorio.md`.
 
 ## Achados que condicionam a leitura
 
