@@ -110,4 +110,24 @@ desktop, e a tabela do build colada no PR.
 - Nenhuma: fatia técnica, sem regra de negócio (parecer do Head de Engenharia, 30 out 2026, aprovado pelo dono).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+3 voltas. Volta 1: C1–C13 ✅, reprovada por um extra (esqueleto de `/entrar`, `/convite/:code` e `/comecar` aparecia
+com a barra de abas). Volta 2: correção ✅, reprovada por faltar o teste que reproduz o bug. Volta 3: **APROVADO**.
+
+| Cenário | Teste | Resultado | Evidência |
+|---|---|---|---|
+| C1 `checkBudget` | unitário | ✅ | `scripts/bundle-budget.test.ts`, testes "C1: ..." |
+| C2 `initialFiles` | unitário | ✅ | mesmo arquivo, "C2: ..." (recursão, repetição, ciclo) |
+| C3 build normal | checagem no build | ✅ | tabela com ✓, saída 0, "dist sem jsxDEV" |
+| C4 JS inicial forçado a 1 kB | checagem no build | ✅ | sai 1: "JS inicial: 143.6 kB, limite 1 kB (estourou por 142.6 kB)" |
+| C5 `GITHUB_STEP_SUMMARY` | unitário | ✅ | teste "C5"; no build real a tabela Markdown foi escrita no arquivo |
+| C6 rede em `/` | Playwright (preview) | ✅ | só `index`, `home` e dependências; nenhum pedaço das outras áreas |
+| C7 pré-carga | Playwright | ✅ | 5 pedaços das abas em ~1 s parado; nada com `saveData` |
+| C8 rede lenta, aba Times | Playwright | ✅ | pílula troca na hora, tela anterior fica, esqueleto após 300 ms, nunca em branco |
+| C9 URL direta `/rodadas/:id/jogo` | Playwright | ✅ | esqueleto na moldura, depois a tela; console limpo |
+| C10 pedaço 404 | Playwright | ✅ | recarrega uma vez; 404 sempre → "Tentar de novo", sem laço |
+| C11 telas de dev fora | checagem no build | ✅ | "dist sem as telas de dev"; grep no `dist` vazio |
+| C12 todas as telas | Playwright | ✅ | branch x develop em build a 390 px: texto, DOM e PNG idênticos |
+| C13 esqueleto 320/375/390/430/desktop | Playwright | ✅ | sem rolagem horizontal nem sobreposição, com e sem abas |
+| Extra: esqueleto sem abas fora do shell | Playwright + unitário | ✅ | `src/app/route-fallback.test.tsx` (falha se as abas voltarem) |
+
+Build final (gzip): JS inicial 143.6 / 150 kB · maior pedaço 9.2 / 40 kB · CSS 9.0 / 25 kB · JS total 187.3 / 400 kB.
