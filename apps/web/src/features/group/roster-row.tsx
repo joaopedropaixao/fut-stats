@@ -54,7 +54,7 @@ export function RosterRow({
           <Badge
             label={admin ? 'Admin' : 'Jogador'}
             variant={admin ? 'admin' : 'neutral'}
-            className="h-6 shrink-0 px-2"
+            className="h-6! shrink-0 px-2"
           />
         </div>
       </div>
