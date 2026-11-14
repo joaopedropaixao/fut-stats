@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useRouteError } from 'react-router';
 import { ErrorState, SkeletonList } from '../components/ui/states';
-import { isChunkLoadError, reloadOnce } from './chunk-reload';
+import { isChunkLoadError, isReloading, reloadOnce } from './chunk-reload';
 
 /**
  * Erro de rota. Pedaço que sumiu (deploy novo com a aba aberta): recarrega uma vez e abre a tela; se falhar de
@@ -11,7 +11,7 @@ export function RouteError() {
   const error = useRouteError();
   const missingChunk = isChunkLoadError(error);
   // Fica `true` enquanto a página está sendo recarregada (primeira falha)
-  const reloading = missingChunk && reloadOnce();
+  const reloading = missingChunk && (isReloading() || reloadOnce());
 
   useEffect(() => {
     if (!missingChunk) console.error(error);

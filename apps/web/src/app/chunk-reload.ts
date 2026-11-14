@@ -8,6 +8,9 @@ const MARK = 'fut-stats:chunk-reload';
 const CHUNK_ERROR =
   /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Unable to preload CSS/i;
 
+// A página já foi mandada recarregar (a recarga ainda não aconteceu): quem mostra erro espera em vez de piscar
+let reloadStarted = false;
+
 type MarkStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 /** O erro é de um .js carregado sob demanda que não veio (e não de um erro de código da tela)? */
@@ -29,8 +32,14 @@ export function reloadOnce(
   } catch {
     return false;
   }
+  reloadStarted = true;
   reload();
   return true;
+}
+
+/** Uma recarga por pedaço que sumiu já foi pedida e está a caminho. */
+export function isReloading(): boolean {
+  return reloadStarted;
 }
 
 /** Uma navegação deu certo: o próximo pedaço que sumir ganha uma nova recarga. */
@@ -42,10 +51,18 @@ export function clearReloadMark(storage: MarkStorage | null = browserStorage()) 
   }
 }
 
-/** O Vite avisa quando um import dinâmico falha: recarrega uma vez (se já recarregou, deixa o erro seguir). */
-export function reloadOnPreloadError() {
-  window.addEventListener('vite:preloadError', (event) => {
-    if (reloadOnce()) event.preventDefault();
+/**
+ * O Vite avisa quando um import dinâmico falha: recarrega uma vez, já na tela que a pessoa tinha pedido
+ * (`getTarget` devolve o endereço da navegação em andamento). Não cancela o evento: o erro segue para a rota,
+ * que mostra o esqueleto enquanto a recarga não vem (ou o erro, se já recarregou antes).
+ */
+export function reloadOnPreloadError(getTarget: () => string | undefined) {
+  window.addEventListener('vite:preloadError', () => {
+    reloadOnce(() => {
+      const target = getTarget();
+      if (target) window.location.assign(target);
+      else window.location.reload();
+    });
   });
 }
 

@@ -20,9 +20,14 @@ function saveDataOn() {
   );
 }
 
+/** Espera 1 s com a tela parada (os dados da primeira tela têm a rede na frente) e então o navegador ficar ocioso. */
+const SETTLE_MS = 1000;
+
 function whenIdle(task: () => void) {
-  if ('requestIdleCallback' in window) window.requestIdleCallback(task, { timeout: 1500 });
-  else setTimeout(task, 200);
+  setTimeout(() => {
+    if ('requestIdleCallback' in window) window.requestIdleCallback(task, { timeout: 800 });
+    else task();
+  }, SETTLE_MS);
 }
 
 export function preloadAreas() {

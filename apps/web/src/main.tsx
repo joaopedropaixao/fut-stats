@@ -14,15 +14,22 @@ import { applyBackground } from './lib/theme';
 import { router } from './router';
 
 applyBackground();
-reloadOnPreloadError();
 const queryClient = createQueryClient();
 
-// Uma navegação deu certo (sem erro de rota): se a página foi recarregada por um pedaço que sumiu, a marca sai
-function clearMarkWhenHealthy({ state }: Pick<typeof router, 'state'>) {
-  if (state.initialized && state.navigation.state === 'idle' && !state.errors) clearReloadMark();
-}
-clearMarkWhenHealthy(router);
-router.subscribe((state) => clearMarkWhenHealthy({ state }));
+// Pedaço que sumiu: recarrega uma vez, já na tela pedida (a navegação em andamento, se houver)
+reloadOnPreloadError(() => {
+  const pending = router.state.navigation.location;
+  return pending ? `${pending.pathname}${pending.search}${pending.hash}` : undefined;
+});
+
+// Uma navegação deu certo (tela nova, sem erro de rota): a marca da recarga sai e o próximo pedaço que sumir
+// ganha uma nova recarga. A carga inicial não conta: a pré-carga logo depois dela pode falhar de novo.
+const firstLocation = router.state.location;
+router.subscribe((state) => {
+  if (state.navigation.state === 'idle' && !state.errors && state.location !== firstLocation) {
+    clearReloadMark();
+  }
+});
 // Com a primeira tela pronta, os pedaços das outras áreas chegam em segundo plano
 preloadWhenReady(router);
 
