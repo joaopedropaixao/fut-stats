@@ -1,6 +1,7 @@
 import { ROUND_TRANSITION_ERRORS } from '@fut-stats/domain';
 import { z } from 'zod';
 import {
+  avatarSchema,
   matchEventTypeSchema,
   matchResultSchema,
   matchScoreSchema,
@@ -23,6 +24,7 @@ export const matchPlayerSchema = z.object({
   membershipId: z.string(),
   nickname: z.string(),
   photoUrl: z.string().nullable(),
+  avatar: avatarSchema,
   team: teamSchema,
   position: positionSchema,
   isReserve: z.boolean(),
@@ -35,6 +37,7 @@ export const matchEventSchema = z.object({
   membershipId: z.string(),
   nickname: z.string(),
   photoUrl: z.string().nullable(),
+  avatar: avatarSchema,
   /** Time de quem fez (anel do avatar). */
   playerTeam: teamSchema,
   /** Time que ganhou o lance: no gol contra, o adversário. É a lista em que o lance aparece. */
