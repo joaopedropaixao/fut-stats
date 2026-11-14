@@ -1,5 +1,6 @@
 import {
   MATCH_RESULT_LABELS,
+  type PlayerAvatar,
   TEAM_LABELS,
   type MatchResult,
   type MatchScore,
@@ -21,6 +22,8 @@ type ResultCardProps = {
   score: MatchScore;
   /** O time de quem vê. */
   myTeam: Team;
+  /** O meu bonequinho: é ele que corre na entrada do card. */
+  avatar: PlayerAvatar;
 };
 
 /** Entrada 0–0,6 s, choque 0,6–0,9 s, depois o quadro final (que fica parado). */
@@ -148,7 +151,7 @@ function TeamBand({ team, shown }: { team: Team; shown: boolean }) {
  * por rodada (o chamador decide); "Pular" leva ao quadro final. Com "reduzir movimento" só aparece o quadro
  * final, com um fade (sem confete). A animação é decorativa (aria-hidden): o resultado é anunciado em texto.
  */
-export function ResultCard({ roundId, result, score, myTeam }: ResultCardProps) {
+export function ResultCard({ roundId, result, score, myTeam, avatar }: ResultCardProps) {
   const [reduced] = useState(prefersReducedMotion);
   const [phase, setPhase] = useState<Phase>(reduced ? 'final' : 'entry');
   const [animated] = useState(!reduced);
@@ -195,6 +198,7 @@ export function ResultCard({ roundId, result, score, myTeam }: ResultCardProps) 
               <PlayerSprite
                 key={i}
                 team={sprite}
+                avatar={avatar}
                 scale={2}
                 className={phase === 'entry' ? 'animate-vs-run' : undefined}
                 style={{ '--vs-from': '-96px', animationDelay: `${i * 70}ms` } as CSSProperties}

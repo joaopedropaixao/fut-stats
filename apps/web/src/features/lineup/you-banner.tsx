@@ -1,4 +1,4 @@
-import { TEAM_LABELS } from '@fut-stats/shared';
+import { TEAM_LABELS, type PlayerAvatar } from '@fut-stats/shared';
 import { Badge } from '../../components/ui/badge';
 import { PlayerSprite } from '../../components/ui/pixel-sprite';
 import { PixelText } from '../../components/ui/pixel-text';
@@ -7,12 +7,14 @@ import type { TeamKey } from './lineup-draft';
 
 type YouBannerProps = {
   team: TeamKey;
+  /** O meu bonequinho. */
+  avatar: PlayerAvatar;
   /** Posição por extenso ("Zagueiro") ou `null` para reserva. */
   position: string | null;
 };
 
 /** Faixa de quem está escalado: "Você joga no Branco", a posição e o selo do time. Texto e forma, não só cor. */
-export function YouBanner({ team, position }: YouBannerProps) {
+export function YouBanner({ team, avatar, position }: YouBannerProps) {
   const white = team === 'WHITE';
   return (
     <section
@@ -28,7 +30,7 @@ export function YouBanner({ team, position }: YouBannerProps) {
         aria-hidden
         className="inline-flex size-14 shrink-0 items-center justify-center bg-field shadow-[inset_0_0_0_2px_rgb(255_255_255/30%)]"
       >
-        <PlayerSprite team={white ? 'white' : 'black'} scale={3} />
+        <PlayerSprite team={white ? 'white' : 'black'} avatar={avatar} scale={3} />
       </span>
       <div className="flex min-w-0 flex-col gap-2">
         <PixelText wrap>{`Você joga no ${TEAM_LABELS[team]}`}</PixelText>
