@@ -37,7 +37,7 @@ function placeholderRoute(tab: Tab): RouteObject {
 export const router = createBrowserRouter([
   {
     element: <AppShell />,
-    hydrateFallbackElement: <RouteFallback />,
+    hydrateFallbackElement: <RouteFallback tabs />,
     children: [
       {
         // Erro de uma tela (pedaço que não veio) aparece no lugar dela, com as abas ainda na tela
