@@ -251,6 +251,9 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
   - Cores por papel do DS: resultado em ouro, votação em laranja (atenção), presença em verde, jogo em creme com
     o ponto "ao vivo". Sempre com ícone e o tipo por escrito.
   - A lista "Quem vai" sai do início e fica no detalhe da rodada; o card da presença ganha a fileira de rostos.
+  - A consulta dos avisos usa uma chave **sob a da lista de rodadas** (`[...roundsKey(groupId), 'alerts']`): tudo
+    que já invalida a lista de rodadas (mudança de etapa, e o tempo real de `jogo-ao-vivo`) atualiza os avisos sem
+    código a mais.
 - **Resenha** (`features/feed/post-card.tsx`): referência = o card de grande momento do início e a lista de
   presença para a linha do autor. Reações: 5 ícones pixel novos (12 × 12) em `pixel-sprite-maps.ts`. Comentários
   abrem no lugar (sem gaveta), carregados na primeira abertura. Atualização otimista na reação, com volta em caso
