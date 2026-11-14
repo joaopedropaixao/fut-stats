@@ -1,0 +1,21 @@
+meta {
+  name: Grupo de outro (intruso)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{outsiderCookie}}
+}
+
+tests {
+  test("status 404", function () {
+    expect(res.status).to.equal(404);
+  });
+}

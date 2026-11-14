@@ -1,0 +1,30 @@
+meta {
+  name: Ver codigo do convite
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}/invite
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+vars:post-response {
+  inviteCode: res.body.code
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("código url-safe de 12 caracteres", function () {
+    expect(res.body).to.have.all.keys("code");
+    expect(res.body.code).to.match(/^[A-Za-z0-9_-]{12}$/);
+  });
+}

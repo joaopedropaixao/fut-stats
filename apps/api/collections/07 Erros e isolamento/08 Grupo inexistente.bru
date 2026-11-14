@@ -1,0 +1,21 @@
+meta {
+  name: Grupo inexistente
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/groups/grupo-que-nao-existe
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+tests {
+  test("status 404", function () {
+    expect(res.status).to.equal(404);
+  });
+}

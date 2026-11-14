@@ -1,0 +1,33 @@
+meta {
+  name: Gerar codigo novo
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/groups/{{groupId}}/invite
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("oldInviteCode", bru.getVar("inviteCode"));
+    bru.setVar("inviteCode", res.body.code);
+  }
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("código novo, diferente do antigo", function () {
+    expect(res.body.code).to.match(/^[A-Za-z0-9_-]{12}$/);
+    expect(res.body.code).to.not.equal(bru.getVar("oldInviteCode"));
+  });
+}

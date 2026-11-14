@@ -1,0 +1,35 @@
+meta {
+  name: Posicao invalida
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/groups
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+body:json {
+  {
+    "name": "Pelada Erro",
+    "nickname": "Dono",
+    "primaryPosition": "STRIKER"
+  }
+}
+
+tests {
+  test("status 400", function () {
+    expect(res.status).to.equal(400);
+  });
+
+  test("aponta o campo primaryPosition", function () {
+    expect(res.body.message).to.equal("Dados inválidos");
+    const paths = res.body.issues.map((i) => i.path);
+    expect(paths).to.include("primaryPosition");
+  });
+}

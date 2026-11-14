@@ -8,11 +8,13 @@ import { positionSchema } from './domain';
 export const NICKNAME_ERROR_LABELS: Readonly<Record<TextFieldError, string>> = {
   EMPTY: 'Informe o apelido',
   TOO_LONG: 'O apelido pode ter até 10 caracteres',
+  INVALID_CHARACTERS: 'O apelido tem um caractere inválido',
 };
 
 export const GROUP_NAME_ERROR_LABELS: Readonly<Record<TextFieldError, string>> = {
   EMPTY: 'Informe o nome da pelada',
   TOO_LONG: 'O nome da pelada pode ter até 50 caracteres',
+  INVALID_CHARACTERS: 'O nome da pelada tem um caractere inválido',
 };
 
 /** Por que não dá para entrar no grupo pelo convite. */
@@ -20,10 +22,11 @@ export const JOIN_GROUP_ERROR_LABELS: Readonly<Record<JoinGroupError, string>> =
   MEMBERSHIP_INACTIVE: 'Sua participação nesta pelada está desativada. Fale com o admin.',
 };
 
-/** Apelido: espaço nas pontas é removido; até 10 caracteres. */
+/** Apelido: sem espaço nas pontas e em NFC (acento composto, igual em toda origem); até 10 caracteres. */
 export const nicknameSchema = z
   .string()
   .trim()
+  .normalize('NFC')
   .superRefine((value, ctx) => {
     const error = validateNickname(value);
     if (error) ctx.addIssue({ code: 'custom', message: NICKNAME_ERROR_LABELS[error] });
@@ -32,6 +35,7 @@ export const nicknameSchema = z
 export const groupNameSchema = z
   .string()
   .trim()
+  .normalize('NFC')
   .superRefine((value, ctx) => {
     const error = validateGroupName(value);
     if (error) ctx.addIssue({ code: 'custom', message: GROUP_NAME_ERROR_LABELS[error] });

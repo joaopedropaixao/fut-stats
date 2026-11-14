@@ -1,0 +1,25 @@
+meta {
+  name: Ver codigo depois de trocar
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}/invite
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("devolve o código novo", function () {
+    expect(res.body.code).to.equal(bru.getVar("inviteCode"));
+  });
+}

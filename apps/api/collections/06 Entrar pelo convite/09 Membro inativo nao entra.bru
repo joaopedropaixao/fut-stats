@@ -1,0 +1,37 @@
+meta {
+  name: Membro inativo nao entra
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/invites/{{inactiveInviteCode}}/join
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{inactiveCookie}}
+}
+
+body:json {
+  {
+    "nickname": "Inativo",
+    "primaryPosition": "DEFENDER"
+  }
+}
+
+tests {
+  test("status 409", function () {
+    expect(res.status).to.equal(409);
+  });
+
+  test("erro MEMBERSHIP_INACTIVE com mensagem", function () {
+    expect(res.body.code).to.equal("MEMBERSHIP_INACTIVE");
+    expect(res.body.message).to.be.a("string").and.not.empty;
+  });
+}
+
+docs {
+  A participação inativa é criada pelo `dev-session.ts` na "Pelada Inativa".
+}

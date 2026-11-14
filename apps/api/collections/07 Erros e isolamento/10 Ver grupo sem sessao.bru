@@ -1,0 +1,17 @@
+meta {
+  name: Ver grupo sem sessao
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 401", function () {
+    expect(res.status).to.equal(401);
+  });
+}

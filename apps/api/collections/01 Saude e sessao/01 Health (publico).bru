@@ -1,0 +1,21 @@
+meta {
+  name: Health (publico)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/health
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("status ok", function () {
+    expect(res.body).to.eql({ status: "ok" });
+  });
+}
