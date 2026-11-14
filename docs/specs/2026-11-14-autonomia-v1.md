@@ -90,6 +90,25 @@ Os agentes seguem cautelas ao pé da letra. Por isso a lista do que **não** pre
 - mexer no banco do dono (o do `.env`) ou no de outra equipe;
 - apagar qualquer coisa fora do próprio worktree.
 
+## Coordenação: quadro, checkpoints e detector de atraso
+Aprovado pelo dono em 14 nov 2026, antes de lançar o líder. Os atrasos que já aconteceram têm a mesma causa:
+**ninguém fica sabendo que a base mudou** (PRs feitos antes de decisões novas, rebase sem push, commits presos,
+spec escrito antes do que entrou depois).
+
+- **Quadro** (`.claude/scripts/quadro.sh`, arquivo `.claude/quadro-v1.local.tsv` no checkout principal, fora do
+  git): uma linha por fatia com etapa, base, quanto está atrás da develop, estado do push, **Toca em**, aviso e
+  hora. TPL e líder atualizam a cada etapa. É a fonte da verdade; mensagem entre sessões é só o empurrão.
+- **Checkpoints** (skill `tpl`): ao começar (base do spec x develop), antes de cada volta de QA (rebase e push),
+  ao mudar contrato/schema/`CONTEXT.md`, ao receber aviso do orquestrador e antes do PR.
+- **Checkpoint de merge** (skill `mergear`): a cada merge, o orquestrador cruza os arquivos do PR com o **Toca em**
+  de cada fatia ativa e avisa as afetadas no quadro e por mensagem.
+- **Detector de atraso** (`.claude/scripts/checar-atraso.sh`): commits atrás da develop, sem push, local divergente
+  do remoto, mudança sem commit, quadro parado há mais de 2 h e spec aprovado cuja dependência entrou depois da
+  base. Roda sozinho ao abrir a sessão do orquestrador (hook `atraso-ao-iniciar`) e antes de cada merge.
+- **Sem push pendente** (hook `sem-push-pendente`, Stop): sessão de worktree de feature não para com commit sem
+  push (as branches `-back`/`-front` ficam de fora: são locais por desenho).
+- **Spec com base:** o modelo ganhou **Base**, **Depende de** e **Toca em**.
+
 ## Erros de processo que já aconteceram
 - Rebase feito e não enviado: o #49 ficou dias em conflito no GitHub.
 - Commits que nunca subiram: 5 correções de grupos ficaram só numa branch local (recuperadas no #53).
@@ -106,3 +125,6 @@ Os agentes seguem cautelas ao pé da letra. Por isso a lista do que **não** pre
 | `.claude/agents/dev-front.md` | Regras de visual e responsivo como critério |
 | `.claude/agents/qa.md` | Álbum, checagem de sobreposição, larguras |
 | `.claude/agents/dev-back.md` | Push e lista do que não precisa de aprovação |
+| `.claude/scripts/quadro.sh`, `.claude/scripts/checar-atraso.sh` | Quadro e detector de atraso |
+| `.claude/hooks/atraso-ao-iniciar.sh`, `.claude/hooks/sem-push-pendente.sh` | Alertas ao abrir o orquestrador; nada de parar sem push |
+| `docs/specs/_modelo.md` | Base, Depende de e Toca em |

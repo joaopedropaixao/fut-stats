@@ -249,9 +249,86 @@ skill_diz tpl 'Volta de design' "ajuste visual do dono não conta no limite"
 skill_diz mergear 'force-with-lease' "push do rebase com lease"
 skill_diz mergear 'Nunca encadeie a checagem e a remoção' "não apaga worktree sem conferir"
 skill_diz tpl 'skill `mergear`' "TPL aponta o merge para o orquestrador"
+skill_diz tpl 'Antes de cada volta de QA' "checkpoint de rebase e push antes do QA"
+skill_diz tpl 'quadro.sh set' "TPL atualiza o quadro"
+skill_diz mergear 'quadro.sh afetados' "checkpoint de merge avisa as fatias afetadas"
+skill_diz mergear 'checar-atraso.sh' "detector antes de mergear"
+skill_diz lider-v1 'Depende de' "spec do líder grava as dependências"
+skill_diz lancar-equipe 'quadro.sh set' "fatia lançada entra no quadro"
+
+# --- coordenação: quadro, detector de atraso e sem push pendente (spec 2026-11-14-autonomia-v1.md)
+SCRIPTS="$HOOKS/../scripts"
+g() { git -c user.name=t -c user.email=t@t "$@"; }
+REMOTO="$TMP/coord-remoto.git"
+COORD="$TMP/coord"
+git init -q --bare "$REMOTO"
+git init -q "$COORD" && git -C "$COORD" checkout -q -b develop
+g -C "$COORD" commit -q --allow-empty -m base
+git -C "$COORD" remote add origin "$REMOTO"
+git -C "$COORD" push -q origin develop
+git -C "$COORD" worktree add -q -b feature/fatia-a "$TMP/coord-a" develop
+git -C "$COORD" worktree add -q -b feature/fatia-b "$TMP/coord-b" develop
+g -C "$TMP/coord-a" commit -q --allow-empty -m "a1"
+git -C "$TMP/coord-a" push -q -u origin feature/fatia-a
+g -C "$TMP/coord-a" commit --amend -q --allow-empty -m "a1 reescrito"   # "rebase" sem push
+g -C "$TMP/coord-b" commit -q --allow-empty -m "b1"                     # nunca enviado
+# a develop anda com o merge da fatia-c, depois da base do spec da fatia-d
+base=$(git -C "$COORD" rev-parse --short HEAD)
+mkdir -p "$COORD/docs/specs"
+printf '| **Status** | aprovado em hoje |\n| **Base** | develop @%s |\n| **Depende de** | fatia-c |\n' "$base" >"$COORD/docs/specs/fatia-d.md"
+git -C "$COORD" add docs && g -C "$COORD" commit -q -m "spec d"
+git -C "$COORD" checkout -q -b feature/fatia-c && g -C "$COORD" commit -q --allow-empty -m c1
+git -C "$COORD" checkout -q develop
+g -C "$COORD" merge -q --no-ff -m "Merge pull request #9 from x/feature/fatia-c" feature/fatia-c
+git -C "$COORD" push -q origin develop && git -C "$COORD" fetch -q origin
+
+saida=$(CHECAR_SEM_FETCH=1 sh "$SCRIPTS/checar-atraso.sh" "$COORD")
+confere() { # confere <trecho> <descrição>
+  if printf '%s' "$saida" | grep -Fq -- "$1"; then echo "ok      checar-atraso: $2"; else
+    echo "FALHOU  checar-atraso: $2 (falta '$1' em: $saida)" && falhas=$((falhas + 1)); fi
+}
+confere "fatia-a: local e remoto divergiram" "rebase sem push (o caso do #49)"
+confere "fatia-b: 1 commits e a branch nunca foi enviada" "commit preso em branch local"
+confere "fatia-a: 3 commits atrás da develop" "branch atrás da develop"
+confere "fatia-d: spec rever, fatia-c entrou" "dependência mergeada depois da base do spec"
+
+# quadro: set, aviso, afetados, rm
+(cd "$TMP/coord-a" && QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" set fatia-a Implement "apps/api/prisma/schema.prisma,packages/shared/src/a.ts")
+(cd "$TMP/coord-b" && QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" set fatia-b "QA volta 1" "apps/web/src/features/b")
+(cd "$COORD" && QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" aviso fatia-b "rebase: #9")
+afet=$(printf 'packages/shared/src/a.ts\nREADME.md\n' | QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" afetados)
+[ "$afet" = "fatia-a" ] && echo "ok      quadro: afetados acha só quem toca no arquivo" ||
+  { echo "FALHOU  quadro: afetados (veio '$afet')"; falhas=$((falhas + 1)); }
+linha=$(QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" show fatia-b | tail -1)
+printf '%s' "$linha" | grep -q "rebase: #9" && printf '%s' "$linha" | grep -q "QA volta 1" &&
+  echo "ok      quadro: show mostra etapa e aviso" || { echo "FALHOU  quadro: show ($linha)"; falhas=$((falhas + 1)); }
+[ "$(cat "$TMP/coord-b/.claude/etapa.local")" = "QA volta 1" ] && echo "ok      quadro: set atualiza a status line" ||
+  { echo "FALHOU  quadro: etapa.local"; falhas=$((falhas + 1)); }
+(cd "$COORD" && QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" rm fatia-a)
+QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" show | grep -q "^fatia-a" &&
+  { echo "FALHOU  quadro: rm"; falhas=$((falhas + 1)); } || echo "ok      quadro: rm tira a fatia"
+
+# sem-push-pendente
+stop() { jq -nc --arg cwd "$1" --argjson a "${2:-false}" '{cwd: $cwd, stop_hook_active: $a, session_id: "teste"}'; }
+bloqueia() { printf '%s' "$1" | "$HOOKS/sem-push-pendente.sh" | jq -e '.decision == "block"' >/dev/null 2>&1; }
+bloqueia "$(stop "$TMP/coord-a")" && echo "ok      sem-push-pendente: rebase sem push não para" ||
+  { echo "FALHOU  sem-push-pendente: rebase sem push"; falhas=$((falhas + 1)); }
+bloqueia "$(stop "$TMP/coord-b")" && echo "ok      sem-push-pendente: branch nunca enviada não para" ||
+  { echo "FALHOU  sem-push-pendente: branch nunca enviada"; falhas=$((falhas + 1)); }
+bloqueia "$(stop "$TMP/coord-a" true)" && { echo "FALHOU  sem-push-pendente: stop_hook_active"; falhas=$((falhas + 1)); } ||
+  echo "ok      sem-push-pendente: segunda tentativa libera (sem laço)"
+bloqueia "$(stop "$COORD")" && { echo "FALHOU  sem-push-pendente: checkout principal"; falhas=$((falhas + 1)); } ||
+  echo "ok      sem-push-pendente: checkout principal não é checado"
+git -C "$COORD" worktree add -q -b feature/fatia-a-back "$TMP/coord-ab" develop
+g -C "$TMP/coord-ab" commit -q --allow-empty -m x
+bloqueia "$(stop "$TMP/coord-ab")" && { echo "FALHOU  sem-push-pendente: -back"; falhas=$((falhas + 1)); } ||
+  echo "ok      sem-push-pendente: branch -back é local por desenho"
+git -C "$TMP/coord-a" push -q --force-with-lease origin feature/fatia-a
+bloqueia "$(stop "$TMP/coord-a")" && { echo "FALHOU  sem-push-pendente: depois do push"; falhas=$((falhas + 1)); } ||
+  echo "ok      sem-push-pendente: com push em dia, para"
 
 # --- falha aberta
-for h in front-sem-shared sem-env sem-merge commit-sem-ia prettier statusline notifica; do
+for h in front-sem-shared sem-env sem-merge commit-sem-ia prettier statusline notifica sem-push-pendente atraso-ao-iniciar; do
   expect "$h" 0 "não é json" "entrada inválida libera"
 done
 

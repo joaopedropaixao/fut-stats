@@ -12,8 +12,23 @@ falam com você.
 **Nunca:** implementar a feature você mesmo (fora o commit do contrato), fazer merge na `develop`/`main`, inventar
 regra de negócio, ler `.env`.
 
-A cada mudança de etapa, escreva a etapa em `.claude/etapa.local` (a status line mostra):
-`Research` → `Spec: esperando ok` → `Implement` → `QA volta N` → `PR` → `Esperando o dono`.
+A cada mudança de etapa, atualize o **quadro** (fonte da verdade de quem está onde; ele também atualiza a status
+line): `sh .claude/scripts/quadro.sh set <fatia> "<etapa>" "<toca-em>"`. Etapas: `Research` →
+`Spec: esperando ok` → `Implement` → `QA volta N` → `PR` → `Esperando o dono`. O `toca-em` é a linha **Toca em**
+do spec; repita o set sempre que ele mudar (contrato, schema, telas).
+
+## Checkpoints (sincronizar com a develop e com as outras equipes)
+Em cada um: `git fetch`, leia a sua linha do quadro (`sh .claude/scripts/quadro.sh show <fatia>`) e trate o aviso
+que o orquestrador deixou (coluna aviso/bloqueio); depois limpe com `quadro.sh aviso <fatia> -`.
+
+| Quando | O que fazer |
+|---|---|
+| Ao começar | Compare a **Base** do spec com a `origin/develop`: entrou na develop alguma fatia de **Depende de** ou algo que cruza o seu **Toca em** (`git log --merges <base>..origin/develop`)? Revise o spec antes de implementar e atualize a Base |
+| Antes de cada volta de QA | Rebase de `-back` e `-front` (ou da sua branch) na `origin/develop`, rode os testes do pacote, push da `feature/<fatia>`. O QA testa contra a develop de hoje |
+| Mudou contrato, schema ou `CONTEXT.md` | Atualize o spec e o quadro (`toca-em`) na hora; o orquestrador avisa quem lê o mesmo model |
+| Mensagem do orquestrador ("develop mudou") | Pare no próximo ponto seguro, faça o que o aviso pede (rebase, rever contrato, refazer migration) e responda no quadro |
+| Antes do PR | Rebase, "pronto" na raiz e push. Um hook não deixa a sessão parar com commit sem push |
+
 
 Use `WT` = raiz deste worktree (`git rev-parse --show-toplevel`), `PAI` = `dirname $WT` e
 `MAIN` = primeiro caminho de `git worktree list` (checkout principal, de onde vem o `.env` da raiz).
@@ -42,7 +57,8 @@ negócio nova: pergunte ao dono. Depois vá para o passo 2. As regras de visual 
    (`<worktree dela>/docs/specs/<fatia>.md`) e compare os models com a sua. Mexem no mesmo model? Conte ao dono junto
    com o resumo e deixe escolher: seguir (a que entrar depois refaz a migration no rebase), adiar uma das fatias, ou só
    uma equipe mexer em `schema.prisma` por vez. Não mexem? Diga isso numa linha.
-6. Commit `docs(<fatia>): spec` e mostre ao dono um resumo: cenários, contrato, decisões.
+6. Preencha **Base**, **Depende de** e **Toca em** no spec. Commit `docs(<fatia>): spec`, push, `quadro.sh set` e
+   mostre ao dono um resumo: cenários, contrato, decisões.
 7. 🚦 **Portão 1:** espere o ok explícito do dono. Mudou algo? Ajuste, faça commit e pergunte de novo. Com o ok,
    marque `Status: aprovado em <data>` e faça commit.
 
@@ -102,6 +118,7 @@ refaz os prints delas. Não conta no limite de 3 voltas.
    por print dizendo o que olhar). Sem trailer de IA.
 5. Se a fatia tinha PR antigo, feche com um comentário apontando o novo.
 6. Remova os worktrees `-back` e `-front` (`git worktree remove`) e pare os servidores que você subiu.
+   `quadro.sh set <fatia> "Esperando o dono"`.
 7. 🚦 **Portão 2:** avise o dono com o link do PR e o álbum. Ele valida pelo álbum e só abre o navegador se algo
    parecer errado. Quem faz o merge é o orquestrador, com o ok do dono (skill `mergear`); você nunca faz.
 

@@ -21,3 +21,4 @@ apps/api/src/generated/
 
 # Etapa da fatia (status line da equipe)
 .claude/etapa.local
+.claude/quadro-v1.local.tsv*
