@@ -33,11 +33,12 @@ enum Team {
   BLACK
 }
 
-/// Ciclo da rodada: agendada → times publicados → em jogo → votação → encerrada.
+/// Ciclo da rodada: agendada → times publicados → em jogo → Resenha pós-jogo → votação → encerrada.
 enum RoundStatus {
   SCHEDULED
   TEAMS_PUBLISHED
   IN_PROGRESS
+  POST_MATCH
   VOTING
   CLOSED
 }
@@ -110,20 +111,22 @@ model Membership {
 
 /// Encontro semanal = uma partida Branco x Preto.
 model Round {
-  id          String      @id @default(cuid())
-  groupId     String
+  id             String      @id @default(cuid())
+  groupId        String
   /// Número da rodada no grupo (1, 2, 3...), "RODADA 12". Quem preenche é o banco: um trigger
   /// (migration round_number) grava o maior número do grupo + 1 em todo insert; o 0 do default
   /// nunca fica salvo. Apagar a última rodada libera o número; apagar outra deixa um buraco.
-  number      Int         @default(0)
-  scheduledAt DateTime
-  location    String?
-  status      RoundStatus @default(SCHEDULED)
+  number         Int         @default(0)
+  scheduledAt    DateTime
+  location       String?
+  status         RoundStatus @default(SCHEDULED)
   /// Placar: nulo até o admin lançar.
-  whiteGoals  Int?
-  blackGoals  Int?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  whiteGoals     Int?
+  blackGoals     Int?
+  /// Quando a rodada entrou em votação (o `openedAt` dela). Nulo antes; gravado no open-voting.
+  votingOpenedAt DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   group       Group        @relation(fields: [groupId], references: [id])
   attendances Attendance[]

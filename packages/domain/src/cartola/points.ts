@@ -1,7 +1,6 @@
 import type { Result } from '../core';
+import type { MatchResult } from '../round/match';
 import { DEFAULT_CARTOLA_SCORING, roundTo2, type CartolaScoringConfig } from './config';
-
-export type MatchResult = 'WIN' | 'DRAW' | 'LOSS';
 
 /** O que o jogador fez na partida da rodada, lançado pelo admin. */
 export interface CartolaScouts {
