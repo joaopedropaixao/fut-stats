@@ -39,13 +39,13 @@ export class GroupsController {
   @GroupMember()
   @Get(':groupId/members')
   members(@CurrentMembership() membership: GroupMembership): Promise<Member[]> {
-    return this.groups.listMembers(membership.groupId);
+    return this.groups.listMembers(membership);
   }
 
   @GroupRole('ADMIN')
   @Get(':groupId/invite')
   invite(@CurrentMembership() membership: GroupMembership): Promise<Invite> {
-    return this.groups.getInvite(membership.groupId);
+    return this.groups.getInvite(membership);
   }
 
   /** Gera um código novo; o antigo deixa de valer. */
@@ -53,7 +53,7 @@ export class GroupsController {
   @Post(':groupId/invite')
   @HttpCode(HttpStatus.OK)
   regenerateInvite(@CurrentMembership() membership: GroupMembership): Promise<Invite> {
-    return this.groups.regenerateInvite(membership.groupId);
+    return this.groups.regenerateInvite(membership);
   }
 }
 

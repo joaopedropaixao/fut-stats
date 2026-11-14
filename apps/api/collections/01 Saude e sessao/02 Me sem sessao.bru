@@ -1,0 +1,17 @@
+meta {
+  name: Me sem sessao
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/me
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 401", function () {
+    expect(res.status).to.equal(401);
+  });
+}

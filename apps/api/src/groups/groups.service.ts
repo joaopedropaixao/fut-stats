@@ -1,6 +1,12 @@
 import { randomBytes } from 'node:crypto';
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  compareNicknames,
   DEFAULT_INITIAL_RATING,
   nextAvailableSlug,
   toSlug,
@@ -17,15 +23,27 @@ import {
 } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
 import { Prisma } from '../generated/prisma/client';
-import type { Role } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 
-/** Tentativas de criar o grupo se outro pegar o mesmo slug no meio do caminho. */
-const SLUG_ATTEMPTS = 3;
+/** Tentativas com o slug "bonito" se outro grupo pegar o mesmo no meio do caminho; depois, sufixo aleatório. */
+const SLUG_ATTEMPTS = 5;
+
+/** Grupo + nº de membros ativos numa consulta só. */
+const GROUP_WITH_COUNT = {
+  id: true,
+  name: true,
+  slug: true,
+  _count: { select: { memberships: { where: { active: true } } } },
+} as const;
 
 /** Código do link de convite: 12 caracteres url-safe (72 bits aleatórios). */
 function newInviteCode(): string {
   return randomBytes(9).toString('base64url');
+}
+
+/** Sufixo de desempate quando vários grupos com o mesmo nome são criados ao mesmo tempo. */
+function randomSlugSuffix(): string {
+  return randomBytes(3).toString('hex');
 }
 
 function isUniqueViolation(e: unknown): boolean {
@@ -41,19 +59,17 @@ export class GroupsService {
   /** Cria o grupo com quem criou como ADMIN (também jogador, com a nota inicial padrão). */
   async create(userId: string, input: CreateGroupInput): Promise<GroupResponse> {
     const base = toSlug(input.name);
+    let taken = await this.takenSlugs(base);
     for (let attempt = 1; ; attempt += 1) {
-      const taken = await this.prisma.group.findMany({
-        where: { slug: { startsWith: base } },
-        select: { slug: true },
-      });
+      // Corrida (outro grupo pegou o mesmo slug no meio): relê e tenta de novo; por último, com sufixo aleatório.
+      const next = nextAvailableSlug(base, taken);
+      const slug = attempt <= SLUG_ATTEMPTS ? next : `${next}-${randomSlugSuffix()}`;
       try {
         const group = await this.prisma.group.create({
+          select: { ...GROUP_WITH_COUNT, memberships: { select: { id: true } } },
           data: {
             name: input.name,
-            slug: nextAvailableSlug(
-              base,
-              taken.map((g) => g.slug),
-            ),
+            slug,
             inviteCode: newInviteCode(),
             memberships: {
               create: {
@@ -65,32 +81,31 @@ export class GroupsService {
               },
             },
           },
-          include: { memberships: { select: { id: true } } },
         });
-        return {
-          id: group.id,
-          name: group.name,
-          slug: group.slug,
-          role: 'ADMIN',
-          membershipId: group.memberships[0]!.id,
-          memberCount: 1,
-        };
+        return toGroupResponse(group, 'ADMIN', group.memberships[0]!.id);
       } catch (e) {
-        if (isUniqueViolation(e) && attempt < SLUG_ATTEMPTS) continue;
-        throw e;
+        // Colidir de novo já com sufixo aleatório é erro de verdade.
+        if (!isUniqueViolation(e) || attempt > SLUG_ATTEMPTS) throw e;
+        taken = await this.takenSlugs(base);
       }
     }
   }
 
   /** O grupo visto pelo membro da rota (já conferido pelo guard). */
   async get(membership: GroupMembership): Promise<GroupResponse> {
-    return this.toResponse(membership.groupId, membership.role, membership.id);
+    const group = await this.prisma.group.findUniqueOrThrow({
+      where: { id: membership.groupId },
+      select: GROUP_WITH_COUNT,
+    });
+    return toGroupResponse(group, membership.role, membership.id);
   }
 
-  /** Membros ativos do grupo, por apelido. Sem nota: isso é do admin. */
-  async listMembers(groupId: string): Promise<Member[]> {
-    return this.prisma.membership.findMany({
-      where: { groupId, active: true },
+  /** Membros ativos do grupo, em ordem alfabética de apelido (pt-BR). Sem nota: isso é do admin. */
+  async listMembers(membership: GroupMembership): Promise<Member[]> {
+    // A ordem é regra do domain (compareNicknames); a collation do Postgres (C, en_US...) não segue o português.
+    // O banco só garante o desempate estável (quem entrou primeiro, depois id).
+    const members = await this.prisma.membership.findMany({
+      where: { groupId: membership.groupId, active: true },
       select: {
         id: true,
         nickname: true,
@@ -100,22 +115,25 @@ export class GroupsService {
         secondaryPositions: true,
         isHiredGoalkeeper: true,
       },
-      orderBy: [{ nickname: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
+    return members.sort((a, b) => compareNicknames(a.nickname, b.nickname));
   }
 
-  async getInvite(groupId: string): Promise<Invite> {
+  async getInvite(membership: GroupMembership): Promise<Invite> {
+    assertAdmin(membership);
     const { inviteCode } = await this.prisma.group.findUniqueOrThrow({
-      where: { id: groupId },
+      where: { id: membership.groupId },
       select: { inviteCode: true },
     });
     return { code: inviteCode };
   }
 
   /** Troca o código do convite: o antigo deixa de valer na hora. */
-  async regenerateInvite(groupId: string): Promise<Invite> {
+  async regenerateInvite(membership: GroupMembership): Promise<Invite> {
+    assertAdmin(membership);
     const { inviteCode } = await this.prisma.group.update({
-      where: { id: groupId },
+      where: { id: membership.groupId },
       data: { inviteCode: newInviteCode() },
       select: { inviteCode: true },
     });
@@ -125,7 +143,7 @@ export class GroupsService {
   /** Prévia pública do convite. Código inválido (ou trocado) → 404. */
   async preview(code: string): Promise<InvitePreview> {
     const group = await this.findByInviteCode(code);
-    return { groupName: group.name, memberCount: await this.countActive(group.id) };
+    return { groupName: group.name, memberCount: group._count.memberships };
   }
 
   /**
@@ -135,64 +153,80 @@ export class GroupsService {
   async join(userId: string, code: string, input: JoinGroupInput): Promise<JoinResult> {
     const group = await this.findByInviteCode(code);
     const where = { userId_groupId: { userId, groupId: group.id } };
+    const select = { id: true, role: true, active: true } as const;
 
-    const existing = await this.prisma.membership.findUnique({
-      where,
-      select: { id: true, role: true, active: true },
-    });
+    let existing = await this.prisma.membership.findUnique({ where, select });
+    if (!existing) {
+      try {
+        // Conta depois de inserir, na mesma transação: com entradas simultâneas, o número sai certo.
+        const [created, memberCount] = await this.prisma.$transaction([
+          this.prisma.membership.create({
+            data: {
+              userId,
+              groupId: group.id,
+              role: 'PLAYER',
+              nickname: input.nickname,
+              primaryPosition: input.primaryPosition,
+              initialRating: DEFAULT_INITIAL_RATING,
+            },
+            select: { id: true },
+          }),
+          this.prisma.membership.count({ where: { groupId: group.id, active: true } }),
+        ]);
+        const joined = { ...group, _count: { memberships: memberCount } };
+        return { group: toGroupResponse(joined, 'PLAYER', created.id), created: true };
+      } catch (e) {
+        // Clique simultâneo: o outro acabou de criar. Segue como "já tem participação".
+        if (!isUniqueViolation(e)) throw e;
+        existing = await this.prisma.membership.findUniqueOrThrow({ where, select });
+      }
+    }
     if (validateJoinGroup(existing) === 'MEMBERSHIP_INACTIVE') {
       throw new ConflictException({
         code: 'MEMBERSHIP_INACTIVE',
         message: JOIN_GROUP_ERROR_LABELS.MEMBERSHIP_INACTIVE,
       });
     }
-    if (existing) {
-      return { group: await this.toResponse(group.id, existing.role, existing.id), created: false };
-    }
-
-    let membershipId: string;
-    try {
-      ({ id: membershipId } = await this.prisma.membership.create({
-        data: {
-          userId,
-          groupId: group.id,
-          role: 'PLAYER',
-          nickname: input.nickname,
-          primaryPosition: input.primaryPosition,
-          initialRating: DEFAULT_INITIAL_RATING,
-        },
-        select: { id: true },
-      }));
-    } catch (e) {
-      // Dois cliques ao mesmo tempo: o outro já criou. Trata como "já é membro".
-      if (isUniqueViolation(e)) return this.join(userId, code, input);
-      throw e;
-    }
-    return { group: await this.toResponse(group.id, 'PLAYER', membershipId), created: true };
+    return { group: toGroupResponse(group, existing.role, existing.id), created: false };
   }
 
   private async findByInviteCode(code: string) {
     const group = await this.prisma.group.findUnique({
       where: { inviteCode: code },
-      select: { id: true, name: true },
+      select: GROUP_WITH_COUNT,
     });
     if (!group) throw new NotFoundException();
     return group;
   }
 
-  private countActive(groupId: string): Promise<number> {
-    return this.prisma.membership.count({ where: { groupId, active: true } });
-  }
-
-  private async toResponse(
-    groupId: string,
-    role: Role,
-    membershipId: string,
-  ): Promise<GroupResponse> {
-    const group = await this.prisma.group.findUniqueOrThrow({
-      where: { id: groupId },
-      select: { id: true, name: true, slug: true },
+  /** Só `base` e `base-<n>`: slugs que só começam igual (`pelada-do-ze`) não interessam. */
+  private async takenSlugs(base: string): Promise<string[]> {
+    const rows = await this.prisma.group.findMany({
+      where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
+      select: { slug: true },
     });
-    return { ...group, role, membershipId, memberCount: await this.countActive(groupId) };
+    // `base` só tem [a-z0-9-] (toSlug), então entra na regex sem escapar.
+    const ownSlug = new RegExp(`^${base}(-[0-9]+)?$`);
+    return rows.map((r) => r.slug).filter((slug) => ownSlug.test(slug));
   }
+}
+
+/** Defesa em profundidade: a rota já exige `@GroupRole('ADMIN')`, mas o service não confia só nela. */
+function assertAdmin(membership: GroupMembership): void {
+  if (membership.role !== 'ADMIN') throw new ForbiddenException();
+}
+
+function toGroupResponse(
+  group: { id: string; name: string; slug: string; _count: { memberships: number } },
+  role: GroupResponse['role'],
+  membershipId: string,
+): GroupResponse {
+  return {
+    id: group.id,
+    name: group.name,
+    slug: group.slug,
+    role,
+    membershipId,
+    memberCount: group._count.memberships,
+  };
 }

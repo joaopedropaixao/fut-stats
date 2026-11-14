@@ -1,0 +1,21 @@
+meta {
+  name: Membros de outro grupo (intruso)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}/members
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{outsiderCookie}}
+}
+
+tests {
+  test("status 404", function () {
+    expect(res.status).to.equal(404);
+  });
+}

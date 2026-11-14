@@ -1,0 +1,28 @@
+meta {
+  name: Me lista o grupo novo
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/me
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("grupo novo aparece como ADMIN", function () {
+    const group = res.body.groups.find((g) => g.id === bru.getVar("groupId"));
+    expect(group).to.not.equal(undefined);
+    expect(group.role).to.equal("ADMIN");
+    expect(group.slug).to.equal(bru.getVar("groupSlug"));
+  });
+}

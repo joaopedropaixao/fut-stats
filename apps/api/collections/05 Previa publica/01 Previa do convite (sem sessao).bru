@@ -1,0 +1,21 @@
+meta {
+  name: Previa do convite (sem sessao)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/invites/{{inviteCode}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("nome da pelada e quantos membros", function () {
+    expect(res.body).to.eql({ groupName: bru.getVar("groupName"), memberCount: 1 });
+  });
+}

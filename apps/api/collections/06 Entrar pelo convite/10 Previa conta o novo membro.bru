@@ -1,0 +1,21 @@
+meta {
+  name: Previa conta o novo membro
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/invites/{{inviteCode}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("dois membros ativos", function () {
+    expect(res.body.memberCount).to.equal(2);
+  });
+}

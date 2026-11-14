@@ -1,0 +1,28 @@
+meta {
+  name: Membros depois da entrada
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}/members
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{joinerCookie}}
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("dois membros, por apelido, sem sobrescrever o perfil", function () {
+    expect(res.body.map((m) => m.nickname)).to.eql(["Dono", "Parceiro"]);
+    const joiner = res.body[1];
+    expect(joiner.role).to.equal("PLAYER");
+    expect(joiner.primaryPosition).to.equal("WINGER");
+  });
+}

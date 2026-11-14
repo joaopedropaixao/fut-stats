@@ -1,0 +1,17 @@
+meta {
+  name: Codigo inexistente
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/invites/codigo-que-nao-existe
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 404", function () {
+    expect(res.status).to.equal(404);
+  });
+}

@@ -1,0 +1,34 @@
+meta {
+  name: Membros (dono)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}/members
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("só o dono, com apelido sem espaços e sem nota", function () {
+    expect(res.body).to.have.lengthOf(1);
+    const [member] = res.body;
+    expect(member).to.have.all.keys(
+      "id", "nickname", "photoUrl", "role", "primaryPosition", "secondaryPositions", "isHiredGoalkeeper"
+    );
+    expect(member.nickname).to.equal("Dono");
+    expect(member.role).to.equal("ADMIN");
+    expect(member.primaryPosition).to.equal("MIDFIELDER");
+    expect(member.secondaryPositions).to.eql([]);
+    expect(member.isHiredGoalkeeper).to.equal(false);
+  });
+}

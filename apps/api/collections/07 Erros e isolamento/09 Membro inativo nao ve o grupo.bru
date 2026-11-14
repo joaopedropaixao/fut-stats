@@ -1,0 +1,21 @@
+meta {
+  name: Membro inativo nao ve o grupo
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{inactiveGroupId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{inactiveCookie}}
+}
+
+tests {
+  test("status 404", function () {
+    expect(res.status).to.equal(404);
+  });
+}

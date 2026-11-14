@@ -520,14 +520,22 @@ membros ativos do grupo.
 
 **Evite:** ordenar ou numerar o ranking no front; empate com posições diferentes.
 
-### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `DEFAULT_INITIAL_RATING` 🚧
+### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `compareNicknames` / `DEFAULT_INITIAL_RATING` 🚧
 **O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).
 - `toSlug(nome)`: minúsculo, sem acento, letras/números separados por hífen (`"Pelada do Zé"` → `pelada-do-ze`);
   nome sem letra nem número vira `pelada`. `nextAvailableSlug(base, ocupados)`: a base, ou o menor sufixo livre a
   partir de 2 (`pelada-2`).
 - `validateNickname` (até `NICKNAME_MAX_LENGTH` = 10) e `validateGroupName` (até `GROUP_NAME_MAX_LENGTH` = 50):
-  contam caracteres (acento e emoji contam 1), sem os espaços das pontas → `'EMPTY'`, `'TOO_LONG'` ou `null`
-  (`TEXT_FIELD_ERRORS`; textos em `NICKNAME_ERROR_LABELS`/`GROUP_NAME_ERROR_LABELS` no shared).
+  contam o caractere visível (acento, mesmo decomposto, e emoji com tom ou composto contam 1; com teto de 12 pontos
+  de código por caractere, para acento empilhado não burlar o limite; todo caractere precisa ter algo visível), sem os espaços das pontas → `'EMPTY'`,
+  `'TOO_LONG'`, `'INVALID_CHARACTERS'` (controle, `\0`, quebra de linha, tab, caractere invisível como espaço de
+  largura zero ou inversão de direção, preenchedor Hangul, Braille em branco, ZWJ/tag/acento soltos, ZWJ/tag/seletor
+  de variação fora de emoji) ou `null` (`TEXT_FIELD_ERRORS`; textos em
+  `NICKNAME_ERROR_LABELS`/`GROUP_NAME_ERROR_LABELS` no shared). O schema do shared grava o texto sem espaço nas
+  pontas e em NFC.
+- `hasInvalidCharacters(texto)`: a mesma regra de caractere inválido, para a borda (a API usa no caminho das rotas).
+- `compareNicknames(a, b)`: ordem alfabética do português, sem ligar para maiúscula e acento; iguais → 0 (com sort
+  estável, desempata por quem entrou primeiro). É a ordem da lista de membros.
 - `validateJoinGroup(participaçãoAtual)`: sem participação ou ativo → `null`; inativo → `'MEMBERSHIP_INACTIVE'`
   (`JOIN_GROUP_ERRORS`; texto em `JOIN_GROUP_ERROR_LABELS`).
 - `DEFAULT_INITIAL_RATING` = 6: nota inicial de quem entra (ver Decisões fixas).
@@ -538,9 +546,13 @@ membros ativos do grupo.
 - `POST /api/groups` `{ name, nickname, primaryPosition }`: cria o grupo com slug único e código de convite; quem
   cria vira `ADMIN` (também jogador, nota 6). Devolve o grupo com `role` e `memberCount`.
 - `GET /api/groups/:groupId` e `GET /api/groups/:groupId/members` (membro): o grupo; os membros **ativos** por
-  apelido, sem nota (nota é assunto do admin).
+  apelido em ordem alfabética do português (ignora maiúscula e acento; empate por quem entrou primeiro), sem nota
+  (nota é assunto do admin).
 - `GET`/`POST /api/groups/:groupId/invite` (admin): vê o código / gera um novo. O antigo deixa de valer na hora.
 - `GET /api/invites/:code` (**público**): `{ groupName, memberCount }`. Código inexistente ou trocado → 404.
+  Caminho com caractere de controle (ex.: `%00`) → 404 em qualquer rota, antes de guard e banco
+  (`rejectControlCharsInPath` no `setupApp`). `\0` em qualquer texto do corpo já validado → 400 (`ZodValidationPipe`; campo desconhecido é descartado
+  antes).
 - `POST /api/invites/:code/join` `{ nickname, primaryPosition }`: entra como `PLAYER`, nota 6 → 201. Já é membro
   ativo → 200 com o grupo, sem duplicar nem mudar os dados. Inativo → 409 `{ code: 'MEMBERSHIP_INACTIVE', message }`.
 
