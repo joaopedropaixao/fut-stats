@@ -1,5 +1,6 @@
 import {
   MATCH_RESULT_LABELS,
+  type PlayerAvatar,
   TEAM_LABELS,
   type MatchResult,
   type MatchScore,
@@ -8,6 +9,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PlayerSprite } from '../../components/ui/pixel-sprite';
 import { PixelText } from '../../components/ui/pixel-text';
+import { YouTag } from '../lineup/you-tag';
 import { cn } from '../../lib/cn';
 import { resultAnnouncement } from './match-text';
 import { markResultSeen } from './result-seen';
@@ -21,6 +23,8 @@ type ResultCardProps = {
   score: MatchScore;
   /** O time de quem vê. */
   myTeam: Team;
+  /** O meu bonequinho: é ele que corre na entrada do card. */
+  avatar: PlayerAvatar;
 };
 
 /** Entrada 0–0,6 s, choque 0,6–0,9 s, depois o quadro final (que fica parado). */
@@ -53,8 +57,8 @@ const STAR_PATH = STAR.flatMap((row, y) =>
 
 /** Posições (em %) e tamanhos das estrelas do YOU WIN, cada uma com o seu ritmo. */
 const STARS = [
-  { left: '8%', top: 92, size: 28, color: 'text-game', delay: 0 },
-  { left: '84%', top: 80, size: 21, color: 'text-team-white', delay: 200 },
+  { left: '66%', top: 48, size: 28, color: 'text-game', delay: 0 },
+  { left: '86%', top: 56, size: 21, color: 'text-team-white', delay: 200 },
   { left: '70%', top: 142, size: 14, color: 'text-game', delay: 400 },
   { left: '20%', top: 148, size: 14, color: 'text-team-white', delay: 100 },
 ] as const;
@@ -148,7 +152,7 @@ function TeamBand({ team, shown }: { team: Team; shown: boolean }) {
  * por rodada (o chamador decide); "Pular" leva ao quadro final. Com "reduzir movimento" só aparece o quadro
  * final, com um fade (sem confete). A animação é decorativa (aria-hidden): o resultado é anunciado em texto.
  */
-export function ResultCard({ roundId, result, score, myTeam }: ResultCardProps) {
+export function ResultCard({ roundId, result, score, myTeam, avatar }: ResultCardProps) {
   const [reduced] = useState(prefersReducedMotion);
   const [phase, setPhase] = useState<Phase>(reduced ? 'final' : 'entry');
   const [animated] = useState(!reduced);
@@ -190,16 +194,18 @@ export function ResultCard({ roundId, result, score, myTeam }: ResultCardProps) 
       >
         <div className={cn('absolute inset-0', phase === 'clash' && 'animate-vs-shake')}>
           {win && <TeamBand team={myTeam} shown={phase !== 'entry'} />}
-          <div className={cn('absolute left-4 flex gap-0.5', win ? 'top-13' : 'top-4')}>
-            {Array.from({ length: 7 }, (_, i) => (
-              <PlayerSprite
-                key={i}
-                team={sprite}
-                scale={2}
-                className={phase === 'entry' ? 'animate-vs-run' : undefined}
-                style={{ '--vs-from': '-96px', animationDelay: `${i * 70}ms` } as CSSProperties}
-              />
-            ))}
+          {/* O meu bonequinho, um só e em destaque, com a etiqueta VOCÊ: os colegas não aparecem no card */}
+          <div className={cn('absolute left-4 flex items-end gap-2', win ? 'top-[46px]' : 'top-4')}>
+            <PlayerSprite
+              team={sprite}
+              avatar={avatar}
+              scale={win ? 4 : 3}
+              className={phase === 'entry' ? 'animate-vs-run' : undefined}
+              style={{ '--vs-from': '-96px' } as CSSProperties}
+            />
+            <span className={cn(phase === 'entry' && 'invisible')}>
+              <YouTag />
+            </span>
           </div>
           {win &&
             final &&

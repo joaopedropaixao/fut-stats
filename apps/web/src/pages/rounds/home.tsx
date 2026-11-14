@@ -155,7 +155,11 @@ function NextRound({
                     me && 'bg-success/8',
                   )}
                 >
-                  <MemberAvatar nickname={m.nickname} goalkeeper={m.isHiredGoalkeeper} />
+                  <MemberAvatar
+                    nickname={m.nickname}
+                    avatar={m.avatar}
+                    goalkeeper={m.isHiredGoalkeeper}
+                  />
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex items-center gap-2">
                       <PixelText>{m.nickname}</PixelText>

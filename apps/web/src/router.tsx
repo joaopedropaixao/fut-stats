@@ -13,6 +13,8 @@ import { TABS } from './app/tabs';
 import type { Tab } from './components/ui/tab-bar';
 import { PlaceholderPage } from './pages/placeholder';
 import { profileRoute, startRoutes } from './pages/entrar-e-grupo/routes';
+import { rosterRoutes } from './pages/elenco/routes';
+import { profileEditRoutes } from './pages/perfil/routes';
 import { roundsRoutes } from './pages/rounds/routes';
 import { timesRoutes } from './pages/times/routes';
 
@@ -47,6 +49,8 @@ export const router = createBrowserRouter([
           ...TABS.map((tab) => TAB_PAGES[tab.to] ?? placeholderRoute(tab)),
           ...roundsRoutes,
           ...timesRoutes,
+          ...profileEditRoutes,
+          ...rosterRoutes,
         ],
       },
     ],

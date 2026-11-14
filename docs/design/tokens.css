@@ -44,6 +44,19 @@
   --color-team-white: #ffffff;
   --color-team-black: #000000;
 
+  /* Bonequinho do jogador: pele (do mais claro ao mais escuro) e cabelo. Nunca hex solto nos componentes. */
+  --color-skin-1: #fbe0cc;
+  --color-skin-2: #f0c09a;
+  --color-skin-3: #d9a07a;
+  --color-skin-4: #a9704c;
+  --color-skin-5: #6f4529;
+  --color-hair-black: #26201c;
+  --color-hair-brown: #5b3a22;
+  --color-hair-blond: #e6be5a;
+  --color-hair-red: #b8462a;
+  --color-hair-gray: #c4c4c0;
+  --color-hair-black-rim: #7a6f66; /* contorno claro do cabelo preto sobre a pele mais escura */
+
   /* Luz e camadas */
   --color-floodlight: rgb(214 250 190 / 18%);
   --color-floodlight-night: rgb(236 244 214 / 16%);

@@ -26,9 +26,9 @@ export function PublishedTeams({ lineup, roundId, myMembershipId }: PublishedTea
     ...lineup.teams[key].reserves.map((p) => ({ key, player: p, reserve: true })),
   ]).find((x) => x.player.membershipId === myMembershipId);
   const myTeam: TeamKey | null = me?.key ?? null;
-  const counts = {
-    WHITE: lineup.teams.WHITE.starters.length,
-    BLACK: lineup.teams.BLACK.starters.length,
+  const starters = {
+    WHITE: lineup.teams.WHITE.starters.map((p) => p.avatar),
+    BLACK: lineup.teams.BLACK.starters.map((p) => p.avatar),
   };
   const [chosen, setChosen] = useState<TeamKey | null>(null);
   const team = chosen ?? myTeam ?? 'WHITE';
@@ -36,10 +36,11 @@ export function PublishedTeams({ lineup, roundId, myMembershipId }: PublishedTea
   return (
     <div className="flex flex-col gap-4">
       <Mismatch lineup={lineup} />
-      {roundId && <VsBoard roundId={roundId} counts={counts} myTeam={myTeam} />}
+      {roundId && <VsBoard roundId={roundId} starters={starters} myTeam={myTeam} />}
       {me && (
         <YouBanner
           team={me.key}
+          avatar={me.player.avatar}
           position={me.reserve ? null : POSITION_LABELS[me.player.position]}
         />
       )}

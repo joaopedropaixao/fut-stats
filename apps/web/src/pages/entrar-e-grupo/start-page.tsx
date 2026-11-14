@@ -6,7 +6,11 @@ import { PixelText } from '../../components/ui/pixel-text';
 import { TextField } from '../../components/ui/text-field';
 import { extractInviteCode } from '../../features/group/invite-code';
 import { usePlayerFields } from '../../features/group/player-fields';
-import { enterGroupErrorMessage, useCreateGroup } from '../../features/group/use-enter-group';
+import {
+  enterGroupErrorMessage,
+  nicknameTakenMessage,
+  useCreateGroup,
+} from '../../features/group/use-enter-group';
 import { cn } from '../../lib/cn';
 
 type Path = 'create' | 'invite';
@@ -55,7 +59,7 @@ function PathSwitch({ value, onChange }: { value: Path; onChange: (path: Path) =
           <label
             key={option.value}
             className={cn(
-              'flex h-12 cursor-pointer items-center justify-center px-2',
+              'flex min-h-12 cursor-pointer items-center justify-center px-2 py-1 text-center',
               'transition-colors duration-(--duration-fast) ease-out',
               'has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-text',
               selected ? 'bg-text text-bg' : 'text-text-muted',
@@ -69,7 +73,9 @@ function PathSwitch({ value, onChange }: { value: Path; onChange: (path: Path) =
               onChange={() => onChange(option.value)}
               className="sr-only"
             />
-            <PixelText>{option.label}</PixelText>
+            <PixelText wrap className="justify-center">
+              {option.label}
+            </PixelText>
           </label>
         );
       })}
@@ -80,8 +86,12 @@ function PathSwitch({ value, onChange }: { value: Path; onChange: (path: Path) =
 function CreateGroupForm() {
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState<string>();
-  const { fields, validate } = usePlayerFields();
   const create = useCreateGroup();
+  const nicknameError = nicknameTakenMessage(create.error);
+  const { fields, validate } = usePlayerFields({
+    nicknameError,
+    onNicknameInput: () => nicknameError && create.reset(),
+  });
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -108,7 +118,7 @@ function CreateGroupForm() {
         placeholder="Ex.: Pelada do Zé"
       />
       {fields}
-      {create.isError && (
+      {create.isError && !nicknameError && (
         <p role="alert" className="text-sm text-[#fca5a5]">
           {enterGroupErrorMessage(create.error)}
         </p>
