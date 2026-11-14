@@ -24,6 +24,12 @@ passa aos DEVs e ao QA. Sem o arquivo, valem API 3000, web 5173 e o banco do `.e
 `docs/specs/2026-10-30-equipe-paralela.md`.
 
 ## 1. Research/Plan
+**Spec já aprovado pelo líder** (`docs/specs/<fatia>.md` com `Status: aprovado`, escrito pela skill `lider-v1`)?
+Pule o research e o Portão 1: confira só se o spec ainda bate com a `develop` (rotas, models e telas que ele cita
+existem como ele diz). Furo que não é regra de negócio nova: decida, corrija o spec num commit e siga. Regra de
+negócio nova: pergunte ao dono. Depois vá para o passo 2. As regras de visual e o álbum estão em
+`docs/specs/2026-11-14-autonomia-v1.md`.
+
 1. Confira que está na branch `feature/<fatia>` e atualizada com a `origin/develop`.
 2. Leia: `AGENTS.md`, `CONTEXT.md` (seções da fatia), a linha da fatia na Trilha, `docs/design/DESIGN.md`, as telas
    de referência (`apps/web/src/features/`) e o código ou a branch/PR antiga que o kickoff citar. Para varrer muito
@@ -70,6 +76,13 @@ passa aos DEVs e ao QA. Sem o arquivo, valem API 3000, web 5173 e o banco do `.e
 4. `REPROVADO` → mande a cada DEV só as falhas dele (SendMessage para o mesmo agente, que já tem o contexto).
    Lembre que bug corrigido vem com teste que o reproduz. Quando os DEVs voltarem, nova volta de QA.
 5. Depois da **3ª volta reprovada**, pare: mostre ao dono a última tabela e pergunte como seguir.
+6. Toda tela nova sai com o **álbum de prints** que o QA monta (`docs/design/prints/<fatia>/`, 390 px por cenário,
+   mais 320 px e desktop por tela) e com a checagem de sobreposição verde. Você commita o álbum
+   (`docs(<fatia>): álbum de prints`).
+
+**Volta de design:** o dono comenta o álbum com ajustes visuais (é frequente). Repasse ao `dev-front` os pedidos,
+um por linha, como o dono escreveu; o QA da volta confere só esses pedidos, a sobreposição e as telas mexidas, e
+refaz os prints delas. Não conta no limite de 3 voltas.
 
 ## 4. Entrega
 1. No `$WT`: `git merge --no-ff feature/<fatia>-back` e depois `feature/<fatia>-front` (no modo de um DEV só, nada
@@ -85,8 +98,26 @@ passa aos DEVs e ao QA. Sem o arquivo, valem API 3000, web 5173 e o banco do `.e
    final do QA na seção QA do spec. Commit.
 4. `git push -u origin feature/<fatia>` e abra o PR para a `develop` com
    `GH_TOKEN=$(gh auth token --user joaopedropaixao) gh pr create --base develop --body-file <arquivo>`: o quê, o
-   porquê, link do spec, tabela do QA e prints. Sem trailer de IA.
+   porquê, link do spec, tabela do QA e o **álbum de prints** (tabela com os prints na ordem do fluxo, uma linha
+   por print dizendo o que olhar). Sem trailer de IA.
 5. Se a fatia tinha PR antigo, feche com um comentário apontando o novo.
 6. Remova os worktrees `-back` e `-front` (`git worktree remove`) e pare os servidores que você subiu.
-7. 🚦 **Portão 2:** avise o dono com o link do PR e o que validar no navegador. Quem faz o merge é o orquestrador,
-   com o ok do dono (skill `mergear`); você nunca faz.
+7. 🚦 **Portão 2:** avise o dono com o link do PR e o álbum. Ele valida pelo álbum e só abre o navegador se algo
+   parecer errado. Quem faz o merge é o orquestrador, com o ok do dono (skill `mergear`); você nunca faz.
+
+## Push sempre
+Dê push da `feature/<fatia>` depois de todo commit seu e de **todo rebase** (`git push --force-with-lease`). Uma
+branch rebaseada e não enviada deixa o PR em conflito no GitHub, e commit que não subiu se perde.
+
+## O que não precisa de aprovação
+Faça sem perguntar: tentar de novo o que falhou por tempo, porta ou servidor fora do ar; rebase da própria branch
+e conflito mecânico (roadmap, imports, linhas vizinhas); push da própria branch; refazer a própria migration e
+resetar o banco **da própria equipe** (`.env.equipe`); seed; subir e derrubar servidores nas portas da equipe;
+criar e remover os worktrees `-back` e `-front` da fatia; dependência nova com justificativa no PR.
+Precisa do dono: regra de negócio fora do spec e do `CONTEXT.md`; mexer no banco do `.env` ou no de outra equipe;
+apagar algo fora dos seus worktrees. O merge é do orquestrador.
+
+## Terminar o trabalho
+Não pare enquanto a fatia não tiver PR aberto. Status curto é bem-vindo, mas siga com o que não depende do dono em
+vez de oferecer continuar ou esperar. Erro, timeout, arquivo travado ou ferramenta falhando: diagnostique e
+contorne. Pare só nos portões, na 3ª volta reprovada ou diante de algo que precisa do dono (lista acima).
