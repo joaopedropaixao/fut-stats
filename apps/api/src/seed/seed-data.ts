@@ -1,6 +1,12 @@
 // Dados fictícios do seed de desenvolvimento: o grupo, os membros e o roteiro das rodadas.
 // A lógica que transforma isto em linhas do banco (validando tudo pelo domínio) fica em `seed.ts`.
-import type { MatchScore } from '@fut-stats/domain';
+import {
+  AVATAR_HAIR_COLORS,
+  AVATAR_HAIRS,
+  AVATAR_SKINS,
+  type MatchScore,
+  type PlayerAvatar,
+} from '@fut-stats/domain';
 import type { Position, Role } from '../generated/prisma/enums';
 
 /** O login de dev e quem já tem banco local dependem do slug e do convite: não mudar. */
@@ -23,6 +29,19 @@ export interface SeedMember {
   secondaryPositions: Position[];
   initialRating: number;
   isHiredGoalkeeper?: boolean;
+}
+
+/**
+ * Bonequinho do membro número `index` do seed: fixo e variado, sem sorteio. Pele e cabelo andam em ciclos de 5 e 6
+ * (só repetem a dupla a cada 30 membros) e a cor do cabelo anda de 2 em 2, então nenhum dos 21 membros repete
+ * o bonequinho e toda opção das três listas aparece.
+ */
+export function seedAvatarFor(index: number): PlayerAvatar {
+  return {
+    skin: AVATAR_SKINS[index % AVATAR_SKINS.length]!,
+    hair: AVATAR_HAIRS[index % AVATAR_HAIRS.length]!,
+    hairColor: AVATAR_HAIR_COLORS[(index * 2 + 1) % AVATAR_HAIR_COLORS.length]!,
+  };
 }
 
 export const MEMBERS: readonly SeedMember[] = [

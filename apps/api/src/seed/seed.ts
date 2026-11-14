@@ -22,6 +22,7 @@ import {
   type RoundTeams,
   type Team,
 } from '@fut-stats/domain';
+import { fromAvatar } from '../common/avatar';
 import type { PrismaClient } from '../generated/prisma/client';
 import type { Role } from '../generated/prisma/enums';
 import {
@@ -30,6 +31,7 @@ import {
   RESENHA_OWN_GOALS_FOR,
   RESENHA_SCORE,
   MEMBERS,
+  seedAvatarFor,
   PAST_ROUNDS,
   SEED_GROUP,
   SEED_LOCATION,
@@ -140,7 +142,7 @@ export async function seed(
   });
 
   const members: SeedMemberRow[] = [];
-  for (const member of MEMBERS) {
+  for (const [index, member] of MEMBERS.entries()) {
     const email = emailFor(member.nickname);
     const user = await prisma.user.upsert({
       where: { email },
@@ -155,6 +157,7 @@ export async function seed(
       secondaryPositions: member.secondaryPositions,
       initialRating: member.initialRating,
       isHiredGoalkeeper: member.isHiredGoalkeeper ?? false,
+      ...fromAvatar(seedAvatarFor(index)),
     };
     const membership = await prisma.membership.upsert({
       where: { userId_groupId: { userId: user.id, groupId: group.id } },
