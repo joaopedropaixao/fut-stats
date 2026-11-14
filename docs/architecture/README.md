@@ -6,13 +6,13 @@ Projeto de portfólio/laboratório. Esta revisão descreve o produto e o código
 
 | Rodada | Escopo | Estágios | Estado |
 |---|---|---|---|
-| 1 | Pessoas, permissões e jornadas/estados | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Correção A1 após QA3; conteúdo aguarda conferência focada; QA visual aprovado |
+| 1 | Pessoas, permissões e jornadas/estados | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Revisão técnica concluída (QA3 + conferência focada A1); aguardando validação do dono |
 | 2 | Estrutura real, entidades e sequências de requisições/dados | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Aguardando revisão da rodada 1 |
 | 3 | Carga/capacidade, segurança da aplicação, operação/confiabilidade e decisões de evolução | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Aguardando revisão da rodada 2 |
 
 - **Validadores:** autoria TPL (esta sessão), revisão independente pelo QA lançado pelo coordenador e apresentação/validação do dono. Nenhum estágio posterior está aprovado por este rascunho.
 - **Critério por estágio:** afirmações ligadas a caminho e símbolo/seção; diferenças entre documentação e código explicitadas; diagramas nativos importáveis, legíveis e coerentes com as fontes; perguntas só quando alterarem o desenho.
-- **Estado desta revisão:** rascunho documental corrigido após QA3 em A1; QA3 aprovou C1–C5 e C7–C9, incluindo importação e inspeção nativa dos três diagramas; a conferência focada de A1 pelo coordenador/QA fresco e a apresentação ao dono estão pendentes. O dono ainda não aprovou.
+- **Estado desta revisão:** revisão técnica concluída: QA3 aprovou C1–C5 e C7–C9, e conferência independente do coordenador no HEAD `522f0cbf` aceitou a correção de C6/A1. Aguardando validação do dono, que ainda não aprovou. Rodadas 2 e 3 não iniciadas.
 - **Data:** 14/11/2026.
 - **Base inicial:** `024186f0cc935f3c835bd5e93e98e9a59654b37c`.
 - **Base de produto:** código lido no mesmo SHA inicial; documentação antiga é referência de intenção, não prova de implementação.
@@ -28,7 +28,7 @@ Projeto de portfólio/laboratório. Esta revisão descreve o produto e o código
 
 ## Revisão independente
 
-QA1 apontou A11 classificado como hipótese e colisões de texto em duas pranchas; corrigidos. QA2 encontrou status P indevido para scouts no jogo e não concluiu importação nativa; o status foi corrigido. QA3 aprovou C1–C5 e C7–C9, importou e inspecionou os três arquivos nativos, e identificou somente A1: status composto `V/P` e contrato `InvitePreview` confundido com componente visual. A1 foi corrigido para V e separa UI, contrato e API; a conferência focada dessa correção ainda está pendente. Evidências, hashes e síntese portátil estão em [validação da rodada 1](./05-validacao-r1.md); PNGs no [álbum QA3](../design/prints/revisao-arquitetura/). Relatórios completos QA1–QA3 permanecem fora do Git em `/tmp/fut-stats-arquitetura-qa1-relatorio.md`, `/tmp/fut-stats-arquitetura-qa2-relatorio.md` e `/tmp/fut-stats-arquitetura-qa3-relatorio.md`.
+QA1 apontou A11 classificado como hipótese e colisões de texto em duas pranchas; corrigidos. QA2 encontrou status P indevido para scouts no jogo e não concluiu importação nativa; o status foi corrigido. QA3 aprovou C1–C5 e C7–C9, importou e inspecionou os três arquivos nativos, e identificou somente A1: status composto `V/P` e contrato `InvitePreview` confundido com componente visual. A1 foi corrigido para V e separa UI, contrato e API; a conferência focada independente do coordenador aceitou a correção no HEAD `522f0cbf`. Evidências, hashes e síntese portátil estão em [validação da rodada 1](./05-validacao-r1.md); PNGs no [álbum QA3](../design/prints/revisao-arquitetura/). Relatórios completos QA1–QA3 permanecem fora do Git em `/tmp/fut-stats-arquitetura-qa1-relatorio.md`, `/tmp/fut-stats-arquitetura-qa2-relatorio.md` e `/tmp/fut-stats-arquitetura-qa3-relatorio.md`.
 
 ## Achados que condicionam a leitura
 

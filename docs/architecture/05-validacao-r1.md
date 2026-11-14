@@ -4,7 +4,7 @@
 
 - Revisão documental sobre a base inicial `024186f0cc935f3c835bd5e93e98e9a59654b37c`, analisada em 14/11/2026.
 - QA3 aprovou C1–C5 e C7–C9. A única falha foi C6/A1: status `V/P` não definido e tipo de contrato confundido com componente visual.
-- Correção aplicada em [A1 do catálogo](./04-requisitos-r1.md): prévia de convite consta como verificada (V), identificando separadamente UI, contrato e API. Conferência focada pelo coordenador/QA fresco pendente; apresentação ao dono pendente. Não aprovado pelo dono.
+- Correção aplicada em [A1 do catálogo](./04-requisitos-r1.md): prévia de convite consta como verificada (V), identificando separadamente UI, contrato e API. Conferência focada independente do coordenador no HEAD `522f0cbf` aceitou A1 após comparar UI/contrato/API e verificar os seis hashes e links. Revisão técnica concluída; apresentação/validação do dono pendente. O dono ainda não aprovou.
 - Sem execução de API, banco, Docker ou testes da aplicação, conforme escopo documental.
 
 ## Evidência visual nativa
@@ -25,6 +25,7 @@ O relatório QA3 completo usado para a síntese está em `/tmp/fut-stats-arquite
 |---|---|---|
 | QA1 | C6 falhou (A11 já implementado classificado como H); C7 falhou (colisões e inspeção nativa pendente) | A11 passou a V, A12 separou auditoria futura, diagramas corrigidos. |
 | QA2 | C1–C5/C8–C9 passaram; C6 falhou (status P para scout em jogo); C7 pendente (sem importação nativa pelo QA) | Diagrama 02 passou a distinguir jogo bloqueado e POST_MATCH por autoria, ambos V. |
-| QA3 | C1–C5/C7–C9 passaram; C6/A1 falhou; audit-tree sem alterações do QA, salvo álbum autorizado | A1 corrigido; conferência focada pendente. QA3 importou os três arquivos nativos e salvou as evidências acima. |
+| QA3 | C1–C5/C7–C9 passaram; C6/A1 falhou; audit-tree sem alterações do QA, salvo álbum autorizado | A1 corrigido; QA3 importou os três arquivos nativos e salvou as evidências acima. |
+| Conferência focada do coordenador | Aceitou o fechamento de C6/A1 após comparação independente de UI/contrato/API e checagem dos seis hashes, links, `git diff --check` e checkout limpo no HEAD `522f0cbf` | Revisão técnica da rodada 1 concluída; validação do dono ainda pendente. |
 
 Verificações após correção A1: links locais, hashes das fontes/prints, parse JSON e IDs únicos dos diagramas, `git diff --check`, status/diff limitados às áreas autorizadas.
