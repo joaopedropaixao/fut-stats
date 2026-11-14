@@ -255,6 +255,13 @@ skill_diz mergear 'quadro.sh afetados' "checkpoint de merge avisa as fatias afet
 skill_diz mergear 'checar-atraso.sh' "detector antes de mergear"
 skill_diz lider-v1 'Depende de' "spec do líder grava as dependências"
 skill_diz lancar-equipe 'quadro.sh set' "fatia lançada entra no quadro"
+skill_diz lancar-equipe 'orca worktree create' "cria o worktree pelo Orca"
+skill_diz lancar-equipe '--branch feature/<fatia>' "branch sem o prefixo do Orca"
+skill_diz lancar-equipe 'orca orchestration worker-start' "inicia o TPL como worker"
+skill_diz lancar-equipe 'orca orchestration reply' "responde as perguntas do TPL"
+skill_diz mergear 'orca orchestration send' "aviso de merge pelo Orca"
+skill_diz tpl 'orca orchestration ask' "TPL worker pergunta ao coordenador"
+skill_diz lider-v1 'orca orchestration ask' "líder manda o lote pelo Orca"
 
 # --- coordenação: quadro, detector de atraso e sem push pendente (spec 2026-11-14-autonomia-v1.md)
 SCRIPTS="$HOOKS/../scripts"

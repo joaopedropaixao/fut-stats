@@ -37,7 +37,8 @@ Para cada fatia que falta na Trilha (as linhas sem ✅), em ordem de dependênci
 
 ## 3. Lote de perguntas
 Junte tudo em `docs/specs/perguntas-v1.md`, numa tabela: `P<n>`, fatia, pergunta, opções, sua recomendação e por
-quê. Mostre ao dono **numa mensagem só**, em ordem de impacto. Ele pode responder só "ok" para aceitar todas as
+quê. Mostre ao dono **numa mensagem só**, em ordem de impacto. Se você é worker do Orca, a mensagem vai ao
+coordenador com `orca orchestration ask --question "<lote>"`; termine o turno e o Orca te acorda com as respostas. Ele pode responder só "ok" para aceitar todas as
 recomendações, ou indicar exceções.
 
 Com as respostas: aplique em cada spec, tire as marcas `❓`, registre a resposta na seção "Perguntas respondidas
