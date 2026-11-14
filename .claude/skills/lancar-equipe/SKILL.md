@@ -53,7 +53,10 @@ Você é o TPL da fatia `<fatia>` (#<n> da Trilha). Use a skill tpl.
 Modo: <Par | Front | Back>
 Entrega: <texto da coluna Entrega>
 Parte de: <PR #NN / branch / —>
+Spec: <docs/specs/<fatia>.md, aprovado em <data> (pule o research) / ainda não existe>
 ```
+
+   Com o spec aprovado pelo líder, a sessão do TPL pode ser Opus; sem spec, também.
 
    Em modo paralelo, acrescente ao bloco (o TPL repassa aos DEVs e ao QA, que não precisam de prefixo nenhum):
 ```

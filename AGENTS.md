@@ -16,7 +16,8 @@ regra de negócio vem de lá. **Se a regra estiver ambígua ou em aberto, pergun
   `pnpm-lock.yaml`, `schema.prisma`, CI) têm um dono por vez. Antes do PR: `git fetch && git rebase origin/develop`.
 - Fatia da Trilha: equipe TPL → DEVs ↔ QA (skills `lancar-equipe` e `tpl`, agentes em `.claude/agents/`).
   Merge na `develop`: só o orquestrador, com o ok do dono (skill `mergear`).
-  Fluxo em `docs/specs/2026-10-24-equipe-design.md`. Mais de uma equipe ao mesmo tempo (opcional, portas e banco
+  Fluxo em `docs/specs/2026-10-24-equipe-design.md`. Fim da v1 com líder (specs em lote) e álbum de prints:
+  `docs/specs/2026-11-14-autonomia-v1.md`. Mais de uma equipe ao mesmo tempo (opcional, portas e banco
   por equipe): `docs/specs/2026-10-30-equipe-paralela.md`.
 - Pronto = `pnpm lint && pnpm typecheck && pnpm test && pnpm build` passando na raiz.
 - Dependência nova: justificar no PR. Segredos só em `.env`; manter `.env.example` atualizado.
