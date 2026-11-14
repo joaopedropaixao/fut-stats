@@ -22,7 +22,7 @@ decide o endereço de produção (P8).
 | **5** | `feed` | Par | **sim** | `Post`, `PostReaction`, `PostComment` (novos) | votacao, pacote-do-craque, perfil-jogador |
 | 5 | `jogo-ao-vivo` | Par | — | — | auditoria-da-rodada, votacao, rodizio-reservas |
 | **6** | `pwa-e-push` | Par | **sim** | `PushSubscription` (novo) | feed, votacao, perfil-jogador |
-| 6 | `producao` | Back | — | — | auditoria-da-rodada, orcamento-de-bundle |
+| 6 | `producao` | Back | — | — | auditoria-da-rodada, orcamento-de-bundle, votacao, pwa-e-push |
 
 Depois da onda 6: a **release** (`develop` → `main`, tag `v1.0.0`) e o lançamento para a pelada, pelo roteiro de
 `producao` (`docs/deploy.md` e `docs/lancamento.md`). É do orquestrador, com o ok do dono.
@@ -96,6 +96,10 @@ Depois da onda 6: a **release** (`develop` → `main`, tag `v1.0.0`) e o lançam
 - **Cruzamento:** as duas mexem no `render.yaml`, no `.env.example`, no `env.ts` e no `pnpm-lock.yaml` (cada uma
   com uma dependência nova: `web-push` e Sentry). Mergear `pwa-e-push` primeiro; `producao` faz o rebase,
   reinstala e inclui as variáveis `VAPID_*` no serviço de produção.
+- **Despertador** (pedido do dono, 14 nov 2026): `producao` entrega o webhook `POST /api/internal/tick` e o
+  workflow que o chama de 15 em 15 minutos. O teste do aviso de resultado pelo despertador precisa do push já na
+  `develop`: por isso `producao` passou a depender de `pwa-e-push` e entra **depois** dela, dentro da mesma onda
+  (as duas podem ser lançadas juntas; a ordem é a do merge).
 - **Antes de lançar esta onda:** o dono decide o endereço de produção (um `*.vercel.app` ou domínio próprio); ele
   vai no kickoff de `producao`.
 - **Trabalho do dono:** esta onda tem os passos que só ele faz (painéis da Vercel, Render, Neon, Google, Sentry e

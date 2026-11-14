@@ -55,4 +55,5 @@ Recebidas em 14 nov 2026, pelo orquestrador.
 | P11 | Recomendação aceita: mais de um admin; o admin não mexe no próprio papel nem se desativa | `perfil-jogador` |
 | P12 | Recomendação aceita: todos veem a contagem; o admin vê os nomes de quem falta | `votacao` |
 | P13 | Recomendação aceita: sem foto na v1 | `perfil-jogador` |
+| P15 | **Pedido do dono depois do lote:** um despertador e um webhook para os avisos. Das três opções (só o despertador; despertador + lembretes; depois do lançamento), o dono escolheu **só o despertador**: um workflow agendado chama `POST /api/internal/tick` de 15 em 15 minutos, para a votação fechar e o aviso do resultado sair na hora, mesmo com a API parada. Lembretes ficam para depois | `producao` (rota, workflow, cenários C19 a C26 e passo R6b), com nota em `votacao` e `pwa-e-push` |
 | P14 | Aceito: fatia nova `pacote-do-craque`; `auditoria-da-rodada` e `jogo-ao-vivo` depois de `votacao`; plano de 6 ondas | `ondas-v1.md`, Trilha do roadmap |

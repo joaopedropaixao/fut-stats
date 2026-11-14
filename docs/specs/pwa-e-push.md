@@ -236,7 +236,8 @@ tiver aparelho); `perfil-320`, `feed-320`, `perfil-desktop`.
 - `?grupo=` na URL do aviso — o aviso pode ser de outra pelada do usuário.
 
 ## Fora do escopo
-- Lembretes agendados ("a votação fecha em 2 h", "falta você confirmar").
+- Lembretes agendados ("a votação fecha em 2 h", "falta você confirmar"). O despertador de `producao` só garante
+  que o `RESULT_OUT` saia na hora, fechando a votação vencida mesmo com a API parada.
 - Aviso de resenha nova, de comentário e de jogo começando.
 - Preferência por tipo de aviso ou por pelada; central de notificações dentro do app.
 - Notificação por WhatsApp (roadmap, "Futuro").

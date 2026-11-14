@@ -11,15 +11,17 @@
 | **Parte de** | — (staging já está no ar: `docs/deploy.md`) |
 | **Status** | aprovado em 2026-11-14 (pendente do dono, antes da onda 6: o endereço de produção) |
 | **Base** | develop @1021769 |
-| **Depende de** | auditoria-da-rodada, orcamento-de-bundle |
-| **Toca em** | render.yaml, apps/web/vercel.json, .github/workflows, scripts, docs/deploy.md, docs/lancamento.md, docs/02-arquitetura.md, .env.example, apps/api/src/config/env.ts, apps/api/src/main.ts, apps/api/src/setup-app.ts, apps/api/src/common, apps/api/src/seed, apps/api/package.json, apps/web/src/main.tsx, apps/web/src/app, apps/web/package.json, pnpm-lock.yaml |
+| **Depende de** | auditoria-da-rodada, orcamento-de-bundle, votacao, pwa-e-push |
+| **Toca em** | render.yaml, apps/web/vercel.json, .github/workflows, scripts, docs/deploy.md, docs/lancamento.md, docs/02-arquitetura.md, .env.example, apps/api/src/config/env.ts, apps/api/src/main.ts, apps/api/src/setup-app.ts, apps/api/src/common, apps/api/src/internal, apps/api/src/app.module.ts, packages/shared/src/internal.ts, apps/api/src/seed, apps/api/package.json, apps/web/src/main.tsx, apps/web/src/app, apps/web/package.json, pnpm-lock.yaml |
 
 ## Produto
 
 ### Objetivo
 A `main` fica no ar como **produção**, separada do staging: endereço próprio, banco próprio, login próprio. Erro em
 produção chega ao dono pelo **Sentry** antes de o grupo reclamar, e o banco tem **backup diário** que já foi
-restaurado uma vez de teste. No fim, um roteiro de lançamento para chamar a pelada.
+restaurado uma vez de teste. Um **despertador** chama a API de 15 em 15 minutos para a votação fechar na hora e
+o aviso do resultado sair mesmo com ninguém usando o app (pedido do dono, 14 nov 2026). No fim, um roteiro de
+lançamento para chamar a pelada.
 
 ### Quem usa
 - **O dono:** segue o passo a passo para criar os serviços (ninguém mais tem acesso aos painéis), acompanha os
@@ -71,6 +73,19 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C13 | senha errada; variável faltando; banco de destino não vazio | `restore-db.sh` / `backup-db.sh` | falha com mensagem clara e código ≠ 0; o destino não vazio é recusado sem `--force` | integração (script) |
 | C14 | `.github/workflows/backup.yml` | checagem de configuração | roda todo dia e por `workflow_dispatch`; usa os segredos `PROD_DIRECT_URL` e `BACKUP_PASSPHRASE`; sobe o artefato com retenção de 30 dias; nenhum passo imprime segredo | checagem |
 
+**Despertador** (pedido do dono, 14 nov 2026)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C19 | `TICK_SECRET` configurado; uma rodada em `VOTING` com o prazo vencido e outra ainda no prazo, em grupos diferentes | `POST /api/internal/tick` com `Authorization: Bearer <segredo>`, **sem sessão** | 200 `{ closedVotings: 1 }`; a vencida passa a `CLOSED` com `DEADLINE_PASSED` e o resultado gravado; a outra segue em `VOTING` | integração |
+| C20 | idem, com membros com assinatura de push | o mesmo `tick` | o aviso `RESULT_OUT` sai para os ativos do grupo (enviador trocado pelo gravador), uma vez só | integração |
+| C21 | nada vencido | `tick` | 200 `{ closedVotings: 0 }`, sem escrever nada | integração |
+| C22 | segredo errado; sem o cabeçalho; segredo certo em outro formato (`Basic`, query) | `tick` | 401, sem dizer o motivo e sem fechar nada | integração |
+| C23 | ambiente **sem** `TICK_SECRET` | `tick` | 404 (a rota não existe); `TICK_SECRET` com menos de 32 caracteres: a API não sobe (`env.spec.ts`) | integração |
+| C24 | dois `tick` ao mesmo tempo com uma votação vencida | `Promise.all` | fecha uma vez; a soma dos `closedVotings` é 1; um só aviso de resultado | integração |
+| C25 | `tick` com sessão de usuário comum e sem o segredo | — | 401 (sessão não vale nessa rota) | integração |
+| C26 | `.github/workflows/despertador.yml` | checagem de configuração | agenda de 15 em 15 minutos e `workflow_dispatch`; chama `PROD_TICK_URL` com `TICK_SECRET` dos segredos; espera até 2 minutos e tenta de novo uma vez (a API pode estar acordando); falha com resposta diferente de 200; nenhum passo imprime o segredo | checagem |
+
 **Web**
 
 | Id | Dado | Quando | Então | Teste |
@@ -90,6 +105,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | R4 | Google Cloud: client OAuth novo "Fut Stats produção" com a origem e a callback de produção; publicar o app (sair de "Testing") | login com uma conta que não está na lista de teste |
 | R5 | Sentry: criar a conta e dois projetos (API e web); colar os DSN no Render e na Vercel | a mensagem "API no ar" aparece no Sentry |
 | R6 | GitHub: criar os segredos `PROD_DIRECT_URL` e `BACKUP_PASSPHRASE` e rodar o backup à mão uma vez | artefato gerado; restaurar numa branch descartável do Neon com `restore-db.sh` e conferir |
+| R6b | Despertador: gerar um segredo (`openssl rand -base64 48`), colar como `TICK_SECRET` no Render (produção) e nos segredos do GitHub, criar o segredo `PROD_TICK_URL` (o endereço direto da API de produção no Render + `/api/internal/tick`) e rodar o workflow à mão uma vez | o job fica verde e responde `{ closedVotings: 0 }` |
 | R7 | Release: PR `develop` → `main` (o orquestrador abre e mergeia com o ok do dono), tag `v1.0.0` | produção no ar com as migrations aplicadas |
 | R8 | Fumaça em produção: entrar, criar a pelada, gerar o convite, instalar no celular, ligar os avisos e "Testar aviso" | tudo funciona; nenhum erro novo no Sentry |
 | R9 | Lançar para a pelada com o `docs/lancamento.md` | — |
@@ -97,7 +113,21 @@ Cada cenário tem um id. Os testes levam o id no nome.
 ## Técnico
 
 ### Contrato
-Sem mudança de rota. Variáveis de ambiente novas (todas opcionais; sem elas o comportamento é o de hoje):
+Uma rota nova, interna (não é para o app): o **webhook do despertador**. Schema em
+`packages/shared/src/internal.ts`.
+
+| Método | Rota (sob `/api`) | Quem pode | Request | Response | Erros |
+|---|---|---|---|---|---|
+| `POST` | `/internal/tick` | quem tem o `TICK_SECRET` (`Authorization: Bearer`); sem sessão | — | `TickResult` | 401; 404 sem `TICK_SECRET` no ambiente |
+
+```ts
+// packages/shared/src/internal.ts
+/** Resposta de POST /api/internal/tick: quantas votações vencidas foram fechadas agora. Sem dado de grupo. */
+export const tickResultSchema = z.object({ closedVotings: z.number().int() });
+export type TickResult = z.infer<typeof tickResultSchema>;
+```
+
+Variáveis de ambiente novas (todas opcionais; sem elas o comportamento é o de hoje):
 
 | Variável | Onde | Para quê |
 |---|---|---|
@@ -105,6 +135,7 @@ Sem mudança de rota. Variáveis de ambiente novas (todas opcionais; sem elas o 
 | `SENTRY_ENVIRONMENT` | API | `staging` ou `production` (padrão: `NODE_ENV`) |
 | `VITE_SENTRY_DSN` | web (Vercel, no build) | liga o Sentry do web |
 | `VITE_SENTRY_ENVIRONMENT` | web | idem |
+| `TICK_SECRET` | API (Render, produção) | liga o webhook do despertador; mínimo de 32 caracteres |
 
 Schema em `apps/api/src/config/env.ts`; exemplos comentados no `.env.example`.
 
@@ -140,8 +171,25 @@ Na API e na infraestrutura:
   com `actions/upload-artifact` e `retention-days: 30`. Falha do job chega por e-mail do GitHub ao dono.
   Observação para o `deploy.md`: o GitHub desliga agendamento de repositório sem atividade por 60 dias; um commit
   ou um clique em "Enable workflow" religa.
-- **Checagem de configuração:** `scripts/check-deploy-config.mjs` lê `render.yaml`, `vercel.json` e `backup.yml`
-  como texto/JSON e confere C9, C10 e C14; entra no `pnpm test` da raiz (script no `package.json` da raiz: é o
+- **Despertador:**
+  - `apps/api/src/internal` (módulo novo): `InternalController` com `POST /internal/tick`, marcado `@Public()`
+    (sem sessão) e protegido por um guard próprio que compara o `Bearer` com `TICK_SECRET` em tempo constante
+    (`crypto.timingSafeEqual`). Sem `TICK_SECRET`, o módulo sobe vazio e a rota responde 404 (o mesmo desenho do
+    `DevModule`). A rota só chama o `closeDueVotings(now)` de `votacao` para todos os grupos e devolve a contagem:
+    o fechamento, o registro da auditoria, o aviso em tempo real e o push do resultado já saem desse método.
+  - `.github/workflows/despertador.yml`: `schedule` com `*/15 * * * *` e `workflow_dispatch`; um passo com
+    `curl --fail --max-time 120 --retry 1 -X POST -H "Authorization: Bearer $TICK_SECRET" "$PROD_TICK_URL"`. Chama
+    a API **direto no Render** (não pelo endereço do app), só a de **produção**.
+  - `TICK_SECRET` em `src/config/env.ts`, `.env.example` e `render.yaml` (`sync: false`, só no serviço de
+    produção).
+  - **A conferir antes de fixar os 15 minutos:** com uma chamada a cada 15 minutos a API de produção quase não
+    dorme mais (bom para quem abre o app, que deixa de esperar 1 minuto) e o banco acorda a cada chamada. O TPL
+    confere os limites atuais dos planos gratuitos (horas de instância do Render, horas de computação do Neon)
+    e, se o mês não fechar com folga, sobe o intervalo para 30 minutos. O intervalo fica numa linha do workflow.
+  - O agendamento do GitHub pode atrasar alguns minutos: a votação fecha "no prazo, com até uns 15 a 20 minutos
+    de folga". Voto depois do prazo já é recusado na hora por `votacao`, com ou sem despertador.
+- **Checagem de configuração:** `scripts/check-deploy-config.mjs` lê `render.yaml`, `vercel.json`, `backup.yml` e
+  `despertador.yml` como texto/JSON e confere C9, C10, C14 e C26; entra no `pnpm test` da raiz (script no `package.json` da raiz: é o
   dono do arquivo nesta onda, junto com o `pnpm-lock.yaml` por causa do Sentry; combinar com `pwa-e-push`, que
   também mexe no lock, a ordem de merge).
 - **Dependências novas (justificar no PR):** `@sentry/node` (ou `@sentry/nestjs`) na API e `@sentry/react` no web:
@@ -176,21 +224,29 @@ valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
 - Sem rastreamento de desempenho no Sentry — o plano gratuito é para erros; a auditoria já dá `durationMs` nos
   logs.
 - O health não consulta o banco — manteria o Neon gratuito sempre acordado.
+- Despertador pelo GitHub Actions chamando um webhook com segredo — pedido do dono (14 nov 2026). Custo zero, sem
+  conta nova, o mesmo mecanismo do backup; a rota só dispara o que `votacao` já sabe fazer.
+- O despertador só em produção — o staging não precisa de hora certa, e duas APIs acordadas o mês inteiro pesam
+  no plano gratuito.
 - A release (`develop` → `main`) é do orquestrador, não desta fatia — a fatia entrega o ambiente e o roteiro; o
   dia de ir ao ar é do dono.
 
 ## Fora do escopo
 - Domínio próprio (se o dono ficar com `vercel.app`); e-mail próprio.
-- Plano pago do Render para a API não dormir; "ping" para mantê-la acordada.
+- Plano pago do Render para a API não dormir.
 - Mapas de código (source maps) no Sentry, alertas por canal, painel de desempenho.
 - Limite de pedidos por IP, cabeçalhos de segurança extras, verificação do app no Google.
-- Agendador externo para fechar votação e mandar lembrete com a API dormindo.
+- Lembretes com hora marcada ("a votação fecha em 2 h", "falta confirmar presença"): o despertador desta fatia só
+  fecha votação vencida. Os lembretes ficam para depois do lançamento (precisam gravar "já avisei").
+- Usar o despertador para o rodízio (trocas de minutos pedem precisão que o agendamento do GitHub não tem).
 - Cartola e pagamentos.
 
 ## Perguntas respondidas pelo dono
 - Meta de custo zero, Render gratuito inclusive em produção, Sentry gratuito (`docs/02-arquitetura.md`).
 - P8 · Login em produção? → Publicar o app do Google: qualquer conta entra (14 nov 2026).
 - P8 · Onde guardar o backup? → Arquivo cifrado, 30 dias, no GitHub Actions (14 nov 2026).
+- P15 · Despertador e webhook para os avisos? → Sim, a opção 1: só o despertador, para a votação fechar e o
+  resultado sair na hora; sem lembretes por enquanto (pedido do dono, 14 nov 2026, depois do lote).
 - P8 · Endereço de produção? → **Pendente.** O dono decide antes do lançamento (antes da onda 6): nome do
   `*.vercel.app` ou domínio próprio. Recomendação do líder: `*.vercel.app` com um nome bom.
 

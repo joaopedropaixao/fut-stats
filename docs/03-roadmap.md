@@ -47,7 +47,7 @@ abaixo).
 | 12 | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
 | 13 | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Onda 5.** SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
 | 14 | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado |
-| 15 | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry e backup do banco. Depois, a release e **lançar para a pelada** |
+| 15 | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 15 em 15 minutos para a votação fechar na hora). Depois, a release e **lançar para a pelada** |
 
 **Ondas (14 nov 2026):** o que falta roda em 6 ondas de até 3 fatias em paralelo, com uma dona do `schema.prisma`
 por onda. Ordem, dependências e telas de referência: [`specs/ondas-v1.md`](specs/ondas-v1.md). Cada fatia tem o

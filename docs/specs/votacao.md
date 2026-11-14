@@ -336,7 +336,8 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
 - Resultado gravado no `TeamPlayer` — é uma linha por jogador por rodada que já existe; ranking e histórico leem
   direto, e resultado fechado não muda.
 - Fechamento por três caminhos (último voto, relógio, leitura) — a API gratuita dorme; nenhum caminho sozinho
-  garante a hora certa.
+  garante a hora certa. Em produção, o **despertador** de `producao` (onda 6) chama o mesmo `closeDueVotings` de
+  fora, de 15 em 15 minutos: por isso o método aceita rodar sem grupo (todos os grupos) e sem sessão.
 - Voto recusado depois do prazo mesmo sem `CLOSED` — o prazo vale pela hora, não por quem acordou o servidor.
 - A nota começa vazia e a primeira batida parte de 6,0 — não dá para "votar" só apertando Próximo; 6 é a nota
   padrão do app.
