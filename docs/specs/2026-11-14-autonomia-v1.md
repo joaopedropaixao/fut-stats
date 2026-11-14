@@ -101,7 +101,12 @@ spec escrito antes do que entrou depois).
 - **Checkpoints** (skill `tpl`): ao começar (base do spec x develop), antes de cada volta de QA (rebase e push),
   ao mudar contrato/schema/`CONTEXT.md`, ao receber aviso do orquestrador e antes do PR.
 - **Checkpoint de merge** (skill `mergear`): a cada merge, o orquestrador cruza os arquivos do PR com o **Toca em**
-  de cada fatia ativa e avisa as afetadas no quadro e por mensagem.
+  de cada fatia ativa e avisa as afetadas no quadro e por mensagem do Orca.
+- **Orca como canal** (14 nov 2026): o orquestrador cria o worktree (`orca worktree create`) e inicia o TPL e o
+  líder como **workers supervisionados** (`orca orchestration worker-start --keep-open`). O worker pergunta com
+  `ask` e o Orca acorda o orquestrador; o orquestrador avisa com `orca orchestration send`, que chega no fim do
+  turno do worker mesmo ocupado; o fim vem com `worker_done`. O dono acompanha e conversa no chat de cada worker.
+  O quadro continua sendo a fonte da verdade.
 - **Detector de atraso** (`.claude/scripts/checar-atraso.sh`): commits atrás da develop, sem push, local divergente
   do remoto, mudança sem commit, quadro parado há mais de 2 h e spec aprovado cuja dependência entrou depois da
   base. Roda sozinho ao abrir a sessão do orquestrador (hook `atraso-ao-iniciar`) e antes de cada merge.

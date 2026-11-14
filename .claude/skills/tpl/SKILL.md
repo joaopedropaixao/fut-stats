@@ -17,6 +17,13 @@ line): `sh .claude/scripts/quadro.sh set <fatia> "<etapa>" "<toca-em>"`. Etapas:
 `Spec: esperando ok` → `Implement` → `QA volta N` → `PR` → `Esperando o dono`. O `toca-em` é a linha **Toca em**
 do spec; repita o set sempre que ele mudar (contrato, schema, telas).
 
+## Se você é um worker do Orca
+O kickoff diz quando você foi iniciado pelo orquestrador como worker do Orca (prompt com Task e Dispatch). Então:
+- pergunta ao dono, Portão 1 e Portão 2 vão ao coordenador: `orca orchestration ask --question "<texto>"`, e
+  **termine o turno**: o Orca te acorda com a resposta. O dono também pode responder direto no seu chat;
+- no fim (PR aberto), `worker_done` com o link do PR, a tabela do QA e o álbum;
+- carregue o guia da versão instalada antes: `orca skills get orchestration`.
+
 ## Checkpoints (sincronizar com a develop e com as outras equipes)
 Em cada um: `git fetch`, leia a sua linha do quadro (`sh .claude/scripts/quadro.sh show <fatia>`) e trate o aviso
 que o orquestrador deixou (coluna aviso/bloqueio); depois limpe com `quadro.sh aviso <fatia> -`.
@@ -26,7 +33,7 @@ que o orquestrador deixou (coluna aviso/bloqueio); depois limpe com `quadro.sh a
 | Ao começar | Compare a **Base** do spec com a `origin/develop`: entrou na develop alguma fatia de **Depende de** ou algo que cruza o seu **Toca em** (`git log --merges <base>..origin/develop`)? Revise o spec antes de implementar e atualize a Base |
 | Antes de cada volta de QA | Rebase de `-back` e `-front` (ou da sua branch) na `origin/develop`, rode os testes do pacote, push da `feature/<fatia>`. O QA testa contra a develop de hoje |
 | Mudou contrato, schema ou `CONTEXT.md` | Atualize o spec e o quadro (`toca-em`) na hora; o orquestrador avisa quem lê o mesmo model |
-| Mensagem do orquestrador ("develop mudou") | Pare no próximo ponto seguro, faça o que o aviso pede (rebase, rever contrato, refazer migration) e responda no quadro |
+| Mensagem do orquestrador ("develop mudou", chega pelo Orca no fim do seu turno) | Pare no próximo ponto seguro, faça o que o aviso pede (rebase, rever contrato, refazer migration) e responda no quadro |
 | Antes do PR | Rebase, "pronto" na raiz e push. Um hook não deixa a sessão parar com commit sem push |
 
 
