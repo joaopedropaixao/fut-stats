@@ -1,6 +1,6 @@
 # Orquestração pessoal no Claude e no Codex
 
-Status: proposta para revisão do dono.
+Status: aprovado pelo dono em 14/11/2026; implementar com modelo menor para economizar.
 
 ## Objetivo
 
@@ -64,8 +64,8 @@ não basta corrigir os comandos escritos nos skills e deixar o início da sessã
    antigas sem metadados novos e não reutiliza reserva de sessão apenas por estar silenciosa.
 3. Gera kickoff com ferramenta, papel, worktree absoluto, branch, spec, cenários, contrato,
    escopo de escrita, portas/banco e evidência de conclusão. Usa --spec-file para conteúdo.
-4. Lança TPL por worker-start --agent codex --keep-open no worktree preparado. Não fixa modelo
-   por suposição; herda a configuração de lançamento do Orca, salvo escolha explícita do dono.
+4. Lança TPL por worker-start --agent codex --keep-open no worktree preparado. Novos workers Codex usam
+   gpt-6-luna com esforço medium, conforme pedido posterior do dono por modelo menor.
    Herança do Orca não significa necessariamente o mesmo modelo da conversa coordenadora.
 5. TPL realiza research e Portão 1, ou valida a atualidade do spec já aprovado e pula esse portão.
    No Par, prepara o contrato antes de criar o front a partir do SHA correto. Usa worktrees
@@ -132,10 +132,10 @@ inexistente do Codex. O conteúdo útil do estado permanece acessível por coman
   nenhuma fatia da Trilha é lançada como teste. Relatar separadamente testes simulados e ao vivo.
 - Entrega em PR próprio para develop; ativação e limitações remanescentes documentadas.
 
-## Escolhas ainda abertas ao dono
+## Escolha de modelos aprovada
 
-- Modelos Codex por papel: proposta inicial é herdar os defaults do Orca. Uma preferência
-  explícita pode definir modelo/esforço por papel, sem mudar os modelos atuais do Claude.
+- Modelos Codex por papel: gpt-6-luna com esforço medium, confirmado no catálogo local.
+  Sem escalada automática nem mudança dos modelos atuais do Claude.
 
 ## Referências verificadas
 
@@ -147,5 +147,5 @@ inexistente do Codex. O conteúdo útil do estado permanece acessível por coman
 ## Revisão do desenho
 
 Revisão independente concluída em 14/11/2026: nenhuma pergunta pendente que impeça planejar
-a implementação. O padrão de modelos permanece a herança dos defaults do Orca, sujeito à
-preferência do dono. A revisão não representa teste de execução nem aprovação do dono.
+a implementação. Após essa revisão, o dono pediu modelo menor: a implementação fixa gpt-6-luna/medium
+nos workers Codex e preserva os modelos Claude. A revisão inicial não era teste de execução; a aprovação do dono veio depois, registrada no status acima.

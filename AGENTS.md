@@ -12,9 +12,12 @@ regra de negócio vem de lá. **Se a regra estiver ambígua ou em aberto, pergun
 - Ferramental de IA (plugins, skills, hooks, `.claude/`, regras de processo deste arquivo, orquestração) vai só na
   branch `feature/plugin-harness`, em sessões dedicadas; a cada entrega, PR dela para `develop` e segue nela.
   Exceção: entrada de domínio no `CONTEXT.md` vai no PR do próprio domínio.
-- Claude Code e Codex podem atuar em tarefas independentes. No Codex, seguir também as instruções de
-  ativação e os limites dos hooks em .codex/README.md; não presumir que os lançamentos de equipes do Claude
-  já foram adaptados ao Codex. Validar o adaptador com node --test .codex/hooks/bridge.test.mjs.
+- Claude Code e Codex compartilham contexto e papéis em `.harness/roles`. No Codex, usar
+  `.agents/skills/{lancar-equipe,tpl,lider-v1,mergear}`; no Claude, `.claude/skills`.
+  Operação/contas/reservas em `.harness/operacao.md`; hooks e ativação em `.codex/README.md`.
+  Novos workers Codex usam `gpt-6-luna` com esforço `medium`, sem escalada automática.
+  Equipes de ambas as ferramentas contam juntas no limite de três; nenhuma tarefa é transferida implicitamente.
+  Testar harness: `node --test .codex/hooks/bridge.test.mjs .harness/*.test.mjs`.
 - Uma tarefa = um worktree = uma branch = um PR. Arquivos compartilhados (`package.json` da raiz,
   `pnpm-lock.yaml`, `schema.prisma`, CI) têm um dono por vez. Antes do PR: `git fetch && git rebase origin/develop`.
 - Fatia da Trilha: equipe TPL → DEVs ↔ QA (skills `lancar-equipe` e `tpl`, agentes em `.claude/agents/`).

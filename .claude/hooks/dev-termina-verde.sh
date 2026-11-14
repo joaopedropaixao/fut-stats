@@ -4,12 +4,20 @@
 . "$(dirname "$0")/lib.sh"
 
 lado=$1
+case $lado in back|front) ;; *) deny "Papel inválido: use back ou front." ;; esac
 
-# Worktree do DEV: o que está na branch *-<lado> (modo Par); senão, o cwd (modos Front e Back).
-dir=$(git -C "$cwd" worktree list --porcelain 2>/dev/null | awk -v suf="-$lado" '
+# Um cwd de DEV já é definitivo. No cwd do TPL, só a branch irmã da mesma fatia.
+b=$(git -C "$cwd" branch --show-current)
+dir=$cwd
+case $b in
+  *-back|*-front) ;;
+  feature/*)
+    par=$(git -C "$cwd" worktree list --porcelain 2>/dev/null | awk -v branch="refs/heads/$b-$lado" '
   /^worktree / { wt = substr($0, 10) }
-  /^branch / && substr($0, length($0) - length(suf) + 1) == suf { print wt; exit }')
-dir=${dir:-$cwd}
+  /^branch / && substr($0, 8) == branch { print wt; exit }')
+    dir=${par:-$cwd} ;;
+esac
+dir=$(cd "$dir" && pwd -P) || deny "Worktree do DEV indisponível."
 
 if [ -n "$DEV_CHECK_CMD" ]; then
   check=$DEV_CHECK_CMD
@@ -22,7 +30,8 @@ fi
 
 id=$(field .agent_id)
 id=${id:-$(field .session_id)}
-contador="${TMPDIR:-/tmp}/dev-verde-$id-$lado"
+key=$(printf '%s\n%s\n%s' "$id" "$lado" "$dir" | git hash-object --stdin)
+contador="${TMPDIR:-/tmp}/dev-verde-$key"
 
 if out=$(cd "$dir" && sh -c "$check" 2>&1); then
   rm -f "$contador"

@@ -217,12 +217,13 @@ for a in dev-back dev-front; do
   fi
 done
 # Depois de um fix(shared) legítimo, o diff contra o SHA do contrato não vem vazio: o QA olha os commits do front.
-if grep -q 'git log feature/<fatia>-back..HEAD -- packages/shared' "$AGENTS_DIR/qa.md"; then
+if grep -q 'git log feature/<fatia>-back..HEAD -- packages/shared' "$HOOKS/../../.harness/roles/qa.md"; then
   echo "ok      qa: confere o shared pelos commits do front"
 else
   echo "FALHOU  qa: checagem do shared ainda pelo diff contra o SHA do contrato" && falhas=$((falhas + 1))
 fi
 
+# Reservas, limite conjunto e argumentos de lançamento são exercitados em .harness/team.test.mjs.
 # --- modo paralelo (spec 2026-10-30-equipe-paralela.md): as skills precisam carregar o que o spec manda
 SKILLS_DIR="$HOOKS/../skills"
 # skill_diz <arquivo> <trecho> <descrição>
@@ -233,9 +234,7 @@ skill_diz() {
     echo "FALHOU  $1: $3 (falta '$2')" && falhas=$((falhas + 1))
   fi
 }
-skill_diz lancar-equipe 'em paralelo' "tem o modo paralelo"
 skill_diz lancar-equipe '.env.equipe' "cria o arquivo da equipe"
-skill_diz lancar-equipe 'no máximo 3 equipes' "limita as vagas"
 skill_diz lancar-equipe 'DIRECT_URL' "põe a DIRECT_URL no arquivo (migration não vai para o banco principal)"
 skill_diz tpl '.env.equipe' "liga o arquivo da equipe nos worktrees do par"
 skill_diz tpl 'seção Banco' "checa o Banco das outras equipes no Portão 1"
@@ -257,7 +256,6 @@ skill_diz lider-v1 'Depende de' "spec do líder grava as dependências"
 skill_diz lancar-equipe 'quadro.sh set' "fatia lançada entra no quadro"
 skill_diz lancar-equipe 'orca worktree create' "cria o worktree pelo Orca"
 skill_diz lancar-equipe '--branch feature/<fatia>' "branch sem o prefixo do Orca"
-skill_diz lancar-equipe 'orca orchestration worker-start' "inicia o TPL como worker"
 skill_diz lancar-equipe 'orca orchestration reply' "responde as perguntas do TPL"
 skill_diz mergear 'orca orchestration send' "aviso de merge pelo Orca"
 skill_diz tpl 'orca orchestration ask' "TPL worker pergunta ao coordenador"

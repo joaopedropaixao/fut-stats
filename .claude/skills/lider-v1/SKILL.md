@@ -5,11 +5,19 @@ description: Use quando a sessão recebe "você é o líder da v1" (ou "kickoff 
 
 # Líder da v1
 
+Leia também `.harness/operacao.md` para identidade pessoal, reservas conjuntas e recuperação.
+Este é o fluxo Claude; preserve seus modelos e subagentes nativos. Em sessão Codex, use
+`.agents/skills/lider-v1/SKILL.md` (mergear compartilha este procedimento com seu adaptador).
+Todo fetch/push/pull abaixo usa `sh .claude/scripts/git-pessoal.sh <operação>`, mesmo quando
+abreviado no texto. Nunca usar a credencial GitHub padrão.
+
+
 Você escreve o plano de execução do resto da v1. Não implementa nada: quem implementa são as equipes (skill `tpl`),
 lançadas depois pelo orquestrador. Desenho e porquês: `docs/specs/2026-11-14-autonomia-v1.md`. Leia esse arquivo
 inteiro antes de tudo, principalmente as regras de visual e as decisões do dono.
 
-Rode com esforço `high`.
+Rode com esforço `high`. Lançamento novo usa `.harness/claude-workers.md` e reserva
+`--kind leader`; não ocupa vaga de banco/API. Não tomar o worktree de outro líder existente.
 
 ## 1. Entender
 1. Confira que está na branch `feature/specs-v1`, atualizada com a `origin/develop`.

@@ -214,3 +214,32 @@ test('o fim do turno preserva a decisão de push pendente sem executar push', ()
     'feature/native-worker',
   );
 });
+
+test('DEV simples não recebe cobrança de push do TPL e mantém proteção do contrato', async () => {
+  const { run } = await import('../../.harness/team.mjs');
+  const worktree = join(directory, 'worker');
+  const input = join(directory, 'worker-brief.md');
+  writeFileSync(input, 'Fixture de papel.');
+  run('reserve', { team: 'native-worker', agent: 'codex', worktree }, directory);
+  run('prepare', { team: 'native-worker', role: 'dev-front', worktree, spec: input }, directory);
+  run(
+    'record',
+    { team: 'native-worker', key: 'dev-front', dispatch: 'd', task: 't', run: 'r' },
+    directory,
+  );
+  run('bind', { team: 'native-worker', key: 'dev-front', session: 'dev-only' }, worktree);
+  const stop = hook('Stop', '', {}, { cwd: worktree, session_id: 'dev-only' });
+  assert.equal(stop.status, 0, stop.stderr);
+  assert.equal(stop.stdout, '');
+  const other = hook('Stop', '', {}, { cwd: worktree, session_id: 'tpl-only' });
+  assert.equal(JSON.parse(other.stdout).decision, 'block');
+  denied(
+    hook(
+      'PreToolUse',
+      'apply_patch',
+      { command: '*** Begin Patch\n*** Add File: packages/shared/no.ts\n+x\n*** End Patch' },
+      { cwd: worktree, session_id: 'dev-only' },
+    ),
+    /Front não edita/,
+  );
+});

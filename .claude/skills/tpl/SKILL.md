@@ -5,6 +5,13 @@ description: Use quando a sessão recebe o kickoff da equipe ("você é o TPL", 
 
 # TPL: Technical Product Leader da fatia
 
+Leia também `.harness/operacao.md` para identidade pessoal, reservas conjuntas e recuperação.
+Este é o fluxo Claude; preserve seus modelos e subagentes nativos. Em sessão Codex, use
+`.agents/skills/tpl/SKILL.md` (mergear compartilha este procedimento com seu adaptador).
+Todo fetch/push/pull abaixo usa `sh .claude/scripts/git-pessoal.sh <operação>`, mesmo quando
+abreviado no texto. Nunca usar a credencial GitHub padrão.
+
+
 Você conduz a entrega de **uma fatia** da Trilha (`docs/03-roadmap.md`), do research ao PR. Fluxo completo e
 porquês: `docs/specs/2026-10-24-equipe-design.md`. Você conversa com o dono; os DEVs e o QA são subagentes e só
 falam com você.
@@ -36,6 +43,9 @@ que o orquestrador deixou (coluna aviso/bloqueio); depois limpe com `quadro.sh a
 | Mensagem do orquestrador ("develop mudou", chega pelo Orca no fim do seu turno) | Pare no próximo ponto seguro, faça o que o aviso pede (rebase, rever contrato, refazer migration) e responda no quadro |
 | Antes do PR | Rebase, "pronto" na raiz e push. Um hook não deixa a sessão parar com commit sem push |
 
+
+Os caminhos `$PAI/<fatia>-back/front` abaixo são abreviações: use os caminhos reais retornados pelo Orca.
+Não reserve vagas adicionais para os DEVs; ambos usam a reserva do TPL.
 
 Use `WT` = raiz deste worktree (`git rev-parse --show-toplevel`), `PAI` = `dirname $WT` e
 `MAIN` = primeiro caminho de `git worktree list` (checkout principal, de onde vem o `.env` da raiz).
@@ -72,10 +82,10 @@ negócio nova: pergunte ao dono. Depois vá para o passo 2. As regras de visual 
 ## 2. Implement
 
 **Par:**
-1. `git worktree add $PAI/<fatia>-back -b feature/<fatia>-back feature/<fatia>`
+1. Criar pelo Orca: `orca worktree create --name <fatia>-back --branch feature/<fatia>-back --base-branch feature/<fatia> --parent-worktree <seletor-TPL> --json`. Guardar caminho real e conferir branch exata.
 2. No worktree `-back`, escreva os schemas do contrato em `packages/shared` (exatamente o spec) e faça o
    **primeiro commit: só o contrato**, `feat(shared): contrato de <fatia>`. Guarde o SHA.
-3. `git worktree add $PAI/<fatia>-front -b feature/<fatia>-front <sha>`
+3. Criar pelo Orca: `orca worktree create --name <fatia>-front --branch feature/<fatia>-front --base-branch <sha> --parent-worktree <seletor-TPL> --json`. Guardar caminho real e conferir branch exata.
 4. Em cada worktree novo: `pnpm install` e ligue o `.env` da raiz (é o único; não crie `.env` dentro de `apps/`),
    **um `ln -s` por comando, sem encadear e com os caminhos absolutos escritos por extenso, sem `$VAR`** (o hook
    bloqueia qualquer outra coisa), ex.: `ln -s /Users/.../fut-stats/.env /Users/.../<fatia>-back/.env`. O mesmo para
@@ -124,7 +134,7 @@ refaz os prints delas. Não conta no limite de 3 voltas.
    porquê, link do spec, tabela do QA e o **álbum de prints** (tabela com os prints na ordem do fluxo, uma linha
    por print dizendo o que olhar). Sem trailer de IA.
 5. Se a fatia tinha PR antigo, feche com um comentário apontando o novo.
-6. Remova os worktrees `-back` e `-front` (`git worktree remove`) e pare os servidores que você subiu.
+6. Remova pelo Orca os worktrees `-back` e `-front` somente após conferir Git limpo, commits integrados e subagentes encerrados; pare os servidores que você subiu.
    `quadro.sh set <fatia> "Esperando o dono"`.
 7. 🚦 **Portão 2:** avise o dono com o link do PR e o álbum. Ele valida pelo álbum e só abre o navegador se algo
    parecer errado. Quem faz o merge é o orquestrador, com o ok do dono (skill `mergear`); você nunca faz.

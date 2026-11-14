@@ -41,7 +41,7 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: node --test .codex/hooks/bridge.test.mjs
+      - run: node --test .codex/hooks/bridge.test.mjs .harness/*.test.mjs
       - run: sh .claude/hooks/test.sh
         env:
           GIT_AUTHOR_NAME: Fut Stats Tests
