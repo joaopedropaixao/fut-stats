@@ -19,3 +19,14 @@ export interface PlayerAvatar {
 
 /** Bonequinho de quem ainda não montou o seu. */
 export const DEFAULT_AVATAR: PlayerAvatar = { skin: 'TAN', hair: 'SHORT', hairColor: 'BLACK' };
+
+/** `value` é um bonequinho válido (as três escolhas, cada uma de uma lista fechada)? Campo extra é ignorado. */
+export function isPlayerAvatar(value: unknown): value is PlayerAvatar {
+  if (typeof value !== 'object' || value === null) return false;
+  const { skin, hair, hairColor } = value as Record<string, unknown>;
+  return (
+    (AVATAR_SKINS as readonly unknown[]).includes(skin) &&
+    (AVATAR_HAIRS as readonly unknown[]).includes(hair) &&
+    (AVATAR_HAIR_COLORS as readonly unknown[]).includes(hairColor)
+  );
+}
