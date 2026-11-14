@@ -318,4 +318,21 @@ Regras de visual do documento de autonomia valem como critério (o QA confere um
 - P13 · Foto fica de fora da v1? → Sim: o bonequinho é o rosto (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+3 voltas. **Veredito final: APROVADO** (volta 3, 14/11/2026).
+
+| Volta | Veredito | Falhas |
+|---|---|---|
+| 1 | reprovado | dev-front: C38 linha do Elenco com 74/98 px (não 72); C48 card de resultado com 7 cópias do meu boneco (decisão: um só bonequinho, o de quem vê); `-front` sem o #60 e rotas novas sem `lazy` |
+| 2 | reprovado | dev-front: correção do C48 sem teste que reproduz o bug |
+| 3 | aprovado | — |
+
+| Cenários | Tipo | Resultado | Evidência |
+|---|---|---|---|
+| C1–C8 | unitário | ✅ | `packages/domain/src/group/{avatar,positions,members}.test.ts` |
+| C9–C27 | integração | ✅ | `apps/api/src/groups/members.spec.ts` (Postgres real; C12 concorrência com `Promise.all`) |
+| C28 | integração | ✅ | `apps/api/src/groups/avatar-views.spec.ts` |
+| C29 | integração | ✅ | `apps/api/src/seed/seed.spec.ts` |
+| C30–C51 | Playwright | ✅ | fluxo real contra a API da equipe; álbum em `docs/design/prints/perfil-jogador/`; C48 e C38 com teste em `result-card.test.tsx` e `roster-row.test.tsx` |
+| C52 | Playwright | ✅ | checagem automática de sobreposição verde em 320/375/390/430/1280 nas 7 telas |
+
+Orçamento de bundle: JS inicial 144,8/150 kB; `perfil-area` 3,5 kB e `elenco-area` 2,3 kB fora do carregamento inicial.
