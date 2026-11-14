@@ -8,7 +8,7 @@
 | **Fatia** | `historico` (onda 2) |
 | **Modo** | Par |
 | **Parte de** | PR #31 (fechar), branch `origin/feature/tela-historico`: aproveitar `matchWinner` e a paginação por cursor; as telas são refeitas |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | perfil-jogador |
 | **Toca em** | packages/domain/src/round, packages/shared/src/history.ts, packages/shared/src/index.ts, apps/api/src/history, apps/api/src/lineups/lineups.service.ts, apps/api/src/app.module.ts, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/pages/rounds/detail.tsx, apps/web/src/router.tsx |

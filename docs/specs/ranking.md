@@ -1,15 +1,15 @@
 # `ranking`
 
 > Spec de fatia da Trilha, escrito pelo líder da v1 (`docs/specs/2026-11-14-autonomia-v1.md`).
-> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`. Marcas `❓P<n>` = recomendação do líder esperando o
-> dono (`docs/specs/perguntas-v1.md`).
+> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`.
+> Dúvidas respondidas pelo dono em lote: `docs/specs/perguntas-v1.md`.
 
 | | |
 |---|---|
 | **Fatia** | `ranking` (onda 4) |
 | **Modo** | Par |
 | **Parte de** | `votacao` (o resultado gravado em `TeamPlayer`) |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | votacao, perfil-jogador |
 | **Toca em** | packages/domain/src/ranking, packages/shared/src/ranking.ts, packages/shared/src/index.ts, apps/api/src/ranking, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/app.module.ts, apps/web/src/pages/ranking, apps/web/src/features/ranking, apps/web/src/pages/perfil, apps/web/src/router.tsx |
@@ -29,11 +29,11 @@ inicial do admin: passa a acompanhar o que o jogador vem fazendo.
 ### Regras de domínio
 - **Só conta rodada encerrada** (`CLOSED`): é quando nota e prêmios estão gravados
   ([votacao](votacao.md), "Apuração gravada ao fechar").
-- **Recorte** ❓P4: todas as rodadas encerradas do grupo, desde o início. Temporada (ex.: por semestre) entra com
+- **Recorte**: todas as rodadas encerradas do grupo, desde o início. Temporada (ex.: por semestre) entra com
   o Cartola, na v1.1.
 - **Média:** média simples das notas de rodada do jogador (rodada em que ficou sem nota não entra), com 2 casas
   para ordenar; a tela mostra 1 casa.
-- **Mínimo para classificar** ❓P4: o jogador precisa de nota em pelo menos `min(3, rodadas encerradas do grupo)`
+- **Mínimo para classificar**: o jogador precisa de nota em pelo menos `min(3, rodadas encerradas do grupo)`
   rodadas. Quem tem menos aparece depois dos classificados, sem posição, com "POUCOS JOGOS". Assim o ranking
   existe desde a primeira rodada e, da terceira em diante, um jogo bom não põe ninguém na ponta.
 - **Posição no ranking:** maior média primeiro; empate (nas 2 casas) divide a posição e pula a seguinte, como hoje
@@ -48,7 +48,7 @@ inicial do admin: passa a acompanhar o que o jogador vem fazendo.
   sofridos (o placar do adversário), jogos sem sofrer gol e gols sofridos por jogo.
 - **Tendência:** quantas posições o jogador subiu ou desceu no ranking geral com a última rodada encerrada
   (compara o ranking com e sem ela). Sem posição antes ou depois, não tem tendência.
-- **Nota de referência** ❓P3 (a que o seletor, o card de equilíbrio e a lista de presença usam; é o
+- **Nota de referência** (a que o seletor, o card de equilíbrio e a lista de presença usam; é o
   `Player.rating` do domain): média das **5 últimas** notas de rodada do jogador, com a **nota inicial do admin
   completando as que faltam** (com 2 rodadas: 2 notas medidas + 3 vezes a inicial, dividido por 5). Sem rodada com
   nota, é a inicial. Com 5 ou mais, a inicial não pesa mais. A posição mostrada na lista de presença passa a ser
@@ -231,8 +231,8 @@ Card/Ranking) e "Figurinhas".
 - Calcular na leitura, sem tabela de ranking — são poucas dezenas de linhas por rodada; o resultado por jogador já
   está gravado.
 - Uma resposta com todos os jogadores e as três visões — o grupo tem ~25 pessoas; trocar de aba não espera a rede.
-- Mínimo de `min(3, rodadas do grupo)` — ❓P4.
-- Nota de referência com a inicial completando a janela de 5 — ❓P3: transição suave da nota do admin para a
+- Mínimo de `min(3, rodadas do grupo)` — resposta do dono à P4.
+- Nota de referência com a inicial completando a janela de 5 — resposta do dono à P3: transição suave da nota do admin para a
   medida, e o seletor acompanha a fase do jogador.
 - Média do ranking (tudo) e nota de referência (5 últimas) são números diferentes de propósito — o ranking premia
   a história; o seletor quer saber como o jogador está agora. A tela do ranking mostra a média; listas de presença
@@ -248,7 +248,10 @@ Card/Ranking) e "Figurinhas".
 
 ## Perguntas respondidas pelo dono
 - Lista de presença mostra nota e posição no ranking (24 out 2026).
-- ❓P3 (nota de referência) e ❓P4 (recorte e mínimo de jogos): aguardando (`perguntas-v1.md`).
+- P3 · Qual nota o seletor e a lista de presença usam depois da votação? → A média das 5 últimas rodadas, com a
+  nota inicial completando enquanto houver menos de 5 (14 nov 2026).
+- P4 · O que o ranking conta e o mínimo de jogos? → Tudo desde o início; mínimo de 3 rodadas com nota (ou todas,
+  enquanto o grupo tiver menos de 3) (14 nov 2026).
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>

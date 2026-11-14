@@ -8,7 +8,7 @@
 | **Fatia** | `auditoria-da-rodada` (onda 4) |
 | **Modo** | Back |
 | **Parte de** | `placar-e-lances` (parecer do Head de Engenharia, 30 out 2026) |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | votacao, rodizio-reservas |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/shared/src/round-log.ts, packages/shared/src/index.ts, apps/api/src/audit, apps/api/src/common, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/rounds/round-lock.service.ts, apps/api/src/setup-app.ts, apps/api/src/main.ts, apps/api/src/app.module.ts |
@@ -190,7 +190,7 @@ Sem tela.
 
 ## Perguntas respondidas pelo dono
 - Auditoria e `requestId`? → Aprovados no parecer do Head de Engenharia (30 out 2026).
-- Sem pergunta nova.
+- P14 · Auditoria depois de `votacao` (onda 4)? → Sim (14 nov 2026).
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>

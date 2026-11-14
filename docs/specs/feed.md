@@ -1,15 +1,15 @@
 # `feed`
 
 > Spec de fatia da Trilha, escrito pelo líder da v1 (`docs/specs/2026-11-14-autonomia-v1.md`).
-> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`. Marcas `❓P<n>` = recomendação do líder esperando o
-> dono (`docs/specs/perguntas-v1.md`).
+> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`.
+> Dúvidas respondidas pelo dono em lote: `docs/specs/perguntas-v1.md`.
 
 | | |
 |---|---|
 | **Fatia** | `feed` (onda 5) |
 | **Modo** | Par |
 | **Parte de** | — |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | votacao, pacote-do-craque, perfil-jogador |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/feed, packages/domain/src/index.ts, packages/shared/src/feed.ts, packages/shared/src/index.ts, apps/api/src/feed, apps/api/src/app.module.ts, apps/api/src/seed, apps/web/src/pages/feed, apps/web/src/features/feed, apps/web/src/pages/rounds/home.tsx, apps/web/src/features/voting, apps/web/src/features/match/game-card.tsx, apps/web/src/router.tsx |
@@ -40,7 +40,7 @@ escrevem, com reações e comentários de todo mundo. É o que dá vida ao app e
   Os tipos 1, 2, 5 e 6 olham a **rodada da vez** (`pickCurrentRound`); no máximo um aviso por tipo. O primeiro da
   lista é o aviso grande; os outros aparecem em linha.
 - **Resenha:** só admin escreve (visão do produto). Título opcional com até 60 caracteres; texto obrigatório com
-  até 1000, com quebra de linha. **Só texto na v1** ❓P6 (imagem pede um serviço de arquivos novo).
+  até 1000, com quebra de linha. **Só texto na v1** (imagem pede um serviço de arquivos novo).
 - **Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`): bola, fogo, risada, palmas
   e perna de pau. Tocar em outra troca; tocar na mesma tira.
 - **Comentário:** qualquer membro, até 280 caracteres, sem edição. Apaga o autor ou um admin.
@@ -281,7 +281,7 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
 - Qualquer admin edita e apaga qualquer resenha — os admins são a "redação" do grupo.
 
 ## Fora do escopo
-- Imagem e vídeo na resenha (❓P6); link clicável e menção no texto.
+- Imagem e vídeo na resenha (decisão do dono, P6); link clicável e menção no texto.
 - Responder comentário, editar comentário, reagir a comentário.
 - Resenha gerada sozinha a partir do resultado da rodada.
 - Push de resenha nova (`pwa-e-push` decide quais avisos viram push).
@@ -289,7 +289,7 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
 
 ## Perguntas respondidas pelo dono
 - Feed: um aviso grande por vez, na ordem resultado > votação > presença; os outros em linha (22 out 2026).
-- ❓P6 (resenha só texto): aguardando (`perguntas-v1.md`).
+- P6 · Resenha com imagem na v1? → Não: só texto; imagem fica para a v1.1 (14 nov 2026).
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>

@@ -1,15 +1,15 @@
 # `rodizio-reservas`
 
 > Spec de fatia da Trilha, escrito pelo líder da v1 (`docs/specs/2026-11-14-autonomia-v1.md`).
-> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`. Marcas `❓P<n>` = recomendação do líder esperando o
-> dono (`docs/specs/perguntas-v1.md`).
+> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`.
+> Dúvidas respondidas pelo dono em lote: `docs/specs/perguntas-v1.md`.
 
 | | |
 |---|---|
 | **Fatia** | `rodizio-reservas` (onda 2) |
 | **Modo** | Par |
 | **Parte de** | `placar-e-lances` (a tela `/rodadas/:roundId/jogo` e as rotas de `.../match`) |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | perfil-jogador |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/shared/src/match.ts, packages/shared/src/domain.ts, apps/api/src/match, apps/api/src/seed, apps/web/src/features/match, apps/web/src/pages/match |
@@ -28,7 +28,7 @@ a cada troca. É opcional: sem ligar, a tela do jogo fica como hoje (pedido do d
 - **Usuário de outro grupo, ou membro inativo:** 404.
 
 ### Regras de domínio
-As três decisões que estavam em aberto na Trilha, com a recomendação do líder ❓P5:
+As três decisões que estavam em aberto na Trilha, decididas pelo dono em 14 nov 2026 (P5):
 - **A conta é por time.** Cada time roda os próprios reservas (o reserva já pertence a um time em `TeamPlayer`).
   Time sem reserva não tem troca.
 - **O goleiro fica fora do rodízio.** Só os 6 de linha e os reservas entram na conta (jogador de linha não vai
@@ -42,7 +42,7 @@ As três decisões que estavam em aberto na Trilha, com a recomendação do líd
 - Em cada turno, `R` jogadores ficam fora. **Cada jogador de linha fica fora exatamente um turno**, então todos
   jogam o mesmo tempo (51:26 com 1 reserva; 45:00 com 2).
 - No primeiro turno ficam fora os reservas, na ordem do banco. Os titulares saem nos turnos seguintes, numa
-  **ordem sorteada e fixa para a rodada** ❓P5 (sorteio com semente = id da rodada + time: recalcular dá sempre a
+  **ordem sorteada e fixa para a rodada** (sorteio com semente = id da rodada + time: recalcular dá sempre a
   mesma tabela). Com 2 reservas, saem e entram de dois em dois (o que `docs/01-visao-e-escopo.md` já descreve).
 - A cada virada de turno: **entra** quem estava fora, **sai** quem fica fora no turno seguinte.
 - Duração: de 20 a 120 minutos, de 5 em 5; padrão 60 (`DEFAULT_ROTATION_MINUTES`).
@@ -221,7 +221,9 @@ Regras de visual do documento de autonomia valem como critério.
 
 ## Perguntas respondidas pelo dono
 - Cronômetro dos reservas? → Fatia própria, botão opcional na tela do jogo (25 out 2026).
-- ❓P5 (por time ou geral, goleiro, relógio e ordem de saída): aguardando (`perguntas-v1.md`).
+- P5 · Conta por time ou geral? Goleiro no rodízio? Relógio de quem? Quem sai primeiro? → Por time; goleiro fora;
+  relógio compartilhado; ordem por sorteio fixo da rodada; cada jogador de linha fica fora um turno; duração
+  ajustável ao ligar, padrão 60 min (14 nov 2026).
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>

@@ -9,7 +9,7 @@
 | **Fatia** | `pacote-do-craque` (onda 4) |
 | **Modo** | Front |
 | **Parte de** | `votacao` (a tela `/rodadas/:roundId/resultado` e a carta do Craque) |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | votacao |
 | **Toca em** | apps/web/src/features/pack, apps/web/src/features/voting, apps/web/src/pages/voting/result-page.tsx, apps/web/src/index.css, apps/web/src/components/ui/pixel-sprite-maps.ts |
@@ -118,7 +118,7 @@ Referência de código: `vs-board.tsx` + `vs-seen.ts` (fases, Pular, foco, reduz
 
 ## Perguntas respondidas pelo dono
 - Grande momento do Craque? → Pacote com suspense e revelação da carta, aprovado (22 out 2026).
-- Sem pergunta nova: o visual segue a folha e o dono ajusta pelo álbum.
+- P14 · Fatia própria para o pacote? → Sim (14 nov 2026). O visual segue a folha e o dono ajusta pelo álbum.
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>

@@ -4,7 +4,8 @@ Plano de execução das 12 fatias que faltam na Trilha (`docs/03-roadmap.md`), e
 (`2026-11-14-autonomia-v1.md`). São **6 ondas**. Cada onda tem até 3 fatias rodando ao mesmo tempo e **uma só dona
 do `schema.prisma`**. Uma onda começa quando a anterior inteira está na `develop`.
 
-**Status:** rascunho, esperando as respostas do lote (`perguntas-v1.md`).
+**Status:** aprovado pelo dono em 14 nov 2026 (P14 do lote, `perguntas-v1.md`). Pendência antes da onda 6: o dono
+decide o endereço de produção (P8).
 
 ## Resumo
 
@@ -95,6 +96,8 @@ Depois da onda 6: a **release** (`develop` → `main`, tag `v1.0.0`) e o lançam
 - **Cruzamento:** as duas mexem no `render.yaml`, no `.env.example`, no `env.ts` e no `pnpm-lock.yaml` (cada uma
   com uma dependência nova: `web-push` e Sentry). Mergear `pwa-e-push` primeiro; `producao` faz o rebase,
   reinstala e inclui as variáveis `VAPID_*` no serviço de produção.
+- **Antes de lançar esta onda:** o dono decide o endereço de produção (um `*.vercel.app` ou domínio próprio); ele
+  vai no kickoff de `producao`.
 - **Trabalho do dono:** esta onda tem os passos que só ele faz (painéis da Vercel, Render, Neon, Google, Sentry e
   segredos do GitHub) e o teste de push em aparelho real. O roteiro está no spec de `producao` (R1 a R9).
 

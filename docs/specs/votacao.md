@@ -1,15 +1,15 @@
 # `votacao`
 
 > Spec de fatia da Trilha, escrito pelo líder da v1 (`docs/specs/2026-11-14-autonomia-v1.md`).
-> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`. Marcas `❓P<n>` = recomendação do líder esperando o
-> dono (`docs/specs/perguntas-v1.md`).
+> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`.
+> Dúvidas respondidas pelo dono em lote: `docs/specs/perguntas-v1.md`.
 
 | | |
 |---|---|
 | **Fatia** | `votacao` (onda 3) |
 | **Modo** | Par |
 | **Parte de** | — |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | perfil-jogador, historico |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/domain/src/round-score, packages/shared/src/voting.ts, packages/shared/src/round.ts, packages/shared/src/history.ts, packages/shared/src/domain.ts, apps/api/src/voting, apps/api/src/match, apps/api/src/rounds, apps/api/src/history, apps/api/src/seed, apps/api/src/config/env.ts, .env.example, apps/web/src/features/voting, apps/web/src/pages/voting, apps/web/src/pages/rounds/home.tsx, apps/web/src/pages/rounds/detail.tsx, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/router.tsx |
@@ -25,7 +25,7 @@ aparecer no Histórico. A abertura do pacote do Craque (grande momento) é da fa
 ### Quem usa
 - **Quem jogou a rodada** (titular ou reserva, goleiro incluso): vota e edita o voto enquanto a votação está aberta.
 - **Membro que não jogou:** vê que há votação e quantos já votaram; não vota. Vê o resultado.
-- **Admin:** além de votar (se jogou), encerra a votação antes do prazo e vê **quem ainda não votou** ❓P12.
+- **Admin:** além de votar (se jogou), encerra a votação antes do prazo e vê **quem ainda não votou**.
 - **Usuário de outro grupo, ou membro inativo:** 404 em tudo.
 
 ### Regras de domínio
@@ -43,11 +43,11 @@ Já decididas e implementadas no domain
 - Votos são anônimos: ninguém, nem o admin, vê quem votou em quem. A média é pública.
 
 Novas nesta fatia:
-- **Prazo** ❓P2: `Group.votingDeadlineHours` passa de 48 para **24 horas** (contadas de quando o admin abriu a
+- **Prazo**: `Group.votingDeadlineHours` passa de 48 para **24 horas** (contadas de quando o admin abriu a
   votação). O valor segue por grupo no banco; tela para mudar fica para depois.
 - **"Todos votaram" conta só quem ainda está ativo.** Quem jogou e foi desativado continua recebendo nota, mas não
   segura a votação aberta (ele não consegue mais entrar no app).
-- **Quem falta votar** ❓P12: todos veem só a contagem ("9 de 16 já votaram"); o admin vê também os nomes de quem
+- **Quem falta votar**: todos veem só a contagem ("9 de 16 já votaram"); o admin vê também os nomes de quem
   falta, para cobrar no grupo.
 - **Apuração gravada ao fechar:** no mesmo passo que leva a rodada a `CLOSED`, a API calcula a nota de cada um e os
   prêmios e grava o resultado. Dali em diante o resultado não muda, mesmo que um parâmetro mude no futuro.
@@ -263,7 +263,7 @@ export const roundResultSchema = z.object({
 - Enum novo `VotingEndReason` (`ALL_VOTED`, `DEADLINE_PASSED`, `ADMIN_CLOSED`), igual ao domain.
 - Model **`TeamPlayer`** (o resultado de quem jogou, gravado ao fechar): `roundScore Float?`,
   `ratingsCount Int @default(0)`, `isMvp Boolean @default(false)`, `isFlop Boolean @default(false)`.
-- Model **`Group`**: `votingDeadlineHours @default(24)` ❓P2; a migration também troca 48 por 24 nos grupos que
+- Model **`Group`**: `votingDeadlineHours @default(24)`; a migration também troca 48 por 24 nos grupos que
   existem (ninguém mudou o valor: não há tela).
 - **`Membership`**: só relações novas (votos dados, notas recebidas), sem coluna.
 - Uma migration (`voting`).
@@ -342,7 +342,7 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
   padrão do app.
 - Resultado na própria fatia, pacote em outra — quem vota precisa ver o fim da história; a animação do pacote é
   só front e merece uma volta de design própria.
-- Admin vê quem falta, nunca o voto — ❓P12.
+- Admin vê quem falta, nunca o voto — resposta do dono à P12.
 - `withRoundLock` vira provider comum — placar, lances e votos disputam a mesma rodada.
 
 ## Fora do escopo
@@ -354,7 +354,10 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
 
 ## Perguntas respondidas pelo dono
 - Nota para todos, sem pular; voto em 2 passos; voto editável até fechar; empate pela nota (22–23 out 2026).
-- ❓P2 (prazo) e ❓P12 (quem vê quem falta): aguardando (`perguntas-v1.md`).
+- P2 · Prazo da votação? → 24 horas depois de o admin abrir; o admin pode encerrar antes (14 nov 2026).
+- P12 · Quem vê quem ainda não votou? → Todos veem só a contagem; o admin vê os nomes. O voto nunca aparece
+  (14 nov 2026).
+- P14 · Pacote do Craque em fatia própria? → Sim, `pacote-do-craque` (14 nov 2026).
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>

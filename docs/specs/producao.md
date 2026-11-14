@@ -1,15 +1,15 @@
 # `producao`
 
 > Spec de fatia da Trilha, escrito pelo líder da v1 (`docs/specs/2026-11-14-autonomia-v1.md`).
-> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`. Marcas `❓P<n>` = recomendação do líder esperando o
-> dono (`docs/specs/perguntas-v1.md`).
+> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`.
+> Dúvidas respondidas pelo dono em lote: `docs/specs/perguntas-v1.md`.
 
 | | |
 |---|---|
 | **Fatia** | `producao` (onda 6) |
 | **Modo** | Back |
 | **Parte de** | — (staging já está no ar: `docs/deploy.md`) |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 (pendente do dono, antes da onda 6: o endereço de produção) |
 | **Base** | develop @1021769 |
 | **Depende de** | auditoria-da-rodada, orcamento-de-bundle |
 | **Toca em** | render.yaml, apps/web/vercel.json, .github/workflows, scripts, docs/deploy.md, docs/lancamento.md, docs/02-arquitetura.md, .env.example, apps/api/src/config/env.ts, apps/api/src/main.ts, apps/api/src/setup-app.ts, apps/api/src/common, apps/api/src/seed, apps/api/package.json, apps/web/src/main.tsx, apps/web/src/app, apps/web/package.json, pnpm-lock.yaml |
@@ -33,11 +33,15 @@ Nenhuma regra de negócio. Regras de operação:
   com o seu serviço no Render, o seu projeto na Vercel, o seu segredo de sessão e o seu client do Google.
 - **Custo zero** continua a meta (`docs/02-arquitetura.md`): Render gratuito inclusive em produção (a API dorme
   depois de um tempo parada e leva cerca de 1 minuto para acordar), Vercel e Neon gratuitos, Sentry gratuito.
-- **Endereço de produção** ❓P8: `*.vercel.app` com um nome bom, sem domínio próprio por enquanto. O endereço é
-  do dono criar (passo 1 do roteiro) e vem no kickoff desta fatia.
-- **Login em produção** ❓P8: o app do Google sai de "Testing" (qualquer conta Google entra; só entra na pelada
+- **Endereço de produção: decisão pendente do dono**, a ser respondida **antes da onda 6**: um `*.vercel.app` com
+  nome bom (recomendação do líder: custo zero) ou domínio próprio (~R$ 40/ano). Alerta: a instalação do app e os
+  avisos ficam presos ao endereço; trocar depois do lançamento obriga o grupo a reinstalar e a ligar os avisos de
+  novo. O spec vale para as duas opções: o endereço escolhido vem no kickoff desta fatia e entra no `vercel.json`,
+  no `APP_URL` de produção e no client do Google. Com domínio próprio, o roteiro ganha um passo (apontar o domínio
+  na Vercel) e o item sai do "Fora do escopo".
+- **Login em produção**: o app do Google sai de "Testing" (qualquer conta Google entra; só entra na pelada
   quem tem o convite).
-- **Backup** ❓P8: todo dia, cópia do banco de produção, **cifrada**, guardada por 30 dias como artefato do GitHub
+- **Backup**: todo dia, cópia do banco de produção, **cifrada**, guardada por 30 dias como artefato do GitHub
   Actions. Cifrada porque o repositório é de portfólio: sem a senha, o arquivo não serve para ninguém.
 - **Dado pessoal fora do Sentry:** vai só o id do usuário e o `requestId`. Nunca email, nome, cookie nem corpo do
   pedido.
@@ -165,7 +169,7 @@ valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
 - Dois projetos na Vercel e dois serviços no Render, um `vercel.json` e um `render.yaml` — a `main` e a `develop`
   carregam os mesmos arquivos; a diferença fica na regra por endereço e nas variáveis de cada painel.
 - Client do Google separado para produção — segredo de staging vazado não abre a produção.
-- Backup cifrado como artefato do GitHub — ❓P8: custo zero e sem conta nova; a cifra resolve o repositório
+- Backup cifrado como artefato do GitHub — resposta do dono à P8: custo zero e sem conta nova; a cifra resolve o repositório
   aberto.
 - Restaurar faz parte da entrega — backup que nunca foi restaurado não é backup.
 - Sentry do web fora do JS inicial — monitorar não pode deixar o app mais lento de abrir.
@@ -176,7 +180,7 @@ valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
   dia de ir ao ar é do dono.
 
 ## Fora do escopo
-- Domínio próprio (se a resposta da ❓P8 for manter `vercel.app`); e-mail próprio.
+- Domínio próprio (se o dono ficar com `vercel.app`); e-mail próprio.
 - Plano pago do Render para a API não dormir; "ping" para mantê-la acordada.
 - Mapas de código (source maps) no Sentry, alertas por canal, painel de desempenho.
 - Limite de pedidos por IP, cabeçalhos de segurança extras, verificação do app no Google.
@@ -185,7 +189,10 @@ valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
 
 ## Perguntas respondidas pelo dono
 - Meta de custo zero, Render gratuito inclusive em produção, Sentry gratuito (`docs/02-arquitetura.md`).
-- ❓P8 (endereço, login do Google e onde guardar o backup): aguardando (`perguntas-v1.md`).
+- P8 · Login em produção? → Publicar o app do Google: qualquer conta entra (14 nov 2026).
+- P8 · Onde guardar o backup? → Arquivo cifrado, 30 dias, no GitHub Actions (14 nov 2026).
+- P8 · Endereço de produção? → **Pendente.** O dono decide antes do lançamento (antes da onda 6): nome do
+  `*.vercel.app` ou domínio próprio. Recomendação do líder: `*.vercel.app` com um nome bom.
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>

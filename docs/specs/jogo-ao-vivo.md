@@ -8,7 +8,7 @@
 | **Fatia** | `jogo-ao-vivo` (onda 5) |
 | **Modo** | Par |
 | **Parte de** | `auditoria-da-rodada` (os pontos de escrita da rodada já passam por um lugar só) |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | auditoria-da-rodada, votacao, rodizio-reservas |
 | **Toca em** | packages/shared/src/live.ts, packages/shared/src/index.ts, apps/api/src/live, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/config/env.ts, .env.example, apps/web/src/features/live, apps/web/src/features/match/queries.ts, apps/web/src/features/match/refresh-interval.ts, apps/web/src/features/voting, apps/web/src/app/shell.tsx |
@@ -180,7 +180,7 @@ um item para ligar o stream direto no domínio da API.
 
 ## Perguntas respondidas pelo dono
 - Tempo real com SSE no lugar do polling → aprovado no parecer do Head de Engenharia (30 out 2026).
-- Sem pergunta nova.
+- P14 · Tempo real depois de `votacao` (onda 5)? → Sim (14 nov 2026).
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>

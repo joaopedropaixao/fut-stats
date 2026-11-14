@@ -1,10 +1,10 @@
 # Perguntas da v1 (lote único)
 
-Todas as dúvidas que apareceram ao escrever os specs das fatias que faltam, em **ordem de impacto**. Cada uma já
-tem a recomendação do líder aplicada no spec, marcada com `❓P<n>`. O dono pode responder só **"ok"** para aceitar
-tudo, ou indicar as exceções ("P3: opção A").
+Todas as dúvidas que apareceram ao escrever os specs das fatias que faltam, em **ordem de impacto**, cada uma com
+as opções e a recomendação do líder. As respostas do dono estão no fim e já foram aplicadas nos specs.
 
-**Status:** aguardando o dono (enviado em 14 nov 2026).
+**Status:** respondido pelo dono em 14 nov 2026. Fica **uma pendência**: o endereço de produção (P8, item 1), que o
+dono decide antes da onda 6.
 
 | P | Fatia | Pergunta | Opções | Recomendação | Por quê |
 |---|---|---|---|---|---|
@@ -38,4 +38,21 @@ Visual e detalhes de tela, pelas regras do documento de autonomia (o dono ajusta
   `historico`.
 
 ## Respostas do dono
-<Preenchido quando o dono responder: data, "ok" ou as exceções, e o que mudou em cada spec.>
+Recebidas em 14 nov 2026, pelo orquestrador.
+
+| P | Resposta | Onde foi aplicada |
+|---|---|---|
+| P1 | Recomendação aceita: 5 tons de pele, 6 cabelos e 5 cores de cabelo | `perfil-jogador` |
+| P2 | Recomendação aceita: 24 h, e o admin pode encerrar antes | `votacao` |
+| P3 | Recomendação aceita: média das 5 últimas rodadas, com a nota inicial completando | `ranking` |
+| P4 | Recomendação aceita: tudo desde o início; mínimo de 3 rodadas com nota | `ranking` |
+| P5 | Recomendação aceita: por time, goleiro fora, relógio compartilhado, sorteio fixo por rodada | `rodizio-reservas` |
+| P6 | Recomendação aceita: resenha só com texto na v1 | `feed` |
+| P7 | Recomendação aceita: os 4 avisos por evento | `pwa-e-push` |
+| P8 | **Login:** publicar o app do Google (aceita). **Backup:** arquivo cifrado por 30 dias no GitHub Actions (aceita). **Endereço: pendente.** O dono decide antes do lançamento, antes da onda 6; a recomendação (`*.vercel.app`) e o alerta de reinstalação ficam anotados | `producao` (aprovado com a pendência anotada) |
+| P9 | **Confirmado pelo dono:** apelido igual não pode, entre os ativos, ignorando maiúscula e acento | `perfil-jogador` |
+| P10 | Recomendação aceita: o jogador edita a principal e até 2 secundárias; o admin ajusta | `perfil-jogador` |
+| P11 | Recomendação aceita: mais de um admin; o admin não mexe no próprio papel nem se desativa | `perfil-jogador` |
+| P12 | Recomendação aceita: todos veem a contagem; o admin vê os nomes de quem falta | `votacao` |
+| P13 | Recomendação aceita: sem foto na v1 | `perfil-jogador` |
+| P14 | Aceito: fatia nova `pacote-do-craque`; `auditoria-da-rodada` e `jogo-ao-vivo` depois de `votacao`; plano de 6 ondas | `ondas-v1.md`, Trilha do roadmap |

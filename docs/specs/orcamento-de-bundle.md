@@ -8,7 +8,7 @@
 | **Fatia** | `orcamento-de-bundle` (onda 1) |
 | **Modo** | Front |
 | **Parte de** | — |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | — |
 | **Toca em** | apps/web/src/router.tsx, apps/web/src/pages/rounds/routes.tsx, apps/web/src/pages/times/routes.tsx, apps/web/src/pages/entrar-e-grupo/routes.tsx, apps/web/src/main.tsx, apps/web/scripts, apps/web/vite.config.ts, apps/web/bundle-budget.json |

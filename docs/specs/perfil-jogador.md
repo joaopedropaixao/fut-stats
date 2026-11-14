@@ -1,15 +1,15 @@
 # `perfil-jogador`
 
 > Spec de fatia da Trilha, escrito pelo líder da v1 (`docs/specs/2026-11-14-autonomia-v1.md`).
-> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`. Marcas `❓P<n>` = recomendação do líder esperando o
-> dono (`docs/specs/perguntas-v1.md`).
+> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`.
+> Dúvidas respondidas pelo dono em lote: `docs/specs/perguntas-v1.md`.
 
 | | |
 |---|---|
 | **Fatia** | `perfil-jogador` (onda 1) |
 | **Modo** | Par |
 | **Parte de** | — |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | — |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/group, packages/shared/src/group.ts, packages/shared/src/auth.ts, packages/shared/src/round.ts, packages/shared/src/match.ts, apps/api/src/groups, apps/api/src/auth, apps/api/src/rounds, apps/api/src/lineups, apps/api/src/match, apps/api/src/seed, apps/web/src/components/ui/avatar.tsx, apps/web/src/components/ui/pixel-sprite, apps/web/src/features/group, apps/web/src/features/lineup, apps/web/src/features/match, apps/web/src/features/rounds, apps/web/src/pages/entrar-e-grupo, apps/web/src/pages/perfil, apps/web/src/pages/elenco, apps/web/src/router.tsx |
@@ -24,33 +24,33 @@ perfil quando quiser, e o admin cuida do elenco: nota inicial, goleiro contratad
 
 ### Quem usa
 - **Jogador:** monta o bonequinho ao entrar (criar pelada ou convite) e edita o próprio perfil: apelido, bonequinho,
-  posição principal e secundárias ❓P10.
+  posição principal e secundárias.
 - **Admin:** tudo do jogador, e no **Elenco** edita qualquer membro: os campos do perfil mais nota inicial, goleiro
-  contratado, papel (admin ou jogador) ❓P11 e ativo/inativo. Não muda o próprio papel nem se desativa.
+  contratado, papel (admin ou jogador) e ativo/inativo. Não muda o próprio papel nem se desativa.
 - **Usuário de outro grupo, ou membro inativo:** 404 em tudo.
 
 ### Regras de domínio
 - Apelido com até 10 letras, validado por `validateNickname`
   ([CONTEXT.md › Grupo, convite e entrada](../../CONTEXT.md#grupo-convite-e-entrada-toslug--validatenickname--validatejoingroup--comparenicknames--default_initial_rating-)).
-- **Apelido único no grupo** ❓P9: entre os membros **ativos**, dois apelidos iguais não passam. Igual =
+- **Apelido único no grupo**: entre os membros **ativos**, dois apelidos iguais não passam. Igual =
   `compareNicknames(a, b) === 0` (ignora maiúscula e acento). Vale para criar, entrar pelo convite, editar e
   reativar. Texto da folha (Campo/Erro): "Esse apelido já está em uso no grupo."
-- **Bonequinho** ❓P1: três escolhas, cada uma de uma lista fechada no domain:
+- **Bonequinho**: três escolhas, cada uma de uma lista fechada no domain:
   - pele (`AVATAR_SKINS`): 5 tons, do mais claro ao mais escuro;
   - cabelo (`AVATAR_HAIRS`): careca, curto, cacheado, black power, comprido e moicano;
   - cor do cabelo (`AVATAR_HAIR_COLORS`): preto, castanho, loiro, ruivo e grisalho. Careca ignora a cor.
   Todo membro tem bonequinho: quem já existe ganha o padrão (`DEFAULT_AVATAR`) e troca no perfil.
 - **O bonequinho é da participação** (`Membership`), como o apelido: é o jogador **naquela pelada**.
-- **Posições** ❓P10: a principal é uma das 5. As secundárias são no máximo 2 (`MAX_SECONDARY_POSITIONS`), sem
+- **Posições**: a principal é uma das 5. As secundárias são no máximo 2 (`MAX_SECONDARY_POSITIONS`), sem
   repetir, diferentes da principal e nunca `GOALKEEPER`; quem tem `GOALKEEPER` como principal não tem secundária
   (o seletor não põe goleiro na linha nem jogador de linha no gol:
   [CONTEXT.md › Seletor de times](../../CONTEXT.md#seletor-de-times-balanceteams-)).
 - **Nota inicial:** de 0 a 10, de 0,5 em 0,5 (`validateRating`), só o admin muda. Padrão 6 (decisão fixa).
-- **Admins** ❓P11: o grupo pode ter mais de um admin. Um admin **não muda o próprio papel nem se desativa**
+- **Admins**: o grupo pode ter mais de um admin. Um admin **não muda o próprio papel nem se desativa**
   (`SELF_CHANGE`): assim sempre sobra pelo menos um admin ativo.
 - **Remover = desativar.** A participação nunca é apagada (decisão fixa: o histórico aponta para ela). O inativo
   some das listas, perde o acesso (404) e não volta pelo convite; quem reativa é o admin, no Elenco.
-- **Foto** ❓P13: fica de fora. O bonequinho é o rosto; `photoUrl` segue no banco e nos contratos, sem uso.
+- **Foto**: fica de fora. O bonequinho é o rosto; `photoUrl` segue no banco e nos contratos, sem uso.
 
 ### Cenários
 Cada cenário tem um id. Os testes levam o id no nome.
@@ -306,7 +306,14 @@ Regras de visual do documento de autonomia valem como critério (o QA confere um
 ## Perguntas respondidas pelo dono
 - Bonequinho no perfil? → Sim: ao escolher o apelido, com cor da pele e cabelo; é o rosto em todo lugar, inclusive
   no campo (14 nov 2026).
-- ❓P1, ❓P9, ❓P10, ❓P11, ❓P13: aguardando (`perguntas-v1.md`).
+- P1 · Cabelo é estilo, cor ou os dois? → Os dois: 5 tons de pele, 6 cabelos e 5 cores de cabelo (14 nov 2026).
+- P9 · Apelido único no grupo? → Sim: apelido igual não pode, entre os ativos, ignorando maiúscula e acento
+  (confirmado, 14 nov 2026).
+- P10 · Quem define as posições? → O jogador edita a principal e até 2 secundárias; o admin ajusta as de qualquer
+  um (14 nov 2026).
+- P11 · Mais de um admin? → Sim, com "Tornar admin"; um admin não muda o próprio papel nem se desativa
+  (14 nov 2026).
+- P13 · Foto fica de fora da v1? → Sim: o bonequinho é o rosto (14 nov 2026).
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>

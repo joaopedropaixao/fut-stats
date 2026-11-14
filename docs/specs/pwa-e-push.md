@@ -1,15 +1,15 @@
 # `pwa-e-push`
 
 > Spec de fatia da Trilha, escrito pelo líder da v1 (`docs/specs/2026-11-14-autonomia-v1.md`).
-> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`. Marcas `❓P<n>` = recomendação do líder esperando o
-> dono (`docs/specs/perguntas-v1.md`).
+> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`.
+> Dúvidas respondidas pelo dono em lote: `docs/specs/perguntas-v1.md`.
 
 | | |
 |---|---|
 | **Fatia** | `pwa-e-push` (onda 6) |
 | **Modo** | Par |
 | **Parte de** | — (o manifesto, os ícones e o service worker do `vite-plugin-pwa` já estão na `develop`) |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1021769 |
 | **Depende de** | feed, votacao, perfil-jogador |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/notifications, packages/domain/src/index.ts, packages/shared/src/push.ts, packages/shared/src/index.ts, apps/api/src/push, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/match/match.service.ts, apps/api/src/voting, apps/api/src/config/env.ts, apps/api/src/app.module.ts, apps/api/package.json, pnpm-lock.yaml, .env.example, render.yaml, apps/web/vite.config.ts, apps/web/public/push-sw.js, apps/web/src/features/pwa, apps/web/src/features/feed, apps/web/src/pages/perfil, apps/web/src/features/group/use-current-group.ts, apps/web/src/app/shell.tsx |
@@ -29,7 +29,7 @@ certa. É o que troca o "alguém avisa no WhatsApp" por um toque.
 - Sem sessão: 401 nas rotas de push.
 
 ### Regras de domínio
-- **Avisos da v1** ❓P7 (`NOTIFICATION_TYPES`), todos disparados por uma ação que já existe:
+- **Avisos da v1** (`NOTIFICATION_TYPES`), todos disparados por uma ação que já existe:
 
 | Tipo | Quando | Quem recebe | Texto | Abre |
 |---|---|---|---|---|
@@ -224,7 +224,7 @@ de uma notificação real no Android e no iPhone (do roteiro em aparelho real, a
 tiver aparelho); `perfil-320`, `feed-320`, `perfil-desktop`.
 
 ### Decisões
-- Quatro avisos, todos por evento — ❓P7; lembrete com hora marcada pede um agendador, e a API gratuita dorme.
+- Quatro avisos, todos por evento — resposta do dono à P7; lembrete com hora marcada pede um agendador, e a API gratuita dorme.
 - Assinatura por usuário e aparelho, sem preferência por tipo — pouca coisa para ligar e desligar; quatro avisos
   por semana não pedem ajuste fino.
 - O resultado não revela o Craque — o aviso chama para o pacote.
@@ -244,7 +244,8 @@ tiver aparelho); `perfil-320`, `feed-320`, `perfil-desktop`.
 
 ## Perguntas respondidas pelo dono
 - PWA e Web Push no lugar de app de loja e de WhatsApp (decisão de arquitetura, `docs/02-arquitetura.md`).
-- ❓P7 (quais avisos viram push): aguardando (`perguntas-v1.md`).
+- P7 · Quais avisos viram notificação? → Os 4 por evento: rodada marcada, times publicados, votação aberta e
+  resultado saiu (14 nov 2026).
 
 ## QA
 <Preenchido no fim: tabela final do QA, número de voltas e veredito.>
