@@ -61,6 +61,51 @@ Para revisão de código no Codex, usar o fluxo nativo de revisão e conferir AG
 o diff e os testes. O comando de revisão do Claude usa modelos e ferramentas próprios
 e não é copiado como se fosse compatível.
 
+## Começar uma tarefa individual
+
+Para uma tarefa independente que não seja o lançamento de uma fatia TPL/DEV/QA:
+
+1. Definir a entrega e conferir as sessões no Orca e o estado do Git antes de escolher o worktree.
+2. Usar um worktree e uma branch próprios, criados pelo Orca a partir de origin/develop.
+   Se a tarefa for de harness, usar feature/plugin-harness conforme AGENTS.md.
+3. Ler AGENTS.md, as seções relevantes de CONTEXT.md e o spec da tarefa. Memórias pessoais
+   ajudam na orientação; arquivos e Git atuais determinam decisões e status.
+4. Conferir se a branch já contém .codex/hooks.json e seguir a ativação acima. A existência
+   do arquivo em outro worktree não ativa hooks nesta tarefa.
+5. Implementar e verificar conforme AGENTS.md; antes do PR, atualizar a base e executar
+   pnpm lint, pnpm typecheck, pnpm test e pnpm build. Abrir o PR para develop usando a
+   credencial pessoal. O merge segue o fluxo do orquestrador com aprovação do dono.
+
+Brief sugerido para uma nova sessão:
+
+```text
+Tarefa independente no Codex: <entrega concreta>.
+Worktree: <caminho absoluto>. Branch: <branch>.
+Spec ou referência: <arquivo e cenários, se houver>.
+Leia AGENTS.md, CONTEXT.md e .codex/README.md antes de implementar.
+Confira Git e sessões no Orca; preserve as tarefas em andamento no Claude.
+Use exclusivamente o perfil pessoal e a credencial GitHub joaopedropaixao.
+Entregue o diff verificado e o PR para develop; o merge fica com o orquestrador.
+```
+
+Esse roteiro não substitui o processo de equipe exigido para uma fatia da Trilha.
+
+## O que falta para equipes no Codex
+
+| Parte | Situação |
+| --- | --- |
+| Regras, specs e critérios de qualidade | Compartilhados nos arquivos do projeto |
+| Hooks gerais | Adaptador disponível; ativação precisa ser conferida por sessão |
+| Lançamento do TPL | lancar-equipe ainda seleciona agente e modelo Claude |
+| DEVs e comunicação | tpl usa papéis e mensagens do Claude; precisa de mapeamento explícito |
+| Encerramento dos DEVs | Hooks definidos no frontmatter dos agentes Claude; não são ativados pelo adaptador |
+| QA | Restrições de ferramentas do frontmatter Claude precisam de equivalente verificado |
+
+Antes de habilitar equipes paralelas, adaptar a seleção do worktree em
+.claude/hooks/dev-termina-verde.sh: hoje ela escolhe o primeiro worktree com sufixo
+-back ou -front, que pode pertencer a outra fatia. A validação deve usar o worktree
+explicitamente atribuído ao DEV. A auditoria não modifica esse hook nem as equipes existentes.
+
 ## Verificar
 
 Executar na raiz:
