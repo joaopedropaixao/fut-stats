@@ -28,6 +28,7 @@ import {
   type UpdateRoundInput,
 } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
+import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Só conta quem confirmou e segue ativo no grupo. */
@@ -130,6 +131,7 @@ export class RoundsService {
         id: true,
         nickname: true,
         photoUrl: true,
+        ...AVATAR_SELECT,
         primaryPosition: true,
         isHiredGoalkeeper: true,
         initialRating: true,
@@ -142,12 +144,21 @@ export class RoundsService {
     let myAttendance: boolean | null = null;
     // Ranking do grupo pela nota (até a Fase 3, a inicial), entre os membros ativos
     const ranks = rankByRating(members.map((m) => ({ id: m.id, rating: m.initialRating })));
-    for (const { id, attendances, initialRating, ...member } of members) {
+    for (const {
+      id,
+      attendances,
+      initialRating,
+      avatarSkin,
+      avatarHair,
+      avatarHairColor,
+      ...member
+    } of members) {
       const answer = attendances[0]?.confirmed ?? null;
       if (id === membership.id) myAttendance = answer;
       const item: AttendanceMember = {
         membershipId: id,
         ...member,
+        avatar: toAvatar({ avatarSkin, avatarHair, avatarHairColor }),
         respondedAt: attendances[0]?.updatedAt.toISOString() ?? null,
         rating: initialRating,
         rank: ranks.get(id)!,
