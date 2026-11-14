@@ -1,0 +1,6 @@
+{
+  "initialJs": 150,
+  "routeChunk": 40,
+  "css": 25,
+  "totalJs": 400
+}

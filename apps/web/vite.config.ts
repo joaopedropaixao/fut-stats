@@ -23,6 +23,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir: ENV_DIR,
+    // O manifesto diz o que cada entrada importa (estático x dinâmico): scripts/check-build.mjs mede o JS inicial com ele
+    build: { manifest: true },
     plugins: [
       react(),
       tailwindcss(),
