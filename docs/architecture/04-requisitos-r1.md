@@ -4,7 +4,7 @@ Legenda: **V** verificado em código; **P** previsto em documento/regra parcial,
 
 | ID | Status | Jornada → regra/permissão → componente → validação | Evidência |
 |---|---|---|---|
-| A1 | V/P | Convite → prévia pública limitada → `InvitePreview` → `GET /api/invites/:code` | `GroupsController.preview`, `GroupsService.preview`; `CONTEXT.md` “Grupo, convite e entrada” |
+| A1 | V | Convite → prévia pública limitada → UI `InvitePage`/`InviteTicket`; contrato `InvitePreview`; `GroupsController.preview`/`GroupsService.preview` → `GET /api/invites/:code` | `apps/web/src/pages/entrar-e-grupo/invite-page.tsx`, `packages/shared/src/group.ts`, `apps/api/src/groups/groups.controller.ts`, `groups.service.ts`; `CONTEXT.md` “Grupo, convite e entrada” |
 | A2 | V | Entrada → sessão obrigatória, cria `PLAYER`; inativo não reativa → `Membership` → `POST /api/invites/:code/join` | `GroupsController.join`, `GroupsService.join`, `validateJoinGroup`; `groups-edge.spec.ts` |
 | A3 | V | Acesso ao grupo → participação ativa no `groupId` da rota → `GroupAccessGuard`/`GroupRole` → 404 sem Membership ativa, 403 sem role exigido | `apps/api/src/auth/group-access.guard.ts`, `group-access.spec.ts` |
 | A4 | V | Presença → jogador próprio/admin qualquer antes do jogo; admin ainda corrige após publicar → `Attendance`, `use-presence.tsx` → `validateAttendanceChange` e `ATTENDANCE_CLOSED`/`ATTENDANCE_MISMATCH` | `packages/domain/src/round/attendance.ts`, `status.ts`, `RoundsService`, `rounds.spec.ts` |

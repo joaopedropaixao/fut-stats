@@ -6,13 +6,13 @@ Projeto de portfólio/laboratório. Esta revisão descreve o produto e o código
 
 | Rodada | Escopo | Estágios | Estado |
 |---|---|---|---|
-| 1 | Pessoas, permissões e jornadas/estados | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Corrigido após QA 2 (C6); revisão visual C7 pendente |
+| 1 | Pessoas, permissões e jornadas/estados | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Correção A1 após QA3; conteúdo aguarda conferência focada; QA visual aprovado |
 | 2 | Estrutura real, entidades e sequências de requisições/dados | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Aguardando revisão da rodada 1 |
 | 3 | Carga/capacidade, segurança da aplicação, operação/confiabilidade e decisões de evolução | Rascunho com evidências → revisão independente → correções → apresentação ao dono | Aguardando revisão da rodada 2 |
 
 - **Validadores:** autoria TPL (esta sessão), revisão independente pelo QA lançado pelo coordenador e apresentação/validação do dono. Nenhum estágio posterior está aprovado por este rascunho.
 - **Critério por estágio:** afirmações ligadas a caminho e símbolo/seção; diferenças entre documentação e código explicitadas; diagramas nativos importáveis, legíveis e coerentes com as fontes; perguntas só quando alterarem o desenho.
-- **Estado desta revisão:** rascunho documental corrigido após QA 2 em C6; a revisão independente manteve C7 visual pendente e a QA visual nativa dos três arquivos está pendente; o coordenador confirmou a importação do diagrama 01 e disponibilizou caminho para QA3. Apresentação ao dono pendente. Não aprovado pelo dono.
+- **Estado desta revisão:** rascunho documental corrigido após QA3 em A1; QA3 aprovou C1–C5 e C7–C9, incluindo importação e inspeção nativa dos três diagramas; a conferência focada de A1 pelo coordenador/QA fresco e a apresentação ao dono estão pendentes. O dono ainda não aprovou.
 - **Data:** 14/11/2026.
 - **Base inicial:** `024186f0cc935f3c835bd5e93e98e9a59654b37c`.
 - **Base de produto:** código lido no mesmo SHA inicial; documentação antiga é referência de intenção, não prova de implementação.
@@ -23,11 +23,12 @@ Projeto de portfólio/laboratório. Esta revisão descreve o produto e o código
 - [Jornada e estados](./02-jornada-estados.md)
 - [Resultado pessoal: YOU WIN / YOU LOSE / EMPATE](./03-resultado-pessoal.md)
 - [Requisitos e rastreabilidade](./04-requisitos-r1.md)
+- Evidências visuais e validação resumida: [relatório da rodada 1](./05-validacao-r1.md) e [álbum QA3](../design/prints/revisao-arquitetura/).
 - Pranchas editáveis: [contexto e atores](./diagrams/01-contexto-atores.excalidraw), [jornada por raias](./diagrams/02-jornada-raias.excalidraw), [resultado pessoal](./diagrams/03-resultado-pessoal.excalidraw)
 
 ## Revisão independente
 
-O QA 1 (C1–C9) reprovou C6 (A11 tratava suporte existente como hipótese) e C7 (colisões nos diagramas 01 e 03); correções foram aplicadas. O QA 2 aprovou C1–C5 e C8–C9, reprovou C6 por status P incorreto para scout no diagrama 02, e manteve C7 pendente: não importou nem renderizou os arquivos nativos. O QA confirmou `audit-tree changed: []` e não alterou arquivos. Relatórios locais fora do Git: `/tmp/fut-stats-arquitetura-qa1-relatorio.md` e `/tmp/fut-stats-arquitetura-qa2-relatorio.md`.
+QA1 apontou A11 classificado como hipótese e colisões de texto em duas pranchas; corrigidos. QA2 encontrou status P indevido para scouts no jogo e não concluiu importação nativa; o status foi corrigido. QA3 aprovou C1–C5 e C7–C9, importou e inspecionou os três arquivos nativos, e identificou somente A1: status composto `V/P` e contrato `InvitePreview` confundido com componente visual. A1 foi corrigido para V e separa UI, contrato e API; a conferência focada dessa correção ainda está pendente. Evidências, hashes e síntese portátil estão em [validação da rodada 1](./05-validacao-r1.md); PNGs no [álbum QA3](../design/prints/revisao-arquitetura/). Relatórios completos QA1–QA3 permanecem fora do Git em `/tmp/fut-stats-arquitetura-qa1-relatorio.md`, `/tmp/fut-stats-arquitetura-qa2-relatorio.md` e `/tmp/fut-stats-arquitetura-qa3-relatorio.md`.
 
 ## Achados que condicionam a leitura
 
