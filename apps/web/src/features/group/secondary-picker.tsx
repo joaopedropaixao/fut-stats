@@ -25,7 +25,13 @@ type SecondaryPickerProps = {
  * com o selo "PRINCIPAL" (texto, não só cor) e não marca; a terceira não marca e a tela explica por quê.
  * Com Goleiro como principal não há secundárias: "Goleiro joga só no gol".
  */
-export function SecondaryPicker({ primary, value, onChange, error, onError }: SecondaryPickerProps) {
+export function SecondaryPicker({
+  primary,
+  value,
+  onChange,
+  error,
+  onError,
+}: SecondaryPickerProps) {
   const id = useId();
   const errorId = `${id}-erro`;
 
@@ -84,7 +90,9 @@ export function SecondaryPicker({ primary, value, onChange, error, onError }: Se
                   <PixelText>Principal</PixelText>
                 </span>
               ) : (
-                selected && <Icon name="check" size={20} strokeWidth={2.4} className="text-success" />
+                selected && (
+                  <Icon name="check" size={20} strokeWidth={2.4} className="text-success" />
+                )
               )}
             </label>
           );

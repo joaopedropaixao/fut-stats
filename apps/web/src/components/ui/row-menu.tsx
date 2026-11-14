@@ -32,11 +32,7 @@ export function MenuItem({
 }
 
 /** Esc ou um toque fora da linha fecham o menu aberto. */
-function useMenuDismiss(
-  open: boolean,
-  close: () => void,
-  ref: RefObject<HTMLElement | null>,
-) {
+function useMenuDismiss(open: boolean, close: () => void, ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     if (!open) return;
     const onEvent = (e: Event) => {

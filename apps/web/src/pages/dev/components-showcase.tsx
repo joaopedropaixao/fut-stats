@@ -212,7 +212,14 @@ export function ComponentsShowcasePage() {
                 const avatar: PlayerAvatar = { skin, hair, hairColor };
                 return (
                   <span key={skin} className="flex items-end gap-1">
-                    <Avatar nickname={`${hair} ${skin}`} avatar={avatar} team={i % 2 ? 'black' : 'white'} size={56} gap="bg" className="m-1" />
+                    <Avatar
+                      nickname={`${hair} ${skin}`}
+                      avatar={avatar}
+                      team={i % 2 ? 'black' : 'white'}
+                      size={56}
+                      gap="bg"
+                      className="m-1"
+                    />
                     <PlayerSprite team={i % 2 ? 'black' : 'white'} avatar={avatar} scale={3} />
                   </span>
                 );
@@ -222,7 +229,11 @@ export function ComponentsShowcasePage() {
           <div className="flex flex-wrap items-end gap-2">
             {AVATAR_HAIR_COLORS.map((hairColor) =>
               AVATAR_SKINS.map((skin) => (
-                <PixelFace key={`${hairColor}${skin}`} avatar={{ skin, hair: 'SHORT', hairColor }} scale={2} />
+                <PixelFace
+                  key={`${hairColor}${skin}`}
+                  avatar={{ skin, hair: 'SHORT', hairColor }}
+                  scale={2}
+                />
               )),
             )}
           </div>

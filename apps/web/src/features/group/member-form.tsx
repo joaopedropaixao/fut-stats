@@ -19,10 +19,7 @@ import { useUpdateMember } from './members';
 import { PositionPicker, type Position } from './position-picker';
 import { RatingStepper } from './rating-stepper';
 import { SecondaryPicker } from './secondary-picker';
-import {
-  secondariesAfterPrimary,
-  type PositionsError,
-} from './secondary-positions';
+import { secondariesAfterPrimary, type PositionsError } from './secondary-positions';
 
 type MemberFormProps = {
   groupId: string;
@@ -170,13 +167,7 @@ export function MemberForm({ groupId, member, adminFields, isMe, onSaved }: Memb
             {apiErrorMessage(update.error, 'Não deu para salvar agora. Tente de novo.')}
           </p>
         )}
-        <Button
-          type="submit"
-          label="Salvar"
-          block
-          disabled={!dirty}
-          loading={update.isPending}
-        />
+        <Button type="submit" label="Salvar" block disabled={!dirty} loading={update.isPending} />
       </form>
 
       {blocker.state === 'blocked' && (

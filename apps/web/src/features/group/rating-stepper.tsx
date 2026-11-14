@@ -27,13 +27,27 @@ export function RatingStepper({ label, value, onChange }: RatingStepperProps) {
     <div role="group" aria-label={label} className="flex flex-col gap-3">
       <PixelText>{label}</PixelText>
       <div className="flex items-center justify-between gap-3">
-        <StepKey icon="minus" label="Diminuir 0,5" disabled={!canLower} onClick={() => onChange(lower)} />
+        <StepKey
+          icon="minus"
+          label="Diminuir 0,5"
+          disabled={!canLower}
+          onClick={() => onChange(lower)}
+        />
         <Bump value={value} scale={1.25} origin="50% 100%">
           <span role="status">
-            <PixelDigits value={formatRating(value)} scale={6} label={`${label}: ${formatRating(value)}`} />
+            <PixelDigits
+              value={formatRating(value)}
+              scale={6}
+              label={`${label}: ${formatRating(value)}`}
+            />
           </span>
         </Bump>
-        <StepKey icon="plus" label="Aumentar 0,5" disabled={!canRaise} onClick={() => onChange(higher)} />
+        <StepKey
+          icon="plus"
+          label="Aumentar 0,5"
+          disabled={!canRaise}
+          onClick={() => onChange(higher)}
+        />
       </div>
     </div>
   );

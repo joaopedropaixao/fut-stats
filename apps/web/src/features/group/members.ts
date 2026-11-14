@@ -8,6 +8,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { apiGet, apiPatch } from '../../lib/api';
+import { applyRosterChange } from './roster-state';
 import { sessionQueryKey } from '../session/use-session';
 
 const groupPath = (groupId: string) => `/groups/${groupId}`;
@@ -62,6 +63,35 @@ export function useUpdateMember(groupId: string, membershipId: string) {
     onSuccess: () => {
       void refreshMembers(queryClient, groupId);
     },
+  });
+}
+
+type RowChange = { membershipId: string; change: Pick<UpdateMemberInput, 'role' | 'active'> };
+
+/**
+ * A mudança do menu ⋯ do Elenco (papel ou ativo): a linha troca na hora; se a API recusar, volta ao que era.
+ * Quem chama mostra o aviso (com Desfazer, ou o erro com o texto da API).
+ */
+export function useChangeRosterMember(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ membershipId, change }: RowChange) =>
+      apiPatch(`${groupPath(groupId)}/members/${membershipId}`, updatedMemberSchema, change),
+    onMutate: async ({ membershipId, change }) => {
+      await queryClient.cancelQueries({ queryKey: rosterKey(groupId) });
+      const previous = queryClient.getQueryData<RosterMember[]>(rosterKey(groupId));
+      if (previous) {
+        queryClient.setQueryData(
+          rosterKey(groupId),
+          applyRosterChange(previous, membershipId, change),
+        );
+      }
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(rosterKey(groupId), context.previous);
+    },
+    onSettled: () => refreshMembers(queryClient, groupId),
   });
 }
 
