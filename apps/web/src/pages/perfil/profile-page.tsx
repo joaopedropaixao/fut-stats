@@ -70,7 +70,7 @@ export function ProfilePage() {
           ) : (
             <PlayerCardSkeleton />
           )}
-          <div className={cn('grid gap-3', isAdmin ? 'grid-cols-2' : 'grid-cols-1')}>
+          <div className="flex flex-col gap-3">
             <RouteButton
               to="/perfil/editar"
               label="Editar perfil"

@@ -31,7 +31,7 @@ export function RosterRow({
 }: RosterRowProps) {
   const admin = member.role === 'ADMIN';
   return (
-    <li className="relative flex min-h-18 items-center gap-2.5 py-2 pr-2 pl-3 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none">
+    <li className="relative flex min-h-18 items-center gap-3.5 py-2 pr-2 pl-3 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none">
       <MemberAvatar
         nickname={member.nickname}
         avatar={member.avatar}

@@ -31,7 +31,7 @@ export function Switch({
   return (
     <div className={cn('flex min-h-19 items-center justify-between gap-3 px-4 py-3', className)}>
       <div className="flex min-w-0 flex-col gap-1.5">
-        <PixelText>{label}</PixelText>
+        <PixelText wrap>{label}</PixelText>
         <span
           id={labelId}
           className={cn('flex items-center gap-1.5', checked ? 'text-success' : 'text-text-muted')}

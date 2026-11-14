@@ -79,7 +79,7 @@ export function RowMenu({ label, children, className }: RowMenuProps) {
       {open && (
         <div
           role="menu"
-          className="animate-menu-in absolute top-full right-0 z-(--z-sheet) mt-1 flex w-64 max-w-[calc(100vw-48px)] flex-col bg-surface-3 shadow-float"
+          className="animate-menu-in absolute top-full right-0 z-(--z-sheet) mt-1 flex w-72 max-w-[calc(100vw-32px)] flex-col bg-surface-3 shadow-float"
         >
           {children(close)}
         </div>
