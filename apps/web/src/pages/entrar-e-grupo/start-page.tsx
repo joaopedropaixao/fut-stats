@@ -59,7 +59,7 @@ function PathSwitch({ value, onChange }: { value: Path; onChange: (path: Path) =
           <label
             key={option.value}
             className={cn(
-              'flex h-12 cursor-pointer items-center justify-center px-2',
+              'flex min-h-12 cursor-pointer items-center justify-center px-2 py-1 text-center',
               'transition-colors duration-(--duration-fast) ease-out',
               'has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-text',
               selected ? 'bg-text text-bg' : 'text-text-muted',
@@ -73,7 +73,9 @@ function PathSwitch({ value, onChange }: { value: Path; onChange: (path: Path) =
               onChange={() => onChange(option.value)}
               className="sr-only"
             />
-            <PixelText>{option.label}</PixelText>
+            <PixelText wrap className="justify-center">
+              {option.label}
+            </PixelText>
           </label>
         );
       })}

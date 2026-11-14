@@ -133,7 +133,7 @@ function TeamBlock({
       )}
     >
       {white && (
-        <PixelText size={32} className={reveal}>
+        <PixelText size={32} className={cn('max-[359px]:text-pixel-md', reveal)}>
           {TEAM_LABELS[team]}
         </PixelText>
       )}
@@ -157,7 +157,7 @@ function TeamBlock({
       </div>
       {white && <Counts count={count} className={reveal} />}
       {!white && (
-        <PixelText size={32} className={reveal}>
+        <PixelText size={32} className={cn('max-[359px]:text-pixel-md', reveal)}>
           {TEAM_LABELS[team]}
         </PixelText>
       )}
@@ -166,7 +166,13 @@ function TeamBlock({
 }
 
 function Counts({ count, className }: { count: number; className?: string }) {
-  return <PixelText className={className}>{`${count} jogadores`}</PixelText>;
+  // Em 320 px o nome do time e a contagem não cabem na metade do quadro: fica só o número
+  return (
+    <span className={cn('inline-flex items-baseline gap-1.5', className)}>
+      <PixelText>{`${count}`}</PixelText>
+      <PixelText className="max-[359px]:hidden">jogadores</PixelText>
+    </span>
+  );
 }
 
 /** Linhas de velocidade atrás de cada time, só na entrada. */

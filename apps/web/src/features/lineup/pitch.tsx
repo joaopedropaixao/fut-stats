@@ -20,9 +20,10 @@ import { YOU_RING, YouTag } from './you-tag';
  */
 const SLOT_POSITION: Record<SlotKey, { left: string; top: number }> = {
   FWD: { left: '50%', top: 30 },
-  WING1: { left: '18.4%', top: 160 },
+  // Nos extremos o nome (até 10 letras) não pode passar da borda do campo em 320 px
+  WING1: { left: 'max(18.4%, 70px)', top: 160 },
   MID: { left: '50%', top: 196 },
-  WING2: { left: '77.1%', top: 160 },
+  WING2: { left: 'min(77.1%, calc(100% - 70px))', top: 160 },
   DEF1: { left: '27.9%', top: 296 },
   DEF2: { left: '72.1%', top: 296 },
   GK: { left: '50%', top: 392 },
