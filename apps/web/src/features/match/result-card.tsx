@@ -7,7 +7,7 @@ import {
 } from '@fut-stats/shared';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { PixelDigits } from '../../components/ui/pixel-digits';
-import { PlayerSprite } from '../../components/ui/pixel-sprite';
+import { PixelBodyLarge } from '../../components/ui/pixel-body-large';
 import { PixelText } from '../../components/ui/pixel-text';
 import { YouTag } from '../lineup/you-tag';
 import { cn } from '../../lib/cn';
@@ -196,10 +196,10 @@ export function ResultCard({ roundId, result, score, myTeam, avatar }: ResultCar
           {win && <TeamBand team={myTeam} shown={phase !== 'entry'} />}
           {/* O meu bonequinho, um só e em destaque, com a etiqueta VOCÊ: os colegas não aparecem no card */}
           <div className={cn('absolute left-4 flex items-end gap-2', win ? 'top-[46px]' : 'top-4')}>
-            <PlayerSprite
+            <PixelBodyLarge
               team={sprite}
               avatar={avatar}
-              scale={win ? 4 : 3}
+              scale={2}
               className={phase === 'entry' ? 'animate-vs-run' : undefined}
               style={{ '--vs-from': '-96px' } as CSSProperties}
             />

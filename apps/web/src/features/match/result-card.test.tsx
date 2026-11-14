@@ -12,8 +12,8 @@ function render(result: 'WIN' | 'LOSS' | 'DRAW') {
   );
 }
 
-/** O bonequinho de corpo inteiro é o único `svg` de 8 x 12 do card. */
-const sprites = (html: string) => html.match(/viewBox="0 0 8 12"/g) ?? [];
+/** O bonequinho de corpo inteiro (grande, 16 x 24) é o único `svg` do card. */
+const sprites = (html: string) => html.match(/viewBox="0 0 16 24"/g) ?? [];
 
 describe('ResultCard (C48)', () => {
   it.each(['WIN', 'LOSS', 'DRAW'] as const)(

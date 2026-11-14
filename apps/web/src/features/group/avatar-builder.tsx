@@ -8,8 +8,8 @@ import { useId, useState, type ReactNode } from 'react';
 import { FaceDisc } from '../../components/ui/avatar';
 import { Button } from '../../components/ui/button';
 import { Icon } from '../../components/ui/icons';
-import { PlayerSprite } from '../../components/ui/pixel-sprite';
-import { HAIR_VAR, SKIN_VAR } from '../../components/ui/pixel-sprite-maps';
+import { PixelBodyLarge } from '../../components/ui/pixel-body-large';
+import { HAIR_SHADE_VAR, HAIR_VAR, SKIN_VAR } from '../../components/ui/pixel-sprite-maps';
 import { PixelText } from '../../components/ui/pixel-text';
 import { Turf } from '../../components/ui/turf';
 import { AVATAR_HAIR_COLORS, AVATAR_HAIRS, AVATAR_SKINS, randomAvatar } from '../../lib/avatar';
@@ -43,6 +43,21 @@ function PixelDice() {
     >
       <path d={DICE_PATH} fill="currentColor" />
     </svg>
+  );
+}
+
+/**
+ * A amostra da cor do cabelo (32 x 32 dentro dos 48 x 48): os dois tons, base em cima e sombra embaixo, com o
+ * contorno de 2 px: do jeito que o cabelo fica no boneco.
+ */
+function HairSwatch({ color }: { color: PlayerAvatar['hairColor'] }) {
+  return (
+    <span
+      style={{
+        backgroundImage: `linear-gradient(to bottom, ${HAIR_VAR[color]} 0 20px, ${HAIR_SHADE_VAR[color]} 20px 100%)`,
+      }}
+      className="size-8 shadow-[inset_0_0_0_2px_var(--color-outline)]"
+    />
   );
 }
 
@@ -82,7 +97,7 @@ export function AvatarBuilder({ value, onChange, nickname }: AvatarBuilderProps)
 
       <Turf aria-hidden className="flex flex-col items-center gap-3 px-3 pt-6 pb-4">
         <span key={hops} className={cn('relative inline-flex', hops > 0 && 'animate-block-hop')}>
-          <PlayerSprite team={null} avatar={value} scale={8} />
+          <PixelBodyLarge team={null} avatar={value} scale={4} />
         </span>
         <PixelText size={24} className={cn('relative', shown ? 'text-text' : 'text-text-muted')}>
           {shown || 'Seu apelido'}
@@ -123,12 +138,7 @@ export function AvatarBuilder({ value, onChange, nickname }: AvatarBuilderProps)
         onChange={(hairColor) => change({ ...value, hairColor })}
         disabled={bald}
         note={bald ? 'Careca não tem cor' : undefined}
-        render={(color) => (
-          <span
-            style={{ backgroundColor: HAIR_VAR[color] }}
-            className="size-8 shadow-[inset_0_0_0_2px_var(--color-outline)]"
-          />
-        )}
+        render={(color) => <HairSwatch color={color} />}
       />
 
       <Button

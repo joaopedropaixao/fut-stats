@@ -1,6 +1,6 @@
 import { POSITION_LABELS, type Member } from '@fut-stats/shared';
 import { Badge } from '../../components/ui/badge';
-import { PlayerSprite } from '../../components/ui/pixel-sprite';
+import { PixelBodyLarge } from '../../components/ui/pixel-body-large';
 import { PixelText } from '../../components/ui/pixel-text';
 import { Turf } from '../../components/ui/turf';
 import { YouTag } from '../lineup/you-tag';
@@ -44,7 +44,7 @@ export function PlayerCard({
           style={{ animationDelay: '320ms' }}
           className="animate-block-hop relative inline-flex"
         >
-          <PlayerSprite team={null} avatar={avatar} scale={8} />
+          <PixelBodyLarge team={null} avatar={avatar} scale={4} />
         </span>
         {(mine || isAdmin) && (
           <span className="absolute top-3 right-3 left-3 flex flex-wrap items-start justify-between gap-2">
