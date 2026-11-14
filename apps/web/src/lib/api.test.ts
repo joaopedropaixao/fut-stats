@@ -126,6 +126,12 @@ describe('escrita', () => {
     expect(apiErrorMessage(err, 'falhou')).toBe('falhou');
   });
 
+  it('403 sem corpo (guard da API) vira um texto de permissão', () => {
+    expect(apiErrorMessage(new ApiError(403, '/x'), 'falhou')).toBe(
+      'Você não tem permissão para isso.',
+    );
+  });
+
   it('apiDelete aceita 204 sem corpo', async () => {
     vi.stubGlobal(
       'fetch',
