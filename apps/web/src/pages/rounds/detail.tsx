@@ -71,9 +71,13 @@ function nextStep(round: RoundDetail, isAdmin: boolean): { to: string; label: st
     case 'SCHEDULED':
       return isAdmin ? { to: `/rodadas/${round.id}/times`, label: 'Montar times' } : null;
     case 'TEAMS_PUBLISHED':
-      return { to: `/rodadas/${round.id}/times`, label: 'Ver times' };
+      return isAdmin
+        ? { to: `/rodadas/${round.id}/jogo`, label: 'Ir para o jogo' }
+        : { to: `/rodadas/${round.id}/times`, label: 'Ver times' };
     case 'IN_PROGRESS':
       return { to: `/rodadas/${round.id}/jogo`, label: 'Ir para o jogo' };
+    case 'POST_MATCH':
+      return { to: `/rodadas/${round.id}/jogo`, label: 'Ir para a Resenha' };
     case 'VOTING':
     case 'CLOSED':
       return { to: `/rodadas/${round.id}/jogo`, label: 'Ver o jogo' };

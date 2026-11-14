@@ -59,6 +59,9 @@ A seção "Daltonismo" da folha tem a simulação.
   de raio 14 com um quadradinho creme em cima; as outras são só ícone, com nome para leitor de tela. Ao trocar de
   aba, a pílula cresce até caber o nome (250 ms, ease-out).
 - Card e lista: contorno de 2px (`--shadow-card`), sem sombra.
+- **Card de grande momento** (placar do jogo, resultado YOU WIN / YOU LOSE / EMPATE, "Em jogo" e "Hora da Resenha" do
+  início): contorno de 3px (`--color-border-strong`) e sombra dura `4px 4px 0` (`moment-frame` no `index.css`), com
+  entrada em degraus de 320 ms. Nunca card chapado (decisão do dono, 25 out 2026).
 - O que flutua (aviso, barra de abas, gaveta, menu): contorno + sombra sólida `4px 4px 0` preta (`--shadow-float`).
   No tema Noite a sombra vira cinza-escuro (`--color-shadow-night`), porque o preto some no fundo quase preto
   (decisão do dono, 23 out 2026).
@@ -83,7 +86,9 @@ A seção "Daltonismo" da folha tem a simulação.
 
 ## Movimento
 
-- Microinterações de 150 a 250 ms, ease-out.
+- Microinterações de 150 a 250 ms, ease-out. O dígito do placar e dos contadores que muda "bate" (escala em 3 degraus,
+  220 ms).
+- Gaveta: abre em até 200 ms e fecha em até 150 ms; a gaveta de confirmação fecha na hora e a chamada segue por trás.
 - **Grandes momentos:** até 2 s no total, sempre com "Pular". A pixel art anda em degraus, sem suavizar. Som
   desligado por padrão.
 - **Reduzir movimento:** os grandes momentos vão direto para o quadro final com um fade, e o resto troca sem animar.

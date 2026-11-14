@@ -40,9 +40,17 @@ describe('validateAttendanceChange', () => {
       (status) => validateAttendanceChange('p1', admin, status).length === 0,
     );
     expect(open).toEqual(['SCHEDULED', 'TEAMS_PUBLISHED']);
-    for (const status of ['IN_PROGRESS', 'VOTING', 'CLOSED'] as const) {
+    for (const status of ['IN_PROGRESS', 'POST_MATCH', 'VOTING', 'CLOSED'] as const) {
       expect(validateAttendanceChange('p2', player, status)).toEqual(['ATTENDANCE_CLOSED']);
     }
+  });
+});
+
+describe('C13: Resenha pós-jogo', () => {
+  it('trava a presença, até para o admin', () => {
+    expect(validateAttendanceChange('p1', { id: 'a1', isAdmin: true }, 'POST_MATCH')).toEqual([
+      'ATTENDANCE_CLOSED',
+    ]);
   });
 });
 

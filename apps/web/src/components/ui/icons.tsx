@@ -6,6 +6,8 @@ const PATHS = {
   x: <path d="M6 6l12 12M18 6L6 18" />,
   plus: <path d="M12 5v14M5 12h14" />,
   minus: <path d="M5 12h14" />,
+  // Três pontos (menu da linha): ponta quadrada faz cada traço curto virar um quadradinho
+  more: <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth={4} />,
   chevronLeft: <path d="M15 18l-6-6 6-6" />,
   chevronRight: <path d="M9 6l6 6-6 6" />,
   pencil: <path d="M4 20h4L19 9l-4-4L4 16z" />,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { teams } from './fixtures.test-utils';
-import { roundPlayerIds, tallyMatchEvents, teamOf, validateScore } from './match';
+import { matchResult, roundPlayerIds, tallyMatchEvents, teamOf, validateScore } from './match';
 
 describe('teamOf', () => {
   it('acha o time de titulares e reservas', () => {
@@ -59,5 +59,14 @@ describe('validateScore', () => {
   it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])('recusa %s', (goals) => {
     expect(validateScore({ WHITE: goals, BLACK: 0 })).toBe('INVALID_SCORE');
     expect(validateScore({ WHITE: 0, BLACK: goals })).toBe('INVALID_SCORE');
+  });
+});
+
+describe('matchResult', () => {
+  it('C11: vitória, derrota e empate do ponto de vista do time', () => {
+    expect(matchResult({ WHITE: 3, BLACK: 2 }, 'WHITE')).toBe('WIN');
+    expect(matchResult({ WHITE: 3, BLACK: 2 }, 'BLACK')).toBe('LOSS');
+    expect(matchResult({ WHITE: 2, BLACK: 2 }, 'WHITE')).toBe('DRAW');
+    expect(matchResult({ WHITE: 0, BLACK: 0 }, 'BLACK')).toBe('DRAW');
   });
 });

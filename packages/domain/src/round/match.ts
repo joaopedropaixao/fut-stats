@@ -40,6 +40,11 @@ export interface MatchEventTally {
   assists: Record<Team, number>;
 }
 
+/** Resultado de um time no jogo, pelo placar. */
+export const MATCH_RESULTS = ['WIN', 'LOSS', 'DRAW'] as const;
+
+export type MatchResult = (typeof MATCH_RESULTS)[number];
+
 export const SCORE_ERRORS = ['INVALID_SCORE'] as const;
 
 export type ScoreError = (typeof SCORE_ERRORS)[number];
@@ -86,4 +91,11 @@ export function tallyMatchEvents(
 export function validateScore(score: MatchScore): ScoreError | null {
   const valid = TEAMS.every((team) => Number.isInteger(score[team]) && score[team] >= 0);
   return valid ? null : 'INVALID_SCORE';
+}
+
+/** Resultado do time no jogo, pelo placar: vitória, derrota ou empate. */
+export function matchResult(score: MatchScore, team: Team): MatchResult {
+  const diff = score[team] - score[opponentOf(team)];
+  if (diff > 0) return 'WIN';
+  return diff < 0 ? 'LOSS' : 'DRAW';
 }
