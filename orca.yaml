@@ -1,0 +1,9 @@
+environmentRecipes:
+  - id: personal-docker
+    name: Personal Docker
+    create: ./scripts/orca-vm/create.sh
+    destroy: ./scripts/orca-vm/destroy.sh
+    passEnv: []
+    timeoutSeconds:
+      create: 600
+      destroy: 120
