@@ -7,8 +7,9 @@
 # CHECAR_SEM_FETCH=1 pula o git fetch (testes). QUADRO_PARADO_S muda o limite de "parado" (padrão 2 h).
 
 set -u
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 cd "${1:-.}" || exit 1
-[ "${CHECAR_SEM_FETCH:-}" = 1 ] || git fetch -q --prune origin 2>/dev/null
+[ "${CHECAR_SEM_FETCH:-}" = 1 ] || sh "$SCRIPT_DIR/git-pessoal.sh" fetch -q --prune origin 2>/dev/null || echo "Aviso: fetch pessoal falhou; referências locais podem estar desatualizadas." >&2
 
 SEP=$(printf '\t')
 MAIN=$(git worktree list --porcelain | awk '/^worktree / { print substr($0, 10); exit }')

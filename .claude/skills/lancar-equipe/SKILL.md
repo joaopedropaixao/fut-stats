@@ -13,8 +13,14 @@ O Orca é a ferramenta de worktrees e agentes do dono. Antes do primeiro comando
 guias da versão instalada: `orca skills get orchestration` e `orca skills get orca-cli` (as skills `orchestration`
 e `orca-cli`). Não faça polling nem script de espera: o Orca te acorda quando um worker pergunta ou termina.
 
+## Convivência com Codex
+
+Leia `.harness/operacao.md`. Este skill é a entrada Claude. Se o dono escolher Codex, use
+`.agents/skills/lancar-equipe/SKILL.md`; não adapte modelos Claude por aproximação.
+Reserve sempre pela ferramenta comum, incluindo equipes da outra ferramenta e as legadas.
+
 ## Passos
-1. `git fetch origin` e leia a Trilha em `origin/develop` (`git show origin/develop:docs/03-roadmap.md`).
+1. `sh .claude/scripts/git-pessoal.sh fetch origin` e leia a Trilha em `origin/develop` (`git show origin/develop:docs/03-roadmap.md`).
 2. Ache a fatia pelo nome ou número: modo (Front, Back ou Par), "Parte de" (PR ou branch antiga) e entrega.
    Não achou? Mostre a tabela e pergunte.
 3. Confira se a fatia anterior foi entregue (PR mergeado ou item `[x]`). Se não foi, avise que a Trilha é uma
@@ -23,17 +29,17 @@ e `orca-cli`). Não faça polling nem script de espera: o Orca te acorda quando 
    pergunte antes de qualquer coisa.
 5. Crie o worktree pelo Orca, com o nome de branch exato (sem o prefixo do Orca) e a partir da develop:
    `orca worktree create --name <fatia> --no-parent --branch feature/<fatia> --base-branch origin/develop --comment "<entrega>" --json`.
-   Guarde o `id` do resultado (`<repoId>::<caminho>`): é o seletor do worktree nos passos seguintes.
+   Guarde o `id` e o caminho reais do resultado. Confira a branch exata; colisão com sufixo exige inspeção.
+   Antes de configurar recursos, reserve: `node .harness/team.mjs reserve --team <fatia> --agent claude --worktree <caminho>`.
+   Use a vaga retornada e não recalcule a partir só das sessões Claude.
 6. No worktree novo, rode `pnpm install` e ligue o `.env` da raiz do checkout principal (é o único; API, Prisma e
    Vite leem da raiz). **Um `ln -s` sozinho, com os caminhos absolutos escritos por extenso** (o hook de `.env` só
    libera assim). Link, não cópia: o dono mantém um arquivo só. Nunca leia o conteúdo:
    - `ln -s <checkout principal>/.env ~/orca/workspaces/fut-stats/<fatia>/.env`
-7. **Modo paralelo (opcional).** Só se o dono pediu ("lança em paralelo", "lança também") ou se já há outra equipe
-   rodando (`git worktree list`: algum worktree com `feature/<fatia>` ativa). Sem isso, pule para o passo 8: a equipe
-   usa as portas e o banco do `.env`. Desenho e porquês: `docs/specs/2026-10-30-equipe-paralela.md`.
-   1. **Vaga.** A equipe sem `.env.equipe` ocupa a vaga 0 (API 3000, web 5173, banco do `.env`). Leia o `PORT` do
-      `.env.equipe` de cada worktree que tiver um (só tem portas e banco local, pode ler) e pegue a menor vaga `n`
-      livre, de 1 a 2: no máximo 3 equipes ao mesmo tempo. Acima disso, avise o dono e pare.
+7. **Modo paralelo (opcional).** Use quando a reserva retornar slot 1 ou 2 (pedido de paralelo ou outra equipe já ocupando recursos).
+   Slot 0 pula para o passo 8: a equipe usa as portas e o banco do `.env`. Desenho e porquês: `docs/specs/2026-10-30-equipe-paralela.md`.
+   1. **Vaga.** Use o slot reservado no passo 5. Zero mantém portas/banco do .env; 1 e 2 são paralelas.
+      A reserva é atômica e conjunta entre Claude e Codex; respeite recusas e reconcilie o estado antes de seguir.
    2. **Arquivo.** Com a ferramenta Write, crie `~/orca/workspaces/fut-stats/<fatia>/.env.equipe` (caminho absoluto):
       ```
       PORT=<3000 + 100·n>
@@ -52,9 +58,11 @@ e `orca-cli`). Não faça polling nem script de espera: o Orca te acorda quando 
    4. **Quem mais está rodando.** Anote, para o kickoff, cada equipe em andamento com o caminho do worktree dela.
 8. Ponha a fatia no quadro, de dentro do worktree novo:
    `cd ~/orca/workspaces/fut-stats/<fatia> && sh .claude/scripts/quadro.sh set <fatia> Lançada "<Toca em do spec, se houver>"`.
-9. Escreva o kickoff num arquivo no scratchpad e inicie o TPL como worker do Orca, mantido aberto para o dono:
-   `orca orchestration worker-start --spec-file <kickoff.md> --task-title "TPL <fatia>" --worktree id:<id do passo 5> --agent claude --model claude-opus-5-5 --keep-open --json`.
-   Se falhar, não rode de novo: leia `failedStage` e `orca skills get orchestration --reference references/recovery-and-cleanup.md`.
+9. Escreva o kickoff num arquivo e prepare a tentativa com `node .harness/team.mjs prepare --team <fatia>
+   --role tpl --worktree <caminho> --spec <kickoff.md>`. Lance o Claude pessoal por
+   `.harness/claude-workers.md`, anexando o terminal pessoal ao worker supervisionado, mantido aberto.
+   Registre Task/Dispatch/Run com team.mjs record. Não use --agent claude como prova de conta pessoal.
+   Se falhar, não rode de novo: leia failedStage e a referência recovery-and-cleanup do Orca.
 10. Responda ao dono em poucas linhas: a fatia, o worktree, que o TPL já está rodando e que você traz as perguntas
     dele. Depois **termine o turno**: o Orca te acorda.
 
@@ -69,7 +77,7 @@ e `orca-cli`). Não faça polling nem script de espera: o Orca te acorda quando 
 O kickoff (conteúdo do arquivo):
 
 ```
-Você é o TPL da fatia `<fatia>` (#<n> da Trilha). Use a skill tpl.
+Você é o TPL Claude pessoal da fatia `<fatia>` (#<n> da Trilha). Use .claude/skills/tpl/SKILL.md.
 Modo: <Par | Front | Back>
 Entrega: <texto da coluna Entrega>
 Parte de: <PR #NN / branch / —>

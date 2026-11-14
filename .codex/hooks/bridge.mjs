@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sessionAssignment } from '../../.harness/team.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const mode = process.argv[2];
@@ -49,6 +50,7 @@ function main(payload) {
     throw new Error('Entrada do hook precisa ser um objeto JSON.');
   }
   const cwd = payload.cwd || root;
+  const assignment = sessionAssignment(cwd, payload.session_id);
   payload = { ...payload, cwd: resolve(cwd, payload.tool_input?.workdir || cwd) };
   if (mode === 'pre') {
     if (payload.tool_name === 'Bash') {
@@ -58,6 +60,20 @@ function main(payload) {
       for (const hook of ['sem-env', 'sem-merge', 'commit-sem-ia']) runHook(hook, payload);
     } else {
       for (const event of fileEvents(payload)) {
+        if (
+          assignment?.role === 'dev-front' &&
+          event.tool_name === 'Edit' &&
+          event.tool_input.file_path.includes('/packages/shared/')
+        ) {
+          throw new Error('Front não edita packages/shared: peça a mudança ao TPL.');
+        }
+        if (
+          assignment &&
+          event.tool_name === 'Edit' &&
+          !event.tool_input.file_path.startsWith(assignment.worktree + '/')
+        ) {
+          throw new Error('Edição fora do worktree atribuído ao worker.');
+        }
         runHook('sem-env', event);
         runHook('front-sem-shared', event);
       }
@@ -67,8 +83,33 @@ function main(payload) {
       for (const event of fileEvents(payload)) runHook('prettier', event);
     }
   } else if (mode === 'start') {
+    if (payload.session_id)
+      process.stdout.write('Sessão Codex para vínculo do harness: ' + payload.session_id + '\n');
     runHook('atraso-ao-iniciar', payload);
   } else if (mode === 'stop') {
+    if (assignment?.phase === 'waiting') return;
+    // DEV simples compartilha branch com TPL, mas não é dono da publicação.
+    // O checklist de entrega roda explicitamente no worker; Stop é proteção adicional.
+    if (assignment?.role.startsWith('dev-')) {
+      if (assignment.phase === 'delivering') {
+        const result = spawnSync(
+          'sh',
+          [join(root, '.claude/hooks/dev-termina-verde.sh'), assignment.role.slice(4)],
+          {
+            cwd: assignment.worktree,
+            env: process.env,
+            encoding: 'utf8',
+            input: JSON.stringify({ ...payload, cwd: assignment.worktree }),
+          },
+        );
+        if (result.stdout) process.stdout.write(result.stdout);
+        if (result.stderr) process.stderr.write(result.stderr);
+        if (result.error) throw result.error;
+        if (result.status !== 0) process.exit(result.status ?? 2);
+      }
+      return;
+    }
+    if (assignment?.role === 'qa') return;
     runHook('sem-push-pendente', payload);
   } else {
     throw new Error('Evento do adaptador desconhecido.');

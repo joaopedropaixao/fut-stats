@@ -1,0 +1,7 @@
+# Padrão econômico solicitado pelo dono. Claude mantém seus modelos próprios.
+model = "gpt-6-luna"
+model_reasoning_effort = "medium"
+
+[agents]
+default_subagent_model = "gpt-6-luna"
+default_subagent_reasoning_effort = "medium"

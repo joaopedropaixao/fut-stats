@@ -5,6 +5,13 @@ description: Use na sessão do orquestrador quando o dono pedir para mergear PRs
 
 # Mergear PRs (orquestrador)
 
+Leia também `.harness/operacao.md` para identidade pessoal, reservas conjuntas e recuperação.
+Este é o fluxo Claude; preserve seus modelos e subagentes nativos. Em sessão Codex, use
+`.agents/skills/mergear/SKILL.md` (mergear compartilha este procedimento com seu adaptador).
+Todo fetch/push/pull abaixo usa `sh .claude/scripts/git-pessoal.sh <operação>`, mesmo quando
+abreviado no texto. Nunca usar a credencial GitHub padrão.
+
+
 O merge na `develop` é do orquestrador, **sempre com o ok explícito do dono, nesta conversa, para os PRs listados**.
 O hook `sem-merge` só libera `gh pr merge` no checkout principal; TPL, DEVs e QA continuam sem poder. Push direto na
 `develop`/`main` ninguém faz: tudo entra por PR.
@@ -55,11 +62,13 @@ Para cada PR:
    - a fatia mergeada sai do quadro: `quadro.sh rm <fatia>`.
 
 ## 3. Arrumar
-0. Worker do Orca da fatia mergeada (`orca orchestration worker-list --json`): ele foi mantido aberto para o dono.
+0. Preserve sempre feature/plugin-harness e seu worktree (AGENTS.md). Para outras fatias,
+   siga settle/release de `.harness/operacao.md` somente após confirmar workers e servidores encerrados.
+   Worker do Orca da fatia mergeada (`orca orchestration worker-list --json`): ele foi mantido aberto para o dono.
    Se o dono não vai mais usar o chat, conte isso a ele e, com o ok, remova o worktree pelo Orca
    (`orca worktree rm --worktree id:<id> --json`) em vez de `git worktree remove`, depois de conferir o item 1.
 1. Para cada branch mergeada: o worktree ainda existe? Confira `git -C <wt> log origin/develop..HEAD` e
-   `git -C <wt> status --short`. Vazio → `git worktree remove <wt>` e `git branch -D <branch>`. **Não vazio → pergunte**
+   `git -C <wt> status --short`. Vazio e workers encerrados → remover pelo Orca e apagar somente a branch integrada, exceto plugin-harness. **Não vazio → pergunte**
    (pode ser uma sessão do Orca ainda trabalhando). Nunca encadeie a checagem e a remoção no mesmo comando.
 2. PR antigo que a fatia substitui (coluna "Parte de" da Trilha): feche com um comentário apontando o novo.
 3. Responda ao dono: o que entrou (PR e uma linha cada), o que ficou e por quê, o que foi limpo e o próximo passo da
