@@ -1,9 +1,22 @@
-import { groupResponseSchema, type CreateGroupInput, type JoinGroupInput } from '@fut-stats/shared';
+import {
+  groupResponseSchema,
+  NICKNAME_TAKEN_LABEL,
+  type CreateGroupInput,
+  type JoinGroupInput,
+} from '@fut-stats/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { ApiError, apiPost } from '../../lib/api';
 import { sessionQueryKey } from '../session/use-session';
 import { setCurrentGroupId } from './use-current-group';
+
+/** O apelido já é de outro membro ativo: a API responde 409 `NICKNAME_TAKEN` (o erro é do campo, não da tela). */
+export function nicknameTakenMessage(error: unknown): string | undefined {
+  if (error instanceof ApiError && error.status === 409 && error.body?.code === 'NICKNAME_TAKEN') {
+    return error.body.message ?? NICKNAME_TAKEN_LABEL;
+  }
+  return undefined;
+}
 
 /** Mensagem para a pessoa a partir do erro da API ao criar/entrar num grupo. */
 export function enterGroupErrorMessage(error: unknown): string {

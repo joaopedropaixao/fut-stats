@@ -96,6 +96,8 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> &
     /** Rótulo inteiro, sem abreviar; se não couber, use `block`. */
     label: string;
     icon?: IconName;
+    /** Desenho próprio antes do rótulo, quando o ícone de traço não serve (ex.: o dado pixel). */
+    mark?: ReactNode;
     loading?: boolean;
     /** Para mover o foco até o botão (ex.: ao abrir ou fechar uma confirmação). */
     ref?: Ref<HTMLButtonElement>;
@@ -104,6 +106,7 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> &
 export function Button({
   label,
   icon,
+  mark,
   loading,
   variant = 'primary',
   size,
@@ -132,7 +135,14 @@ export function Button({
       })}
       {...rest}
     >
-      <Content label={label} icon={icon} variant={variant} loading={loading} disabled={disabled} />
+      <Content
+        label={label}
+        icon={icon}
+        mark={mark}
+        variant={variant}
+        loading={loading}
+        disabled={disabled}
+      />
     </button>
   );
 }

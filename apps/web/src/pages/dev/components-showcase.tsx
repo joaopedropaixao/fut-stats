@@ -1,8 +1,11 @@
+import type { PlayerAvatar } from '@fut-stats/shared';
 import { useState, type ReactNode } from 'react';
 import { Avatar, AvatarMore } from '../../components/ui/avatar';
 import { Badge } from '../../components/ui/badge';
 import { Button, IconButton } from '../../components/ui/button';
 import { PixelDigits } from '../../components/ui/pixel-digits';
+import { PixelFace } from '../../components/ui/pixel-face';
+import { PlayerSprite } from '../../components/ui/pixel-sprite';
 import { PixelText } from '../../components/ui/pixel-text';
 import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states';
 import { Surface } from '../../components/ui/surface';
@@ -10,7 +13,16 @@ import { Switch } from '../../components/ui/switch';
 import { TabBarPreview } from '../../components/ui/tab-bar';
 import { TextField } from '../../components/ui/text-field';
 import { TABS } from '../../app/tabs';
+import { AVATAR_HAIRS, AVATAR_HAIR_COLORS, AVATAR_SKINS } from '../../lib/avatar';
 import { useBackground } from '../../lib/theme';
+
+/** O elenco da folha, com um bonequinho cada. */
+const SAMPLE = {
+  ronaldinho: { skin: 'BROWN', hair: 'CURLY', hairColor: 'BLACK' },
+  zagueirao: { skin: 'DARK', hair: 'AFRO', hairColor: 'BLACK' },
+  marcao: { skin: 'LIGHT', hair: 'SHORT', hairColor: 'BLOND' },
+  diogo: { skin: 'TAN', hair: 'MOHAWK', hairColor: 'RED' },
+} as const satisfies Record<string, PlayerAvatar>;
 
 /**
  * Vitrine dos componentes de base, na mesma ordem e com o mesmo elenco da folha
@@ -165,26 +177,55 @@ export function ComponentsShowcasePage() {
         </div>
         <div className="flex flex-wrap items-end gap-3 px-1 pt-2">
           <Caption label="56">
-            <Avatar nickname="Ronaldinho" team="white" size={56} />
+            <Avatar nickname="Ronaldinho" avatar={SAMPLE.ronaldinho} team="white" size={56} />
           </Caption>
           <Caption label="40">
-            <Avatar nickname="Zagueirão" team="black" />
+            <Avatar nickname="Zagueirão" avatar={SAMPLE.zagueirao} team="black" />
           </Caption>
           <Caption label="32">
-            <Avatar nickname="Marcão" team="white" size={32} />
+            <Avatar nickname="Marcão" avatar={SAMPLE.marcao} team="white" size={32} />
           </Caption>
           <Caption label="Goleiro">
             <span className="pr-2 pb-2">
-              <Avatar nickname="Diogo" team="white" goalkeeper />
+              <Avatar nickname="Diogo" avatar={SAMPLE.diogo} team="white" goalkeeper />
             </span>
           </Caption>
           <Caption label="Grupo">
             <span className="flex gap-1">
-              <Avatar nickname="Ronaldinho" team="white" size={32} />
-              <Avatar nickname="Zagueirão" team="black" size={32} />
+              <Avatar nickname="Ronaldinho" avatar={SAMPLE.ronaldinho} team="white" size={32} />
+              <Avatar nickname="Zagueirão" avatar={SAMPLE.zagueirao} team="black" size={32} />
               <AvatarMore count={9} />
             </span>
           </Caption>
+        </div>
+      </Section>
+
+      <Section
+        title="Bonequinhos"
+        lede="Seis cabelos, cinco peles e cinco cores: o rosto (12 x 12) e o corpo (8 x 12)."
+      >
+        <div className="flex flex-col gap-3">
+          {AVATAR_HAIRS.map((hair) => (
+            <div key={hair} className="flex flex-wrap items-end gap-2">
+              {AVATAR_SKINS.map((skin, i) => {
+                const hairColor = AVATAR_HAIR_COLORS[i]!;
+                const avatar: PlayerAvatar = { skin, hair, hairColor };
+                return (
+                  <span key={skin} className="flex items-end gap-1">
+                    <Avatar nickname={`${hair} ${skin}`} avatar={avatar} team={i % 2 ? 'black' : 'white'} size={56} gap="bg" className="m-1" />
+                    <PlayerSprite team={i % 2 ? 'black' : 'white'} avatar={avatar} scale={3} />
+                  </span>
+                );
+              })}
+            </div>
+          ))}
+          <div className="flex flex-wrap items-end gap-2">
+            {AVATAR_HAIR_COLORS.map((hairColor) =>
+              AVATAR_SKINS.map((skin) => (
+                <PixelFace key={`${hairColor}${skin}`} avatar={{ skin, hair: 'SHORT', hairColor }} scale={2} />
+              )),
+            )}
+          </div>
         </div>
       </Section>
 

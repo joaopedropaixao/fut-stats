@@ -17,6 +17,7 @@ type PixelTextProps = {
   children: string;
   size?: PixelSize;
   as?: ElementType;
+  id?: string;
   /** Deixa quebrar linha (títulos). Por padrão o texto pixel não quebra. */
   wrap?: boolean;
   className?: string;
@@ -31,6 +32,7 @@ export function PixelText({
   children,
   size = 16,
   as: Tag = 'span',
+  id,
   wrap,
   className,
 }: PixelTextProps) {
@@ -42,11 +44,16 @@ export function PixelText({
     className,
   );
 
-  if (parts.length === 1) return <Tag className={base}>{children}</Tag>;
+  if (parts.length === 1)
+    return (
+      <Tag id={id} className={base}>
+        {children}
+      </Tag>
+    );
 
   const scale = Math.max(size / 8, 2);
   return (
-    <Tag className={cn(base, 'inline-flex items-baseline', wrap && 'flex-wrap')}>
+    <Tag id={id} className={cn(base, 'inline-flex items-baseline', wrap && 'flex-wrap')}>
       <span className="sr-only">{children}</span>
       {parts.map((part, i) =>
         !part ? null : i % 2 ? (
