@@ -1,17 +1,22 @@
+import type { PlayerAvatar } from '@fut-stats/shared';
+import { FaceDisc, type AvatarSize } from '../../components/ui/avatar';
 import { PixelText } from '../../components/ui/pixel-text';
 
-/** Avatar sem time (a lista de presença ainda não tem times): as 2 primeiras letras do apelido; "G" no goleiro contratado. */
-export function MemberAvatar({ nickname, goalkeeper }: { nickname: string; goalkeeper?: boolean }) {
+/** Avatar sem time (a lista de presença ainda não tem times): o rosto com a camisa neutra; "G" no goleiro contratado. */
+export function MemberAvatar({
+  nickname,
+  avatar,
+  goalkeeper,
+  size = 40,
+}: {
+  nickname: string;
+  avatar: PlayerAvatar;
+  goalkeeper?: boolean;
+  size?: AvatarSize;
+}) {
   return (
     <span className="relative inline-flex shrink-0" role="img" aria-label={nickname}>
-      <span
-        aria-hidden
-        className="inline-flex size-10 items-center justify-center rounded-full bg-surface-3 pl-0.5 text-text shadow-[inset_0_0_0_2px_var(--color-border-strong)]"
-      >
-        <PixelText className="leading-none">
-          {[...nickname.trim()].slice(0, 2).join('').toUpperCase()}
-        </PixelText>
-      </span>
+      <FaceDisc avatar={avatar} team={null} size={size} />
       {goalkeeper && (
         <span
           aria-hidden

@@ -173,6 +173,7 @@ function Marker({
       >
         <Avatar
           nickname={member.nickname}
+          avatar={member.avatar}
           team={team === 'WHITE' ? 'white' : 'black'}
           size={40}
           gap="field"

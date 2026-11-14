@@ -257,12 +257,17 @@ export function LineupBuilder({ groupId, roundId, lineup }: LineupBuilderProps) 
           {pickedSpot ? (
             <Avatar
               nickname={picked.nickname}
+              avatar={picked.avatar}
               team={pickedSpot.team === 'WHITE' ? 'white' : 'black'}
               size={40}
               gap="surface-3"
             />
           ) : (
-            <MemberAvatar nickname={picked.nickname} goalkeeper={picked.isHiredGoalkeeper} />
+            <MemberAvatar
+              nickname={picked.nickname}
+              avatar={picked.avatar}
+              goalkeeper={picked.isHiredGoalkeeper}
+            />
           )}
           <span className="flex min-w-0 flex-1 flex-col">
             <PixelText>{picked.nickname}</PixelText>

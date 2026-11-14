@@ -1,12 +1,16 @@
+import type { PlayerAvatar } from '@fut-stats/shared';
 import type { CSSProperties } from 'react';
 import { cn } from '../../lib/cn';
 import { PixelDigits } from './pixel-digits';
+import { PixelFace } from './pixel-face';
 import { PixelText } from './pixel-text';
 
 export type AvatarTeam = 'white' | 'black';
 export type AvatarSize = 32 | 40 | 56;
 
 const SIZE: Record<AvatarSize, string> = { 32: 'size-8', 40: 'size-10', 56: 'size-14' };
+/** O rosto (12 x 12) cabe no círculo em escala inteira: 32 → ×2, 40 → ×3, 56 → ×4. */
+const FACE_SCALE: Record<AvatarSize, number> = { 32: 2, 40: 3, 56: 4 };
 
 /** Anel do time: um vão da cor do fundo e o anel por fora (Preto ganha um fio claro para aparecer no escuro). */
 const RING: Record<AvatarTeam, string> = {
@@ -14,13 +18,42 @@ const RING: Record<AvatarTeam, string> = {
   black: '0 0 0 2px var(--avatar-gap), 0 0 0 4px #000, 0 0 0 5px rgb(255 255 255 / 35%)',
 };
 
-/** Iniciais do avatar: as 2 primeiras letras do apelido. */
-function avatarInitials(nickname: string): string {
-  return [...nickname.trim()].slice(0, 2).join('').toUpperCase();
+/**
+ * O disco do rosto: o bonequinho de cabeça e ombros num círculo de fundo médio (a pele e o cabelo de todo
+ * jeito aparecem nele). Os ombros encostam embaixo e o círculo corta os cantos.
+ */
+export function FaceDisc({
+  avatar,
+  team,
+  size,
+  className,
+  style,
+}: {
+  avatar: PlayerAvatar;
+  team: AvatarTeam | null;
+  size: AvatarSize;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <span
+      aria-hidden
+      style={style}
+      className={cn(
+        'relative inline-flex items-end justify-center overflow-hidden rounded-full bg-border-strong',
+        SIZE[size],
+        className,
+      )}
+    >
+      <PixelFace avatar={avatar} team={team} scale={FACE_SCALE[size]} />
+    </span>
+  );
 }
 
 type AvatarProps = {
   nickname: string;
+  /** O bonequinho do jogador: o rosto dele em todo lugar. */
+  avatar: PlayerAvatar;
   team: AvatarTeam;
   size?: AvatarSize;
   /** Mostra o selo "G" de goleiro. */
@@ -33,6 +66,7 @@ type AvatarProps = {
 /** O anel diz o time; perto do avatar sempre aparece o nome do time escrito (daltonismo). */
 export function Avatar({
   nickname,
+  avatar,
   team,
   size = 40,
   goalkeeper,
@@ -46,19 +80,7 @@ export function Avatar({
       role="img"
       aria-label={nickname}
     >
-      <span
-        aria-hidden
-        style={style}
-        className={cn(
-          'inline-flex items-center justify-center rounded-full pl-0.5',
-          SIZE[size],
-          team === 'white' ? 'bg-team-white text-team-black' : 'bg-team-black text-team-white',
-        )}
-      >
-        <PixelText size={size >= 56 ? 24 : 16} className="leading-none">
-          {avatarInitials(nickname)}
-        </PixelText>
-      </span>
+      <FaceDisc avatar={avatar} team={team} size={size} style={style} />
       {goalkeeper && (
         <span
           aria-hidden

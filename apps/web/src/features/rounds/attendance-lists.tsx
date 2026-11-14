@@ -2,7 +2,7 @@ import { POSITION_LABELS, type AttendanceMember, type RoundDetail } from '@fut-s
 import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
-import { cn } from '../../lib/cn';
+import { MenuItem } from '../../components/ui/row-menu';
 import { MemberAvatar } from './member-avatar';
 
 type SetAttendance = (membershipId: string, confirmed: boolean, nickname: string) => void;
@@ -14,33 +14,6 @@ function Dots() {
       <rect x="10" y="10" width="4" height="4" />
       <rect x="17" y="10" width="4" height="4" />
     </svg>
-  );
-}
-
-function MenuItem({
-  icon,
-  label,
-  className,
-  onClick,
-}: {
-  icon: IconName;
-  label: string;
-  className?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={onClick}
-      className={cn(
-        'flex h-13 items-center gap-3 px-4 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none',
-        className,
-      )}
-    >
-      <Icon name={icon} size={20} strokeWidth={2.2} />
-      <PixelText>{label}</PixelText>
-    </button>
   );
 }
 
@@ -85,7 +58,11 @@ function MemberRow({
       ref={ref}
       className="relative flex min-h-18 items-center gap-2.5 py-2 pr-2 pl-3 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none"
     >
-      <MemberAvatar nickname={member.nickname} goalkeeper={member.isHiredGoalkeeper} />
+      <MemberAvatar
+        nickname={member.nickname}
+        avatar={member.avatar}
+        goalkeeper={member.isHiredGoalkeeper}
+      />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <PixelText>{member.nickname}</PixelText>
         <PixelText className="text-text-muted">{POSITION_LABELS[member.primaryPosition]}</PixelText>

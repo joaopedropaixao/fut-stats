@@ -62,6 +62,7 @@ export function EventList({ view, onRemove, removing }: EventListProps) {
                 >
                   <Avatar
                     nickname={event.nickname}
+                    avatar={event.avatar}
                     team={event.playerTeam === 'WHITE' ? 'white' : 'black'}
                     size={40}
                     gap="surface"

@@ -94,6 +94,7 @@ export function PlayerLines({ view, onLaunch, onRemove, removing }: PlayerLinesP
             >
               <Avatar
                 nickname={event.nickname}
+                avatar={event.avatar}
                 team={event.playerTeam === 'WHITE' ? 'white' : 'black'}
                 size={32}
                 gap="surface"
@@ -157,6 +158,7 @@ function PlayerLine({
       <div className="flex items-center gap-3">
         <Avatar
           nickname={player.nickname}
+          avatar={player.avatar}
           team={player.team === 'WHITE' ? 'white' : 'black'}
           size={40}
           goalkeeper={player.position === 'GOALKEEPER' && !player.isReserve}
