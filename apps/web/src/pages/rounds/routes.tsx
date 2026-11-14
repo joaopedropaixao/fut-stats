@@ -1,14 +1,28 @@
 import type { RouteObject } from 'react-router';
-import { RoundDetailPage } from './detail';
-import { EditRoundPage, NewRoundPage } from './form';
-import { RoundsPage } from './list';
-import { MatchPage } from '../match/match-page';
 
-/** Rotas da tela rodadas-e-presenca, dentro do shell (o início `/` é a `HomePage`, ligada no router no lugar do placeholder). */
+/**
+ * Rotas da tela rodadas-e-presenca, dentro do shell (o início `/` entra pela lista de abas no router).
+ * Padrão de `lazy` (ver router.tsx): lista, detalhe e formulário saem no mesmo pedaço (`./rounds-area`); o jogo, em outro.
+ */
 export const roundsRoutes: RouteObject[] = [
-  { path: 'rodadas', element: <RoundsPage /> },
-  { path: 'rodadas/nova', element: <NewRoundPage /> },
-  { path: 'rodadas/:roundId', element: <RoundDetailPage /> },
-  { path: 'rodadas/:roundId/jogo', element: <MatchPage /> },
-  { path: 'rodadas/:roundId/editar', element: <EditRoundPage /> },
+  {
+    path: 'rodadas',
+    lazy: async () => ({ Component: (await import('./rounds-area')).RoundsPage }),
+  },
+  {
+    path: 'rodadas/nova',
+    lazy: async () => ({ Component: (await import('./rounds-area')).NewRoundPage }),
+  },
+  {
+    path: 'rodadas/:roundId',
+    lazy: async () => ({ Component: (await import('./rounds-area')).RoundDetailPage }),
+  },
+  {
+    path: 'rodadas/:roundId/jogo',
+    lazy: async () => ({ Component: (await import('../match/match-page')).MatchPage }),
+  },
+  {
+    path: 'rodadas/:roundId/editar',
+    lazy: async () => ({ Component: (await import('./rounds-area')).EditRoundPage }),
+  },
 ];

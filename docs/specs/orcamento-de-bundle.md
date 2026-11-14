@@ -9,9 +9,9 @@
 | **Modo** | Front |
 | **Parte de** | — |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @ec7b977 |
 | **Depende de** | — |
-| **Toca em** | apps/web/src/router.tsx, apps/web/src/pages/rounds/routes.tsx, apps/web/src/pages/times/routes.tsx, apps/web/src/pages/entrar-e-grupo/routes.tsx, apps/web/src/main.tsx, apps/web/scripts, apps/web/vite.config.ts, apps/web/bundle-budget.json |
+| **Toca em** | apps/web/src/router.tsx, apps/web/src/pages/rounds/routes.tsx, apps/web/src/pages/times/routes.tsx, apps/web/src/pages/entrar-e-grupo/routes.tsx, apps/web/src/main.tsx, apps/web/scripts, apps/web/vite.config.ts, apps/web/vitest.config.ts, apps/web/bundle-budget.json, apps/web/src/app |
 
 ## Produto
 
@@ -84,7 +84,7 @@ Sem mudança.
   funções puras (`initialFiles`, `measure`, `checkBudget`, `formatTable`) e o `check-build.mjs` chama, depois da
   checagem do `jsxDEV`. Tamanho com `node:zlib` (`gzipSync`). Limites em `apps/web/bundle-budget.json`
   (`{ "initialJs": 150, "routeChunk": 40, "css": 25, "totalJs": 400 }`, em kB). Testes das funções em
-  `apps/web/scripts/bundle-budget.test.ts` (o Vitest do web já roda no `pnpm test`).
+  `apps/web/scripts/bundle-budget.test.ts` (o Vitest do web já roda no `pnpm test`; o `include` do `vitest.config.ts` hoje só pega `src/**`, então ganha `scripts/**/*.test.ts`).
 - **CI:** nada muda no `ci.yml`: o `pnpm build` já roda a checagem, e o resumo sai pelo `GITHUB_STEP_SUMMARY`.
 - **PWA:** o Workbox continua guardando todos os `.js` (padrão `**/*.{js,css,html,svg}`), então o app instalado
   abre as telas sem rede como hoje.
@@ -110,4 +110,24 @@ desktop, e a tabela do build colada no PR.
 - Nenhuma: fatia técnica, sem regra de negócio (parecer do Head de Engenharia, 30 out 2026, aprovado pelo dono).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+3 voltas. Volta 1: C1–C13 ✅, reprovada por um extra (esqueleto de `/entrar`, `/convite/:code` e `/comecar` aparecia
+com a barra de abas). Volta 2: correção ✅, reprovada por faltar o teste que reproduz o bug. Volta 3: **APROVADO**.
+
+| Cenário | Teste | Resultado | Evidência |
+|---|---|---|---|
+| C1 `checkBudget` | unitário | ✅ | `scripts/bundle-budget.test.ts`, testes "C1: ..." |
+| C2 `initialFiles` | unitário | ✅ | mesmo arquivo, "C2: ..." (recursão, repetição, ciclo) |
+| C3 build normal | checagem no build | ✅ | tabela com ✓, saída 0, "dist sem jsxDEV" |
+| C4 JS inicial forçado a 1 kB | checagem no build | ✅ | sai 1: "JS inicial: 143.6 kB, limite 1 kB (estourou por 142.6 kB)" |
+| C5 `GITHUB_STEP_SUMMARY` | unitário | ✅ | teste "C5"; no build real a tabela Markdown foi escrita no arquivo |
+| C6 rede em `/` | Playwright (preview) | ✅ | só `index`, `home` e dependências; nenhum pedaço das outras áreas |
+| C7 pré-carga | Playwright | ✅ | 5 pedaços das abas em ~1 s parado; nada com `saveData` |
+| C8 rede lenta, aba Times | Playwright | ✅ | pílula troca na hora, tela anterior fica, esqueleto após 300 ms, nunca em branco |
+| C9 URL direta `/rodadas/:id/jogo` | Playwright | ✅ | esqueleto na moldura, depois a tela; console limpo |
+| C10 pedaço 404 | Playwright | ✅ | recarrega uma vez; 404 sempre → "Tentar de novo", sem laço |
+| C11 telas de dev fora | checagem no build | ✅ | "dist sem as telas de dev"; grep no `dist` vazio |
+| C12 todas as telas | Playwright | ✅ | branch x develop em build a 390 px: texto, DOM e PNG idênticos |
+| C13 esqueleto 320/375/390/430/desktop | Playwright | ✅ | sem rolagem horizontal nem sobreposição, com e sem abas |
+| Extra: esqueleto sem abas fora do shell | Playwright + unitário | ✅ | `src/app/route-fallback.test.tsx` (falha se as abas voltarem) |
+
+Build final (gzip): JS inicial 143.6 / 150 kB · maior pedaço 9.2 / 40 kB · CSS 9.0 / 25 kB · JS total 187.3 / 400 kB.

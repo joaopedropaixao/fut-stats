@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router';
+import { matchPath, NavLink, useNavigation } from 'react-router';
 import { cn } from '../../lib/cn';
 import { Icon, type IconName } from './icons';
 import { PixelText } from './pixel-text';
@@ -12,6 +12,13 @@ export type Tab = { to: string; label: string; icon: IconName };
  * as outras são só ícone, com o nome para leitor de tela. Em tela estreita (< 380px) a pílula fica só com o ícone.
  */
 export function TabBar({ tabs }: { tabs: readonly Tab[] }) {
+  // Tocou numa aba cuja tela ainda está chegando: a pílula já troca (a tela anterior fica até o pedaço vir)
+  const pendingPath = useNavigation().location?.pathname;
+  const pendingTab = pendingPath
+    ? tabs.find((tab) => matchPath({ path: tab.to, end: true }, pendingPath))
+    : undefined;
+  const isCurrent = (tab: Tab, isActive: boolean) => (pendingTab ? pendingTab === tab : isActive);
+
   return (
     <Frame>
       {tabs.map((tab) => (
@@ -19,9 +26,9 @@ export function TabBar({ tabs }: { tabs: readonly Tab[] }) {
           key={tab.to}
           to={tab.to}
           end={tab.to === '/'}
-          className={({ isActive }) => tabClasses(isActive)}
+          className={({ isActive }) => tabClasses(isCurrent(tab, isActive))}
         >
-          {({ isActive }) => <TabContent tab={tab} active={isActive} />}
+          {({ isActive }) => <TabContent tab={tab} active={isCurrent(tab, isActive)} />}
         </NavLink>
       ))}
     </Frame>

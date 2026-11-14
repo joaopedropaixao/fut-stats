@@ -7,12 +7,31 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 import './index.css';
+import { clearReloadMark, reloadOnPreloadError } from './app/chunk-reload';
+import { preloadWhenReady } from './app/preload';
 import { createQueryClient } from './lib/query-client';
 import { applyBackground } from './lib/theme';
 import { router } from './router';
 
 applyBackground();
 const queryClient = createQueryClient();
+
+// Pedaço que sumiu: recarrega uma vez, já na tela pedida (a navegação em andamento, se houver)
+reloadOnPreloadError(() => {
+  const pending = router.state.navigation.location;
+  return pending ? `${pending.pathname}${pending.search}${pending.hash}` : undefined;
+});
+
+// Uma navegação deu certo (tela nova, sem erro de rota): a marca da recarga sai e o próximo pedaço que sumir
+// ganha uma nova recarga. A carga inicial não conta: a pré-carga logo depois dela pode falhar de novo.
+const firstLocation = router.state.location;
+router.subscribe((state) => {
+  if (state.navigation.state === 'idle' && !state.errors && state.location !== firstLocation) {
+    clearReloadMark();
+  }
+});
+// Com a primeira tela pronta, os pedaços das outras áreas chegam em segundo plano
+preloadWhenReady(router);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

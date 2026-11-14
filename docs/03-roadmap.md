@@ -37,7 +37,7 @@ abaixo).
 | 2 ✅ | `seletor-de-times` | Par | `montar-times` | Gerar com `balanceTeams`, ajustar tocando, regerar e publicar. Subiu para depois de `montar-times` (24 out 2026): ajuda a testar as telas seguintes |
 | 3 ✅ | `placar-e-lances` | Par | PR #32 (fechar) | Placar, gols, assistências e gol contra; jogador lança os próprios, admin de todos |
 | 4 | `perfil-jogador` | Par | — | **Onda 1.** Bonequinho pixel ao escolher o apelido (cor da pele e cabelo), que vira o rosto do jogador em todo lugar; editar perfil; admin cuida do elenco (nota inicial, goleiro contratado, admin, ativo/inativo). **Fecha a Fase 1** |
-| 5 | `orcamento-de-bundle` | Front | — | **Onda 1.** Rotas com `lazy` e limite de tamanho do bundle conferido no build (e no CI) |
+| 5 ✅ | `orcamento-de-bundle` | Front | — | **Onda 1.** Rotas com `lazy` e limite de tamanho do bundle conferido no build (e no CI) |
 | 6 | `rodizio-reservas` | Par | `placar-e-lances` | **Onda 2.** Botão opcional na tela do jogo: cronômetro (60 min por padrão) que divide o tempo entre os jogadores de linha de cada time e avisa quem entra e quem sai (pedido do dono, 25 out 2026) |
 | 7 | `historico` | Par | PR #31 (fechar) | **Onda 2.** Aba Histórico: partidas finalizadas com placar e o resultado de quem vê; detalhe com o campo e os lances |
 | 8 | `votacao` | Par | — | **Onda 3.** Tabelas do voto, tela "Dê sua nota", Craque / Perna de Pau, fechar a votação (todos votaram, prazo ou admin), apuração gravada e resultado da rodada |
