@@ -16,6 +16,12 @@ import { parseSeedScenario, seed, SEED_SCENARIOS, type SeedScenario } from './se
 
 const NOW = new Date('2026-10-24T15:10:00Z');
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+/**
+ * Cada teste roda o seed inteiro (às vezes mais de uma vez), o que no CI leva vários segundos. Com o
+ * timeout padrão de 5 s o teste estourava e o seed seguia rodando por trás; o TRUNCATE do próximo
+ * `beforeEach` então caía em deadlock com ele. Por isso todo teste que chama o seed ganha folga.
+ */
+const SEED_TIMEOUT_MS = 30_000;
 
 describe('seed de desenvolvimento', () => {
   let t: TestApp;
@@ -89,187 +95,211 @@ describe('seed de desenvolvimento', () => {
     ['times', 'TEAMS_PUBLISHED'],
     ['em-jogo', 'IN_PROGRESS'],
     ['resenha', 'POST_MATCH'],
-  ])('cenário %s: 8 rodadas encerradas e a atual em %s', async (scenario, status) => {
-    await seed(t.prisma, { scenario, now: NOW });
-    const rounds = await loadRounds();
+  ])(
+    'cenário %s: 8 rodadas encerradas e a atual em %s',
+    async (scenario, status) => {
+      await seed(t.prisma, { scenario, now: NOW });
+      const rounds = await loadRounds();
 
-    expect(rounds.map((r) => r.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    expect(rounds.map((r) => r.status)).toEqual([...Array<string>(8).fill('CLOSED'), status]);
+      expect(rounds.map((r) => r.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      expect(rounds.map((r) => r.status)).toEqual([...Array<string>(8).fill('CLOSED'), status]);
 
-    // Mesmo dia da semana e horário, de 7 em 7 dias, em ordem cronológica
-    const current = rounds[8]!;
-    rounds.forEach((r, i) => {
-      expect(current.scheduledAt.getTime() - r.scheduledAt.getTime()).toBe((8 - i) * WEEK_MS);
-    });
-    expect(rounds[7]!.scheduledAt.getTime()).toBeLessThan(NOW.getTime());
-    expect(current.scheduledAt.getUTCHours()).toBe(23); // 20h em Brasília
-    expect(current.scheduledAt.getTime() > NOW.getTime()).toBe(
-      scenario !== 'em-jogo' && scenario !== 'resenha',
-    );
-
-    for (const round of rounds.slice(0, 8)) {
-      const teams = teamsOf(round);
-      expect(validateRoundTeams(teams)).toEqual([]);
-
-      // Placar = gols lançados (assistência é solta, sem limite)
-      const tally = tallyMatchEvents(
-        round.matchEvents.map((e) => ({ playerId: e.membershipId, type: e.type })),
-        teams,
+      // Mesmo dia da semana e horário, de 7 em 7 dias, em ordem cronológica
+      const current = rounds[8]!;
+      rounds.forEach((r, i) => {
+        expect(current.scheduledAt.getTime() - r.scheduledAt.getTime()).toBe((8 - i) * WEEK_MS);
+      });
+      expect(rounds[7]!.scheduledAt.getTime()).toBeLessThan(NOW.getTime());
+      expect(current.scheduledAt.getUTCHours()).toBe(23); // 20h em Brasília
+      expect(current.scheduledAt.getTime() > NOW.getTime()).toBe(
+        scenario !== 'em-jogo' && scenario !== 'resenha',
       );
-      expect(tally.goals).toEqual({ WHITE: round.whiteGoals, BLACK: round.blackGoals });
 
-      // Quem jogou confirmou; quem lançou foi o próprio jogador ou um admin
-      const confirmed = new Set(
-        round.attendances.filter((a) => a.confirmed).map((a) => a.membershipId),
-      );
-      // Passou pela Resenha e pela votação: a data de abertura está gravada, depois do jogo
-      expect(round.votingOpenedAt).not.toBeNull();
-      expect(round.votingOpenedAt!.getTime()).toBeGreaterThan(round.scheduledAt.getTime());
-      expect(round.teamPlayers.every((p) => confirmed.has(p.membershipId))).toBe(true);
-      for (const event of round.matchEvents) {
-        expect(event.createdById === event.membershipId || event.createdBy.role === 'ADMIN').toBe(
-          true,
+      for (const round of rounds.slice(0, 8)) {
+        const teams = teamsOf(round);
+        expect(validateRoundTeams(teams)).toEqual([]);
+
+        // Placar = gols lançados (assistência é solta, sem limite)
+        const tally = tallyMatchEvents(
+          round.matchEvents.map((e) => ({ playerId: e.membershipId, type: e.type })),
+          teams,
         );
+        expect(tally.goals).toEqual({ WHITE: round.whiteGoals, BLACK: round.blackGoals });
+
+        // Quem jogou confirmou; quem lançou foi o próprio jogador ou um admin
+        const confirmed = new Set(
+          round.attendances.filter((a) => a.confirmed).map((a) => a.membershipId),
+        );
+        // Passou pela Resenha e pela votação: a data de abertura está gravada, depois do jogo
+        expect(round.votingOpenedAt).not.toBeNull();
+        expect(round.votingOpenedAt!.getTime()).toBeGreaterThan(round.scheduledAt.getTime());
+        expect(round.teamPlayers.every((p) => confirmed.has(p.membershipId))).toBe(true);
+        for (const event of round.matchEvents) {
+          expect(event.createdById === event.membershipId || event.createdBy.role === 'ADMIN').toBe(
+            true,
+          );
+        }
       }
-    }
 
-    const confirmed = current.attendances.filter((a) => a.confirmed);
-    const declined = current.attendances.filter((a) => !a.confirmed);
-    const members = await t.prisma.membership.count({
-      where: { group: { slug: SEED_GROUP.slug } },
-    });
-    expect(confirmed).toHaveLength(16);
-    expect(declined.length).toBeGreaterThan(0);
-    expect(members - current.attendances.length).toBeGreaterThan(0);
+      const confirmed = current.attendances.filter((a) => a.confirmed);
+      const declined = current.attendances.filter((a) => !a.confirmed);
+      const members = await t.prisma.membership.count({
+        where: { group: { slug: SEED_GROUP.slug } },
+      });
+      expect(confirmed).toHaveLength(16);
+      expect(declined.length).toBeGreaterThan(0);
+      expect(members - current.attendances.length).toBeGreaterThan(0);
 
-    if (scenario === 'agendada') {
-      expect(current.teamPlayers).toHaveLength(0);
-    } else {
-      expect(validateRoundTeams(teamsOf(current))).toEqual([]);
-    }
-    expect(current.votingOpenedAt).toBeNull();
-    if (scenario === 'em-jogo') {
+      if (scenario === 'agendada') {
+        expect(current.teamPlayers).toHaveLength(0);
+      } else {
+        expect(validateRoundTeams(teamsOf(current))).toEqual([]);
+      }
+      expect(current.votingOpenedAt).toBeNull();
+      if (scenario === 'em-jogo') {
+        expect([current.whiteGoals, current.blackGoals]).toEqual([null, null]);
+      }
+      if (scenario !== 'resenha') expect(current.matchEvents).toHaveLength(0);
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  it(
+    'C48: em-jogo é IN_PROGRESS, com placar nulo e nenhum lance',
+    async () => {
+      await seed(t.prisma, { scenario: 'em-jogo', now: NOW });
+      const current = (await loadRounds())[8]!;
+
+      expect(current.status).toBe('IN_PROGRESS');
       expect([current.whiteGoals, current.blackGoals]).toEqual([null, null]);
-    }
-    if (scenario !== 'resenha') expect(current.matchEvents).toHaveLength(0);
-  });
+      expect(current.matchEvents).toHaveLength(0);
+      expect(current.teamPlayers.length).toBeGreaterThan(0);
+    },
+    SEED_TIMEOUT_MS,
+  );
 
-  it('C48: em-jogo é IN_PROGRESS, com placar nulo e nenhum lance', async () => {
-    await seed(t.prisma, { scenario: 'em-jogo', now: NOW });
-    const current = (await loadRounds())[8]!;
+  it(
+    'resenha tem placar 3x2, gols faltando e um gol contra',
+    async () => {
+      await seed(t.prisma, { scenario: 'resenha', now: NOW });
+      const current = (await loadRounds())[8]!;
 
-    expect(current.status).toBe('IN_PROGRESS');
-    expect([current.whiteGoals, current.blackGoals]).toEqual([null, null]);
-    expect(current.matchEvents).toHaveLength(0);
-    expect(current.teamPlayers.length).toBeGreaterThan(0);
-  });
+      expect(current.status).toBe('POST_MATCH');
+      expect([current.whiteGoals, current.blackGoals]).toEqual([3, 2]);
+      const tally = tallyMatchEvents(
+        current.matchEvents.map((e) => ({ playerId: e.membershipId, type: e.type })),
+        teamsOf(current),
+      );
+      expect(tally.goals).toEqual({ WHITE: 2, BLACK: 1 });
+      expect(current.matchEvents.filter((e) => e.type === 'OWN_GOAL')).toHaveLength(1);
+    },
+    SEED_TIMEOUT_MS,
+  );
 
-  it('resenha tem placar 3x2, gols faltando e um gol contra', async () => {
-    await seed(t.prisma, { scenario: 'resenha', now: NOW });
-    const current = (await loadRounds())[8]!;
+  it(
+    'o histórico cobre os casos que as telas precisam',
+    async () => {
+      await seed(t.prisma, { now: NOW });
+      const past = (await loadRounds()).slice(0, 8);
 
-    expect(current.status).toBe('POST_MATCH');
-    expect([current.whiteGoals, current.blackGoals]).toEqual([3, 2]);
-    const tally = tallyMatchEvents(
-      current.matchEvents.map((e) => ({ playerId: e.membershipId, type: e.type })),
-      teamsOf(current),
-    );
-    expect(tally.goals).toEqual({ WHITE: 2, BLACK: 1 });
-    expect(current.matchEvents.filter((e) => e.type === 'OWN_GOAL')).toHaveLength(1);
-  });
+      const scores = past.map((r) => [r.whiteGoals!, r.blackGoals!] as const);
+      expect(scores.some(([w, b]) => w === b && w > 0)).toBe(true); // empate com gols
+      expect(scores.some(([w, b]) => w === 0 && b === 0)).toBe(true); // 0 x 0
+      expect(scores.some(([w, b]) => Math.abs(w - b) >= 5)).toBe(true); // goleada
 
-  it('o histórico cobre os casos que as telas precisam', async () => {
-    await seed(t.prisma, { now: NOW });
-    const past = (await loadRounds()).slice(0, 8);
+      const hatTrick = past.some((r) => {
+        const goals = new Map<string, number>();
+        for (const e of r.matchEvents.filter((e) => e.type === 'GOAL')) {
+          goals.set(e.membershipId, (goals.get(e.membershipId) ?? 0) + 1);
+        }
+        return [...goals.values()].some((n) => n >= 3);
+      });
+      expect(hatTrick).toBe(true);
 
-    const scores = past.map((r) => [r.whiteGoals!, r.blackGoals!] as const);
-    expect(scores.some(([w, b]) => w === b && w > 0)).toBe(true); // empate com gols
-    expect(scores.some(([w, b]) => w === 0 && b === 0)).toBe(true); // 0 x 0
-    expect(scores.some(([w, b]) => Math.abs(w - b) >= 5)).toBe(true); // goleada
+      const ownGoals = past.flatMap((r) => r.matchEvents).filter((e) => e.type === 'OWN_GOAL');
+      expect(ownGoals.length).toBeGreaterThanOrEqual(2);
 
-    const hatTrick = past.some((r) => {
-      const goals = new Map<string, number>();
-      for (const e of r.matchEvents.filter((e) => e.type === 'GOAL')) {
-        goals.set(e.membershipId, (goals.get(e.membershipId) ?? 0) + 1);
-      }
-      return [...goals.values()].some((n) => n >= 3);
-    });
-    expect(hatTrick).toBe(true);
+      const reserves = past.map((r) => r.teamPlayers.filter((p) => p.isReserve).length);
+      expect(reserves).toContain(0);
+      expect(Math.max(...reserves)).toBe(4);
 
-    const ownGoals = past.flatMap((r) => r.matchEvents).filter((e) => e.type === 'OWN_GOAL');
-    expect(ownGoals.length).toBeGreaterThanOrEqual(2);
+      const events = past.flatMap((r) => r.matchEvents);
+      expect(events.some((e) => e.createdById === e.membershipId)).toBe(true);
+      expect(events.some((e) => e.createdById !== e.membershipId)).toBe(true);
 
-    const reserves = past.map((r) => r.teamPlayers.filter((p) => p.isReserve).length);
-    expect(reserves).toContain(0);
-    expect(Math.max(...reserves)).toBe(4);
-
-    const events = past.flatMap((r) => r.matchEvents);
-    expect(events.some((e) => e.createdById === e.membershipId)).toBe(true);
-    expect(events.some((e) => e.createdById !== e.membershipId)).toBe(true);
-
-    // Alguém fica 4 semanas seguidas sem jogar
-    const lastFour = past.slice(-4);
-    const regular = await t.prisma.membership.findMany({
-      where: { group: { slug: SEED_GROUP.slug }, primaryPosition: { not: 'GOALKEEPER' } },
-    });
-    const absentStreak = regular.filter((m) =>
-      lastFour.every((r) => !r.teamPlayers.some((p) => p.membershipId === m.id)),
-    );
-    expect(absentStreak.length).toBeGreaterThan(0);
-  });
+      // Alguém fica 4 semanas seguidas sem jogar
+      const lastFour = past.slice(-4);
+      const regular = await t.prisma.membership.findMany({
+        where: { group: { slug: SEED_GROUP.slug }, primaryPosition: { not: 'GOALKEEPER' } },
+      });
+      const absentStreak = regular.filter((m) =>
+        lastFour.every((r) => !r.teamPlayers.some((p) => p.membershipId === m.id)),
+      );
+      expect(absentStreak.length).toBeGreaterThan(0);
+    },
+    SEED_TIMEOUT_MS,
+  );
 
   // Roda o seed completo 3 vezes: na CI passa dos 5 s padrão do Jest.
-  it('é idempotente e não mexe em outros grupos', async () => {
-    const other = await createGroup(t);
-    await t.prisma.round.create({ data: { groupId: other.id, scheduledAt: NOW } });
+  it(
+    'é idempotente e não mexe em outros grupos',
+    async () => {
+      const other = await createGroup(t);
+      await t.prisma.round.create({ data: { groupId: other.id, scheduledAt: NOW } });
 
-    await seed(t.prisma, { scenario: 'em-jogo', now: NOW });
-    const first = snapshot(await loadRounds());
-    await seed(t.prisma, { scenario: 'agendada', now: NOW });
-    await seed(t.prisma, { scenario: 'em-jogo', now: NOW });
-    const second = snapshot(await loadRounds());
+      await seed(t.prisma, { scenario: 'em-jogo', now: NOW });
+      const first = snapshot(await loadRounds());
+      await seed(t.prisma, { scenario: 'agendada', now: NOW });
+      await seed(t.prisma, { scenario: 'em-jogo', now: NOW });
+      const second = snapshot(await loadRounds());
 
-    expect(second).toEqual(first);
-    expect(await t.prisma.round.count({ where: { groupId: other.id } })).toBe(1);
-    expect(
-      await t.prisma.group.findUnique({
-        where: { slug: SEED_GROUP.slug },
-        select: { inviteCode: true },
-      }),
-    ).toEqual({ inviteCode: SEED_GROUP.inviteCode });
-    expect(await t.prisma.membership.count({ where: { group: { slug: SEED_GROUP.slug } } })).toBe(
-      21,
-    );
-  }, 30_000);
-
-  it('C29: cada membro tem um bonequinho variado e fixo (o mesmo em toda execução)', async () => {
-    const avatars = async () =>
-      new Map(
-        (await t.prisma.membership.findMany({ where: { group: { slug: SEED_GROUP.slug } } })).map(
-          (m) => [
-            m.nickname,
-            { skin: m.avatarSkin, hair: m.avatarHair, hairColor: m.avatarHairColor },
-          ],
-        ),
+      expect(second).toEqual(first);
+      expect(await t.prisma.round.count({ where: { groupId: other.id } })).toBe(1);
+      expect(
+        await t.prisma.group.findUnique({
+          where: { slug: SEED_GROUP.slug },
+          select: { inviteCode: true },
+        }),
+      ).toEqual({ inviteCode: SEED_GROUP.inviteCode });
+      expect(await t.prisma.membership.count({ where: { group: { slug: SEED_GROUP.slug } } })).toBe(
+        21,
       );
+    },
+    SEED_TIMEOUT_MS,
+  );
 
-    await seed(t.prisma, { now: NOW });
-    const first = await avatars();
-    // outra execução, mesmo com o banco já seedado, e depois de um reset: o mesmo resultado
-    await seed(t.prisma, { now: NOW });
-    expect(await avatars()).toEqual(first);
-    await resetDatabase(t.prisma);
-    await seed(t.prisma, { now: NOW });
-    expect(await avatars()).toEqual(first);
+  it(
+    'C29: cada membro tem um bonequinho variado e fixo (o mesmo em toda execução)',
+    async () => {
+      const avatars = async () =>
+        new Map(
+          (await t.prisma.membership.findMany({ where: { group: { slug: SEED_GROUP.slug } } })).map(
+            (m) => [
+              m.nickname,
+              { skin: m.avatarSkin, hair: m.avatarHair, hairColor: m.avatarHairColor },
+            ],
+          ),
+        );
 
-    const all = [...first.values()];
-    expect(all.every(isPlayerAvatar)).toBe(true);
-    // variado: nenhum bonequinho repetido, e toda opção das três listas aparece
-    expect(new Set(all.map((a) => JSON.stringify(a))).size).toBe(all.length);
-    expect(new Set(all.map((a) => a.skin))).toEqual(new Set(AVATAR_SKINS));
-    expect(new Set(all.map((a) => a.hair))).toEqual(new Set(AVATAR_HAIRS));
-    expect(new Set(all.map((a) => a.hairColor))).toEqual(new Set(AVATAR_HAIR_COLORS));
-  });
+      await seed(t.prisma, { now: NOW });
+      const first = await avatars();
+      // outra execução, mesmo com o banco já seedado, e depois de um reset: o mesmo resultado
+      await seed(t.prisma, { now: NOW });
+      expect(await avatars()).toEqual(first);
+      await resetDatabase(t.prisma);
+      await seed(t.prisma, { now: NOW });
+      expect(await avatars()).toEqual(first);
+
+      const all = [...first.values()];
+      expect(all.every(isPlayerAvatar)).toBe(true);
+      // variado: nenhum bonequinho repetido, e toda opção das três listas aparece
+      expect(new Set(all.map((a) => JSON.stringify(a))).size).toBe(all.length);
+      expect(new Set(all.map((a) => a.skin))).toEqual(new Set(AVATAR_SKINS));
+      expect(new Set(all.map((a) => a.hair))).toEqual(new Set(AVATAR_HAIRS));
+      expect(new Set(all.map((a) => a.hairColor))).toEqual(new Set(AVATAR_HAIR_COLORS));
+    },
+    SEED_TIMEOUT_MS,
+  );
 
   it('lê o cenário dos argumentos', () => {
     expect(parseSeedScenario([])).toBe('agendada');
