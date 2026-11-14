@@ -9,9 +9,9 @@
 | **Modo** | Front |
 | **Parte de** | — |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @ec7b977 |
 | **Depende de** | — |
-| **Toca em** | apps/web/src/router.tsx, apps/web/src/pages/rounds/routes.tsx, apps/web/src/pages/times/routes.tsx, apps/web/src/pages/entrar-e-grupo/routes.tsx, apps/web/src/main.tsx, apps/web/scripts, apps/web/vite.config.ts, apps/web/bundle-budget.json |
+| **Toca em** | apps/web/src/router.tsx, apps/web/src/pages/rounds/routes.tsx, apps/web/src/pages/times/routes.tsx, apps/web/src/pages/entrar-e-grupo/routes.tsx, apps/web/src/main.tsx, apps/web/scripts, apps/web/vite.config.ts, apps/web/vitest.config.ts, apps/web/bundle-budget.json, apps/web/src/app |
 
 ## Produto
 
@@ -84,7 +84,7 @@ Sem mudança.
   funções puras (`initialFiles`, `measure`, `checkBudget`, `formatTable`) e o `check-build.mjs` chama, depois da
   checagem do `jsxDEV`. Tamanho com `node:zlib` (`gzipSync`). Limites em `apps/web/bundle-budget.json`
   (`{ "initialJs": 150, "routeChunk": 40, "css": 25, "totalJs": 400 }`, em kB). Testes das funções em
-  `apps/web/scripts/bundle-budget.test.ts` (o Vitest do web já roda no `pnpm test`).
+  `apps/web/scripts/bundle-budget.test.ts` (o Vitest do web já roda no `pnpm test`; o `include` do `vitest.config.ts` hoje só pega `src/**`, então ganha `scripts/**/*.test.ts`).
 - **CI:** nada muda no `ci.yml`: o `pnpm build` já roda a checagem, e o resumo sai pelo `GITHUB_STEP_SUMMARY`.
 - **PWA:** o Workbox continua guardando todos os `.js` (padrão `**/*.{js,css,html,svg}`), então o app instalado
   abre as telas sem rede como hoje.
