@@ -4,6 +4,7 @@ import {
   avatarPalette,
   markHairRim,
   needsRim,
+  shadeHair,
   type SpriteMap,
   type SpriteTeam,
 } from './pixel-sprite-maps';
@@ -12,12 +13,13 @@ import {
 export const FACE_SIZE = 12;
 
 /**
- * Letras: `K` contorno e olho (preto fixo da pixel art), `s` pele, `h` cabelo, `T` camisa. As quatro últimas
+ * Letras: `K` contorno e olho (preto fixo da pixel art), `s` pele, `h` cabelo (a borda de baixo vira `H`, a sombra,
+ * em `faceMap`), `T` camisa. As quatro últimas
  * linhas (queixo e ombros) são iguais em todo estilo; só o cabelo comprido deixa os fios caírem no ombro.
  * Cada estilo tem uma silhueta própria, para o olho reconhecer a 40 px: careca (cúpula lisa), curto (uma
  * franja), cacheado (cachos), black power (a maior), comprido (desce até o ombro) e moicano (a crista).
  */
-const FACE_TOP: Record<AvatarHair, readonly string[]> = {
+export const FACE_TOP: Record<AvatarHair, readonly string[]> = {
   BALD: [
     '............',
     '...KKKKKK...',
@@ -92,10 +94,10 @@ const FACE_BOTTOM_LONG = [
 
 /** O mapa do rosto (12 linhas de 12 colunas) para um estilo de cabelo. */
 export function faceMap(avatar: PlayerAvatar): SpriteMap {
-  const map = [
+  const map = shadeHair([
     ...FACE_TOP[avatar.hair],
     ...(avatar.hair === 'LONG' ? FACE_BOTTOM_LONG : FACE_BOTTOM_COMMON),
-  ];
+  ]);
   return needsRim(avatar) ? markHairRim(map) : map;
 }
 

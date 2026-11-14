@@ -75,32 +75,56 @@ export const HAIR_VAR = {
   GRAY: 'var(--color-hair-gray)',
 } as const satisfies Record<PlayerAvatar['hairColor'], string>;
 
+/** O segundo tom do cabelo (a sombra na borda de baixo): dá volume e deixa a cor legível com poucos blocos. */
+export const HAIR_SHADE_VAR = {
+  BLACK: 'var(--color-hair-black-shade)',
+  BROWN: 'var(--color-hair-brown-shade)',
+  BLOND: 'var(--color-hair-blond-shade)',
+  RED: 'var(--color-hair-red-shade)',
+  GRAY: 'var(--color-hair-gray-shade)',
+} as const satisfies Record<PlayerAvatar['hairColor'], string>;
+
 /** Preto sobre a pele mais escura some: a borda do cabelo ganha um tom mais claro (1 px). */
 export function needsRim(avatar: PlayerAvatar): boolean {
   return avatar.hair !== 'BALD' && avatar.hairColor === 'BLACK' && avatar.skin === 'DARK';
 }
 
 /**
- * Pele e cabelo do bonequinho (`s`, `h`, e `o` = o pixel de cabelo que encosta na pele). Careca ignora a cor
- * do cabelo.
+ * Pele e cabelo do bonequinho (`s`, `h` = cabelo, `H` = sombra do cabelo, `o` = o pixel de cabelo que encosta
+ * na pele). Careca ignora a cor do cabelo.
  */
 export function avatarPalette(avatar: PlayerAvatar): Record<string, string> {
   const hair = HAIR_VAR[avatar.hairColor];
   return {
     s: SKIN_VAR[avatar.skin],
     h: hair,
+    H: HAIR_SHADE_VAR[avatar.hairColor],
     o: needsRim(avatar) ? 'var(--color-hair-black-rim)' : hair,
     e: 'var(--color-outline)',
   };
 }
 
-/** Marca com `o` o cabelo que encosta na pele (acima, abaixo, esquerda ou direita). */
+/**
+ * Dá volume ao cabelo: o pixel de cabelo (`h`) que não tem mais cabelo logo abaixo vira `H` (a sombra), então a
+ * borda de baixo de cada mecha fica no segundo tom.
+ */
+export function shadeHair(map: SpriteMap): SpriteMap {
+  const below = (x: number, y: number) => map[y + 1]?.[x];
+  return map.map((line, y) =>
+    [...line]
+      .map((c, x) => (c === 'h' && below(x, y) !== 'h' && below(x, y) !== 'H' ? 'H' : c))
+      .join(''),
+  );
+}
+
+/** Marca com `o` o cabelo (`h` ou a sombra `H`) que encosta na pele (acima, abaixo, esquerda ou direita). */
 export function markHairRim(map: SpriteMap): SpriteMap {
   const at = (x: number, y: number) => map[y]?.[x];
   return map.map((line, y) =>
     [...line]
       .map((c, x) =>
-        c === 'h' && [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)].includes('s')
+        (c === 'h' || c === 'H') &&
+        [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)].includes('s')
           ? 'o'
           : c,
       )
