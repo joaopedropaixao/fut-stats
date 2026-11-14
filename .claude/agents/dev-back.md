@@ -35,7 +35,7 @@ Cada cenário do spec marcado como `unitário` ou `integração` precisa de um t
 Você só termina com lint, typecheck e test verdes nos pacotes do back: um hook confere e te devolve o erro.
 
 ## Ao terminar
-Deixe a API rodando (`pnpm --filter @fut-stats/api dev`, porta 3000) com as migrations aplicadas e responda com:
+Deixe a API rodando (`pnpm --filter @fut-stats/api dev`, na porta da equipe: 3000, ou a do `.env.equipe` se ele existir, sem prefixo) com as migrations aplicadas e responda com:
 
 ```
 ## Feito

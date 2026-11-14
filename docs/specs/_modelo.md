@@ -42,7 +42,8 @@ commit da branch `-back`.
 | `GET` | `/groups/:groupId/<...>` | membro | — | `<NomeOutput>` | `<CODIGO>` (4xx) |
 
 ### Banco (`schema.prisma`)
-<Modelos e campos novos ou alterados, ou "sem mudança".>
+<Modelos e campos novos ou alterados, ou "sem mudança". Cite o nome de cada model: o TPL de outra equipe em
+paralelo lê esta seção para ver se vocês mexem no mesmo.>
 
 ### Domínio
 <Funções novas em `packages/domain` com assinatura, ou "sem mudança".>

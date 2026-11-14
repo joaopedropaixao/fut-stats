@@ -79,6 +79,16 @@ expect sem-env 0 "$(bash_cmd 'rg -n X apps')" "rg normal respeita o .gitignore"
 expect sem-env 2 "$(bash_cmd 'cat apps/web/.env.development.local')" ".env de várias partes"
 expect sem-env 2 "$(bash_cmd 'cat apps/api/.env-backup')" ".env-backup"
 
+# modo paralelo: o .env.equipe só tem portas e o banco local, e passa como o .env.example
+expect sem-env 0 "$(tool Read file_path .env.equipe)" "Read .env.equipe"
+expect sem-env 0 "$(tool Write file_path /Users/x/orca/workspaces/fut-stats/placar/.env.equipe)" "Write .env.equipe"
+expect sem-env 0 "$(bash_cmd 'cat /Users/x/orca/workspaces/fut-stats/placar/.env.equipe')" "cat .env.equipe"
+expect sem-env 0 "$(bash_cmd 'grep -h PORT= .env.equipe')" "grep .env.equipe"
+expect sem-env 2 "$(bash_cmd 'cat .env.equipe .env')" ".env.equipe junto com o .env"
+expect sem-env 2 "$(bash_cmd 'cat .env.equipe && cat .env')" ".env.equipe encadeado com o .env"
+expect sem-env 2 "$(bash_cmd 'cat .env.equipe.bak')" ".env.equipe.bak (outro nome)"
+expect sem-env 2 "$(tool Read file_path .env.equipe.local)" "Read .env.equipe.local (outro nome)"
+
 # --- sem-merge
 FEAT=$(repo_on feature/x)
 DEV=$(repo_on develop)
@@ -98,6 +108,19 @@ expect sem-merge 2 "$(bash_cmd 'git push origin HEAD' "$DEV")" "push HEAD estand
 expect sem-merge 2 "$(bash_cmd 'git push origin HEAD:refs/heads/main')" "push para refs/heads/main"
 expect sem-merge 2 "$(bash_cmd 'git push origin +develop')" "push forçado +develop"
 expect sem-merge 0 "$(bash_cmd 'git push' "$FEAT")" "push sem argumentos na feature"
+
+# orquestrador (checkout principal) faz o merge do PR; worktree de equipe não
+PRINC="$TMP/principal"
+git init -q "$PRINC" && git -C "$PRINC" checkout -q -b develop
+git -C "$PRINC" -c user.name=t -c user.email=t@t commit -q --allow-empty -m base
+git -C "$PRINC" worktree add -q -b feature/y "$TMP/wt-equipe"
+expect sem-merge 0 "$(bash_cmd 'GH_TOKEN=abc gh pr merge 49 --merge' "$PRINC")" "gh pr merge no checkout principal"
+expect sem-merge 2 "$(bash_cmd 'gh pr merge 49 --merge' "$TMP/wt-equipe")" "gh pr merge num worktree de equipe"
+expect sem-merge 0 "$(bash_cmd "git -C $TMP/wt-equipe push --force-with-lease origin feature/y" "$PRINC")" "push com -C num worktree de feature"
+expect sem-merge 2 "$(bash_cmd "git -C $PRINC push" "$TMP/wt-equipe")" "push com -C apontando para a develop"
+expect sem-merge 2 "$(bash_cmd 'git push origin develop' "$PRINC")" "orquestrador também não dá push na develop"
+expect sem-merge 2 "$(bash_cmd "git -C $TMP/wt-equipe push origin HEAD:main" "$PRINC")" "push -C nomeando a main"
+expect sem-merge 2 "$(bash_cmd 'git merge feature/y' "$PRINC")" "git merge na develop do checkout principal"
 
 # --- commit-sem-ia
 expect commit-sem-ia 2 "$(bash_cmd 'git commit -m "feat: x
@@ -199,6 +222,28 @@ if grep -q 'git log feature/<fatia>-back..HEAD -- packages/shared' "$AGENTS_DIR/
 else
   echo "FALHOU  qa: checagem do shared ainda pelo diff contra o SHA do contrato" && falhas=$((falhas + 1))
 fi
+
+# --- modo paralelo (spec 2026-10-30-equipe-paralela.md): as skills precisam carregar o que o spec manda
+SKILLS_DIR="$HOOKS/../skills"
+# skill_diz <arquivo> <trecho> <descrição>
+skill_diz() {
+  if grep -Fq -- "$2" "$SKILLS_DIR/$1/SKILL.md"; then
+    echo "ok      $1: $3"
+  else
+    echo "FALHOU  $1: $3 (falta '$2')" && falhas=$((falhas + 1))
+  fi
+}
+skill_diz lancar-equipe 'em paralelo' "tem o modo paralelo"
+skill_diz lancar-equipe '.env.equipe' "cria o arquivo da equipe"
+skill_diz lancar-equipe 'no máximo 3 equipes' "limita as vagas"
+skill_diz lancar-equipe 'DIRECT_URL' "põe a DIRECT_URL no arquivo (migration não vai para o banco principal)"
+skill_diz tpl '.env.equipe' "liga o arquivo da equipe nos worktrees do par"
+skill_diz tpl 'seção Banco' "checa o Banco das outras equipes no Portão 1"
+skill_diz tpl 'apague a pasta da sua migration' "refaz a migration no rebase"
+skill_diz mergear 'Espere o ok' "pede o ok do dono antes de mergear"
+skill_diz mergear 'force-with-lease' "push do rebase com lease"
+skill_diz mergear 'Nunca encadeie a checagem e a remoção' "não apaga worktree sem conferir"
+skill_diz tpl 'skill `mergear`' "TPL aponta o merge para o orquestrador"
 
 # --- falha aberta
 for h in front-sem-shared sem-env sem-merge commit-sem-ia prettier statusline notifica; do

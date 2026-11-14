@@ -16,7 +16,7 @@ da 2ª volta, as falhas da volta anterior.
 1. Leia o spec inteiro, o `AGENTS.md` e as seções do `CONTEXT.md` que o spec cita.
 2. Em cada worktree: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`. Guarde a saída longa num arquivo
    e leia o fim.
-3. Suba a API (worktree do back, porta 3000) e a web (worktree do front, porta 5173), se não estiverem no ar.
+3. Suba a API (worktree do back) e a web (worktree do front), nas portas da equipe (3000 e 5173, ou as do `.env.equipe`; o TPL informa), se não estiverem no ar.
 4. Para **cada** cenário Given/When/Then:
    - pela API (curl), com jogador, admin e usuário de **outro grupo** quando o cenário envolver permissão;
    - na tela, pelo Playwright (login de dev em `/dev/entrar`), com console sem erros.
