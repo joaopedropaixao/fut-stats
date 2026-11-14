@@ -41,7 +41,7 @@ Status: ✅ implementado · 🚧 em PR · 📋 planejado (só nos docs, nomes no
   só como referência visual e ponto de partida do seletor, até o admin ajustar no perfil. A primeira média medida
   de fato sai da primeira rodada que o jogador completar e receber votos.
 - **Convite não reativa membro** (dono, 23 out 2026): membro desativado pelo admin que usa o link recebe erro e
-  precisa falar com o admin. Reativar é do admin (perfil do jogador).
+  precisa falar com o admin. Reativar é do admin (no Elenco: `PATCH` com `active: true`).
 - **Prévia do convite é pública** (dono, 23 out 2026): sem login, mostra só o nome da pelada e quantos membros ativos
   ela tem. Nada de nomes de membros.
 - **Nota da rodada com poucos votos:** com 3 votos ou menos, média simples; a partir de 4, média aparada.
@@ -520,7 +520,7 @@ membros ativos do grupo.
 
 **Evite:** ordenar ou numerar o ranking no front; empate com posições diferentes.
 
-### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `compareNicknames` / `DEFAULT_INITIAL_RATING` 🚧
+### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `compareNicknames` / `isNicknameTaken` / `validatePlayerPositions` / `validateMemberAdminChange` / `DEFAULT_INITIAL_RATING` 🚧
 **O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).
 - `toSlug(nome)`: minúsculo, sem acento, letras/números separados por hífen (`"Pelada do Zé"` → `pelada-do-ze`);
   nome sem letra nem número vira `pelada`. `nextAvailableSlug(base, ocupados)`: a base, ou o menor sufixo livre a
@@ -539,22 +539,58 @@ membros ativos do grupo.
 - `validateJoinGroup(participaçãoAtual)`: sem participação ou ativo → `null`; inativo → `'MEMBERSHIP_INACTIVE'`
   (`JOIN_GROUP_ERRORS`; texto em `JOIN_GROUP_ERROR_LABELS`).
 - `DEFAULT_INITIAL_RATING` = 6: nota inicial de quem entra (ver Decisões fixas).
+- `isNicknameTaken(apelido, outros)`: o apelido já é de outro? `outros` = apelidos dos **outros membros ativos** do
+  grupo (sem o de quem está mudando). Igual = `compareNicknames` 0 (ignora maiúscula e acento), sem os espaços das
+  pontas. **Apelido é único no grupo, só entre os ativos** (dono, 14 nov 2026): vale para criar, entrar pelo convite,
+  editar e reativar; inativo não prende apelido.
+- `validatePlayerPositions(principal, secundárias, { maxSecondaries = MAX_SECONDARY_POSITIONS }?)`: lista **todos** os
+  problemas, sem repetir código, na ordem de `PLAYER_POSITIONS_ERRORS` (`'SECONDARY_IS_PRIMARY'`, `'DUPLICATE_SECONDARY'`,
+  `'GOALKEEPER_AS_SECONDARY'`, `'GOALKEEPER_HAS_SECONDARY'`, `'TOO_MANY_SECONDARIES'`); vazia = válida. Até 2
+  secundárias (`MAX_SECONDARY_POSITIONS`), sem repetir, diferentes da principal e nunca `GOALKEEPER`; quem tem
+  `GOALKEEPER` como principal não tem secundária (o seletor não põe goleiro na linha nem jogador de linha no gol).
+  Textos em `PLAYER_POSITIONS_ERROR_LABELS` (shared).
+- `validateMemberAdminChange(quemAge, alvo, { role?, active? })`: `['SELF_CHANGE']` se o admin muda o **próprio** papel
+  ou o próprio ativo (campo presente = mudança; quem chama tira o que não muda); `[]` caso contrário, inclusive para a
+  própria nota inicial e o goleiro contratado. Assim o grupo sempre tem pelo menos um admin ativo. O grupo pode ter
+  mais de um admin. Texto em `MEMBER_ADMIN_CHANGE_ERROR_LABELS` (shared).
+- **Bonequinho:** ver a entrada "Bonequinho: `PlayerAvatar`" abaixo.
 
 **Na API** (`apps/api/src/groups`, contratos em `packages/shared/src/group.ts`):
 - `GET /api/me` e as respostas de grupo trazem, em cada grupo, o `role` e o `membershipId` do usuário (para a tela
   achar "você" nos times e nas listas).
-- `POST /api/groups` `{ name, nickname, primaryPosition }`: cria o grupo com slug único e código de convite; quem
-  cria vira `ADMIN` (também jogador, nota 6). Devolve o grupo com `role` e `memberCount`.
+- `POST /api/groups` `{ name, nickname, primaryPosition, avatar? }`: cria o grupo com slug único e código de convite;
+  quem cria vira `ADMIN` (também jogador, nota 6). Sem `avatar`, entra o `DEFAULT_AVATAR`. Devolve o grupo com `role`,
+  `membershipId`, `nickname` e `avatar` de quem pediu e `memberCount`.
 - `GET /api/groups/:groupId` e `GET /api/groups/:groupId/members` (membro): o grupo; os membros **ativos** por
   apelido em ordem alfabética do português (ignora maiúscula e acento; empate por quem entrou primeiro), sem nota
-  (nota é assunto do admin).
+  (nota é assunto do admin), com `avatar`.
+- `GET /api/groups/:groupId/members/:membershipId` (membro): um `Member`. Inativo: só o admin vê (para os outros, 404);
+  id de outro grupo → 404.
+- `GET /api/groups/:groupId/roster` (**admin**, 403 para jogador): o Elenco, todos os membros (ativos primeiro, em cada
+  bloco por apelido) como `RosterMember` = `Member` + `initialRating` + `active`.
+- `PATCH /api/groups/:groupId/members/:membershipId` (o próprio ou admin) `UpdateMemberInput` (só o que muda):
+  `nickname`, `avatar`, `primaryPosition` e `secondaryPositions` são do perfil; `initialRating`, `isHiredGoalkeeper`,
+  `role` e `active` só do admin. Responde `RosterMember` (admin) ou `Member` (o próprio, jogador comum). Tudo roda
+  numa transação que trava a linha do grupo (`SELECT 1 FROM "Group" WHERE id = $1 FOR UPDATE`) e lê o papel de quem
+  pede com a trava (dois admins se rebaixando ao mesmo tempo: um passa, o outro já não é admin). Ordem das checagens:
+  alvo no grupo (404) → o próprio ou admin (403 `NOT_OWN_PROFILE`) → campo de admin vindo de jogador (403 `NOT_ADMIN`,
+  mesmo que o valor seja o atual) → `validateMemberAdminChange` (409 `SELF_CHANGE`; repetir o valor de agora não é
+  mudança) → posições com o estado final, só se o pedido mexe nelas (400, `issues` com os textos do shared) → apelido
+  único (409 `NICKNAME_TAKEN`, só se o membro termina ativo e o apelido é novo ou ele está sendo reativado). Falhou
+  uma checagem: nada é gravado, nem os campos permitidos do mesmo pedido. **Remover = `active: false`**: a participação
+  nunca é apagada.
 - `GET`/`POST /api/groups/:groupId/invite` (admin): vê o código / gera um novo. O antigo deixa de valer na hora.
 - `GET /api/invites/:code` (**público**): `{ groupName, memberCount }`. Código inexistente ou trocado → 404.
   Caminho com caractere de controle (ex.: `%00`) → 404 em qualquer rota, antes de guard e banco
   (`rejectControlCharsInPath` no `setupApp`). `\0` em qualquer texto do corpo já validado → 400 (`ZodValidationPipe`; campo desconhecido é descartado
   antes).
-- `POST /api/invites/:code/join` `{ nickname, primaryPosition }`: entra como `PLAYER`, nota 6 → 201. Já é membro
-  ativo → 200 com o grupo, sem duplicar nem mudar os dados. Inativo → 409 `{ code: 'MEMBERSHIP_INACTIVE', message }`.
+- `POST /api/invites/:code/join` `{ nickname, primaryPosition, avatar? }`: entra como `PLAYER`, nota 6 → 201 (sem
+  `avatar`, o `DEFAULT_AVATAR`: clientes antigos seguem valendo). Já é membro ativo → 200 com o grupo, sem duplicar nem
+  mudar os dados. Inativo → 409 `{ code: 'MEMBERSHIP_INACTIVE', message }`. Apelido de outro ativo → 409
+  `{ code: 'NICKNAME_TAKEN', message }`, nada criado; a checagem e a gravação ficam na mesma transação, com a linha do
+  grupo travada (dois `join` ao mesmo tempo com o mesmo apelido: um 201 e um 409).
+- `GET /api/me`: cada grupo traz também o `nickname` e o `avatar` de quem vê (faixa VOCÊ, card de resultado, Perfil).
+  As listas de presença, os times e o jogo (`rounds`, `lineup`, `match`) trazem o `avatar` de cada jogador.
 
 **No app** (`apps/web`, telas `entrar-e-grupo`): `/entrar`, `/comecar`, `/convite/:code` e `/perfil` (aba Perfil, versão mínima).
 - Quem está logado e sem grupo é mandado para `/comecar` (criar a pelada ou colar link/código de convite).
@@ -563,10 +599,35 @@ membros ativos do grupo.
 - Perfil: nome e foto do Google, peladas do usuário (troca do grupo atual), e, só para admin, link de convite
   (Copiar, WhatsApp, "Gerar novo link" com confirmação). Sair chama o logout.
 
-**Não faz:** editar perfil (foto, secundárias, nota, goleiro contratado, ativo/inativo: `feature/perfil-jogador`);
-aprovar entrada (grupo de confiança: tem o link, entra); sair do grupo.
-**Evite:** tratar a nota 6 como média medida; reativar membro pelo convite; mostrar membros na prévia pública;
+**Não faz:** foto do jogador (o bonequinho é o rosto; `photoUrl` segue no banco e nos contratos, sem uso); aprovar
+entrada (grupo de confiança: tem o link, entra); sair do grupo por conta própria; apagar participação.
+**Evite:** tratar a nota 6 como média medida; reativar membro pelo convite; deixar o admin mexer no próprio papel ou
+se desativar (`SELF_CHANGE`); contar inativo como apelido em uso; mostrar membros na prévia pública;
 reaproveitar o código antigo depois de gerar um novo; slug como identificador nas rotas (rotas usam `groupId`).
+
+### Bonequinho: `PlayerAvatar` 🚧
+**O que é:** o rosto pixel do jogador (`packages/domain/src/group/avatar.ts`): três escolhas, cada uma de uma lista
+fechada. Dono, 14 nov 2026: "ao escolher o apelido, o jogador monta o bonequinho, com cor da pele e cabelo; é o rosto
+em todo lugar".
+- Pele (`AVATAR_SKINS`): `LIGHT`, `FAIR`, `TAN`, `BROWN`, `DARK` (do mais claro ao mais escuro).
+- Cabelo (`AVATAR_HAIRS`): `BALD` (careca), `SHORT`, `CURLY`, `AFRO` (black power), `LONG`, `MOHAWK`. Careca ignora a cor.
+- Cor do cabelo (`AVATAR_HAIR_COLORS`): `BLACK`, `BROWN`, `BLOND`, `RED`, `GRAY`.
+- `PlayerAvatar = { skin, hair, hairColor }`; `DEFAULT_AVATAR` = `{ TAN, SHORT, BLACK }` (quem nunca montou o seu, inclusive
+  quem já existia antes); `isPlayerAvatar(valor: unknown)`: `boolean`, estreita o tipo, recusa valor fora da lista,
+  campo faltando ou valor que não é objeto (campo extra é ignorado).
+
+**Faz:** vive na **participação** (`Membership.avatarSkin`/`avatarHair`/`avatarHairColor`, três enums do Prisma iguais
+às listas; `domain-enums.spec.ts` garante): é o jogador **naquela pelada**, como o apelido. Todo membro tem bonequinho
+(coluna com padrão), então todo contrato devolve `avatar` sempre, sem estado "não montou". Schema `avatarSchema` no
+`shared` (`domain.ts`, para auth/round/match importarem sem ciclo); nomes das opções em `AVATAR_SKIN_LABELS`,
+`AVATAR_HAIR_LABELS` e `AVATAR_HAIR_COLOR_LABELS`. O jogador troca o seu pelo `PATCH` do perfil; o admin troca o de
+qualquer um. Seed: bonequinho fixo por índice do membro (`seedAvatarFor`), sem sorteio.
+
+**Não faz:** não tem foto (`photoUrl` sem uso); não tem opção além das três listas (barba, acessório, uniforme ficam
+fora); não guarda o bonequinho no `User`; não desenha nada (o desenho do rosto e do corpo é do front).
+
+**Evite:** tratar `avatar` como opcional na resposta; sortear bonequinho no servidor; cor de cabelo obrigatória para
+careca na tela; hex de pele ou cabelo solto na tela (são tokens).
 
 ---
 
@@ -577,8 +638,8 @@ sem regras nem rotas. Rodada e Scout já têm regras (ver "Rodada, placar e scou
 
 ### Grupo e participação (`Group` / `Membership`)
 **O que é:** grupo = uma pelada. Membership = um usuário num grupo, com papel (`ADMIN` ou `PLAYER`) e os dados de
-jogador daquele grupo: apelido, foto, posição principal e secundárias, nota inicial (dada pelo admin), se é goleiro
-contratado (`isHiredGoalkeeper`) e se está ativo. **Apelido com até 10 letras** (`validateNickname`). Criar grupo e
+jogador daquele grupo: apelido, bonequinho (`PlayerAvatar`), posição principal e secundárias, nota inicial (dada pelo
+admin), se é goleiro contratado (`isHiredGoalkeeper`) e se está ativo (`photoUrl` existe e não é usado). **Apelido com até 10 letras** (`validateNickname`). Criar grupo e
 entrar pelo convite: ver "Grupo, convite e entrada". Um usuário pode estar em vários grupos, com papéis diferentes.
 **Admin também é jogador:** tem posição e nota como todo mundo, mais as permissões de admin.
 **Acesso ao grupo na API** ✅ (`apps/api/src/auth`): rota com `:groupId` usa `@GroupMember()` (qualquer membro)
