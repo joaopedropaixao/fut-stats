@@ -9,7 +9,7 @@ const AREAS = [
   () => import('../pages/times/times-area'),
   () => import('../pages/rounds/rounds-area'),
   () => import('../pages/match/match-page'),
-  () => import('../pages/entrar-e-grupo/profile-page'),
+  () => import('../pages/perfil/perfil-area'),
   () => import('../pages/entrar-e-grupo/start-area'),
 ];
 

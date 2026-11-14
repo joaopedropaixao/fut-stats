@@ -13,12 +13,14 @@ export type NoticeData = {
   message?: string;
   /** "Desfazer": chamado uma vez, e o aviso fecha. */
   onUndo?: () => void;
+  /** Texto do botão de `onUndo` (padrão "Desfazer"): o aviso de erro que leva a um conserto usa "Editar". */
+  actionLabel?: string;
 };
 
 type NoticeProps = NoticeData & { onClose: () => void };
 
 /** Aviso que flutua acima da barra de abas, com ícone e título que dizem o tipo (cor nunca é o único sinal). */
-export function Notice({ kind, title, message, onUndo, onClose }: NoticeProps) {
+export function Notice({ kind, title, message, onUndo, actionLabel, onClose }: NoticeProps) {
   return createPortal(
     <div className="pointer-events-none fixed inset-x-0 bottom-[calc(88px+env(safe-area-inset-bottom))] z-(--z-toast) px-4">
       <div
@@ -48,7 +50,7 @@ export function Notice({ kind, title, message, onUndo, onClose }: NoticeProps) {
               onClose();
             }}
           >
-            <PixelText>Desfazer</PixelText>
+            <PixelText>{actionLabel ?? 'Desfazer'}</PixelText>
           </button>
         ) : (
           <button
