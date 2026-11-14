@@ -619,6 +619,7 @@ describe('grupos e convite: casos de borda', () => {
         primaryPosition: 'MIDFIELDER',
         secondaryPositions: ['WINGER', 'FORWARD'],
         isHiredGoalkeeper: true,
+        avatar: { skin: 'TAN', hair: 'SHORT', hairColor: 'BLACK' },
       });
       expect(JSON.stringify(res.body)).not.toContain(viewer.email);
       expect(JSON.stringify(res.body)).not.toContain(viewer.id);
@@ -680,9 +681,10 @@ describe('grupos e convite: casos de borda', () => {
       expect(invitePreviewSchema.strict().safeParse(preview.body).success).toBe(true);
 
       const newcomer = await createUser(t);
-      const joined = await join(newcomer.id, regenerated.body.code).expect(201);
+      const entryAs = { ...entry, nickname: 'Novato' };
+      const joined = await join(newcomer.id, regenerated.body.code, entryAs).expect(201);
       expect(groupResponseSchema.strict().safeParse(joined.body).success).toBe(true);
-      const again = await join(newcomer.id, regenerated.body.code).expect(200);
+      const again = await join(newcomer.id, regenerated.body.code, entryAs).expect(200);
       expect(groupResponseSchema.strict().safeParse(again.body).success).toBe(true);
       expect(again.body).toEqual(joined.body);
     });
@@ -778,7 +780,9 @@ describe('grupos e convite: casos de borda', () => {
       await addMember(t, admin.id, group.id, { role: 'ADMIN' });
       const users = await Promise.all([createUser(t), createUser(t), createUser(t)]);
 
-      const responses = await Promise.all(users.map((u) => join(u.id, group.inviteCode)));
+      const responses = await Promise.all(
+        users.map((u, i) => join(u.id, group.inviteCode, { ...entry, nickname: `Novo${i}` })),
+      );
 
       expect(responses.map((r) => r.status)).toEqual([201, 201, 201]);
       for (const { body } of responses) {
