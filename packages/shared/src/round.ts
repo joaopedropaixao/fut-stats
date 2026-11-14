@@ -1,6 +1,6 @@
 import type { AttendanceError } from '@fut-stats/domain';
 import { z } from 'zod';
-import { positionSchema, roundStatusSchema } from './domain';
+import { avatarSchema, positionSchema, roundStatusSchema } from './domain';
 
 /** Tamanho máximo do texto do local (proteção de entrada, não regra da pelada). */
 export const ROUND_LOCATION_MAX_LENGTH = 100;
@@ -78,6 +78,7 @@ export const attendanceMemberSchema = z.object({
   membershipId: z.string(),
   nickname: z.string(),
   photoUrl: z.string().nullable(),
+  avatar: avatarSchema,
   primaryPosition: positionSchema,
   isHiredGoalkeeper: z.boolean(),
   /** Quando respondeu pela última vez (nulo = não respondeu). Confirmados vêm na ordem de chegada. */

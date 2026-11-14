@@ -15,6 +15,7 @@ import {
   validateRoundTransition,
   type PastRound,
   type Player,
+  type PlayerAvatar,
   type RoundState,
   type RoundStatus,
   type RoundTeams,
@@ -35,6 +36,7 @@ import {
   type SuggestLineupInput,
 } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
+import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -48,6 +50,7 @@ const memberSelect = {
   id: true,
   nickname: true,
   photoUrl: true,
+  ...AVATAR_SELECT,
   primaryPosition: true,
   isHiredGoalkeeper: true,
   initialRating: true,
@@ -57,6 +60,9 @@ interface MemberRow {
   id: string;
   nickname: string;
   photoUrl: string | null;
+  avatarSkin: PlayerAvatar['skin'];
+  avatarHair: PlayerAvatar['hair'];
+  avatarHairColor: PlayerAvatar['hairColor'];
   primaryPosition: AttendanceMember['primaryPosition'];
   isHiredGoalkeeper: boolean;
   initialRating: number;
@@ -131,6 +137,7 @@ export class LineupsService {
       membershipId: m.id,
       nickname: m.nickname,
       photoUrl: m.photoUrl,
+      avatar: toAvatar(m),
       primaryPosition: m.primaryPosition,
       isHiredGoalkeeper: m.isHiredGoalkeeper,
       respondedAt: respondedAt.get(m.id) ?? null,

@@ -148,10 +148,12 @@ export const AVATAR_HAIR_COLORS = ['BLACK', 'BROWN', 'BLOND', 'RED', 'GRAY'] as 
 export interface PlayerAvatar { skin: AvatarSkin; hair: AvatarHair; hairColor: AvatarHairColor }
 export const DEFAULT_AVATAR: PlayerAvatar = { skin: 'TAN', hair: 'SHORT', hairColor: 'BLACK' };
 
-// packages/shared/src/group.ts (acréscimos)
+// packages/shared/src/domain.ts (fica aqui, e não no group.ts, para auth/round/match importarem sem ciclo)
 export const avatarSchema = z.object({
   skin: z.enum(AVATAR_SKINS), hair: z.enum(AVATAR_HAIRS), hairColor: z.enum(AVATAR_HAIR_COLORS),
 });
+
+// packages/shared/src/group.ts (acréscimos)
 export const AVATAR_SKIN_LABELS: Record<AvatarSkin, string>;           // 'Pele clara' ... 'Pele escura' (leitor de tela)
 export const AVATAR_HAIR_LABELS: Record<AvatarHair, string>;           // Careca, Curto, Cacheado, Black power, Comprido, Moicano
 export const AVATAR_HAIR_COLOR_LABELS: Record<AvatarHairColor, string>; // Preto, Castanho, Loiro, Ruivo, Grisalho

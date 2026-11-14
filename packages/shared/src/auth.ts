@@ -1,5 +1,6 @@
 import { ROLES } from '@fut-stats/domain';
 import { z } from 'zod';
+import { avatarSchema } from './domain';
 
 export const roleSchema = z.enum(ROLES);
 
@@ -18,6 +19,9 @@ export const myGroupSchema = z.object({
   slug: z.string(),
   role: roleSchema,
   membershipId: z.string(),
+  /** Apelido e bonequinho de quem vê, naquele grupo (faixa VOCÊ, card de resultado, Perfil). */
+  nickname: z.string(),
+  avatar: avatarSchema,
 });
 
 /** Resposta de GET /api/me. */

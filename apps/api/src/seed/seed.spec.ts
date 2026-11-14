@@ -1,4 +1,8 @@
 import {
+  AVATAR_HAIR_COLORS,
+  AVATAR_HAIRS,
+  AVATAR_SKINS,
+  isPlayerAvatar,
   tallyMatchEvents,
   validateRoundTeams,
   type Position,
@@ -237,6 +241,35 @@ describe('seed de desenvolvimento', () => {
       21,
     );
   }, 30_000);
+
+  it('C29: cada membro tem um bonequinho variado e fixo (o mesmo em toda execução)', async () => {
+    const avatars = async () =>
+      new Map(
+        (await t.prisma.membership.findMany({ where: { group: { slug: SEED_GROUP.slug } } })).map(
+          (m) => [
+            m.nickname,
+            { skin: m.avatarSkin, hair: m.avatarHair, hairColor: m.avatarHairColor },
+          ],
+        ),
+      );
+
+    await seed(t.prisma, { now: NOW });
+    const first = await avatars();
+    // outra execução, mesmo com o banco já seedado, e depois de um reset: o mesmo resultado
+    await seed(t.prisma, { now: NOW });
+    expect(await avatars()).toEqual(first);
+    await resetDatabase(t.prisma);
+    await seed(t.prisma, { now: NOW });
+    expect(await avatars()).toEqual(first);
+
+    const all = [...first.values()];
+    expect(all.every(isPlayerAvatar)).toBe(true);
+    // variado: nenhum bonequinho repetido, e toda opção das três listas aparece
+    expect(new Set(all.map((a) => JSON.stringify(a))).size).toBe(all.length);
+    expect(new Set(all.map((a) => a.skin))).toEqual(new Set(AVATAR_SKINS));
+    expect(new Set(all.map((a) => a.hair))).toEqual(new Set(AVATAR_HAIRS));
+    expect(new Set(all.map((a) => a.hairColor))).toEqual(new Set(AVATAR_HAIR_COLORS));
+  });
 
   it('lê o cenário dos argumentos', () => {
     expect(parseSeedScenario([])).toBe('agendada');
