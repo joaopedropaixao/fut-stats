@@ -1,0 +1,295 @@
+# `feed`
+
+> Spec de fatia da Trilha, escrito pelo líder da v1 (`docs/specs/2026-11-14-autonomia-v1.md`).
+> Fluxo da equipe: `docs/specs/2026-10-24-equipe-design.md`.
+> Dúvidas respondidas pelo dono em lote: `docs/specs/perguntas-v1.md`.
+
+| | |
+|---|---|
+| **Fatia** | `feed` (onda 5) |
+| **Modo** | Par |
+| **Parte de** | — |
+| **Status** | aprovado em 2026-11-14 |
+| **Base** | develop @1021769 |
+| **Depende de** | votacao, pacote-do-craque, perfil-jogador |
+| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/feed, packages/domain/src/index.ts, packages/shared/src/feed.ts, packages/shared/src/index.ts, apps/api/src/feed, apps/api/src/app.module.ts, apps/api/src/seed, apps/web/src/pages/feed, apps/web/src/features/feed, apps/web/src/pages/rounds/home.tsx, apps/web/src/features/voting, apps/web/src/features/match/game-card.tsx, apps/web/src/router.tsx |
+
+## Produto
+
+### Objetivo
+A tela inicial vira o **Feed** da pelada. Em cima, os **avisos** do que está acontecendo (jogo rolando, resultado,
+votação, times, presença): um aviso grande por vez e os outros em linha. Embaixo, as **resenhas** que os admins
+escrevem, com reações e comentários de todo mundo. É o que dá vida ao app entre um jogo e outro.
+
+### Quem usa
+- **Qualquer membro ativo:** vê avisos e resenhas, reage (uma reação por resenha) e comenta; apaga o próprio
+  comentário.
+- **Admin:** escreve, edita e apaga resenhas (de qualquer admin), apaga qualquer comentário e compartilha a resenha
+  no WhatsApp.
+- **Usuário de outro grupo, ou membro inativo:** 404 em tudo.
+
+### Regras de domínio
+- **Avisos saem do estado das rodadas, não ficam gravados.** Tipos, na **ordem de prioridade** (`FEED_ALERT_TYPES`;
+  a folha fixa "resultado > votação > presença", e o jogo ao vivo vem antes de tudo):
+  1. `IN_PROGRESS`: tem jogo rolando.
+  2. `POST_MATCH`: hora da Resenha.
+  3. `RESULT`: o resultado saiu (até 7 dias, `pickLatestResult`).
+  4. `VOTING`: votação aberta (`pickVotingRound`).
+  5. `TEAMS_PUBLISHED`: os times saíram.
+  6. `PRESENCE`: presença aberta para a próxima rodada (`SCHEDULED`).
+  Os tipos 1, 2, 5 e 6 olham a **rodada da vez** (`pickCurrentRound`); no máximo um aviso por tipo. O primeiro da
+  lista é o aviso grande; os outros aparecem em linha.
+- **Resenha:** só admin escreve (visão do produto). Título opcional com até 60 caracteres; texto obrigatório com
+  até 1000, com quebra de linha. **Só texto na v1** (imagem pede um serviço de arquivos novo).
+- **Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`): bola, fogo, risada, palmas
+  e perna de pau. Tocar em outra troca; tocar na mesma tira.
+- **Comentário:** qualquer membro, até 280 caracteres, sem edição. Apaga o autor ou um admin.
+- Textos passam pela mesma regra de caractere inválido do apelido (`hasInvalidCharacters`), liberando a quebra de
+  linha; sem espaço nas pontas; em NFC.
+- Apagar a resenha apaga reações e comentários dela. Autor que ficou inativo continua aparecendo como autor.
+- Grupo de confiança: sem moderação além do admin apagar
+  ([CONTEXT.md › Decisões fixas](../../CONTEXT.md#decisões-fixas-não-rediscutir)).
+
+### Cenários
+Cada cenário tem um id. Os testes levam o id no nome.
+
+**Domínio**
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C1 | rodada da vez `SCHEDULED`, uma rodada em `VOTING` e uma encerrada ontem | `feedAlerts` | `RESULT`, `VOTING`, `PRESENCE`, nessa ordem, cada um com o id da rodada certa | unitário |
+| C2 | rodada da vez `IN_PROGRESS` e uma em `VOTING` | `feedAlerts` | `IN_PROGRESS`, `VOTING` | unitário |
+| C3 | rodada da vez `POST_MATCH`; `TEAMS_PUBLISHED` | `feedAlerts` | `POST_MATCH`; `TEAMS_PUBLISHED` | unitário |
+| C4 | só rodadas encerradas há mais de 7 dias; nenhuma rodada | `feedAlerts` | `[]` | unitário |
+| C5 | título com 61 caracteres; texto vazio (só espaços); texto com 1001; texto com `\0`; texto com quebra de linha | `validatePostInput` | `TITLE_TOO_LONG`; `BODY_EMPTY`; `BODY_TOO_LONG`; `INVALID_CHARACTERS`; `[]` | unitário |
+| C6 | comentário vazio; com 281; com emoji composto contando 1 | `validateCommentText` | `EMPTY`; `TOO_LONG`; `null` | unitário |
+| C7 | admin / jogador | `canManagePost`; `canDeleteComment` do próprio e de outro | admin sim / jogador não; autor sim, admin sim, outro jogador não | unitário |
+
+**API**
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C8 | cenário de C1, quem pede jogou a rodada em votação e não votou, e não respondeu a presença | `GET /groups/:groupId/feed/alerts` | os três avisos na ordem, cada um com `roundId`, `roundNumber`, `scheduledAt` e o `me` do tipo (`played`, `voted`, `attendance`, `team`) | integração |
+| C9 | admin | `POST /groups/:groupId/posts` `{ title, body }` | 201 `Post` com autor (apelido, `avatar`), `reactions` zeradas, `myReaction: null`, `commentCount: 0`, `canManage: true` | integração |
+| C10 | admin | `POST` sem título; com cada caso inválido de C5 | 201 com `title: null`; 400 com o texto do shared | integração |
+| C11 | jogador comum | `POST`, `PATCH`, `DELETE` de resenha | 403; nada muda | integração |
+| C12 | outro admin do grupo | `PATCH .../posts/:postId` com texto novo | 200; `editedAt` preenchido; o autor continua o original | integração |
+| C13 | admin | `DELETE .../posts/:postId` | 204; reações e comentários somem do banco; `GET` dá 404 | integração |
+| C14 | 25 resenhas | `GET .../posts`; depois com `cursor` | 10 da mais nova para a mais antiga e `nextCursor`; as seguintes; a última página com `nextCursor: null`; nenhuma repetida | integração |
+| C15 | membro | `PUT .../posts/:postId/reaction` `{ reaction: 'FIRE' }`; depois `'BALL'`; depois `DELETE .../reaction` | `reactions.FIRE: 1` e `myReaction: 'FIRE'`; troca para `BALL` (FIRE volta a 0); sem reação | integração |
+| C16 | dois `PUT` de reação do mesmo membro ao mesmo tempo | `Promise.all` | uma reação só no banco; nunca 500 | integração |
+| C17 | reação fora da lista | `PUT` | 400 | integração |
+| C18 | membro | `POST .../posts/:postId/comments` `{ text }` | 201 `Comment` com autor e `canDelete: true`; o `commentCount` da resenha sobe | integração |
+| C19 | comentários de várias pessoas | `GET .../comments` | em ordem de envio; `canDelete` verdadeiro só nos meus (ou em todos, para admin) | integração |
+| C20 | jogador | `DELETE` do próprio comentário; do comentário de outro | 204; 403 `NOT_OWN_COMMENT` | integração |
+| C21 | admin | `DELETE` de comentário de outro | 204 | integração |
+| C22 | comentário vazio ou com 281 caracteres | `POST` | 400 com o texto do shared | integração |
+| C23 | resenha de outro grupo; `postId` inexistente; comentário de outra resenha | qualquer rota | 404; nada muda | integração |
+| C24 | usuário de outro grupo, não membro, membro inativo | qualquer rota | 404 | integração |
+| C25 | autor da resenha desativado depois | `GET .../posts` | a resenha continua, com o apelido e o bonequinho dele | integração |
+| C26 | seed | rodar | 3 resenhas de exemplo (uma sem título, uma longa com quebra de linha), com reações e comentários | integração (`seed.spec.ts`) |
+
+**Tela: avisos** (`/`, 390 px)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C27 | resultado novo + votação aberta + presença aberta | abrir o Feed | **um** card grande (o do resultado, com "Abrir pacote") e duas **linhas de aviso** abaixo: "VOTAÇÃO ABERTA · FALTA O SEU VOTO" e "PRESENÇA ABERTA · RESPONDA". Cada linha tem ícone, o tipo escrito, cor do tipo e seta; alvo ≥ 44 px | Playwright |
+| C28 | abri o pacote | voltar ao Feed | o resultado vira linha ("RESULTADO DA RODADA 12") e a votação sobe para card grande | Playwright |
+| C29 | só presença aberta | abrir | card grande da presença (o de hoje: data, local, CONFIRMAR / AUSÊNCIA, contagem), com uma fileira de rostos de quem vai ("+9" no fim) que leva ao detalhe da rodada | Playwright |
+| C30 | times publicados e estou escalado | abrir | card grande **"TIMES PUBLICADOS"** com "VOCÊ JOGA NO PRETO" (faixa com o meu bonequinho) e a tecla "Ver os times"; não escalado: "Você não está escalado" | Playwright |
+| C31 | jogo rolando; Resenha | abrir | o card do jogo de hoje ("Em jogo" / "Hora da Resenha") como aviso grande; votação de outra rodada, se houver, em linha | Playwright |
+| C32 | nenhuma rodada ativa | abrir | sem avisos: "Nenhuma rodada marcada" (admin: tecla "Criar rodada") e as resenhas logo abaixo | Playwright |
+| C33 | linha de aviso | tocar | leva à tela do tipo: votar, resultado, times, jogo ou detalhe da rodada | Playwright |
+| C34 | a tela inteira | contar teclas amarelas | no máximo uma (a do aviso grande). "Nova resenha" e "Todas as rodadas" são de contorno | Playwright |
+
+**Tela: resenhas**
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C35 | grupo com resenhas | rolar o Feed | seção "RESENHAS"; cada resenha é um card de grande momento (contorno de 3 px, sombra dura, entrada em degraus nos 3 primeiros): rosto e apelido do autor, selo ADMIN, quando ("HOJE, 21H" / "SÁB, 17 OUT"), título em pixel, texto corrido em Chakra Petch com as quebras de linha, "editada" quando foi | Playwright |
+| C36 | resenha | tocar numa reação | o contador sobe com o dígito "batendo"; a minha fica com contorno grosso e ✓; tocar em outra troca; tocar na mesma tira. Cada botão tem ícone pixel, número e nome para leitor de tela ("Fogo, 3 reações, a sua") | Playwright |
+| C37 | resenha com 3 comentários | tocar em "COMENTÁRIOS · 3" | abre embaixo do card: rosto, apelido, quando e texto de cada um; campo "Escreva um comentário" com contador e "Enviar" | Playwright |
+| C38 | comentando | enviar | o comentário entra no fim, o campo limpa e o contador do card sobe; vazio não envia; 281 caracteres mostra o erro do shared | Playwright |
+| C39 | meu comentário (ou qualquer um, como admin) | lixeira (44 × 44) → gaveta "Apagar comentário?" | some da lista com aviso | Playwright |
+| C40 | admin | "Nova resenha" | `/resenhas/nova`: título (opcional, contador de 60), texto (contador de 1000) e a tecla amarela "Publicar"; publicada, volta ao Feed com a resenha no topo e o aviso "Resenha publicada" | Playwright |
+| C41 | admin escrevendo | sair com texto digitado | gaveta "Sair sem publicar?"; Voltar mantém o texto | Playwright |
+| C42 | admin | "⋯" da resenha → Editar | `/resenhas/:postId/editar` com os campos preenchidos; Salvar volta ao Feed com "editada" | Playwright |
+| C43 | admin | "⋯" → Apagar | gaveta de perigo "Apagar a resenha?" ("Reações e comentários vão junto."); confirmada, some | Playwright |
+| C44 | admin | "⋯" → Compartilhar no WhatsApp | abre `https://wa.me/?text=` com o título, o texto e o link do app | Playwright |
+| C45 | jogador comum | olhar a resenha e abrir `/resenhas/nova` pela URL | sem "⋯" e sem "Nova resenha"; a URL volta para o Feed | Playwright |
+| C46 | mais de 10 resenhas | "Carregar mais" | entram as próximas, sem pular a rolagem | Playwright |
+| C47 | grupo sem resenha | olhar | "Nenhuma resenha ainda" e, para o admin, "Conte como foi a última pelada." com a tecla | Playwright |
+| C48 | texto com 1000 caracteres sem espaço e apelido de 10 letras | olhar o card | o texto quebra dentro do card (sem estourar a largura) | Playwright |
+| C49 | reduzir movimento | abrir | cards com fade; contador sem bater | Playwright (`emulateMedia`) |
+| C50 | carregando; erro nos avisos; erro nas resenhas | abrir | esqueleto; cada bloco com o próprio erro e "Tentar de novo" (um não derruba o outro). Console sem erros no fluxo real | Playwright |
+| C51 | larguras 320, 375, 390, 430 px e desktop | Feed (aviso grande de cada tipo, linhas, resenha com comentários abertos), nova resenha | sem rolagem horizontal, sem sobreposição, sem texto cortado; os 5 botões de reação cabem numa linha em 320 px com 44 px cada; no desktop, coluna centralizada. Checagem automática passa | Playwright |
+
+## Técnico
+
+### Contrato
+Schemas em `packages/shared/src/feed.ts` (arquivo novo, exportado no `index.ts`). Primeiro commit da branch `-back`,
+com `packages/domain/src/feed`.
+
+| Método | Rota (sob `/api/groups/:groupId`) | Quem pode | Request | Response | Erros |
+|---|---|---|---|---|---|
+| `GET` | `/feed/alerts` | membro | — | `FeedAlert[]` | 404 |
+| `GET` | `/posts` | membro | query `PostsQuery` | `PostList` | 400; 404 |
+| `POST` | `/posts` | admin | `PostInput` | `Post` (201) | 400; 403; 404 |
+| `PATCH` | `/posts/:postId` | admin | `PostInput` | `Post` | 400; 403; 404 |
+| `DELETE` | `/posts/:postId` | admin | — | 204 | 403; 404 |
+| `PUT` | `/posts/:postId/reaction` | membro | `ReactionInput` | `Post` | 400; 404 |
+| `DELETE` | `/posts/:postId/reaction` | membro | — | `Post` | 404 |
+| `GET` | `/posts/:postId/comments` | membro | — | `Comment[]` | 404 |
+| `POST` | `/posts/:postId/comments` | membro | `CommentInput` | `Comment` (201) | 400; 404 |
+| `DELETE` | `/posts/:postId/comments/:commentId` | autor ou admin | — | 204 | 403 `NOT_OWN_COMMENT`; 404 |
+
+```ts
+// packages/shared/src/feed.ts
+export const feedAlertTypeSchema = z.enum(FEED_ALERT_TYPES);
+export const FEED_ALERT_LABELS: Record<FeedAlertType, string>;
+// IN_PROGRESS 'Em jogo', POST_MATCH 'Hora da Resenha', RESULT 'O resultado saiu', VOTING 'Votação aberta',
+// TEAMS_PUBLISHED 'Times publicados', PRESENCE 'Presença aberta'
+
+export const feedAlertSchema = z.object({
+  type: feedAlertTypeSchema,
+  roundId: z.string(),
+  roundNumber: z.number().int(),
+  scheduledAt: z.iso.datetime(),
+  /** O que quem pede tem a ver com o aviso; cada campo só vem no tipo em que faz sentido. */
+  me: z.object({
+    attendance: z.boolean().nullable().optional(),  // PRESENCE: true vou, false não vou, null não respondi
+    team: teamSchema.nullable().optional(),          // TEAMS_PUBLISHED, IN_PROGRESS, POST_MATCH: null = não escalado
+    played: z.boolean().optional(),                  // VOTING
+    voted: z.boolean().optional(),                   // VOTING
+  }),
+});
+
+export const postReactionSchema = z.enum(POST_REACTIONS);       // 'BALL' | 'FIRE' | 'LAUGH' | 'CLAP' | 'FLOP'
+export const POST_REACTION_LABELS: Record<PostReaction, string>; // Bola, Fogo, Risada, Palmas, Perna de pau
+export const POST_INPUT_ERROR_LABELS: Record<PostInputError, string>;
+export const COMMENT_ERROR_LABELS: Record<TextFieldError, string>;
+export const NOT_OWN_COMMENT_LABEL = 'Você só apaga o seu próprio comentário';
+
+export const postInputSchema = z.object({
+  title: z.string().trim().normalize('NFC').transform((v) => v || null).nullable().optional(),
+  body: z.string().trim().normalize('NFC'),
+}); // + superRefine com validatePostInput (mensagens de POST_INPUT_ERROR_LABELS)
+export const reactionInputSchema = z.object({ reaction: postReactionSchema });
+export const commentInputSchema = z.object({ text: z.string().trim().normalize('NFC') }); // + validateCommentText
+
+export const POSTS_PAGE_DEFAULT = 10;
+export const POSTS_PAGE_MAX = 30;
+export const postsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(POSTS_PAGE_MAX).default(POSTS_PAGE_DEFAULT),
+  cursor: z.string().min(1).optional(),
+});
+
+export const authorSchema = z.object({ membershipId: z.string(), nickname: z.string(), avatar: avatarSchema, role: roleSchema });
+
+export const postSchema = z.object({
+  id: z.string(),
+  title: z.string().nullable(),
+  body: z.string(),
+  author: authorSchema,
+  createdAt: z.iso.datetime(),
+  editedAt: z.iso.datetime().nullable(),
+  reactions: z.record(postReactionSchema, z.number().int()),  // sempre as 5 chaves
+  myReaction: postReactionSchema.nullable(),
+  commentCount: z.number().int(),
+  canManage: z.boolean(),      // admin
+});
+export const postListSchema = z.object({ items: z.array(postSchema), nextCursor: z.string().nullable() });
+
+export const commentSchema = z.object({
+  id: z.string(), author: authorSchema, text: z.string(), createdAt: z.iso.datetime(),
+  canDelete: z.boolean(),      // autor ou admin
+});
+// tipos: FeedAlert, PostInput, ReactionInput, CommentInput, PostsQuery, Post, PostList, Comment
+```
+
+### Banco (`schema.prisma`)
+Três models novos e um enum:
+- **`Post`**: `id`, `groupId` (→ `Group`), `authorId` (→ `Membership`), `title String?`, `body String`,
+  `createdAt`, `updatedAt`, `editedAt DateTime?`; `@@index([groupId, createdAt])`.
+- **`PostReaction`**: `postId` (→ `Post`, `onDelete: Cascade`), `membershipId` (→ `Membership`),
+  `reaction PostReactionType`, `createdAt`; `@@id([postId, membershipId])` (uma por pessoa por resenha).
+- **`PostComment`**: `id`, `postId` (→ `Post`, `onDelete: Cascade`), `membershipId` (→ `Membership`), `text String`,
+  `createdAt`; `@@index([postId, createdAt])`.
+- Enum `PostReactionType`, igual a `POST_REACTIONS` do domain.
+
+**`Group`** e **`Membership`** ganham só as relações. Uma migration (`feed`).
+
+### Domínio
+`packages/domain/src/feed/` (pasta nova, exportada no `index.ts`):
+- `alerts.ts`: `FEED_ALERT_TYPES` (na ordem de prioridade) e
+  `feedAlerts(rounds: readonly { id: string; status: RoundStatus; scheduledAt: Date; closedAt: Date | null }[], now: Date): { type: FeedAlertType; roundId: string }[]`,
+  compondo `pickCurrentRound`, `pickVotingRound` e `pickLatestResult`.
+- `posts.ts`: `POST_TITLE_MAX_LENGTH = 60`, `POST_BODY_MAX_LENGTH = 1000`, `COMMENT_MAX_LENGTH = 280`;
+  `POST_INPUT_ERRORS = ['TITLE_TOO_LONG', 'BODY_EMPTY', 'BODY_TOO_LONG', 'INVALID_CHARACTERS']`;
+  `validatePostInput(input: { title: string | null; body: string }): PostInputError[]`;
+  `validateCommentText(text: string): TextFieldError | null` (contagem por caractere visível, como o apelido;
+  quebra de linha vale); `POST_REACTIONS`; `canManagePost(actor: RoundActor): boolean`;
+  `canDeleteComment(actor: RoundActor, authorId: string): boolean`.
+- `CONTEXT.md`: entrada nova "Feed: avisos e resenhas".
+
+Na API (`apps/api/src/feed`): `FeedController` (avisos), `PostsController`, `FeedService`, `PostsService`. A
+reação é um `upsert` na chave `(postId, membershipId)`. Contagens de reação com `groupBy`; a lista de resenhas
+resolve reações, a minha e o número de comentários em consultas por página (sem N+1). Comentários: no máximo os 200
+mais recentes.
+
+### Tela
+Regras de visual do documento de autonomia valem como critério. Peças da folha: "Feed e ranking" (Aviso/Resultado,
+Aviso/Votação, Aviso/Presença) e "Avisos e estados".
+- **Feed** (`pages/feed/feed-page.tsx` entra no lugar de `pages/rounds/home.tsx` na rota `/`): título "Feed";
+  bloco de avisos; atalho de contorno "Todas as rodadas"; seção de resenhas.
+  - **Aviso grande** (`features/feed/alert-card.tsx`): escolhe o card pelo tipo e reusa os que já existem
+    (`GameCard`, card de votação e de resultado de `votacao`/`pacote-do-craque`, card da presença do início de
+    hoje). Novo: o card de times publicados, no padrão `moment-frame` com a `you-banner`.
+  - **Linha de aviso** (`features/feed/alert-line.tsx`): 56 px, ícone do tipo + título em pixel + situação curta
+    + seta; contorno de 2 px na cor do tipo. O texto de cada situação sai de uma função pura com teste
+    (`alert-text.ts`).
+  - Cores por papel do DS: resultado em ouro, votação em laranja (atenção), presença em verde, jogo em creme com
+    o ponto "ao vivo". Sempre com ícone e o tipo por escrito.
+  - A lista "Quem vai" sai do início e fica no detalhe da rodada; o card da presença ganha a fileira de rostos.
+  - A consulta dos avisos usa uma chave **sob a da lista de rodadas** (`[...roundsKey(groupId), 'alerts']`): tudo
+    que já invalida a lista de rodadas (mudança de etapa, e o tempo real de `jogo-ao-vivo`) atualiza os avisos sem
+    código a mais.
+- **Resenha** (`features/feed/post-card.tsx`): referência = o card de grande momento do início e a lista de
+  presença para a linha do autor. Reações: 5 ícones pixel novos (12 × 12) em `pixel-sprite-maps.ts`. Comentários
+  abrem no lugar (sem gaveta), carregados na primeira abertura. Atualização otimista na reação, com volta em caso
+  de erro.
+- **Escrever** (`pages/feed/post-form-page.tsx`, rotas `resenhas/nova` e `resenhas/:postId/editar`): referência =
+  o formulário da rodada (`pages/rounds/form.tsx`). Campo de texto novo de várias linhas no padrão do
+  `TextField` (foco, erro, contador).
+- Data relativa numa função pura com teste (`post-when.ts`): hoje, ontem, e a data no formato do app. Nenhum dia
+  da semana fixo em texto escrito à mão.
+- Menu "⋯" e gavetas no padrão atual (180 ms / ~100 ms). Rotas novas com `lazy`. Nada de regra no front:
+  `canManage` e `canDelete` vêm da API; os limites de texto vêm do shared. Sem dependência nova.
+
+**Álbum** (`docs/design/prints/feed/`): um print por cenário de tela (C27–C50) a 390 px; `feed-320`,
+`resenha-comentarios-320`, `nova-resenha-320` e os mesmos em `-desktop`.
+
+### Decisões
+- Avisos calculados, não gravados — o estado das rodadas já diz tudo; nada para sincronizar nem limpar.
+- Prioridade completa com o jogo ao vivo na frente — a folha só ordena resultado, votação e presença; quem abre o
+  app com a bola rolando quer o jogo.
+- Uma rota de avisos com o `me` de cada tipo — as linhas não precisam carregar a tela inteira de cada rodada.
+- Uma reação por pessoa, com 5 ícones pixel próprios — simples de entender e com a cara do app; emoji do sistema
+  quebra a estética pixel.
+- Comentários abrem no card — conversa curta não pede outra tela.
+- "Quem vai" sai do início — o Feed precisa de espaço para avisos e resenhas; a lista completa continua a um toque.
+- Qualquer admin edita e apaga qualquer resenha — os admins são a "redação" do grupo.
+
+## Fora do escopo
+- Imagem e vídeo na resenha (decisão do dono, P6); link clicável e menção no texto.
+- Responder comentário, editar comentário, reagir a comentário.
+- Resenha gerada sozinha a partir do resultado da rodada.
+- Push de resenha nova (`pwa-e-push` decide quais avisos viram push).
+- Tempo real nas reações e comentários (atualiza ao voltar para a aba e ao recarregar).
+
+## Perguntas respondidas pelo dono
+- Feed: um aviso grande por vez, na ordem resultado > votação > presença; os outros em linha (22 out 2026).
+- P6 · Resenha com imagem na v1? → Não: só texto; imagem fica para a v1.1 (14 nov 2026).
+
+## QA
+<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
