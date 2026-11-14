@@ -378,3 +378,9 @@ jogador acabou de tocar e não some sozinho. Com teste que reproduz (a escolha d
 | C52 | Playwright | ✅ | checagem automática de sobreposição verde em 320/375/390/430/1280 nas 7 telas |
 
 Orçamento de bundle: JS inicial 144,8/150 kB; `perfil-area` 3,5 kB e `elenco-area` 2,3 kB fora do carregamento inicial.
+
+**Volta de design (14/11/2026):** QA curto aprovado. C53 (cores do cabelo), C54 (corpo grande 16 × 24) e C55 (erro de
+campo rola, foca e avisa acima do botão) ✅ no Playwright e nos unitários `pixel-body-large-maps.test.ts` e
+`field-errors.test.ts`; regressão de C30–C36, C39 e C48 ✅; sobreposição verde nas telas mexidas; JS inicial
+144,8/150 kB, sprite grande num pedaço próprio. Fora da volta: em 320 px, o placar do jogo (`scoreboard.tsx`, da
+fatia placar-e-lances) passa 21 px da borda; fica para ticket próprio.
