@@ -88,4 +88,5 @@ passa aos DEVs e ao QA. Sem o arquivo, valem API 3000, web 5173 e o banco do `.e
    porquê, link do spec, tabela do QA e prints. Sem trailer de IA.
 5. Se a fatia tinha PR antigo, feche com um comentário apontando o novo.
 6. Remova os worktrees `-back` e `-front` (`git worktree remove`) e pare os servidores que você subiu.
-7. 🚦 **Portão 2:** avise o dono com o link do PR e o que validar no navegador. O merge é dele.
+7. 🚦 **Portão 2:** avise o dono com o link do PR e o que validar no navegador. Quem faz o merge é o orquestrador,
+   com o ok do dono (skill `mergear`); você nunca faz.

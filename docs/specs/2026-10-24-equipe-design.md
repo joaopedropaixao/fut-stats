@@ -16,7 +16,7 @@ Com um "ok" do dono, uma fatia sai do roadmap e vira um PR pronto para validaç�
 ## Papéis
 | Papel | Forma | Modelo | Onde | Faz | Não faz |
 |---|---|---|---|---|---|
-| Orquestrador | Sessão do checkout principal | Opus | `roadmap-orchestrator` | Recebe o ok, cria o worktree da fatia e entrega o kickoff | Implementar |
+| Orquestrador | Sessão do checkout principal | Opus | `roadmap-orchestrator` | Recebe o ok, cria o worktree da fatia e entrega o kickoff; com o ok do dono, faz os merges na ordem e resolve rebase/conflito (skill `mergear`) | Implementar; mergear sem o ok |
 | TPL | Sessão principal da fatia (aberta pelo dono no Orca) | Opus | worktree `feature/<fatia>` | Research, perguntas ao dono, spec, contrato, coordena DEVs e QA, abre o PR | Implementar feature, fazer merge |
 | DEV back | Subagente (`.claude/agents/dev-back.md`) | Sonnet | worktree `feature/<fatia>-back` | Domínio, Prisma, API e testes | Mexer no front |
 | DEV front | Subagente (`.claude/agents/dev-front.md`) | Sonnet | worktree `feature/<fatia>-front` | Tela, validação no Playwright | Editar o `packages/shared` |
@@ -83,7 +83,8 @@ O spec liga cada cenário Given/When/Then ao tipo de teste que o cobre (unitári
    do `AGENTS.md` na raiz.
 2. Marca `[x]` no roadmap e registra no `CONTEXT.md` o que mudou no domínio.
 3. Abre o PR para a `develop` com o link do spec e a tabela final do QA. Se a fatia tinha PR antigo, fecha o antigo.
-4. 🚦 **Portão 2:** o dono valida no navegador e faz o merge. O TPL nunca faz merge.
+4. 🚦 **Portão 2:** o dono valida no navegador e autoriza. O orquestrador faz o merge (skill `mergear`, decisão do
+   dono em 14 nov 2026: ele perdia tempo com os merges). O TPL nunca faz merge.
 
 ## Spec da fatia (`docs/specs/<fatia>.md`)
 Fica no repo e entra no PR da fatia. O modelo está em `docs/specs/_modelo.md` e tem estas seções:
@@ -97,6 +98,7 @@ Fica no repo e entra no PR da fatia. O modelo está em `docs/specs/_modelo.md` e
 | Arquivo | Conteúdo |
 |---|---|
 | `.claude/skills/lancar-equipe/SKILL.md` | Passo 0 |
+| `.claude/skills/mergear/SKILL.md` | Merge dos PRs pelo orquestrador, com o ok do dono |
 | `.claude/skills/tpl/SKILL.md` | Passos 1 a 4, portões, loop e quando chamar o dono |
 | `.claude/agents/dev-back.md` | Regras do back (incluindo o contrato e os arquivos de dono único), `model: sonnet` |
 | `.claude/agents/dev-front.md` | Regras do front (parte do contrato, não edita o `shared`, Playwright), `model: sonnet` |
@@ -113,7 +115,7 @@ sessões do projeto. Um script por hook, curto e testável à mão (`echo '<json
 |---|---|
 | `front-sem-shared` | Edit/Write em `packages/shared/**` quando a branch atual termina em `-front` |
 | `sem-env` | Read/Edit/Bash que toque um `.env` (o `.env.example` passa) |
-| `sem-merge` | `gh pr merge` e `git merge`/`push` para a `develop` ou a `main` |
+| `sem-merge` | `gh pr merge` fora do checkout principal (só o orquestrador mergeia); `git merge`/`push` na `develop` ou na `main` para todos. Com `git -C <pasta>`, vale a branch da pasta |
 | `commit-sem-ia` | `git commit` com `Co-Authored-By` ou "Generated with" na mensagem |
 
 **Fluxo e conforto:**

@@ -109,6 +109,19 @@ expect sem-merge 2 "$(bash_cmd 'git push origin HEAD:refs/heads/main')" "push pa
 expect sem-merge 2 "$(bash_cmd 'git push origin +develop')" "push forçado +develop"
 expect sem-merge 0 "$(bash_cmd 'git push' "$FEAT")" "push sem argumentos na feature"
 
+# orquestrador (checkout principal) faz o merge do PR; worktree de equipe não
+PRINC="$TMP/principal"
+git init -q "$PRINC" && git -C "$PRINC" checkout -q -b develop
+git -C "$PRINC" -c user.name=t -c user.email=t@t commit -q --allow-empty -m base
+git -C "$PRINC" worktree add -q -b feature/y "$TMP/wt-equipe"
+expect sem-merge 0 "$(bash_cmd 'GH_TOKEN=abc gh pr merge 49 --merge' "$PRINC")" "gh pr merge no checkout principal"
+expect sem-merge 2 "$(bash_cmd 'gh pr merge 49 --merge' "$TMP/wt-equipe")" "gh pr merge num worktree de equipe"
+expect sem-merge 0 "$(bash_cmd "git -C $TMP/wt-equipe push --force-with-lease origin feature/y" "$PRINC")" "push com -C num worktree de feature"
+expect sem-merge 2 "$(bash_cmd "git -C $PRINC push" "$TMP/wt-equipe")" "push com -C apontando para a develop"
+expect sem-merge 2 "$(bash_cmd 'git push origin develop' "$PRINC")" "orquestrador também não dá push na develop"
+expect sem-merge 2 "$(bash_cmd "git -C $TMP/wt-equipe push origin HEAD:main" "$PRINC")" "push -C nomeando a main"
+expect sem-merge 2 "$(bash_cmd 'git merge feature/y' "$PRINC")" "git merge na develop do checkout principal"
+
 # --- commit-sem-ia
 expect commit-sem-ia 2 "$(bash_cmd 'git commit -m "feat: x
 
@@ -227,6 +240,10 @@ skill_diz lancar-equipe 'DIRECT_URL' "põe a DIRECT_URL no arquivo (migration n�
 skill_diz tpl '.env.equipe' "liga o arquivo da equipe nos worktrees do par"
 skill_diz tpl 'seção Banco' "checa o Banco das outras equipes no Portão 1"
 skill_diz tpl 'apague a pasta da sua migration' "refaz a migration no rebase"
+skill_diz mergear 'Espere o ok' "pede o ok do dono antes de mergear"
+skill_diz mergear 'force-with-lease' "push do rebase com lease"
+skill_diz mergear 'Nunca encadeie a checagem e a remoção' "não apaga worktree sem conferir"
+skill_diz tpl 'skill `mergear`' "TPL aponta o merge para o orquestrador"
 
 # --- falha aberta
 for h in front-sem-shared sem-env sem-merge commit-sem-ia prettier statusline notifica; do
