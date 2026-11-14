@@ -51,5 +51,7 @@ regra de negócio vem de lá. **Se a regra estiver ambígua ou em aberto, pergun
 | Bug corrigido | Vem com um teste que reproduz. |
 
 ## Roadmap
+Para status rápido, seguir `.agents/skills/status-projeto/SKILL.md`. Consultar sessões do Claude exclusivamente em `~/.claude-personal`; nunca usar `~/.claude` ou `~/.claude.json` do host. Consultas Orca devem ter repo/worktree/path explícito do Fut Stats pessoal. Não usar buscas globais. GitHub exclusivamente `joaopedropaixao`, com token pessoal explícito. Fotografia de status só em armazenamento compartilhado confirmado.
+
 - Toda vez que finalizar um item de `docs/03-roadmap.md`, marque-o como `[x]` no mesmo PR que o entrega.
 - Item novo no domínio (tipo, função, regra, conceito) ou mudança de comportamento: registrar em `CONTEXT.md` no mesmo PR.
