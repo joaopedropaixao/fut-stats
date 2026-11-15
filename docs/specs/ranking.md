@@ -10,9 +10,9 @@
 | **Modo** | Par |
 | **Parte de** | `votacao` (o resultado gravado em `TeamPlayer`) |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @4b264a9 (checkpoint 15/11: entraram perfil-jogador #62, ajustes-tela-do-jogo #63, historico #64 e votacao #66; o spec confere com o que a votação grava em `TeamPlayer` e com a rota `historico/:roundId`) |
 | **Depende de** | votacao, perfil-jogador |
-| **Toca em** | packages/domain/src/ranking, packages/shared/src/ranking.ts, packages/shared/src/index.ts, apps/api/src/ranking, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/app.module.ts, apps/web/src/pages/ranking, apps/web/src/features/ranking, apps/web/src/pages/perfil, apps/web/src/router.tsx |
+| **Toca em** | packages/domain/src/ranking, packages/shared/src/ranking.ts, packages/shared/src/index.ts, apps/api/src/ranking, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/app.module.ts, apps/web/src/pages/ranking, apps/web/src/features/ranking, apps/web/src/pages/perfil, apps/web/src/router.tsx, CONTEXT.md, docs/03-roadmap.md |
 
 ## Produto
 
@@ -219,7 +219,8 @@ Card/Ranking) e "Figurinhas".
 - **Perfil do jogador** (`pages/ranking/player-page.tsx`, rota `jogadores/:membershipId`). Referência: a figurinha
   do Perfil de `perfil-jogador` (tem que estar aprovada antes). A grade de estatísticas
   (`features/ranking/stats-grid.tsx`) é reusada na aba Perfil.
-- **Perfil** (`pages/perfil`): bloco de estatísticas abaixo da figurinha, com os dados de `GET .../stats` da minha
+- Faixa de nota ou carta (se aparecer): só com `cardTier(rating)` do domínio, quando entrar na develop (equipe `pacote-do-craque`); não criar outra regra. Ouro é recompensa (só o líder); amarelo só na tecla de ação, nunca competindo com ouro no mesmo card.
+- **Perfil** (`pages/perfil/profile-page.tsx`): bloco de estatísticas abaixo da figurinha, com os dados de `GET .../stats` da minha
   participação.
 - Rotas novas com `lazy`. Nada de regra no front: ordem, posição, tendência e mínimo vêm da API. Sem dependência
   nova.
