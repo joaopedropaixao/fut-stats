@@ -41,13 +41,31 @@ abaixo).
 | 6 ✅ | `rodizio-reservas` | Par | `placar-e-lances` | **Onda 2.** Botão opcional na tela do jogo: cronômetro (60 min por padrão) que divide o tempo entre os jogadores de linha de cada time e avisa quem entra e quem sai (pedido do dono, 25 out 2026) |
 | 7 ✅ | `historico` | Par | PR #31 (fechar) | **Onda 2.** Aba Histórico: partidas finalizadas com placar e o resultado de quem vê; detalhe com o campo e os lances |
 | 8 ✅ | `votacao` | Par | — | **Onda 3.** Tabelas do voto, tela "Dê sua nota", Craque / Perna de Pau, fechar a votação (todos votaram, prazo ou admin), apuração gravada e resultado da rodada |
-| 9 | `auditoria-da-rodada` | Back | `placar-e-lances` | **Onda 4.** Tabela `RoundLog` (quem, o quê, quando, antes/depois) gravada na mesma transação de toda escrita de placar, etapa e lance, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
+| 9 | `auditoria-da-rodada` | Back | `placar-e-lances` | **Onda 5.** Tabela `RoundLog` (quem, o quê, quando, antes/depois) gravada na mesma transação de toda escrita de placar, etapa e lance, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
 | 10 ✅ | `ranking` | Par | `votacao` | **Onda 4.** Ranking geral, por posição e de goleiros; perfil do jogador com estatísticas; a nota do seletor passa a acompanhar as rodadas |
 | 11 ✅ | `pacote-do-craque` | Front | `votacao` | **Onda 4.** Grande momento: o resultado chega como pacote, que rasga e revela as cartas do Craque (com walkout), do Perna de Pau e a sua (bronze/prata/ouro pela nota), com Compartilhar (fatia nova, 14 nov 2026; reforço 15 nov) |
 | 12 | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
-| 13 | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Onda 5.** SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
+| 13 | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Depois do lançamento** (15 nov 2026: o polling atual atende a pelada). SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
 | 14 | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado. Pendência do `pacote-do-craque` (15 nov 2026): o início passa a saber do pacote novo por aviso empurrado (push/SSE) em vez do `GET .../voting/result` que o card do início faz hoje |
 | 15 | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 15 em 15 minutos para a votação fechar na hora). Depois, a release e **lançar para a pelada** |
+| 16 | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
+
+### Próximas prioridades (15 nov 2026)
+Entregues até aqui: as fatias 0 a 8, 10 e 11 (Fases 1, 2 e 3 completas). O que falta, em ordem:
+
+1. **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
+   antes do `feed` porque ele é a próxima tela grande.
+2. **`auditoria-da-rodada`** (Back) e **`feed`** (Par), em paralelo. As duas mexem no `schema.prisma`
+   (`RoundLog` e `Post`/`PostReaction`/`PostComment`): a auditoria entra primeiro e o `feed` refaz a migration por
+   cima no rebase, como votação e rodízio fizeram.
+3. **`pwa-e-push`** (Par) e **`producao`** (Back), em paralelo. Antes da `producao`, o dono decide o nome e o
+   domínio do app (P8).
+4. **Lançar para a pelada** e coletar feedback em 2–3 rodadas.
+5. Depois do lançamento: `jogo-ao-vivo` (SSE no lugar do polling), os ajustes do feedback, Cartola (Fase 5) e
+   pagamentos (Fase 6).
+
+Limite de três equipes ao mesmo tempo, somando Claude e Codex; cada orquestrador cuida das equipes que lançou e
+os avisos entre equipes vão no quadro (`.claude/scripts/quadro.sh`).
 
 **Ondas (14 nov 2026):** o que falta roda em 6 ondas de até 3 fatias em paralelo, com uma dona do `schema.prisma`
 por onda. Ordem, dependências e telas de referência: [`specs/ondas-v1.md`](specs/ondas-v1.md). Cada fatia tem o
@@ -105,7 +123,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 
 ## Fase 4: Feed e lançamento do MVP 🚀
 - [ ] Feed de notícias/resenhas (admin cria), reações e comentários
-- [ ] Cards de alerta (times publicados, votação aberta)
+- [ ] Cards de alerta (times publicados, votação aberta) (votação aberta e resultado já no início, pela `votacao` e o `pacote-do-craque`; o resto vem no `feed`)
 - [ ] PWA instalável + Web Push
 - [ ] Produção (`main`), Sentry, backup do banco
 - [ ] **Lançar para a pelada**, coletar feedback em 2–3 rodadas
