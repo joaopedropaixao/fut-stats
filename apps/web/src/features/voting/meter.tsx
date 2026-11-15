@@ -6,11 +6,13 @@ type MeterProps = {
   total: number;
   /** Mostra "Faltam N" embaixo (a tela de votar; o card do início é mais enxuto). */
   showMissing?: boolean;
+  /** A cor da barra: verde (padrão) ou a cor do card de quem a usa. */
+  tone?: 'success' | 'warning';
   className?: string;
 };
 
 /** Medidor da votação: a barra verde e "9 de 16 já votaram". O texto diz o número; a barra só acompanha. */
-export function Meter({ voted, total, showMissing, className }: MeterProps) {
+export function Meter({ voted, total, showMissing, tone = 'success', className }: MeterProps) {
   const pct = total > 0 ? Math.min(100, Math.round((voted / total) * 100)) : 0;
   const missing = Math.max(0, total - voted);
   return (
@@ -24,7 +26,13 @@ export function Meter({ voted, total, showMissing, className }: MeterProps) {
         aria-valuetext={`${voted} de ${total} já votaram`}
         className="relative h-2 bg-track"
       >
-        <div className="absolute inset-y-0 left-0 bg-success" style={{ width: `${pct}%` }} />
+        <div
+          className={cn(
+            'absolute inset-y-0 left-0',
+            tone === 'warning' ? 'bg-warning' : 'bg-success',
+          )}
+          style={{ width: `${pct}%` }}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <PixelText wrap>{`${voted} de ${total} já votaram`}</PixelText>

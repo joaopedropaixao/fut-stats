@@ -43,11 +43,14 @@ function Loaded({
     <section
       aria-label="Votação aberta"
       className="moment-frame animate-moment-in flex flex-col bg-surface-raised"
+      style={{ borderColor: 'var(--color-warning)', boxShadow: '5px 5px 0 var(--color-shadow)' }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
-        <span className="inline-flex items-center gap-2 text-warning">
-          <Icon name="urn" size={22} />
-          <PixelText>Votação aberta</PixelText>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-3 bg-warning/12 px-4 py-4 shadow-[inset_0_-3px_0_0_var(--color-warning)]">
+        <span className="flex min-w-0 items-center gap-3 text-warning">
+          <Icon name="urn" size={28} className="shrink-0" />
+          <PixelText as="h2" size={24} wrap className="[text-shadow:2px_2px_0_#000]">
+            Votação aberta
+          </PixelText>
         </span>
         {remaining !== null && <Badge variant="deadline" label={closesInLabel(remaining)} />}
       </div>
@@ -56,14 +59,14 @@ function Loaded({
         style={{ '--moment-delay': '120ms' } as CSSProperties}
       >
         <div className="animate-row-in flex flex-col gap-4">
-          <PixelText className="text-gold">{`Rodada ${view.number}`}</PixelText>
-          <Meter voted={view.progress.voted} total={view.progress.total} />
+          <PixelText>{`Rodada ${view.number}`}</PixelText>
+          <Meter voted={view.progress.voted} total={view.progress.total} tone="warning" />
           {!view.me.played ? (
             <p className="text-sm text-text-muted">
               Só quem jogou vota. O resultado sai quando fechar.
             </p>
           ) : voted ? (
-            <span className="inline-flex items-center gap-2 text-success">
+            <span className="inline-flex items-center gap-2 text-text">
               <Icon name="check" size={18} strokeWidth={3} />
               <PixelText>Você já votou</PixelText>
             </span>
