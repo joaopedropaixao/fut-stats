@@ -377,4 +377,26 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
 - P14 · Pacote do Craque em fatia própria? → Sim, `pacote-do-craque` (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**2 voltas · VEREDITO: APROVADO** (2026-11-15). Testado em `feature/votacao-front` (contém o back), API :3100,
+web :5273, banco `fut_stats_votacao`.
+
+Volta 1: reprovada só por C6 sem teste unitário com o id (a regra funcionava; provada na integração). Observações
+corrigidas junto: 409 no console ao abrir `/resultado` com a votação aberta; linha "RESULTADO DA RODADA N" quebrando
+em 390 px. Volta 2: as três corrigidas, regressão do fluxo principal e C66 de novo nas telas mexidas.
+
+| Id | Resultado | Evidência |
+|---|---|---|
+| C1–C5 | ok | `packages/domain/src/round-score/results.test.ts` |
+| C6 | ok (volta 2) | `packages/domain/src/round/voting.test.ts` (ativos → `ALL_VOTED`; com o desativado na lista → `null`) |
+| C7, C8 | ok | `packages/domain/src/round/current.test.ts` |
+| C9 | ok | `apps/api/src/prisma/domain-enums.spec.ts` |
+| C10–C32 | ok | `apps/api/src/voting/voting.spec.ts` (id no nome de cada teste), sem mock de Prisma; permissões conferidas também pela API |
+| C33 | ok | `apps/api/src/seed/seed.spec.ts`; os três seeds rodaram |
+| C34–C37 | ok | Playwright: cards do início (aberta, já votei, não jogou) e "Ir para a votação" no detalhe e no jogo |
+| C38–C54 | ok | Playwright: nota (6,0 no primeiro toque, passo 0,5, limites, régua), revisão, Craque, Perna de Pau, enviado com `hop`, rascunho retomado, seus votos e edição, votação fechou, não jogou, admin (faltam votar, gaveta 0,18 s), medidor em 14 s, erro de rede |
+| C55–C63 | ok | Playwright: resultado saiu → linha, carta do Craque, Perna de Pau, sua nota, tabela, empate (lado a lado / empilhado em 320), sem votos, ainda não saiu (sem 409 no console), histórico |
+| C64 | ok | `reduce`: só `vs-fade`; `hop` parado |
+| C65 | ok | esqueleto, 500 com "Tentar de novo", não encontrada |
+| C66 | ok | checagem automática em 320, 375, 390, 430 e 1280: sem rolagem horizontal, sobreposição, texto cortado; alvos ≥ 44 px |
+
+"Pronto" na raiz: lint, typecheck, test (api 427, domain 409, web 399, shared 2) e build ok. JS inicial 146,0 de 150 kB.
