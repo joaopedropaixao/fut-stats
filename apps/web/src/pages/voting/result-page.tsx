@@ -12,7 +12,7 @@ import { ApiError } from '../../lib/api';
 import { CraqueCard } from '../../features/voting/craque-card';
 import { FlopCard } from '../../features/voting/flop-card';
 import { MyScoreCard } from '../../features/voting/my-score-card';
-import { useResult } from '../../features/voting/queries';
+import { useResult, useVoting } from '../../features/voting/queries';
 import { markResultOpened } from '../../features/voting/result-opened';
 import { ResultTable } from '../../features/voting/result-table';
 
@@ -25,8 +25,13 @@ export function ResultPage() {
 }
 
 function Content({ groupId, roundId }: { groupId: string; roundId: string | undefined }) {
-  const result = useResult(groupId, roundId);
+  // Antes de pedir o resultado, olha o status da votação: rodada ainda aberta não pede (a API responderia 409 e o
+  // console mostraria o erro). O 409 continua tratado como reserva, se o status mudar entre as duas chamadas.
+  const voting = useVoting(groupId, roundId);
+  const closed = voting.data?.status === 'CLOSED';
+  const result = useResult(groupId, roundId, closed);
   const data = result.data;
+  const round = data ?? voting.data;
 
   return (
     <>
@@ -40,9 +45,20 @@ function Content({ groupId, roundId }: { groupId: string; roundId: string | unde
       />
       <RoundHeading
         title="Resultado"
-        round={data && { number: data.number, scheduledAt: data.scheduledAt, location: null }}
+        round={round && { number: round.number, scheduledAt: round.scheduledAt, location: null }}
       />
-      {result.isError && !data ? (
+      {voting.isError && !voting.data ? (
+        <Failure
+          roundId={roundId}
+          error={voting.error}
+          onRetry={() => void voting.refetch()}
+          retrying={voting.isFetching}
+        />
+      ) : !voting.data ? (
+        <SkeletonList rows={4} label="Carregando o resultado" />
+      ) : !closed ? (
+        <NotReady roundId={voting.data.roundId} />
+      ) : result.isError && !data ? (
         <Failure
           roundId={roundId}
           error={result.error}
@@ -55,6 +71,18 @@ function Content({ groupId, roundId }: { groupId: string; roundId: string | unde
         <Loaded result={data} />
       )}
     </>
+  );
+}
+
+function NotReady({ roundId }: { roundId: string }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <EmptyState
+        title={VOTING_ERROR_LABELS.RESULT_NOT_READY}
+        message="O resultado sai quando a votação fechar."
+      />
+      <RouteButton to={`/rodadas/${roundId}/votar`} label="Ir para a votação" block />
+    </div>
   );
 }
 
@@ -77,18 +105,8 @@ function Failure({
       />
     );
   }
-  if (error instanceof ApiError && error.body?.code === 'RESULT_NOT_READY') {
-    return (
-      <div className="flex flex-col gap-3">
-        <EmptyState
-          title={VOTING_ERROR_LABELS.RESULT_NOT_READY}
-          message="O resultado sai quando a votação fechar."
-        />
-        {roundId && (
-          <RouteButton to={`/rodadas/${roundId}/votar`} label="Ir para a votação" block />
-        )}
-      </div>
-    );
+  if (error instanceof ApiError && error.body?.code === 'RESULT_NOT_READY' && roundId) {
+    return <NotReady roundId={roundId} />;
   }
   return (
     <ErrorState
