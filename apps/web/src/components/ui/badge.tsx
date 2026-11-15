@@ -57,15 +57,22 @@ type BadgeProps = {
   label: string;
   variant?: BadgeVariant;
   className?: string;
+  /** Prazo: o relógio na cor do texto, não no laranja de aviso (cards neutros). */
+  neutralIcon?: boolean;
 };
 
-export function Badge({ label, variant = 'neutral', className }: BadgeProps) {
+export function Badge({ label, variant = 'neutral', className, neutralIcon }: BadgeProps) {
   return (
     <span className={cn('inline-flex h-8 items-center gap-1.5 px-3', VARIANT[variant], className)}>
       {variant === 'craque' && <Star />}
       {variant === 'flop' && <Stilts />}
       {variant === 'deadline' && (
-        <Icon name="clock" size={13} strokeWidth={2.4} className="shrink-0 text-warning" />
+        <Icon
+          name="clock"
+          size={13}
+          strokeWidth={2.4}
+          className={cn('shrink-0', neutralIcon ? 'text-text' : 'text-warning')}
+        />
       )}
       <PixelText>{label}</PixelText>
     </span>
