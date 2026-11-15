@@ -185,22 +185,31 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
   text(ctx, TEAM_LABELS[player.team], 16, 14, { color: white ? '#000' : '#fff' });
   if (card.you) {
     // O selo VOCÊ: fundo escuro, letras claras, contorno grosso e sombra dura (legível em qualquer faixa). Inteiro,
-    // com a sombra, dentro da tira do time e com a mesma margem do nome (13 de cada lado da tira, que vai de 3 a 189)
+    // com a sombra, dentro da tira do time e com a mesma margem do nome (13 de cada lado da tira, que vai de 3 a 189).
+    // A altura vem da medida real do texto (o acento do Ê incluído): 2,5 unidades (10 px do canvas) de folga entre o
+    // topo do acento e o miolo, e a mesma folga embaixo das letras.
+    const label = 'VOCÊ';
+    ctx.font = '700 16px Silkscreen, monospace';
+    // a medida vale para a linha de base alfabética (a mesma com que o texto é desenhado depois)
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'center';
+    const m = ctx.measureText(label);
+    const gap = 2.5;
     const sw = 64;
-    const sh = 27;
+    const inner = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent + gap * 2;
+    const sh = Math.ceil(inner) + 6;
     const sx = CARD_W - 3 - 13 - 3 - sw;
-    const sy = 4;
+    const sy = 3 + Math.floor((33 - (sh + 3)) / 2);
     ctx.fillStyle = '#000';
     ctx.fillRect(sx + 3, sy + 3, sw, sh);
     ctx.fillStyle = resolveColor('var(--color-text)');
     ctx.fillRect(sx, sy, sw, sh);
     ctx.fillStyle = '#000';
     ctx.fillRect(sx + 3, sy + 3, sw - 6, sh - 6);
-    // o texto fica no meio do miolo: o acento do Ê tem folga em cima e embaixo do miolo sobra a mesma
-    text(ctx, 'Você', sx + sw / 2, sy + 9, {
-      color: resolveColor('var(--color-text)'),
-      align: 'center',
-    });
+    ctx.fillStyle = resolveColor('var(--color-text)');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(label, sx + sw / 2, sy + 3 + gap + m.actualBoundingBoxAscent, sw - 12);
   }
 
   // Nota em dígitos pixel (escala 4)
