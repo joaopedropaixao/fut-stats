@@ -9,9 +9,9 @@ import { TIER_COLORS, TIER_LABELS } from './tier';
 export const SHARE_WIDTH = 1080;
 export const SHARE_HEIGHT = 1350;
 
-/** A carta em unidades de CSS (176 x 280), ampliada 4x no canvas. */
-const CARD_W = 176;
-const CARD_H = 280;
+/** A carta em unidades de CSS (192 x 288), ampliada 4x no canvas. */
+const CARD_W = 192;
+const CARD_H = 288;
 
 const STAR_PATH = 'M12 2l3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5 7.5-.7z';
 
@@ -65,10 +65,10 @@ export async function renderCardPng(card: PackCard, roundNumber: number): Promis
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, SHARE_WIDTH, SHARE_HEIGHT);
 
-  // A carta, centrada e ampliada 4x (um pouco maior: 5x ocuparia 880 x 1400)
-  const scale = 4.4;
+  // A carta, centrada e ampliada 4x (inteiro: o pixel art não pode ficar fracionado)
+  const scale = 4;
   const ox = Math.round((SHARE_WIDTH - CARD_W * scale) / 2);
-  const oy = 70;
+  const oy = 74;
   ctx.save();
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
@@ -76,7 +76,7 @@ export async function renderCardPng(card: PackCard, roundNumber: number): Promis
   ctx.restore();
 
   // Rodapé
-  text(ctx, 'Fut Stats', SHARE_WIDTH / 2, 1290, {
+  text(ctx, 'Fut Stats', SHARE_WIDTH / 2, 1268, {
     size: 40,
     color: resolveColor('var(--color-text)'),
     align: 'center',
@@ -141,7 +141,7 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
   const map = bodyLargeMap(player.avatar);
   const palette = bodyLargePalette(player.avatar, white ? 'white' : 'black');
   const bx = Math.round((CARD_W - 16 * 3) / 2);
-  const by = 114;
+  const by = 118;
   map.forEach((line, y) =>
     [...line].forEach((c, x) => {
       const color = palette[c];
@@ -160,7 +160,7 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
         ? `#${card.rank} na rodada`
         : ''
       : `Rodada ${roundNumber}`;
-  text(ctx, player.nickname, 12, 200, { color: tier.ink, maxWidth: CARD_W - 24 });
-  text(ctx, kind, 12, 222, { color: '#3a2a10', maxWidth: CARD_W - 24 });
-  text(ctx, note, 12, 244, { color: '#3a2a10', maxWidth: CARD_W - 24 });
+  text(ctx, player.nickname, 12, 208, { color: tier.ink, maxWidth: CARD_W - 24 });
+  text(ctx, kind, 12, 230, { color: tier.ink2, maxWidth: CARD_W - 24 });
+  text(ctx, note, 12, 252, { color: tier.ink2, maxWidth: CARD_W - 24 });
 }

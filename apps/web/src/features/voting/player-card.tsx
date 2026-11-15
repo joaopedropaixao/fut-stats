@@ -96,7 +96,7 @@ export function PlayerCard({
   const shown = clues ? clues.rating : score;
   const white = player.team === 'WHITE';
   const ring = special
-    ? '#000 0 0 0 3px inset, #f3ead3 0 0 0 6px inset, #000 0 0 0 9px inset, 6px 6px 0 0 #000'
+    ? '#000 0 0 0 3px inset, #f3ead3 0 0 0 6px inset, 6px 6px 0 0 #000'
     : '#000 0 0 0 3px inset, 6px 6px 0 0 #000';
   return (
     <article
@@ -189,6 +189,12 @@ export function PlayerCard({
         >
           <path d={CRACK_PATH} fill="#130a03" />
         </svg>
+      )}
+      {special && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-[6px] border-[3px] border-team-black"
+        />
       )}
       {children}
     </article>

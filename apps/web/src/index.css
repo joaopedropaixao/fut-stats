@@ -567,19 +567,40 @@
 }
 
 .card-frame[data-tier='gold'] {
-  --card-bg: linear-gradient(135deg, #f6d77a 0%, #e8a93a 30%, #fbe7a8 55%, #d4f0e6 78%, #e8a93a 100%);
+  --card-bg: linear-gradient(
+    135deg,
+    #f6d77a 0%,
+    #e8a93a 30%,
+    #fbe7a8 55%,
+    #d4f0e6 78%,
+    #e8a93a 100%
+  );
   --card-ink: #111111;
   --card-ink-2: #3a2a10;
 }
 
 .card-frame[data-tier='silver'] {
-  --card-bg: linear-gradient(135deg, #f4f7fa 0%, #a9b4bf 30%, #e6ecf1 55%, #c3d3e3 78%, #93a0ad 100%);
+  --card-bg: linear-gradient(
+    135deg,
+    #f4f7fa 0%,
+    #a9b4bf 30%,
+    #e6ecf1 55%,
+    #c3d3e3 78%,
+    #93a0ad 100%
+  );
   --card-ink: #111111;
   --card-ink-2: #28303a;
 }
 
 .card-frame[data-tier='bronze'] {
-  --card-bg: linear-gradient(135deg, #efbf93 0%, #b8703f 30%, #e8b283 55%, #d3a27b 78%, #9a5a2e 100%);
+  --card-bg: linear-gradient(
+    135deg,
+    #efbf93 0%,
+    #b8703f 30%,
+    #e8b283 55%,
+    #d3a27b 78%,
+    #9a5a2e 100%
+  );
   --card-ink: #130a03;
   --card-ink-2: #2d1a0c;
 }

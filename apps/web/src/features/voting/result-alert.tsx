@@ -3,9 +3,12 @@ import { Link } from 'react-router';
 import { PixelText } from '../../components/ui/pixel-text';
 import { RouteButton } from '../rounds/route-button';
 import { PackMini } from './pack-mini';
+import { hasPack } from '../pack/deck';
+import { useResult } from './queries';
 import { hasOpenedResult } from './result-opened';
 
 type ResultAlertProps = {
+  groupId: string;
   roundId: string;
   number: number;
   /** Quem vê: o "já abri" é por jogador. */
@@ -18,10 +21,17 @@ type ResultAlertProps = {
  * em miniatura treme de leve em degraus (parado com "reduzir movimento"). Depois de aberto (por rodada e por
  * jogador), vira a linha do resultado, que leva ao mesmo lugar.
  */
-export function ResultAlert({ roundId, number, membershipId }: ResultAlertProps) {
-  const to = `/rodadas/${roundId}/resultado`;
+export function ResultAlert({ groupId, roundId, number, membershipId }: ResultAlertProps) {
   if (hasOpenedResult(roundId, membershipId))
     return <ResultLine roundId={roundId} number={number} />;
+  return <ResultNews groupId={groupId} roundId={roundId} number={number} />;
+}
+
+/** O card em destaque. Rodada sem votos não tem pacote: a tecla diz "Ver resultado" e o pacote some. */
+function ResultNews({ groupId, roundId, number }: Omit<ResultAlertProps, 'membershipId'>) {
+  const to = `/rodadas/${roundId}/resultado`;
+  const result = useResult(groupId, roundId);
+  const pack = result.data ? hasPack(result.data) : true;
   return (
     <section
       aria-label="O resultado saiu"
@@ -29,9 +39,11 @@ export function ResultAlert({ roundId, number, membershipId }: ResultAlertProps)
       style={{ borderColor: 'var(--color-gold)', boxShadow: '5px 5px 0 var(--color-shadow)' }}
     >
       <div className="flex items-center gap-3 bg-gold/12 px-4 py-4 shadow-[inset_0_-3px_0_0_var(--color-gold)]">
-        <span className="animate-pack-wobble inline-flex">
-          <PackMini scale={5} />
-        </span>
+        {pack && (
+          <span className="animate-pack-wobble inline-flex">
+            <PackMini scale={5} />
+          </span>
+        )}
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <PixelText className="text-gold">{`Rodada ${number}`}</PixelText>
           <PixelText
@@ -53,7 +65,7 @@ export function ResultAlert({ roundId, number, membershipId }: ResultAlertProps)
         </p>
         <RouteButton
           to={to}
-          label="Abrir pacote"
+          label={pack ? 'Abrir pacote' : 'Ver resultado'}
           icon="pack"
           block
           className="animate-row-in [--moment-delay:220ms]"

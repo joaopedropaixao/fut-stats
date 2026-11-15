@@ -59,6 +59,7 @@ function Home({
       {/* Acima da próxima rodada: o resultado em destaque e a votação aberta (só um deles com a tecla amarela) */}
       {lastResult && (
         <ResultAlert
+          groupId={groupId}
           roundId={lastResult.roundId}
           number={lastResult.number}
           membershipId={membershipId}

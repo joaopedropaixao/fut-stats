@@ -144,7 +144,7 @@ function Stage({ frame, number, onOpen }: { frame: Frame; number: number; onOpen
       return (
         <div
           aria-hidden
-          className="animate-final-in flex flex-col items-center gap-4 min-[360px]:flex-row"
+          className="animate-final-in flex flex-wrap items-center justify-center gap-4"
         >
           {frame.cards.map((c) => (
             <CraqueCard
@@ -154,7 +154,6 @@ function Stage({ frame, number, onOpen }: { frame: Frame; number: number; onOpen
               roundNumber={number}
               special={c.you}
               hidden
-             
             />
           ))}
         </div>
@@ -420,13 +419,7 @@ function FinalCard({ card, number, delay }: { card: PackCard; number: number; de
       className="animate-final-in flex w-48 max-w-full flex-col items-center gap-4"
     >
       {card.kind === 'craque' ? (
-        <CraqueCard
-          player={card.player}
-          tier={card.tier}
-          roundNumber={number}
-          special={card.you}
-         
-        />
+        <CraqueCard player={card.player} tier={card.tier} roundNumber={number} special={card.you} />
       ) : card.kind === 'flop' ? (
         <FlopPackCard player={card.player} tier={card.tier} you={card.you} />
       ) : (

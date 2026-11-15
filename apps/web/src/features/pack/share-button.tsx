@@ -44,7 +44,6 @@ export function ShareButton({ card, roundNumber, block, className }: ShareButton
     <div className={className}>
       <Button
         label={label}
-        icon="share"
         variant="outline"
         size={48}
         block={block}
