@@ -41,4 +41,22 @@ describe('YouCard (C22, C36)', () => {
       'Você está em 4º',
     );
   });
+
+  it('pódio: no top 3 o rótulo diz a medalha e a moldura ganha a cor do degrau (nunca o amarelo de ação)', () => {
+    const podium = (rank: number) =>
+      renderToString(
+        <YouCard
+          me={{ ...me, rank, trend: 0, stats: { ...me.stats, ratedGames: 5 } }}
+          minRatedGames={3}
+          closedRounds={9}
+        />,
+      );
+    expect(podium(1)).toContain('Você está em 1º lugar, ouro');
+    expect(podium(2)).toContain('Você está em 2º lugar, prata');
+    expect(podium(3)).toContain('Você está em 3º lugar, bronze');
+    expect(podium(2)).toContain('border-color:var(--color-silver)');
+    expect(podium(4)).not.toContain('lugar,');
+    expect(podium(4)).not.toContain('border-color');
+    for (const rank of [1, 2, 3]) expect(podium(rank)).not.toContain('accent');
+  });
 });

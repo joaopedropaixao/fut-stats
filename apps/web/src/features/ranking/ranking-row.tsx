@@ -5,6 +5,8 @@ import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
 import { YouTag } from '../lineup/you-tag';
+import { Medal } from './medal';
+import { PODIUM_TEXT, podiumLabel, podiumTier } from './podium';
 import { MemberAvatar } from '../rounds/member-avatar';
 import {
   formatAverage,
@@ -33,7 +35,9 @@ type RankingRowProps = {
  */
 export function RankingRow({ player, tab, index, mine }: RankingRowProps) {
   const rank = shownRank(player, tab);
-  const leader = rank === 1;
+  // Pódio: 1º, 2º e 3º da posição que a aba mostra (empate divide a posição, e a medalha)
+  const tier = podiumTier(rank);
+  const tone = tier ? PODIUM_TEXT[tier] : null;
   const { average } = player.stats;
   const averageText = average === null ? null : formatAverage(average);
   // Tendência é a do ranking geral: nas outras abas ela confundiria com a posição de dentro da posição
@@ -57,19 +61,22 @@ export function RankingRow({ player, tab, index, mine }: RankingRowProps) {
       >
         <span className="flex min-h-18 items-center gap-1.5 px-2.5 py-2 min-[360px]:gap-2.5 min-[360px]:px-3">
           {/* Largura fixa: as posições alinham entre as linhas, de um e de dois dígitos */}
-          <span className="flex w-6.5 shrink-0 justify-center">
+          <span className="flex w-6.5 shrink-0 flex-col items-center gap-1">
             {rank === null ? (
               <>
                 <span className="sr-only">Sem posição</span>
                 <span aria-hidden className="h-0.5 w-3 bg-text-muted" />
               </>
             ) : (
-              <PixelDigits
-                value={rank}
-                scale={2}
-                label={`${rank}º no ranking`}
-                className={leader ? 'text-gold' : 'text-text-muted'}
-              />
+              <>
+                <PixelDigits
+                  value={rank}
+                  scale={2}
+                  label={podiumLabel(rank) ?? `${rank}º no ranking`}
+                  className={tone ?? 'text-text-muted'}
+                />
+                {tier && <Medal tier={tier} scale={2} />}
+              </>
             )}
           </span>
           {/* Em 320 px o rosto de 32 deixa o apelido de 10 letras inteiro; a partir de 360 px, o de 40 */}
@@ -99,7 +106,7 @@ export function RankingRow({ player, tab, index, mine }: RankingRowProps) {
                 value={averageText}
                 scale={averageText.length > 3 ? 2 : 3}
                 label={`Média ${averageText}`}
-                className={leader ? 'text-gold' : 'text-text'}
+                className={tone ?? 'text-text'}
               />
             )}
             {trend !== null && <TrendMark trend={trend} />}

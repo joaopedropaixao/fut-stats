@@ -21,7 +21,8 @@ Preto é a identidade. A nostalgia de jogo 2D aparece em três camadas:
 | Fundo padrão "Gramado" | `--color-bg` e superfícies | Verde. O tema **"Noite"** (escuro) é opção nas configurações e troca só os tokens de fundo. |
 | Texto | `--color-text` (creme) | Branco puro só no time Branco. |
 | Ação | `--color-accent` (amarelo) | Só tecla de ação, **uma por tela**, sem brilho. Exceções aprovadas: a palavra **VS** (`--color-game`), o **Desfazer** dentro do aviso, o selo **ADMIN** e o bloco **"?"** do seletor de times, em dourado da família `--color-gold` (com `--color-gold-light` e `--color-gold-shadow`), pois a moeda é recompensa (decisão do dono, 30 out 2026). |
-| Recompensa | `--color-gold` (+ `--color-gold-light`, `--color-gold-shadow`) | Craque, líder do ranking, aviso de resultado, bloco "?" e moeda do seletor. |
+| Recompensa | `--color-gold` (+ `--color-gold-light`, `--color-gold-shadow`) | Craque, 1º lugar do ranking, aviso de resultado, bloco "?" e moeda do seletor. |
+| Pódio | `--color-silver` e `--color-bronze` (+ `-light`, `-shadow`) | 2º e 3º lugar do ranking: medalha pixel e moldura do card do topo (o 1º usa o ouro). A medalha é o sinal (coroa no 1º, medalha no 2º e no 3º, com o número ao lado e o nome para leitor de tela); a cor sozinha não basta. Nunca o amarelo de ação. |
 | Atenção | `--color-warning` | Prazo e aviso de votação. |
 | Convite / vitória | `--color-success` | Presença confirmada, aviso de presença, vitória. |
 | Perigo / derrota | `--color-danger` | Ausência, remover, derrota. |

@@ -4,7 +4,9 @@ import { PixelText } from '../../components/ui/pixel-text';
 import { Bump } from '../../components/ui/bump';
 import { PlayerSprite } from '../../components/ui/pixel-sprite';
 import { cn } from '../../lib/cn';
+import { Medal } from './medal';
 import { Ordinal } from './ordinal';
+import { PODIUM_TEXT, podiumLabel, podiumTier } from './podium';
 import { formatAverage, missingRounds, missingRoundsText, trendLabel } from './ranking-text';
 import { RankConfetti } from './rank-confetti';
 import { TrendMark } from './trend-mark';
@@ -42,12 +44,30 @@ type YouCardProps = {
 export function YouCard({ me, minRatedGames, closedRounds }: YouCardProps) {
   const { rank, trend, stats } = me;
   const reveal = useRankReveal({ membershipId: me.membershipId, closedRounds, rank, trend });
-  const leader = rank === 1;
+  // O pódio segue o número que aparece (na animação, o degrau da vez); o rótulo para leitor de tela é o do final
+  const shownRank = reveal.shown ?? rank;
+  const tier = podiumTier(shownRank);
+  const tone = tier ? PODIUM_TEXT[tier] : 'text-text';
   const missing = missingRounds(minRatedGames, stats.ratedGames);
 
   return (
     <section
-      aria-label={rank === null ? missingRoundsText(missing) : `Você está em ${rank}º`}
+      aria-label={
+        rank === null
+          ? missingRoundsText(missing)
+          : podiumLabel(rank)
+            ? `Você está em ${podiumLabel(rank)}`
+            : `Você está em ${rank}º`
+      }
+      style={
+        tier
+          ? {
+              // Moldura do pódio: contorno na cor do degrau e um fio por dentro, na sombra dele
+              borderColor: `var(--color-${tier})`,
+              boxShadow: `inset 0 0 0 3px var(--color-${tier}-shadow), 4px 4px 0 var(--color-shadow)`,
+            }
+          : undefined
+      }
       className="moment-frame animate-moment-in relative flex flex-col overflow-hidden bg-surface-raised"
     >
       <div className="flex items-center gap-4 p-4">
@@ -69,15 +89,11 @@ export function YouCard({ me, minRatedGames, closedRounds }: YouCardProps) {
                 Você está em
               </PixelText>
               <span className="flex items-start gap-1" aria-hidden>
-                <Bump value={reveal.shown ?? rank} scale={1.25}>
-                  <PixelDigits
-                    value={reveal.shown ?? rank}
-                    scale={6}
-                    decorative
-                    className={leader ? 'text-gold' : 'text-text'}
-                  />
+                <Bump value={shownRank ?? rank} scale={1.25}>
+                  <PixelDigits value={shownRank ?? rank} scale={6} decorative className={tone} />
                 </Bump>
-                <Ordinal scale={3} className={cn('mt-1', leader ? 'text-gold' : 'text-text')} />
+                <Ordinal scale={3} className={cn('mt-1', tone)} />
+                {tier && <Medal tier={tier} scale={4} className="ml-2 mt-1" />}
               </span>
             </>
           )}
@@ -91,7 +107,7 @@ export function YouCard({ me, minRatedGames, closedRounds }: YouCardProps) {
               value={formatAverage(stats.average)}
               scale={3}
               label={`Média ${formatAverage(stats.average)}`}
-              className={leader ? 'text-gold' : 'text-text'}
+              className={tone}
             />
           </span>
           {trend !== null && (
