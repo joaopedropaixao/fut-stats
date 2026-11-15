@@ -10,9 +10,9 @@
 | **Modo** | Par |
 | **Parte de** | — |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @7e3902d |
 | **Depende de** | perfil-jogador, historico |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/domain/src/round-score, packages/shared/src/voting.ts, packages/shared/src/round.ts, packages/shared/src/history.ts, packages/shared/src/domain.ts, apps/api/src/voting, apps/api/src/match, apps/api/src/rounds, apps/api/src/history, apps/api/src/seed, apps/api/src/config/env.ts, .env.example, apps/web/src/features/voting, apps/web/src/pages/voting, apps/web/src/pages/rounds/home.tsx, apps/web/src/pages/rounds/detail.tsx, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/router.tsx |
+| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/domain/src/round-score, packages/shared/src/voting.ts, packages/shared/src/round.ts, packages/shared/src/history.ts, packages/shared/src/domain.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/match, apps/api/src/rounds, apps/api/src/history, apps/api/src/seed, apps/api/src/config/env.ts, .env.example, apps/web/src/features/voting, apps/web/src/pages/voting, apps/web/src/pages/rounds/home.tsx, apps/web/src/pages/rounds/detail.tsx, apps/web/src/pages/match, apps/web/src/features/match, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/router.tsx |
 
 ## Produto
 
@@ -302,7 +302,7 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
 - **Início** (`pages/rounds/home.tsx`): acima do bloco da próxima rodada, o card da votação
   (`features/voting/voting-card.tsx`) quando `votingId` existe, e o card do resultado
   (`features/voting/result-alert.tsx`) quando `lastResult` existe e ainda não foi aberto neste aparelho
-  (`result-opened.ts`, no padrão de `vs-seen.ts`). Os dois são `moment-frame` com entrada em degraus. Só um
+  (`result-opened.ts`, no padrão de `features/match/result-seen.ts`: por rodada e por `membershipId`). Os dois são `moment-frame` com entrada em degraus. Só um
   mostra tecla amarela por vez: resultado antes de votação. A fatia `feed` reorganiza essa área depois.
 - **Votar** (`pages/voting/vote-page.tsx`): um reducer puro com teste (`features/voting/vote-flow.ts`) guarda o
   passo, as notas e as escolhas; o rascunho vai para `localStorage` por `roundId` + `membershipId` (com
@@ -345,6 +345,11 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
   só front e merece uma volta de design própria.
 - Admin vê quem falta, nunca o voto — resposta do dono à P12.
 - `withRoundLock` vira provider comum — placar, lances e votos disputam a mesma rodada.
+- Cruzamento com `rodizio-reservas` (checkpoint de 2026-11-15, Base 7e3902d) — o rodízio põe `rotationStartedAt` e
+  `rotationMinutes` em `Round` (migration `round_rotation`) e mexe em `apps/api/src/match` e na tela do jogo. Ele entra
+  primeiro: a migration `voting` sai com data posterior e é refeita no rebase se o Prisma acusar drift. Em `match`,
+  a votação só troca o `withRoundLock` privado pelo provider (mantendo as chamadas) e o passo Resenha → Votação na
+  tela; nada além disso.
 
 ## Fora do escopo
 - Abertura do pacote do Craque e Compartilhar (`pacote-do-craque`).
