@@ -1,9 +1,12 @@
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { ROUND_STATUS_LABELS, TEAM_LABELS, type MatchView } from '@fut-stats/shared';
 import { Bump } from '../../components/ui/bump';
 import { IconButton } from '../../components/ui/button';
 import { PixelDigits } from '../../components/ui/pixel-digits';
+import { pixelDigitsPath } from '../../components/ui/pixel-glyphs';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
+import { fitScale } from './score-fit';
 
 type Team = 'WHITE' | 'BLACK';
 type Score = Record<Team, number>;
@@ -11,6 +14,21 @@ type Score = Record<Team, number>;
 const DIAGONAL = {
   backgroundImage: 'linear-gradient(112deg, #fff 0%, #fff 50%, #000 50%, #000 100%)',
 };
+
+/** Largura útil da linha dos dígitos (0 até medir, e em ambiente sem ResizeObserver). */
+function useRowWidth(ref: RefObject<HTMLElement | null>): number {
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const measure = () => setWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return width;
+}
 
 /** O traço do placar ainda não lançado, no lugar dos dígitos. */
 function Dash({ scale, className }: { scale: number; className: string }) {
@@ -41,7 +59,14 @@ type ScoreboardProps = {
  * própria em cima, longe dos dígitos. Sem placar lançado, o traço "–" no lugar dos dígitos.
  */
 export function Scoreboard({ status, score, compact, bare, editor }: ScoreboardProps) {
-  const scale = compact ? 6 : Math.max(score?.WHITE ?? 0, score?.BLACK ?? 0) >= 100 ? 8 : 12;
+  const baseScale = compact ? 6 : Math.max(score?.WHITE ?? 0, score?.BLACK ?? 0) >= 100 ? 8 : 12;
+  const row = useRef<HTMLDivElement>(null);
+  const width = useRowWidth(row);
+  // Número de 2 ou 3 dígitos em tela estreita: encolhe em degraus inteiros até caber, nunca passa da borda
+  const units = score
+    ? pixelDigitsPath(String(score.WHITE)).width + pixelDigitsPath(String(score.BLACK)).width
+    : 0;
+  const scale = fitScale(baseScale, units, width);
   const live = status === 'IN_PROGRESS';
 
   return (
@@ -61,7 +86,7 @@ export function Scoreboard({ status, score, compact, bare, editor }: ScoreboardP
         </span>
       </div>
       <div className="flex flex-col gap-3 px-5 pt-6 pb-5" style={DIAGONAL}>
-        <div className="flex items-end justify-between">
+        <div ref={row} className="flex items-end justify-between">
           {score ? (
             <>
               <Bump value={score.WHITE} scale={1.15}>
