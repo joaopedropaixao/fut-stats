@@ -15,6 +15,9 @@ import { usePresence } from '../../features/rounds/use-presence';
 import { GameCard } from '../../features/match/game-card';
 import { useMatch } from '../../features/match/queries';
 import { MemberAvatar } from '../../features/rounds/member-avatar';
+import { hasOpenedResult } from '../../features/voting/result-opened';
+import { ResultAlert } from '../../features/voting/result-alert';
+import { VotingCard } from '../../features/voting/voting-card';
 import { PresenceTally } from '../../features/rounds/presence-tally';
 import { POSITION_LABELS, type MatchView, type RoundDetail } from '@fut-stats/shared';
 
@@ -22,10 +25,20 @@ import { POSITION_LABELS, type MatchView, type RoundDetail } from '@fut-stats/sh
 export function HomePage() {
   const { group } = useCurrentGroup();
   if (!group) return null;
-  return <Home groupId={group.id} isAdmin={group.role === 'ADMIN'} />;
+  return (
+    <Home groupId={group.id} membershipId={group.membershipId} isAdmin={group.role === 'ADMIN'} />
+  );
 }
 
-function Home({ groupId, isAdmin }: { groupId: string; isAdmin: boolean }) {
+function Home({
+  groupId,
+  membershipId,
+  isAdmin,
+}: {
+  groupId: string;
+  membershipId: string;
+  isAdmin: boolean;
+}) {
   const rounds = useRounds(groupId);
   // A rodada da vez vem da API (pickCurrentRound): em jogo, senão a próxima
   const all = rounds.data ? [...rounds.data.upcoming, ...rounds.data.past] : [];
@@ -36,9 +49,22 @@ function Home({ groupId, isAdmin }: { groupId: string; isAdmin: boolean }) {
   const next = useRound(groupId, nextId);
   const match = useMatch(groupId, inMatch ? current?.id : undefined);
 
+  const { votingId, lastResult } = rounds.data ?? { votingId: null, lastResult: null };
+  // O resultado em destaque (ainda não aberto) fica com a tecla amarela; a votação, com a de contorno
+  const resultOnShow = lastResult !== null && !hasOpenedResult(lastResult.roundId, membershipId);
+
   return (
     <>
       <title>Início · Fut Stats</title>
+      {/* Acima da próxima rodada: o resultado em destaque e a votação aberta (só um deles com a tecla amarela) */}
+      {lastResult && (
+        <ResultAlert
+          roundId={lastResult.roundId}
+          number={lastResult.number}
+          membershipId={membershipId}
+        />
+      )}
+      {votingId && <VotingCard groupId={groupId} roundId={votingId} yieldKey={resultOnShow} />}
       <PixelText as="h1" size={24} wrap className="outline-none">
         {current?.status === 'POST_MATCH'
           ? 'Hora da Resenha'

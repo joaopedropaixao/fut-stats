@@ -12,6 +12,7 @@ const base: HistoryItem = {
   score: { WHITE: 3, BLACK: 2 },
   winner: 'WHITE',
   me: { team: 'WHITE', result: 'WIN' },
+  mvps: [],
 };
 
 describe('listResultText', () => {
@@ -81,6 +82,18 @@ describe('cardAriaLabel', () => {
   it('C15: partida na Resenha ou na votação diz a etapa', () => {
     expect(cardAriaLabel({ ...base, status: 'POST_MATCH' })).toMatch(/, Resenha$/);
     expect(cardAriaLabel({ ...base, status: 'VOTING' })).toMatch(/, Votação$/);
+  });
+
+  it('C63: partida encerrada com Craque diz quem foi (ou quem foram, no empate)', () => {
+    const mvp = (nickname: string) => ({
+      membershipId: nickname,
+      nickname,
+      avatar: { skin: 'LIGHT', hair: 'SHORT', hairColor: 'BLACK' } as const,
+    });
+    expect(cardAriaLabel({ ...base, mvps: [mvp('Beto')] })).toMatch(/você venceu, Craque Beto$/);
+    expect(cardAriaLabel({ ...base, mvps: [mvp('Beto'), mvp('Caio')] })).toMatch(
+      /você venceu, Craques Beto e Caio$/,
+    );
   });
 });
 

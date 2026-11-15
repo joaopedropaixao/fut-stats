@@ -79,6 +79,7 @@ function nextStep(round: RoundDetail, isAdmin: boolean): { to: string; label: st
     case 'POST_MATCH':
       return { to: `/rodadas/${round.id}/jogo`, label: 'Ir para a Resenha' };
     case 'VOTING':
+      return { to: `/rodadas/${round.id}/votar`, label: 'Ir para a votação' };
     case 'CLOSED':
       return { to: `/historico/${round.id}`, label: 'Ver partida' };
   }
