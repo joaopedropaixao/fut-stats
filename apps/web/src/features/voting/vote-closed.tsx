@@ -1,3 +1,4 @@
+import type { VotingEndReason } from '@fut-stats/shared';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
 import { RouteButton } from '../rounds/route-button';
@@ -6,7 +7,20 @@ import { RouteButton } from '../rounds/route-button';
  * "A VOTAÇÃO FECHOU" (folha: Erro/Votação fechou): o prazo acabou, ou o admin encerrou, enquanto a pessoa votava.
  * O rascunho já foi descartado por quem mostra este card.
  */
-export function VoteClosed({ roundId, resultReady }: { roundId: string; resultReady: boolean }) {
+const WHY: Record<VotingEndReason, string> = {
+  DEADLINE_PASSED: 'O prazo acabou enquanto você votava.',
+  ADMIN_CLOSED: 'O admin encerrou a votação enquanto você votava.',
+  ALL_VOTED: 'Todo mundo já tinha votado.',
+};
+
+export function VoteClosed({
+  roundId,
+  reason,
+}: {
+  roundId: string;
+  /** Por que fechou, quando a API já disse; sem ela vale o prazo (o caso mais comum). */
+  reason: VotingEndReason | null;
+}) {
   return (
     <section
       role="alert"
@@ -20,12 +34,10 @@ export function VoteClosed({ roundId, resultReady }: { roundId: string; resultRe
         </PixelText>
       </div>
       <p className="text-sm text-text-muted">
-        O prazo acabou enquanto você votava. Os votos que ainda não tinham sido enviados não entram
-        na conta.
+        {WHY[reason ?? 'DEADLINE_PASSED']} Os votos que ainda não tinham sido enviados não entram na
+        conta.
       </p>
-      {resultReady && (
-        <RouteButton to={`/rodadas/${roundId}/resultado`} label="Ver o resultado" block />
-      )}
+      <RouteButton to={`/rodadas/${roundId}/resultado`} label="Ver o resultado" block />
       <RouteButton to="/" variant="outline" size={52} label="Voltar para o início" block />
     </section>
   );

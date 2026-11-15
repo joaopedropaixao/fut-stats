@@ -32,7 +32,7 @@ export function MyScoreCard({ me }: { me: ResultPlayer }) {
             className="min-[360px]:hidden"
           />
           {me.rank !== null && (
-            <PixelText wrap className="pb-1">{`${me.rank}º da rodada`}</PixelText>
+            <PixelText wrap className="pb-1 text-right">{`Posição ${me.rank} da rodada`}</PixelText>
           )}
         </div>
       )}

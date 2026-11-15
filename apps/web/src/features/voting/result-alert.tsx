@@ -46,10 +46,7 @@ export function ResultAlert({ roundId, number, membershipId }: ResultAlertProps)
         className="flex flex-col gap-4 p-4"
         style={{ '--moment-delay': '120ms' } as CSSProperties}
       >
-        <PixelText
-          wrap
-          className="animate-row-in text-text-muted"
-        >{`Rodada ${number} · notas fechadas. Quem foi o craque?`}</PixelText>
+        <p className="animate-row-in text-base text-text-muted">{`Rodada ${number} · notas fechadas. Quem foi o craque?`}</p>
         <RouteButton
           to={to}
           label="Ver resultado"

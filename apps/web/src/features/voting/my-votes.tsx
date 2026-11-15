@@ -4,6 +4,7 @@ import { Badge, Star, Stilts } from '../../components/ui/badge';
 import { IconButton } from '../../components/ui/button';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
+import { cn } from '../../lib/cn';
 import { closesInLabel } from './deadline';
 import { Meter } from './meter';
 import type { openAt } from './vote-flow';
@@ -41,7 +42,7 @@ export function MyVotes({ view, remaining, onEdit }: MyVotesProps) {
       <Item
         icon={<Star size={24} />}
         label="Craque"
-        value={mvp?.nickname ?? ''}
+        value={<PixelText wrap>{mvp?.nickname ?? ''}</PixelText>}
         valueClass="text-gold"
         editLabel="Mudar o craque"
         onEdit={() => onEdit('mvp')}
@@ -49,7 +50,7 @@ export function MyVotes({ view, remaining, onEdit }: MyVotesProps) {
       <Item
         icon={<Stilts size={24} />}
         label="Perna de pau"
-        value={flop?.nickname ?? ''}
+        value={<PixelText wrap>{flop?.nickname ?? ''}</PixelText>}
         valueClass="text-flop"
         editLabel="Mudar o perna de pau"
         onEdit={() => onEdit('flop')}
@@ -57,7 +58,12 @@ export function MyVotes({ view, remaining, onEdit }: MyVotesProps) {
       <Item
         icon={<Icon name="urn" size={24} />}
         label="Notas"
-        value={`${vote.ratings.length} notas enviadas`}
+        value={
+          <>
+            <PixelText>{String(vote.ratings.length)}</PixelText>
+            <PixelText>notas enviadas</PixelText>
+          </>
+        }
         editLabel="Mudar as notas"
         onEdit={() => onEdit('review')}
       />
@@ -78,7 +84,7 @@ function Item({
 }: {
   icon: ReactNode;
   label: string;
-  value: string;
+  value: ReactNode;
   valueClass?: string;
   editLabel: string;
   onEdit: () => void;
@@ -90,9 +96,7 @@ function Item({
         <PixelText wrap className="text-text-muted">
           {label}
         </PixelText>
-        <PixelText wrap className={valueClass}>
-          {value}
-        </PixelText>
+        <span className={cn('flex flex-wrap items-baseline gap-x-2', valueClass)}>{value}</span>
       </div>
       <IconButton icon="pencil" label={editLabel} onClick={onEdit} />
     </div>

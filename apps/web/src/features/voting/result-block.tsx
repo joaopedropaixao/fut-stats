@@ -71,8 +71,8 @@ function Row({ player, kind }: { player: ResultPlayer; kind: 'craque' | 'flop' }
         <PixelText wrap className={kind === 'craque' ? 'text-gold' : 'text-flop'}>
           {player.nickname}
         </PixelText>
+        <PixelText className="text-text-muted">{TEAM_LABELS[player.team]}</PixelText>
       </div>
-      <PixelText className="text-text-muted">{TEAM_LABELS[player.team]}</PixelText>
     </div>
   );
 }

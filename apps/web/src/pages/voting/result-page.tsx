@@ -125,7 +125,7 @@ function Loaded({ result }: { result: RoundResult }) {
                 {result.mvps.length > 1 ? 'Craques da rodada' : 'Craque da rodada'}
               </PixelText>
               <div
-                className="flex flex-col items-center gap-6 bg-track px-4 py-8 shadow-[inset_0_0_0_3px_var(--color-border-strong)] min-[360px]:flex-row min-[360px]:justify-center min-[360px]:gap-5"
+                className="moment-frame animate-moment-in flex flex-col items-center gap-6 bg-track px-4 py-8 min-[360px]:flex-row min-[360px]:justify-center min-[360px]:gap-5"
                 style={{
                   backgroundImage:
                     'radial-gradient(220px 180px at 50% 50%, rgb(232 169 58 / 30%) 0, transparent 180px)',

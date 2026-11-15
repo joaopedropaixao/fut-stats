@@ -118,7 +118,7 @@ function Loaded({
   }
 
   if (closed) {
-    return <VoteClosed roundId={view.roundId} resultReady />;
+    return <VoteClosed roundId={view.roundId} reason={view.closeReason} />;
   }
   if (!open) {
     return (

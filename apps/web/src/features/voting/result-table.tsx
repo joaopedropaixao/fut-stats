@@ -29,11 +29,12 @@ export function ResultTable({
           <li
             key={player.membershipId}
             className={cn(
-              'flex min-h-18 items-center gap-2.5 px-3 py-2 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none',
+              // Selos e lances ocupam uma linha própria (sob o rosto e o nome): o selo largo não esbarra na nota
+              'grid grid-cols-[28px_48px_minmax(0,1fr)] items-center gap-x-2.5 gap-y-2 min-[400px]:grid-cols-[28px_48px_minmax(0,1fr)_auto] px-3 py-2.5 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none',
               mine && 'bg-success/8',
             )}
           >
-            <span className="flex w-7 shrink-0 justify-center text-text-muted">
+            <span className="col-start-1 row-start-1 flex justify-center text-text-muted">
               {player.rank !== null ? (
                 <PixelDigits value={player.rank} scale={2} label={`${player.rank}º`} />
               ) : (
@@ -46,26 +47,13 @@ export function ResultTable({
               team={player.team === 'WHITE' ? 'white' : 'black'}
               size={40}
               gap="surface"
-              className="m-1"
+              className="col-start-2 row-span-2 row-start-1 m-1 min-[400px]:row-span-1"
             />
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <PixelText>{player.nickname}</PixelText>
-                {mine && <YouTag />}
-              </span>
-              {(player.isMvp || player.isFlop) && (
-                <span className="flex flex-wrap gap-1.5">
-                  {player.isMvp && <Badge variant="craque" label="Craque" />}
-                  {player.isFlop && <Badge variant="flop" label="Perna de pau" />}
-                </span>
-              )}
-              {stats && (
-                <PixelText wrap className="text-text-muted">
-                  {stats}
-                </PixelText>
-              )}
-            </div>
-            <div className="flex shrink-0 justify-end">
+            <span className="col-start-3 row-start-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <PixelText>{player.nickname}</PixelText>
+              {mine && <YouTag />}
+            </span>
+            <div className="col-start-3 row-start-2 flex justify-start min-[400px]:col-start-4 min-[400px]:row-start-1 min-[400px]:justify-end">
               {player.score !== null ? (
                 <PixelDigits
                   value={formatRating(player.score)}
@@ -77,6 +65,21 @@ export function ResultTable({
                 <PixelText className="text-text-muted">Sem nota</PixelText>
               )}
             </div>
+            {(player.isMvp || player.isFlop || stats) && (
+              <div className="col-[2/-1] row-start-3 flex flex-col items-start gap-1.5 min-[400px]:row-start-2">
+                {(player.isMvp || player.isFlop) && (
+                  <span className="flex flex-wrap gap-1.5">
+                    {player.isMvp && <Badge variant="craque" label="Craque" />}
+                    {player.isFlop && <Badge variant="flop" label="Perna de pau" />}
+                  </span>
+                )}
+                {stats && (
+                  <PixelText wrap className="text-text-muted">
+                    {stats}
+                  </PixelText>
+                )}
+              </div>
+            )}
           </li>
         );
       })}
