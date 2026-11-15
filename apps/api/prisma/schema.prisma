@@ -173,6 +173,10 @@ model Round {
   /// Quando a votação fechou e por quê; nulos até fechar (`CLOSED`). O resultado fica gravado no `TeamPlayer`.
   closedAt        DateTime?
   votingEndReason VotingEndReason?
+  /// Instante em que o rodízio compartilhado começou; nulo quando está desligado.
+  rotationStartedAt DateTime?
+  /// Duração escolhida para o rodízio, em minutos; nulo quando está desligado.
+  rotationMinutes Int?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 

@@ -181,6 +181,25 @@ describe('seed de desenvolvimento', () => {
   );
 
   it(
+    'C25: seed em-jogo deixa ao menos uma reserva em cada time e o rodízio desligado',
+    async () => {
+      await seed(t.prisma, { scenario: 'em-jogo', now: NOW });
+      const current = (await loadRounds())[8]!;
+
+      expect(current.status).toBe('IN_PROGRESS');
+      expect(
+        current.teamPlayers.filter((p) => p.team === 'WHITE' && p.isReserve).length,
+      ).toBeGreaterThanOrEqual(1);
+      expect(
+        current.teamPlayers.filter((p) => p.team === 'BLACK' && p.isReserve).length,
+      ).toBeGreaterThanOrEqual(1);
+      expect(current.rotationStartedAt).toBeNull();
+      expect(current.rotationMinutes).toBeNull();
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  it(
     'resenha tem placar 3x2, gols faltando e um gol contra',
     async () => {
       await seed(t.prisma, { scenario: 'resenha', now: NOW });

@@ -14,6 +14,8 @@ import {
   validateMatchEvent,
   validateMatchEventRemoval,
   validateRoundTransition,
+  validateRotationStart,
+  validateRotationStop,
   validateScoreEntry,
   type MatchScore,
   type RoundActor,
@@ -24,11 +26,14 @@ import {
 } from '@fut-stats/domain';
 import {
   MATCH_EVENT_ERROR_LABELS,
+  ROTATION_ERROR_LABELS,
   ROUND_TRANSITION_ERROR_LABELS,
   SCORE_ENTRY_ERROR_LABELS,
   type LaunchMatchEventInput,
   type MatchView,
+  type StartRotationInput,
   type SetMatchScoreInput,
+  DEFAULT_ROTATION_MINUTES,
 } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
@@ -98,6 +103,10 @@ export class MatchService {
     const { state, ...data } = await this.load(this.prisma, membership.groupId, roundId);
     const actor = toActor(membership);
     const { status, teams } = state;
+    const rotation =
+      status === 'IN_PROGRESS' && data.rotationStartedAt && data.rotationMinutes !== null
+        ? { startedAt: data.rotationStartedAt.toISOString(), minutes: data.rotationMinutes }
+        : null;
 
     const playerTeams = new Map<string, Team>(data.players.map((p) => [p.membershipId, p.team]));
     const events: MatchView['events'] = [];
@@ -146,6 +155,8 @@ export class MatchService {
       number: data.number,
       scheduledAt: data.scheduledAt.toISOString(),
       status,
+      rotation,
+      serverTime: new Date().toISOString(),
       score: state.score ? { ...state.score } : null,
       tally: teams
         ? tallyMatchEvents(state.events, teams)
@@ -161,6 +172,7 @@ export class MatchService {
         openVoting: isAdmin && status === 'POST_MATCH',
         launchOwn: canLaunchOwn,
         launchAny: isAdmin && isMatchOpen(status),
+        rotate: validateRotationStart(actor, state, DEFAULT_ROTATION_MINUTES).length === 0,
       },
     };
   }
@@ -223,6 +235,42 @@ export class MatchService {
         status: 'POST_MATCH',
         whiteGoals: score.WHITE,
         blackGoals: score.BLACK,
+      });
+    });
+    return this.view(membership, roundId);
+  }
+
+  /** Liga ou reinicia o rodízio na rodada em jogo. */
+  async startRotation(
+    membership: GroupMembership,
+    roundId: string,
+    input: StartRotationInput,
+  ): Promise<MatchView> {
+    assertAdmin(membership);
+    await this.withRoundLock(membership.groupId, roundId, async (tx) => {
+      const { state } = await this.load(tx, membership.groupId, roundId);
+      const [error] = validateRotationStart(toActor(membership), state, input.minutes);
+      if (error) throw ruleError(error, ROTATION_ERROR_LABELS[error]);
+
+      await tx.round.update({
+        where: { id: roundId },
+        data: { rotationStartedAt: new Date(), rotationMinutes: input.minutes },
+      });
+    });
+    return this.view(membership, roundId);
+  }
+
+  /** Desliga o rodízio ativo na rodada em jogo. */
+  async stopRotation(membership: GroupMembership, roundId: string): Promise<MatchView> {
+    assertAdmin(membership);
+    await this.withRoundLock(membership.groupId, roundId, async (tx) => {
+      const { state } = await this.load(tx, membership.groupId, roundId);
+      const [error] = validateRotationStop(toActor(membership), state);
+      if (error) throw ruleError(error, ROTATION_ERROR_LABELS[error]);
+
+      await tx.round.update({
+        where: { id: roundId },
+        data: { rotationStartedAt: null, rotationMinutes: null },
       });
     });
     return this.view(membership, roundId);
@@ -338,6 +386,8 @@ export class MatchService {
         status: true,
         whiteGoals: true,
         blackGoals: true,
+        rotationStartedAt: true,
+        rotationMinutes: true,
         teamPlayers: {
           select: {
             membershipId: true,
@@ -384,6 +434,8 @@ export class MatchService {
       state,
       number: round.number,
       scheduledAt: round.scheduledAt,
+      rotationStartedAt: round.rotationStartedAt,
+      rotationMinutes: round.rotationMinutes,
       players: round.teamPlayers.map((p) => ({
         membershipId: p.membershipId,
         nickname: p.membership.nickname,

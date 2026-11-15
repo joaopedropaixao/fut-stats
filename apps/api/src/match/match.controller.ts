@@ -11,9 +11,12 @@ import {
 } from '@nestjs/common';
 import {
   launchMatchEventSchema,
+  startRotationSchema,
   setMatchScoreSchema,
+  DEFAULT_ROTATION_MINUTES,
   type LaunchMatchEventInput,
   type MatchView,
+  type StartRotationInput,
   type SetMatchScoreInput,
 } from '@fut-stats/shared';
 import { CurrentMembership, GroupMember } from '../auth/group-access.decorator';
@@ -65,6 +68,31 @@ export class MatchController {
     @Body(new ZodValidationPipe(setMatchScoreSchema)) body: SetMatchScoreInput,
   ): Promise<MatchView> {
     return this.match.finish(membership, roundId, body);
+  }
+
+  @GroupMember()
+  @Post('rotation')
+  @HttpCode(HttpStatus.OK)
+  startRotation(
+    @CurrentMembership() membership: GroupMembership,
+    @Param('roundId') roundId: string,
+    @Body(new ZodValidationPipe(startRotationSchema.optional())) body?: StartRotationInput,
+  ): Promise<MatchView> {
+    return this.match.startRotation(
+      membership,
+      roundId,
+      body ?? { minutes: DEFAULT_ROTATION_MINUTES },
+    );
+  }
+
+  @GroupMember()
+  @Delete('rotation')
+  @HttpCode(HttpStatus.OK)
+  stopRotation(
+    @CurrentMembership() membership: GroupMembership,
+    @Param('roundId') roundId: string,
+  ): Promise<MatchView> {
+    return this.match.stopRotation(membership, roundId);
   }
 
   @GroupMember()
