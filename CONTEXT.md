@@ -336,6 +336,9 @@ e quando a votação fecha sozinha.
   incompleto). `LineupDraftError` (lista em `LINEUP_DRAFT_ERRORS`): `'DUPLICATE_PLAYER'` (ninguém repetido, nem nos dois
   times nem titular e reserva), `'POSITION_FULL'` (posição com mais gente que o 1-2-3-1), `'TOO_MANY_RESERVES'`.
 - `isRoundDeletable(status): boolean` e `isRoundEditable(status): boolean` (data, hora e local).
+- `isMatchFinished(status): boolean`: o jogo já terminou, da Resenha em diante (`POST_MATCH`, `VOTING`, `CLOSED`). É o que
+  entra no **Histórico**; toda rodada assim tem placar. `isRoundPlayed(status): boolean`: já foi jogada, em jogo ou
+  finalizada (`IN_PROGRESS` + as finalizadas); o seletor de times usa para o histórico de duplas e a panelinha.
 - `validateMatchEvent(event: MatchEvent, actor: RoundActor, round: RoundState): MatchEventError[]` e
   `canLaunchMatchEvent(...)` (sim/não); `validateMatchEventRemoval(event, actor, round): MatchEventError[]`.
   `MatchEventError` (lista em `MATCH_EVENT_ERRORS`): `'ROUND_NOT_OPEN'`, `'NOT_OWN_EVENT'`,
@@ -344,6 +347,8 @@ e quando a votação fecha sozinha.
   `ScoreEntryError` (lista em `SCORE_ENTRY_ERRORS`): `'ROUND_NOT_OPEN'`, `'NOT_ADMIN'`, `'INVALID_SCORE'`.
 - `isMatchOpen(status): boolean`: se os **lances** podem ser lançados/apagados (só `POST_MATCH`).
   `isScoreOpen(status): boolean`: se o **placar** pode ser lançado/corrigido (`IN_PROGRESS`, ao finalizar, e `POST_MATCH`).
+- `matchWinner(score: MatchScore): MatchWinner`, com `MatchWinner` (lista em `MATCH_WINNERS`) = `'WHITE'` | `'BLACK'` | `'DRAW'`:
+  quem venceu pelo placar (mais gols; igual é empate, inclusive 0 a 0; não há desempate).
 - `matchResult(score: MatchScore, team: Team): MatchResult`, com `MatchResult` (lista em `MATCH_RESULTS`) = `'WIN'` | `'LOSS'` | `'DRAW'`:
   o resultado do time pelo placar (o card YOU WIN / YOU LOSE / EMPATE de quem jogou). É o mesmo `MatchResult` do Cartola.
 - `isVotingOpen(status: RoundStatus, now: Date, voting: VotingState): boolean`: se dá para votar **ou editar** o voto.
@@ -421,6 +426,15 @@ carregar, validar e gravar usam o mesmo `tx`. Dois pedidos na mesma rodada viram
 primeiro gravou): dois gols no limite do placar dão um 200 e um 409 `GOALS_EXCEED_SCORE`, lance e `open-voting` juntos
 nunca gravam lance depois do `VOTING`, e dois `DELETE` do mesmo lance dão 200 e 404 (nunca 500). Rodadas diferentes não
 esperam uma pela outra. Seed: cenários `em-jogo` (placar nulo, sem lances) e `resenha` (placar 3x2, parte dos lances).
+
+**Histórico** (`apps/api/src/history`, contrato em `packages/shared/src/history.ts`): `GET /api/groups/:groupId/history`
+(qualquer membro ativo; não membro, inativo ou outro grupo → 404) lista só as partidas com o jogo finalizado
+(`isMatchFinished`), da mais recente para a mais antiga: ordem `(scheduledAt desc, number desc)`. Cada item traz
+`number`, `scheduledAt`, `location`, `status`, `score` (sempre presente), `winner` (`matchWinner`) e `me` = `{ team, result }`
+do time de quem pede (titular ou reserva; `matchResult`) ou `null` se não jogou. Paginação por cursor: `?limit=` (1 a 50,
+padrão 20) e `?cursor=` = o `nextCursor` da página anterior = id da última rodada dela; `nextCursor: null` na última.
+Cursor que não é de uma rodada finalizada do grupo → 400 `{ code: 'INVALID_CURSOR', message }`. O detalhe não tem rota
+própria: a tela usa `GET .../rounds/:roundId/match` e `GET .../rounds/:roundId/lineup`.
 
 ### Presença: `validateAttendanceChange` 🚧
 **O que é:** quem pode marcar Vou / Não vou numa rodada e até quando (`src/round/attendance.ts`). Regras decididas

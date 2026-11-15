@@ -8,8 +8,10 @@ import {
   balanceTeams,
   canTransitionRound,
   DEFAULT_BALANCE_TEAMS_CONFIG,
+  isRoundPlayed,
   POSITIONS,
   rankByRating,
+  ROUND_STATUSES,
   TEAMS,
   validateLineupDraft,
   validateRoundTransition,
@@ -241,7 +243,7 @@ export class LineupsService {
   }
 
   /**
-   * As rodadas do grupo já jogadas (em jogo, votação ou encerrada) marcadas antes de `before`: as 4 últimas e as
+   * As rodadas do grupo já jogadas (`isRoundPlayed`: em jogo ou finalizada) marcadas antes de `before`: as 4 últimas e as
    * 10 últimas com placar, da mais antiga para a mais recente, com os times e o placar. Rodada agendada ou com times só publicados não conta.
    */
   private async playedHistory(groupId: string, before: Date): Promise<PastRound[]> {
@@ -257,7 +259,7 @@ export class LineupsService {
     } satisfies Prisma.RoundSelect;
     const played = {
       groupId,
-      status: { in: ['IN_PROGRESS', 'VOTING', 'CLOSED'] as RoundStatus[] },
+      status: { in: ROUND_STATUSES.filter(isRoundPlayed) },
       scheduledAt: { lt: before },
     } satisfies Prisma.RoundWhereInput;
     // A repetição olha as últimas jogadas (com ou sem placar); a panelinha, as últimas com placar.
