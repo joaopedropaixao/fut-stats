@@ -47,7 +47,7 @@ describe('banco de dados', () => {
     });
 
     expect(found.id).toBe(group.id);
-    expect(found.votingDeadlineHours).toBe(48);
+    expect(found.votingDeadlineHours).toBe(24);
     expect(found.memberships).toHaveLength(1);
     expect(found.memberships[0]).toMatchObject({
       role: 'ADMIN',
