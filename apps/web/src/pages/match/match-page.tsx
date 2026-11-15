@@ -42,7 +42,7 @@ function Content({ groupId, roundId }: { groupId: string; roundId: string | unde
   const match = useMatch(groupId, roundId);
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <RouteButton
         to={roundId ? `/rodadas/${roundId}` : '/rodadas'}
         label="Rodada"
@@ -74,7 +74,7 @@ function Content({ groupId, roundId }: { groupId: string; roundId: string | unde
       ) : (
         <Board groupId={groupId} view={match.data} />
       )}
-    </>
+    </div>
   );
 }
 
@@ -140,7 +140,7 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
     actions.launch.isPending && actions.launch.variables?.type === type;
 
   return (
-    <div className="flex flex-col gap-6 pb-4">
+    <div className="flex flex-col gap-4 pb-4">
       {!started ? (
         <BeforeMatch view={view} onStart={() => setConfirming('start')} />
       ) : (

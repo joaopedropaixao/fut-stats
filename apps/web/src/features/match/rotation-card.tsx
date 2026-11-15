@@ -248,7 +248,7 @@ export function RotationCard({
         aria-label="Rodízio"
         className={`moment-frame animate-moment-in flex flex-col bg-surface-raised ${phase === 'CHANGE' ? 'animate-rotation-change' : ''}`}
       >
-        <header className="flex min-h-12 items-center justify-between bg-track px-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
+        <header className="flex min-h-11 items-center justify-between bg-track px-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
           <PixelText>RODÍZIO</PixelText>
           {view.me.isAdmin && (
             <div className="relative">
@@ -277,7 +277,7 @@ export function RotationCard({
           )}
         </header>
 
-        <div className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-2 p-3">
           <TeamSegmented value={team} onChange={setTeam} />
 
           {isMyTeam && (iEnter || iLeave) && (
@@ -327,7 +327,7 @@ export function RotationCard({
                   </PixelText>
                 </span>
                 <Bump value={countdown} scale={1.12}>
-                  <PixelDigits value={countdown} scale={6} label={`Contagem ${countdown}`} />
+                  <PixelDigits value={countdown} scale={5} label={`Contagem ${countdown}`} />
                 </Bump>
               </div>
 
@@ -593,7 +593,7 @@ function RotationPlayers({
 }) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-2 bg-surface p-2 ${kind === 'enter' ? 'text-success' : 'text-danger'} shadow-card`}
+      className={`flex min-w-0 flex-col gap-1 bg-surface p-1 ${kind === 'enter' ? 'text-success' : 'text-danger'} shadow-card`}
     >
       <PixelText className="self-center">{label}</PixelText>
       {ids.length === 0 ? (
