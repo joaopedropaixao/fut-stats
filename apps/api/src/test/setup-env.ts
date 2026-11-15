@@ -9,3 +9,5 @@ process.env.JWT_SECRET = 'segredo-dos-testes-com-mais-de-32-caracteres';
 process.env.GOOGLE_CLIENT_ID = 'client-id-dos-testes.apps.googleusercontent.com';
 process.env.GOOGLE_CLIENT_SECRET = 'segredo-do-google-dos-testes';
 process.env.APP_URL = 'http://localhost:5173';
+// O relógio que fecha votações vencidas fica desligado: os testes chamam o fechamento direto, com a hora que querem.
+process.env.VOTING_CLOSER_INTERVAL_MS = '0';
