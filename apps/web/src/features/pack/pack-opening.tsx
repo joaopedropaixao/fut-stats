@@ -7,7 +7,7 @@ import { CraqueCard } from '../voting/craque-card';
 import { buildDeck, type PackCard } from './deck';
 import { buildFrames, clueTimes, cluesAt, frameDuration, type Frame } from './frames';
 import { FlopPackCard, MinePackCard } from './pack-cards';
-import { cardAnnouncement } from './pack-text';
+import { frameAnnouncement } from './pack-text';
 import { BurstSprite, PackBody, PackFlap, PackSprite, StarSprite } from './pack-sprites';
 import { ShareButton } from './share-button';
 
@@ -45,6 +45,14 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
   const frame = frames[index]!;
   const last = frames.length - 1;
   const heading = useRef<HTMLHeadingElement>(null);
+  const root = useRef<HTMLElement>(null);
+  // Em que quadro o rosto do Craque já apareceu (para o leitor de tela anunciar só então)
+  const [faceAt, setFaceAt] = useState(-1);
+
+  // O quadro começa no topo da tela: o "Pular" e a carta ficam acima da barra de baixo, mesmo em tela baixa
+  useEffect(() => {
+    root.current?.scrollIntoView({ block: 'start' });
+  }, []);
 
   // Cada quadro segue sozinho depois do seu tempo; fechado e final esperam
   useEffect(() => {
@@ -62,10 +70,15 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
   }, [atEnd, onFinish]);
 
   const advance = () => setIndex((i) => Math.min(i + 1, last));
-  const announcement = frame.kind === 'card' ? cardAnnouncement(frame.card, result.number) : '';
+  const announcement =
+    frame.kind === 'card' ? frameAnnouncement(frame.card, faceAt === index, result.number) : '';
 
   return (
-    <section aria-label={`Pacote da rodada ${result.number}`} className="relative">
+    <section
+      ref={root}
+      aria-label={`Pacote da rodada ${result.number}`}
+      className="relative scroll-mt-3"
+    >
       <p role="status" className="sr-only">
         {announcement}
       </p>
@@ -80,7 +93,7 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
       ) : (
         <div
           className={cn(
-            'moment-frame animate-moment-in relative flex min-h-[500px] items-center justify-center overflow-hidden bg-track px-3 pt-6 pb-20',
+            'moment-frame animate-moment-in relative flex min-h-[440px] items-center justify-center overflow-hidden bg-track px-3 pt-20 pb-6',
             frame.kind !== 'closed' && 'cursor-pointer',
           )}
           style={{
@@ -89,14 +102,20 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
           }}
           onClick={frame.kind === 'closed' ? undefined : advance}
         >
-          <Stage key={index} frame={frame} number={result.number} onOpen={advance} />
+          <Stage
+            key={index}
+            frame={frame}
+            number={result.number}
+            onOpen={advance}
+            onFace={() => setFaceAt(index)}
+          />
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               setIndex(last);
             }}
-            className="absolute bottom-4 left-4 inline-flex min-h-11 min-w-11 items-center bg-team-black px-4 text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)] focus-visible:shadow-[inset_0_0_0_2px_rgb(255_255_255/35%),0_0_0_2px_var(--color-team-black)] active:bg-surface-3"
+            className="absolute top-4 left-4 z-20 inline-flex min-h-11 min-w-11 items-center bg-team-black px-4 text-team-white shadow-[inset_0_0_0_2px_rgb(255_255_255/35%)] focus-visible:shadow-[inset_0_0_0_2px_rgb(255_255_255/35%),0_0_0_2px_var(--color-team-black)] active:bg-surface-3"
           >
             <PixelText>Pular</PixelText>
           </button>
@@ -106,7 +125,17 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
   );
 }
 
-function Stage({ frame, number, onOpen }: { frame: Frame; number: number; onOpen: () => void }) {
+function Stage({
+  frame,
+  number,
+  onOpen,
+  onFace,
+}: {
+  frame: Frame;
+  number: number;
+  onOpen: () => void;
+  onFace: () => void;
+}) {
   switch (frame.kind) {
     case 'closed':
       return <ClosedPack number={number} onOpen={onOpen} />;
@@ -117,10 +146,10 @@ function Stage({ frame, number, onOpen }: { frame: Frame; number: number; onOpen
         </div>
       );
     case 'tear':
-      return <Tear />;
+      return <Tear number={number} />;
     case 'card':
       return frame.card.kind === 'craque' ? (
-        <Walkout card={frame.card} number={number} />
+        <Walkout card={frame.card} number={number} onFace={onFace} />
       ) : frame.card.kind === 'flop' ? (
         <div aria-hidden className="animate-pack-drop">
           <FlopPackCard
@@ -141,20 +170,27 @@ function Stage({ frame, number, onOpen }: { frame: Frame; number: number; onOpen
         </div>
       );
     case 'duo':
+      // As duas cartas encolhidas (0,7; 0,6 em 320) para caber lado a lado a partir de 360 px; em 320 ficam empilhadas
       return (
         <div
           aria-hidden
-          className="animate-final-in flex flex-wrap items-center justify-center gap-4"
+          className="animate-final-in flex flex-wrap items-center justify-center gap-x-3 gap-y-3 max-[359px]:flex-col"
         >
           {frame.cards.map((c) => (
-            <CraqueCard
+            <div
               key={c.player.membershipId}
-              player={c.player}
-              tier={c.tier}
-              roundNumber={number}
-              special={c.you}
-              hidden
-            />
+              className="h-[173px] w-[115px] min-[360px]:h-[202px] min-[360px]:w-[134px]"
+            >
+              <div className="w-48 origin-top-left scale-[0.6] min-[360px]:scale-[0.7]">
+                <CraqueCard
+                  player={c.player}
+                  tier={c.tier}
+                  roundNumber={number}
+                  special={c.you}
+                  hidden
+                />
+              </div>
+            </div>
           ))}
         </div>
       );
@@ -187,16 +223,22 @@ function PackWithLabel({ number }: { number: number }) {
   return (
     <div className="relative w-44">
       <PackSprite />
-      <div className="absolute inset-x-0 top-[132px] flex flex-col items-center gap-0.5 text-on-accent">
-        <PixelText>Craque</PixelText>
-        <PixelText>{`Rodada ${number}`}</PixelText>
-      </div>
+      <PackLabel number={number} />
+    </div>
+  );
+}
+
+function PackLabel({ number }: { number: number }) {
+  return (
+    <div className="absolute inset-x-0 top-[132px] flex flex-col items-center gap-0.5 text-on-accent">
+      <PixelText>Craque</PixelText>
+      <PixelText>{`Rodada ${number}`}</PixelText>
     </div>
   );
 }
 
 /** Rasgo: a tampa sai girando, a luz vaza em faixas pixel pela fenda e os raios abrem atrás. */
-function Tear() {
+function Tear({ number }: { number: number }) {
   const rays = [
     { left: 18, h: 120, delay: 0 },
     { left: 52, h: 170, delay: 60 },
@@ -220,12 +262,13 @@ function Tear() {
       ))}
       <PackFlap className="animate-pack-flap absolute top-0 left-0" />
       <PackBody className="absolute top-12 left-0" />
+      <PackLabel number={number} />
     </div>
   );
 }
 
 /** Palco do Craque: o walkout. A carta apagada acende em degraus; no rosto, flash, estrelas e confete. */
-function Walkout({ card, number }: { card: PackCard; number: number }) {
+function Walkout({ card, number, onFace }: { card: PackCard; number: number; onFace: () => void }) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const timers = clueTimes(card.score).map((t) => setTimeout(() => setElapsed(t), t));
@@ -242,6 +285,15 @@ function Walkout({ card, number }: { card: PackCard; number: number }) {
       // sem vibração neste aparelho
     }
   }, [clues.face, special]);
+
+  // Avisa o pacote uma vez, quando o rosto aparece (o leitor de tela anuncia a carta só então)
+  const faceCallback = useRef(onFace);
+  useEffect(() => {
+    faceCallback.current = onFace;
+  });
+  useEffect(() => {
+    if (clues.face) faceCallback.current();
+  }, [clues.face]);
 
   return (
     <div aria-hidden className="relative flex items-center justify-center">

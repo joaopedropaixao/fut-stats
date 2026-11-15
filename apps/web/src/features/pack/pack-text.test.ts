@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PackCard } from './deck';
-import { cardAnnouncement, shareFileName, shareText } from './pack-text';
+import { cardAnnouncement, frameAnnouncement, shareFileName, shareText } from './pack-text';
 import { player } from './fixtures';
 
 const card = (
@@ -53,6 +53,17 @@ describe('textos do pacote', () => {
     );
     expect(shareFileName(card('craque', 'Ronaldinho', 9.1, 'gold'), 12)).toBe(
       'fut-stats-rodada-12-craque.png',
+    );
+  });
+
+  it('C22: o Craque só é anunciado quando o rosto aparece; as outras cartas, ao aparecer', () => {
+    const craque = card('craque', 'Ronaldinho', 9.1, 'gold');
+    expect(frameAnnouncement(craque, false, 12)).toBe('');
+    expect(frameAnnouncement(craque, true, 12)).toBe(
+      'Craque da rodada 12: Ronaldinho, nota 9,1, ouro',
+    );
+    expect(frameAnnouncement(card('flop', 'Zagueirão', 4.2, 'bronze'), false, 12)).toContain(
+      'Perna de pau',
     );
   });
 });

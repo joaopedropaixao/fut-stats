@@ -34,3 +34,12 @@ export function shareText(card: PackCard, roundNumber: number): string {
 export function shareFileName(card: PackCard, roundNumber: number): string {
   return `fut-stats-rodada-${roundNumber}-${card.kind === 'mine' ? 'minha-carta' : 'craque'}.png`;
 }
+
+/**
+ * O que o leitor de tela ouve num quadro de carta. O Craque só é anunciado quando o rosto aparece (no começo do
+ * walkout ele ainda é um mistério); o Perna de Pau e a sua carta, ao aparecer.
+ */
+export function frameAnnouncement(card: PackCard, faceShown: boolean, roundNumber: number): string {
+  if (card.kind === 'craque' && !faceShown) return '';
+  return cardAnnouncement(card, roundNumber);
+}

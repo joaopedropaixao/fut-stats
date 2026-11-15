@@ -31,7 +31,8 @@ export function ResultAlert({ groupId, roundId, number, membershipId }: ResultAl
 function ResultNews({ groupId, roundId, number }: Omit<ResultAlertProps, 'membershipId'>) {
   const to = `/rodadas/${roundId}/resultado`;
   const result = useResult(groupId, roundId);
-  const pack = result.data ? hasPack(result.data) : true;
+  // Enquanto não sabe (ou sem votos), o card não promete pacote
+  const pack = result.data ? hasPack(result.data) : false;
   return (
     <section
       aria-label="O resultado saiu"
@@ -61,7 +62,7 @@ function ResultNews({ groupId, roundId, number }: Omit<ResultAlertProps, 'member
         style={{ '--moment-delay': '120ms' } as CSSProperties}
       >
         <p className="animate-row-in text-base text-text-muted">
-          Notas fechadas. Quem foi o craque?
+          {pack ? 'Notas fechadas. Quem foi o craque?' : 'Notas fechadas. Veja como foi a rodada.'}
         </p>
         <RouteButton
           to={to}
