@@ -109,12 +109,12 @@ function PreferenceSwitch({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex min-h-11 flex-1 items-center justify-center gap-2 px-2 shadow-card"
+      className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-center shadow-card"
     >
       <span aria-hidden className={checked ? 'text-success' : 'text-text-muted'}>
         <Icon name={checked ? 'check' : 'x'} size={16} />
       </span>
-      <PixelText>{`${label}: ${checked ? 'LIGADO' : 'DESLIGADO'}`}</PixelText>
+      <PixelText wrap>{`${label}: ${checked ? 'LIGADO' : 'DESLIGADO'}`}</PixelText>
     </button>
   );
 }
