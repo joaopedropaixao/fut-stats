@@ -43,6 +43,16 @@ Não adicionar bypass de permissões. Como o worker original já está settled, 
 
 Este episódio reforça que o critério de prontidão do browser deve verificar a configuração efetiva do processo MCP. `isolatedContext` por chamada não prova isolamento do processo, e o encerramento confirmado mais a preservação do binding permitem recuperar a sessão correta sem criar outra QA.
 
+### Resultado do retry supervisionado da mesma QA7
+
+**Fonte:** relatório `/tmp/rodizio-qa7/report.md` e atualização do coordenador. O retry foi supervisionado como dispatch `ctx_2bd93b1ab324`, retomando a sessão original `01a1e0f9-bd5a-7991-9249-3a597b65631a` com MCP `--isolated`, sem rebind.
+
+O retry navegou pela tela real no browser isolado. O relatório registra que Som ligado persistiu após reload; mount não criou `AudioContext` nem oscilador; um gesto inerte criou `AudioContext` em estado `running`, ainda sem oscilador; e a primeira virada visível acelerada emitiu um único tom `sine` curto e chamou `navigator.vibrate(120)`. O fluxo autenticado teve zero erros de console e um aviso do React Router.
+
+**Veredito QA7: reprovada por dois requisitos inconclusivos, sem defeito de implementação confirmado.** Não foi possível certificar uma virada seguinte silenciosa com Som desligado: avançar o relógio além do polling fez a resposta HTTP real ressincronizar `serverTime`. Também não foi possível observar `visibilityState === 'hidden'`: duas páginas e `bringToFront()` mantiveram a página visível. O relatório pede para uma eventual repetição uma janela de clock abaixo do intervalo de polling e um browser que permita estado hidden. As suítes web mencionadas no relatório passaram (lint, typecheck e 416 testes); esta atualização documental não executa suítes nem inicia nova rodada.
+
+O coordenador informou que QA não alterou código, spec ou banco. A instrução permanece: não iniciar QA8 nem repetir suítes neste retorno. Se uma nova verificação for autorizada no fluxo da equipe, primeiro confirmar navegação real pelo MCP isolado e preparar apenas as condições que faltaram; manter a mesma sessão/binding da QA7.
+
 ### O que os relatórios QA comprovam
 
 - QA2 registrou reprovação em C29/C43 e uma divergência de `packages/shared` no worktree front; registrou também suites e verificações de API/Playwright que passaram naquele ciclo.
@@ -50,6 +60,7 @@ Este episódio reforça que o critério de prontidão do browser deve verificar 
 - QA4 continuou sem aprovar: pediu fixture real para o caso sem reservas, revalidações e cobertura de C43 em vários estados e viewports.
 - QA5 registrou fixtures para C33/C42, aprovação de C1–C43 e a rechecagem de C43 com clipping, scroll, screenshot e hit-test. O QA5 diz que reutilizou os checks integrados informados pelo TPL, sem repetir as suites completas.
 - QA7 e sua recuperação são registrados como relato operacional do coordenador; os identificadores, encerramento, binding preservado e comando recomendado acima não foram inferidos dos relatórios QA2–QA5.
+- `/tmp/rodizio-qa7/report.md` registra observações de áudio, persistência após reload, limites do clock/browser, console e o veredito de duas verificações inconclusivas; a identidade da sessão/retry e a ausência de rebind vêm da atualização do coordenador.
 - `orca orchestration run-show --id run_938627b8c1c2 --json --full` confirmou o Run e seu objetivo. O retorno não continha histórico de Task/Dispatch removido; portanto, este Run identifica o contexto, mas não é prova autônoma dos relatos de operação acima.
 
 ## Fluxo desejado
