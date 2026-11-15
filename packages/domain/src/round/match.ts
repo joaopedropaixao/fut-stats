@@ -46,7 +46,9 @@ export const MATCH_RESULTS = ['WIN', 'LOSS', 'DRAW'] as const;
 export type MatchResult = (typeof MATCH_RESULTS)[number];
 
 /** Quem venceu a partida, pelo placar: um dos times ou empate (`matchWinner`). */
-export const MATCH_WINNERS = ['WHITE', 'BLACK', 'DRAW'] as const satisfies readonly (Team | 'DRAW')[];
+export const MATCH_WINNERS = ['WHITE', 'BLACK', 'DRAW'] as const satisfies readonly (
+  Team | 'DRAW'
+)[];
 
 export type MatchWinner = (typeof MATCH_WINNERS)[number];
 
