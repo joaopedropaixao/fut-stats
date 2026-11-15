@@ -3,8 +3,10 @@ import {
   AVATAR_HAIRS,
   AVATAR_SKINS,
   isPlayerAvatar,
+  roundResults,
   tallyMatchEvents,
   validateRoundTeams,
+  votingDeadline,
   type Position,
   type RoundTeams,
   type Team,
@@ -45,7 +47,7 @@ describe('seed de desenvolvimento', () => {
       orderBy: { number: 'asc' },
       include: {
         attendances: { include: { membership: true } },
-        teamPlayers: { include: { membership: true } },
+        teamPlayers: { include: { membership: true }, orderBy: { id: 'asc' } },
         matchEvents: {
           include: { membership: true, createdBy: true },
           orderBy: { createdAt: 'asc' },
@@ -196,6 +198,203 @@ describe('seed de desenvolvimento', () => {
     SEED_TIMEOUT_MS,
   );
 
+  /** Os votos de uma rodada do banco no formato do domain. */
+  async function votesOf(roundId: string) {
+    const votes = await t.prisma.vote.findMany({
+      where: { roundId },
+      include: { ratings: true },
+      orderBy: { voterId: 'asc' },
+    });
+    return votes.map((v) => ({
+      voterId: v.voterId,
+      mvpId: v.mvpId,
+      flopId: v.flopId,
+      ratings: v.ratings.map((r) => ({ targetId: r.targetId, value: r.value })),
+    }));
+  }
+
+  /** O resultado gravado no `TeamPlayer` é o que a apuração do domínio dá para os votos da rodada. */
+  async function expectResultMatchesVotes(round: LoadedRound) {
+    const result = roundResults(
+      await votesOf(round.id),
+      round.teamPlayers.map((p) => p.membershipId),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    for (const p of round.teamPlayers) {
+      expect({
+        roundScore: p.roundScore,
+        ratingsCount: p.ratingsCount,
+        isMvp: p.isMvp,
+        isFlop: p.isFlop,
+      }).toEqual({
+        roundScore: result.value.players[p.membershipId]!.score,
+        ratingsCount: result.value.players[p.membershipId]!.ratingsCount,
+        isMvp: result.value.mvpIds.includes(p.membershipId),
+        isFlop: result.value.flopIds.includes(p.membershipId),
+      });
+    }
+  }
+
+  it(
+    'C33: votacao deixa a rodada atual em VOTING aberta agora, com parte dos votos e o admin de dev sem votar',
+    async () => {
+      await seed(t.prisma, { scenario: 'votacao', now: NOW });
+      const rounds = await loadRounds();
+      const current = rounds[8]!;
+
+      expect(current.status).toBe('VOTING');
+      expect([current.whiteGoals, current.blackGoals]).toEqual([3, 2]);
+      expect(
+        tallyMatchEvents(
+          current.matchEvents.map((e) => ({ playerId: e.membershipId, type: e.type })),
+          teamsOf(current),
+        ).goals,
+      ).toEqual({ WHITE: 3, BLACK: 2 });
+      expect(current.closedAt).toBeNull();
+      expect(current.votingEndReason).toBeNull();
+
+      // Aberta agora: abriu antes de agora e o prazo (24 h) ainda não passou
+      const openedAt = current.votingOpenedAt!;
+      expect(openedAt.getTime()).toBeLessThanOrEqual(NOW.getTime());
+      expect(votingDeadline(openedAt, 24).getTime()).toBeGreaterThan(NOW.getTime());
+
+      // Parte dos votos, nunca os dos admins; o resultado só existe depois de fechar
+      const votes = await votesOf(current.id);
+      const nicknameOf = new Map(
+        current.teamPlayers.map((p) => [p.membershipId, p.membership.nickname]),
+      );
+      const voters = votes.map((v) => nicknameOf.get(v.voterId)!);
+      expect(votes.length).toBeGreaterThan(0);
+      expect(votes.length).toBeLessThan(current.teamPlayers.length);
+      expect(voters).not.toContain('Carlão');
+      expect(voters).not.toContain('Rafa');
+      expect(nicknameOf.has((await adminId('Carlão'))!)).toBe(true); // o admin de dev jogou
+      expect(new Set(voters).size).toBe(voters.length);
+      expect(roundResults(votes, [...nicknameOf.keys()]).ok).toBe(true);
+      expect(current.teamPlayers.every((p) => p.roundScore === null && !p.isMvp && !p.isFlop)).toBe(
+        true,
+      );
+      for (const vote of await t.prisma.vote.findMany({ where: { roundId: current.id } })) {
+        expect(vote.createdAt.getTime()).toBeGreaterThanOrEqual(openedAt.getTime());
+        expect(vote.createdAt.getTime()).toBeLessThanOrEqual(NOW.getTime());
+      }
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  async function adminId(nickname: string) {
+    return (
+      await t.prisma.membership.findFirst({
+        where: { nickname, group: { slug: SEED_GROUP.slug } },
+      })
+    )?.id;
+  }
+
+  it(
+    'C33: encerrada deixa a última rodada CLOSED hoje, com votos e o resultado gravado',
+    async () => {
+      await seed(t.prisma, { scenario: 'encerrada', now: NOW });
+      const rounds = await loadRounds();
+      const current = rounds[8]!;
+
+      expect(rounds.map((r) => r.status)).toEqual(Array<string>(9).fill('CLOSED'));
+      // Fechou hoje, antes de agora
+      expect(current.closedAt!.toISOString().slice(0, 10)).toBe(NOW.toISOString().slice(0, 10));
+      expect(current.closedAt!.getTime()).toBeLessThanOrEqual(NOW.getTime());
+      expect(current.closedAt!.getTime()).toBeGreaterThan(current.votingOpenedAt!.getTime());
+      expect(current.votingEndReason).not.toBeNull();
+      expect((await votesOf(current.id)).length).toBeGreaterThan(0);
+      expect(current.teamPlayers.some((p) => p.isMvp)).toBe(true);
+      expect(current.teamPlayers.some((p) => p.isFlop)).toBe(true);
+      expect(current.teamPlayers.some((p) => p.roundScore !== null)).toBe(true);
+      await expectResultMatchesVotes(current);
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  it(
+    'C33: as rodadas passadas têm votos e resultado gravado, fechadas de jeitos diferentes',
+    async () => {
+      await seed(t.prisma, { scenario: 'votacao', now: NOW });
+      const past = (await loadRounds()).slice(0, 8);
+
+      for (const round of past) {
+        expect(round.votingEndReason).not.toBeNull();
+        expect(round.closedAt!.getTime()).toBeGreaterThan(round.votingOpenedAt!.getTime());
+        expect(round.closedAt!.getTime()).toBeLessThanOrEqual(
+          votingDeadline(round.votingOpenedAt!, 24).getTime(),
+        );
+        const votes = await votesOf(round.id);
+        expect(votes.length).toBeGreaterThan(0);
+        // Cada um que jogou aparece com a nota, sem nota só se ninguém avaliou
+        expect(round.teamPlayers.filter((p) => p.isMvp).length).toBeGreaterThan(0);
+        expect(round.teamPlayers.filter((p) => p.isFlop).length).toBeGreaterThan(0);
+        await expectResultMatchesVotes(round);
+
+        if (round.votingEndReason === 'ALL_VOTED') {
+          expect(votes).toHaveLength(round.teamPlayers.length);
+        } else {
+          expect(votes.length).toBeLessThan(round.teamPlayers.length);
+        }
+        if (round.votingEndReason === 'DEADLINE_PASSED') {
+          expect(round.closedAt!.getTime()).toBe(
+            votingDeadline(round.votingOpenedAt!, 24).getTime(),
+          );
+        }
+      }
+      expect(new Set(past.map((r) => r.votingEndReason))).toEqual(
+        new Set(['ALL_VOTED', 'DEADLINE_PASSED', 'ADMIN_CLOSED']),
+      );
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  it(
+    'C33: rodar de novo recria os mesmos votos e resultados',
+    async () => {
+      const retrato = async () => {
+        const rounds = await loadRounds();
+        return Promise.all(
+          rounds.map(async (r) => ({
+            status: r.status,
+            reason: r.votingEndReason,
+            closedAt: r.closedAt?.toISOString() ?? null,
+            votes: (await votesOf(r.id))
+              .map((v) => ({
+                ...v,
+                voterId: r.teamPlayers.find((p) => p.membershipId === v.voterId)!.membership
+                  .nickname,
+                mvpId: r.teamPlayers.find((p) => p.membershipId === v.mvpId)!.membership.nickname,
+                flopId: r.teamPlayers.find((p) => p.membershipId === v.flopId)!.membership.nickname,
+                ratings: v.ratings
+                  .map((x) => [
+                    r.teamPlayers.find((p) => p.membershipId === x.targetId)!.membership.nickname,
+                    x.value,
+                  ])
+                  .sort(),
+              }))
+              .sort((a, b) => a.voterId.localeCompare(b.voterId)),
+            results: r.teamPlayers
+              .map((p) => [p.membership.nickname, p.roundScore, p.ratingsCount, p.isMvp, p.isFlop])
+              .sort(),
+          })),
+        );
+      };
+      await seed(t.prisma, { scenario: 'encerrada', now: NOW });
+      const first = await retrato();
+      await seed(t.prisma, { scenario: 'encerrada', now: NOW });
+      expect(await retrato()).toEqual(first);
+      // E o cenário `votacao` troca a rodada atual sem sobrar voto da outra
+      await seed(t.prisma, { scenario: 'votacao', now: NOW });
+      const rounds = await loadRounds();
+      expect(rounds[8]!.status).toBe('VOTING');
+      expect(rounds[8]!.closedAt).toBeNull();
+      expect(await t.prisma.round.count({ where: { group: { slug: SEED_GROUP.slug } } })).toBe(9);
+    },
+    SEED_TIMEOUT_MS,
+  );
+
   it(
     'o histórico cobre os casos que as telas precisam',
     async () => {
@@ -306,6 +505,8 @@ describe('seed de desenvolvimento', () => {
     expect(parseSeedScenario(['--cenario=em-jogo'])).toBe('em-jogo');
     expect(parseSeedScenario(['--cenario', 'times'])).toBe('times');
     expect(parseSeedScenario(['--cenario=resenha'])).toBe('resenha');
-    expect(() => parseSeedScenario(['--cenario=votacao'])).toThrow(SEED_SCENARIOS.join(', '));
+    expect(parseSeedScenario(['--cenario=votacao'])).toBe('votacao');
+    expect(parseSeedScenario(['--cenario', 'encerrada'])).toBe('encerrada');
+    expect(() => parseSeedScenario(['--cenario=inexistente'])).toThrow(SEED_SCENARIOS.join(', '));
   });
 });

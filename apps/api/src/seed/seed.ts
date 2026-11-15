@@ -4,29 +4,37 @@
 import {
   balanceTeams,
   opponentOf,
+  roundPlayerIds,
+  roundResults,
   seededRandom,
   TEAMS,
   validateAttendanceChange,
   validateMatchEvent,
   validateRoundTransition,
   validateScoreEntry,
+  votingDeadline,
   type MatchEvent,
   type MatchScore,
   type PastRound,
   type Player,
   type Position,
   type RandomFn,
+  type RatingEntry,
   type RoundActor,
+  type RoundResults,
   type RoundState,
   type RoundStatus,
   type RoundTeams,
+  type RoundVote,
   type Team,
+  type VotingEndReason,
 } from '@fut-stats/domain';
 import { fromAvatar } from '../common/avatar';
 import type { PrismaClient } from '../generated/prisma/client';
 import type { Role } from '../generated/prisma/enums';
 import {
   CURRENT_ROUND,
+  DEV_WITHOUT_VOTE,
   RESENHA_GOALS,
   RESENHA_OWN_GOALS_FOR,
   RESENHA_SCORE,
@@ -40,8 +48,18 @@ import {
   type PastRoundPlan,
 } from './seed-data';
 
-/** Estado da rodada atual: agendada (padrão), com times publicados, em jogo ou na Resenha pós-jogo. */
-export const SEED_SCENARIOS = ['agendada', 'times', 'em-jogo', 'resenha'] as const;
+/**
+ * Estado da rodada atual: agendada (padrão), com times publicados, em jogo, na Resenha pós-jogo, em votação
+ * (parte dos votos enviados) ou encerrada (resultado gravado).
+ */
+export const SEED_SCENARIOS = [
+  'agendada',
+  'times',
+  'em-jogo',
+  'resenha',
+  'votacao',
+  'encerrada',
+] as const;
 
 export type SeedScenario = (typeof SEED_SCENARIOS)[number];
 
@@ -52,7 +70,17 @@ const SCENARIO_STATUS: Record<SeedScenario, RoundStatus> = {
   times: 'TEAMS_PUBLISHED',
   'em-jogo': 'IN_PROGRESS',
   resenha: 'POST_MATCH',
+  votacao: 'VOTING',
+  encerrada: 'CLOSED',
 };
+
+/** Cenários em que o jogo da rodada atual já aconteceu (o horário dela é o último 20h que passou). */
+const PLAYED_SCENARIOS: ReadonlySet<SeedScenario> = new Set([
+  'em-jogo',
+  'resenha',
+  'votacao',
+  'encerrada',
+]);
 
 export interface SeedOptions {
   scenario?: SeedScenario;
@@ -92,13 +120,13 @@ export function parseSeedScenario(argv: readonly string[]): SeedScenario {
 /**
  * Data e hora da rodada atual; as passadas caem no mesmo dia da semana e horário, de 7 em 7 dias.
  * Sempre às 20h de Brasília (23h UTC; o Brasil não tem horário de verão). Agendada e com times:
- * depois de amanhã. Em jogo e na Resenha: o último 20h que já passou (hoje ou ontem).
+ * depois de amanhã. Em jogo, na Resenha, em votação e encerrada: o último 20h que já passou (hoje ou ontem).
  * O dia da semana sai de `now`: nada aqui fixa um dia.
  */
 export function currentRoundDate(scenario: SeedScenario, now: Date): Date {
   const date = new Date(now);
   date.setUTCHours(MATCH_HOUR_UTC, 0, 0, 0);
-  if (scenario !== 'em-jogo' && scenario !== 'resenha') {
+  if (!PLAYED_SCENARIOS.has(scenario)) {
     return new Date(date.getTime() + 2 * DAY_MS);
   }
   return date.getTime() <= now.getTime() ? date : new Date(date.getTime() - DAY_MS);
@@ -128,6 +156,15 @@ interface PlannedRound {
   events: PlannedEvent[];
   /** Quando entrou em votação; nulo antes. */
   votingOpenedAt: Date | null;
+  /** Os votos enviados (rodada em votação ou encerrada). */
+  votes: PlannedVote[];
+  /** Fechamento: quando e por quê; o resultado de cada um sai da apuração. Nulos até fechar. */
+  closing: { at: Date; reason: VotingEndReason; results: RoundResults } | null;
+}
+
+/** O pacote de um votante, com a hora em que foi enviado. */
+interface PlannedVote extends RoundVote {
+  at: Date;
 }
 
 /** Monta o grupo, os membros e as rodadas do seed. Rodar de novo recria só as rodadas deste grupo. */
@@ -190,9 +227,23 @@ export async function seed(
             whiteGoals: round.score?.WHITE ?? null,
             blackGoals: round.score?.BLACK ?? null,
             votingOpenedAt: round.votingOpenedAt,
+            closedAt: round.closing?.at ?? null,
+            votingEndReason: round.closing?.reason ?? null,
             createdAt: round.createdAt,
             attendances: { create: round.attendances },
-            teamPlayers: { create: teamPlayerRows(round.teams, members) },
+            teamPlayers: {
+              create: teamPlayerRows(round.teams, members, round.closing?.results ?? null),
+            },
+            votes: {
+              create: round.votes.map((vote) => ({
+                voterId: vote.voterId,
+                mvpId: vote.mvpId,
+                flopId: vote.flopId,
+                createdAt: vote.at,
+                updatedAt: vote.at,
+                ratings: { create: vote.ratings.map((r) => ({ ...r })) },
+              })),
+            },
             matchEvents: {
               create: round.events.map((event) => ({
                 membershipId: event.playerId,
@@ -232,27 +283,31 @@ function planRounds(
   now: Date,
 ): PlannedRound[] {
   const random = seededRandom(SEED_RANDOM);
+  // Os votos têm o próprio sorteio: assim os times e os lances não mudam com a votação.
+  const voteRandom = seededRandom(SEED_RANDOM + 1);
   const current = currentRoundDate(scenario, now);
   const history: PastRound[] = [];
   const rounds: PlannedRound[] = [];
 
   PAST_ROUNDS.forEach((plan, i) => {
     const scheduledAt = new Date(current.getTime() - (PAST_ROUNDS.length - i) * WEEK_MS);
-    const round = planPastRound(plan, scheduledAt, members, history, random);
+    const round = planPastRound(plan, i, scheduledAt, members, history, random, voteRandom);
     if (round.teams) history.push({ ...round.teams, score: round.score });
     rounds.push(round);
   });
 
-  rounds.push(planCurrentRound(scenario, current, now, members, history, random));
+  rounds.push(planCurrentRound(scenario, current, now, members, history, random, voteRandom));
   return rounds;
 }
 
 function planPastRound(
   plan: PastRoundPlan,
+  index: number,
   scheduledAt: Date,
   members: readonly SeedMemberRow[],
   history: readonly PastRound[],
   random: RandomFn,
+  voteRandom: RandomFn,
 ): PlannedRound {
   const label = `rodada de ${scheduledAt.toISOString()}`;
   const attendances = planAttendance(plan, members, label);
@@ -279,6 +334,30 @@ function planPastRound(
   const events = planEvents(plan.score, plan, teams, members, scheduledAt, random, label, state);
   state = advance({ ...state, events }, 'VOTING', label);
   const votingOpenedAt = new Date(scheduledAt.getTime() + 3 * HOUR_MS);
+
+  // Cada rodada passada fechou de um jeito: todo mundo votou, o prazo acabou ou o admin encerrou.
+  const how = PAST_CLOSINGS[index % PAST_CLOSINGS.length]!;
+  const deadline = votingDeadline(votingOpenedAt, SEED_GROUP_VOTING_HOURS);
+  const closeAt =
+    how.reason === 'ADMIN_CLOSED' ? new Date(votingOpenedAt.getTime() + 10 * HOUR_MS) : deadline;
+  const votes = planVotes(
+    teams,
+    members,
+    events,
+    votingOpenedAt,
+    closeAt,
+    how.turnout,
+    new Set(),
+    voteRandom,
+  );
+  const lastVote = Math.max(...votes.map((v) => v.at.getTime()));
+  const closing = closeRound(
+    votes,
+    teams,
+    how.reason === 'ALL_VOTED' ? new Date(lastVote) : closeAt,
+    how.reason,
+    label,
+  );
   state = advance(state, 'CLOSED', label);
 
   return {
@@ -290,6 +369,8 @@ function planPastRound(
     score: plan.score,
     events,
     votingOpenedAt,
+    votes,
+    closing,
   };
 }
 
@@ -300,6 +381,7 @@ function planCurrentRound(
   members: readonly SeedMemberRow[],
   history: readonly PastRound[],
   random: RandomFn,
+  voteRandom: RandomFn,
 ): PlannedRound {
   const label = `rodada atual (${scenario})`;
   const attendances = planAttendance(CURRENT_ROUND, members, label);
@@ -312,6 +394,8 @@ function planCurrentRound(
     score: null,
     events: [],
     votingOpenedAt: null,
+    votes: [],
+    closing: null,
   };
   const target = SCENARIO_STATUS[scenario];
   if (target === 'SCHEDULED') return round;
@@ -349,6 +433,50 @@ function planCurrentRound(
       state,
     );
     return { ...round, status: state.status, teams, score: RESENHA_SCORE, events };
+  }
+  if (target === 'VOTING' || target === 'CLOSED') {
+    // Votação e encerrada: os lances fecham o placar (para a votação abrir, gols = placar).
+    state = advance(state, 'IN_PROGRESS', label);
+    check(validateScoreEntry(RESENHA_SCORE, adminActor(members), state), `${label}: placar`);
+    state = advance({ ...state, score: RESENHA_SCORE }, 'POST_MATCH', label);
+    const events = planEvents(
+      RESENHA_SCORE,
+      { ownGoalsFor: RESENHA_OWN_GOALS_FOR },
+      teams,
+      members,
+      scheduledAt,
+      random,
+      label,
+      state,
+    );
+    state = advance({ ...state, events }, 'VOTING', label);
+    const withGame = { ...round, teams, score: RESENHA_SCORE, events };
+
+    if (target === 'VOTING') {
+      // Aberta há pouco, com parte dos votos e as pessoas de dev (os admins) ainda sem votar.
+      const openedAt = new Date(now.getTime() - 30 * MINUTE_MS);
+      const votes = planVotes(
+        teams,
+        members,
+        events,
+        openedAt,
+        now,
+        0.55,
+        DEV_WITHOUT_VOTE,
+        voteRandom,
+      );
+      return { ...withGame, status: state.status, votingOpenedAt: openedAt, votes };
+    }
+
+    // Encerrada hoje: abriu depois do jogo, todo mundo (ou quase) votou e a votação acabou de fechar.
+    const closeAt = new Date(now.getTime() - MINUTE_MS);
+    const openedAt = new Date(
+      Math.min(scheduledAt.getTime() + 3 * HOUR_MS, closeAt.getTime() - MINUTE_MS),
+    );
+    const votes = planVotes(teams, members, events, openedAt, closeAt, 0.8, new Set(), voteRandom);
+    const closing = closeRound(votes, teams, closeAt, 'ADMIN_CLOSED', label);
+    state = advance(state, 'CLOSED', label);
+    return { ...withGame, status: state.status, votingOpenedAt: openedAt, votes, closing };
   }
   return { ...round, status: state.status, teams };
 }
@@ -552,22 +680,128 @@ function weightedPick<T extends { position: Position }>(
   return candidates[candidates.length - 1]!;
 }
 
-function teamPlayerRows(teams: RoundTeams | null, members: readonly SeedMemberRow[]) {
+function teamPlayerRows(
+  teams: RoundTeams | null,
+  members: readonly SeedMemberRow[],
+  results: RoundResults | null,
+) {
   if (!teams) return [];
+  // O resultado só existe depois de fechar a votação; antes, os padrões do banco (sem nota, sem prêmio).
+  const outcome = (id: string) =>
+    results
+      ? {
+          roundScore: results.players[id]!.score,
+          ratingsCount: results.players[id]!.ratingsCount,
+          isMvp: results.mvpIds.includes(id),
+          isFlop: results.flopIds.includes(id),
+        }
+      : {};
   return TEAMS.flatMap((team) => [
     ...teams[team].map((slot) => ({
       membershipId: slot.playerId,
       team,
       position: slot.position,
       isReserve: false,
+      ...outcome(slot.playerId),
     })),
     ...teams.reserves[team].map((id) => ({
       membershipId: id,
       team,
       position: reservePosition(id, members),
       isReserve: true,
+      ...outcome(id),
     })),
   ]);
+}
+
+/** Prazo da votação do grupo do seed: o padrão do banco (`Group.votingDeadlineHours`). */
+const SEED_GROUP_VOTING_HOURS = 24;
+
+/** Como as rodadas passadas fecharam, em rodízio: todo mundo votou, o prazo acabou e o admin encerrou. */
+const PAST_CLOSINGS: readonly { reason: VotingEndReason; turnout: number }[] = [
+  { reason: 'ALL_VOTED', turnout: 1 },
+  { reason: 'DEADLINE_PASSED', turnout: 0.75 },
+  { reason: 'ADMIN_CLOSED', turnout: 0.6 },
+];
+
+const MIN_RATING = 0;
+const MAX_RATING = 10;
+
+/**
+ * Votos de uma rodada: `turnout` (0 a 1) de quem jogou manda o pacote (quem está em `abstain` não manda), entre
+ * `openedAt` e `until`. A nota que cada um dá sai da nota inicial do jogador, do que ele fez na partida (gols e assistências
+ * sobem, gol contra desce) e de um tanto de sorte, em passos de 0,5. O Craque vem entre as 3 maiores notas que o
+ * votante deu e o Perna de Pau entre as 3 menores. Tudo passa pelo domínio (`roundResults` valida o pacote).
+ */
+function planVotes(
+  teams: RoundTeams,
+  members: readonly SeedMemberRow[],
+  events: readonly MatchEvent[],
+  openedAt: Date,
+  until: Date,
+  turnout: number,
+  abstain: ReadonlySet<string>,
+  random: RandomFn,
+): PlannedVote[] {
+  const playedIds = roundPlayerIds(teams);
+  const nicknameOf = (id: string) => members.find((m) => m.id === id)!.nickname;
+  const skill = new Map<string, number>(
+    playedIds.map((id) => {
+      const mine = events.filter((e) => e.playerId === id);
+      const count = (type: MatchEvent['type']) => mine.filter((e) => e.type === type).length;
+      return [
+        id,
+        members.find((m) => m.id === id)!.rating +
+          0.8 * count('GOAL') +
+          0.4 * count('ASSIST') -
+          1 * count('OWN_GOAL'),
+      ];
+    }),
+  );
+
+  const eligible = playedIds.filter((id) => !abstain.has(nicknameOf(id)));
+  // Embaralha (Fisher-Yates) e pega a fatia que votou
+  const shuffled = [...eligible];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+  }
+  const voters = shuffled.slice(0, Math.max(1, Math.round(playedIds.length * turnout)));
+  const span = Math.max(0, until.getTime() - openedAt.getTime());
+
+  return voters.map((voterId) => {
+    const ratings: RatingEntry[] = playedIds
+      .filter((id) => id !== voterId)
+      .map((targetId) => {
+        const raw = skill.get(targetId)! + (random() - 0.5) * 3;
+        const value = Math.min(MAX_RATING, Math.max(MIN_RATING, Math.round(raw * 2) / 2));
+        return { targetId, value };
+      });
+    const byValue = [...ratings].sort((a, b) => b.value - a.value);
+    const mvpId = byValue[Math.floor(random() * 3)]!.targetId;
+    const flopPool = byValue.slice(-3).filter((r) => r.targetId !== mvpId);
+    const flopId = flopPool[Math.floor(random() * flopPool.length)]!.targetId;
+    // Entre 5% e 95% do tempo aberto: nunca antes de abrir nem na hora exata do fechamento
+    const at = new Date(openedAt.getTime() + span * (0.05 + 0.9 * random()));
+    return { voterId, mvpId, flopId, ratings, at };
+  });
+}
+
+/** Fecha a votação do seed: apura pelo domínio (voto inválido derruba o seed) e devolve quando, por quê e o resultado. */
+function closeRound(
+  votes: readonly PlannedVote[],
+  teams: RoundTeams,
+  at: Date,
+  reason: VotingEndReason,
+  label: string,
+): NonNullable<PlannedRound['closing']> {
+  const result = roundResults(votes, roundPlayerIds(teams));
+  if (!result.ok) {
+    throw new Error(
+      `Seed inválido (${label}): votos — ${JSON.stringify(result.errors.slice(0, 3))}`,
+    );
+  }
+  return { at, reason, results: result.value };
 }
 
 function adminActor(members: readonly SeedMemberRow[]): RoundActor {

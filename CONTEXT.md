@@ -34,8 +34,9 @@ Status: ✅ implementado · 🚧 em PR · 📋 planejado (só nos docs, nomes no
   Cartola tem que funcionar com adesão parcial (poucos votos, poucos times no Cartola) sem quebrar nem travar.
 - **Voto é um pacote, e quem vota avalia todos** (dono, 22–23 out 2026). Votar é opcional como um todo; quem vota
   manda nota para **todos** que jogaram (menos ele mesmo, sem pular ninguém) + Craque + Perna de Pau.
-- **Voto pode ser alterado enquanto a votação está aberta**: até o prazo (`Group.votingDeadlineHours`, valor ainda
-  não definido), ou antes, se todos votarem ou o admin encerrar. Fechou, não muda mais.
+- **Voto pode ser alterado enquanto a votação está aberta**: até o prazo (`Group.votingDeadlineHours`, **24 horas**
+  contadas de quando o admin abriu, decisão do dono em 14 nov 2026), ou antes, se todos os ativos votarem ou o admin
+  encerrar. Fechou, não muda mais (ver "Votação, fechamento e resultado").
 - **Apelido com até 10 letras** (regra do `Membership`; `validateNickname`, ver "Grupo, convite e entrada").
 - **Nota inicial padrão 6** (dono, 23 out 2026): quem entra no grupo (pelo convite ou criando) começa com nota 6,
   só como referência visual e ponto de partida do seletor, até o admin ajustar no perfil. A primeira média medida
@@ -389,7 +390,7 @@ e quando a votação fecha sozinha.
   `openedAt + deadlineHours`). Votar é opcional: sem votos, fecha no
   prazo. Voto de quem não jogou ou repetido não conta. O admin pode encerrar antes: basta a transição para `CLOSED`.
   `votedIds` = quem mandou o pacote (notas de todos + Craque + Perna de Pau). Votar e editar o voto só com
-  `isVotingOpen`: rodada em `VOTING` e votação ainda não fechada; depois que fecha (por qualquer motivo), não muda.
+  `isVotingOpen`: rodada em `VOTING` e votação ainda não fechada; depois que fecha (por qualquer motivo), não muda. O resto da votação (prazo de 24 h, apuração gravada, rotas): "Votação, fechamento e resultado".
 
 **Não faz:** não lê relógio (`now` vem de fora); não guarda nada nem sabe quem lançou o scout (a API grava
 `createdById`); não checa papel no grupo (recebe `isAdmin`); não define o que é "votou" (a API passa `votedIds`);
@@ -425,7 +426,7 @@ lance) roda numa `prisma.$transaction` que começa com `SELECT 1 FROM "Round" WH
 carregar, validar e gravar usam o mesmo `tx`. Dois pedidos na mesma rodada viram fila (o segundo valida em cima do que o
 primeiro gravou): dois gols no limite do placar dão um 200 e um 409 `GOALS_EXCEED_SCORE`, lance e `open-voting` juntos
 nunca gravam lance depois do `VOTING`, e dois `DELETE` do mesmo lance dão 200 e 404 (nunca 500). Rodadas diferentes não
-esperam uma pela outra. Seed: cenários `em-jogo` (placar nulo, sem lances) e `resenha` (placar 3x2, parte dos lances).
+esperam uma pela outra. Seed: cenários `em-jogo` (placar nulo, sem lances), `resenha` (placar 3x2, parte dos lances), `votacao` e `encerrada` (ver "Votação, fechamento e resultado").
 
 **Histórico** (`apps/api/src/history`, contrato em `packages/shared/src/history.ts`): `GET /api/groups/:groupId/history`
 (qualquer membro ativo; não membro, inativo ou outro grupo → 404) lista só as partidas com o jogo finalizado
@@ -435,6 +436,80 @@ do time de quem pede (titular ou reserva; `matchResult`) ou `null` se não jogou
 padrão 20) e `?cursor=` = o `nextCursor` da página anterior = id da última rodada dela; `nextCursor: null` na última.
 Cursor que não é de uma rodada finalizada do grupo → 400 `{ code: 'INVALID_CURSOR', message }`. O detalhe não tem rota
 própria: a tela usa `GET .../rounds/:roundId/match` e `GET .../rounds/:roundId/lineup`.
+
+### Votação, fechamento e resultado: `roundResults` / `pickVotingRound` / `pickLatestResult` ✅
+**O que é:** o fim do ciclo da rodada: quem jogou manda o pacote de votos, a votação fecha, a API apura e **grava** o
+resultado (Craque, Perna de Pau e a nota de cada um). As regras de cada passo já existiam (`validateRoundVote`,
+`roundScore`, `tallyAwards`, `votingCloseReason`, ver as seções acima); esta fatia só as **compõe** e liga à API.
+
+**Domain** (`src/round-score/results.ts`, `src/round/current.ts`, `src/round/voting.ts`):
+- `roundResults(votes: readonly RoundVote[], playedIds, options?: RoundScoreOptions & { tieBreak?: 'ROUND_SCORE' | 'SHARE' | 'NONE' }): Result<RoundResults, RoundVoteIssue>`,
+  com `RoundResults = { players: Record<id, { score: number | null; ratingsCount: number }>; mvpIds: string[]; flopIds: string[] }`.
+  Valida todos os pacotes (`validateRoundVote`, mais o mesmo votante duas vezes: `DUPLICATE_VOTER`); se algum for
+  inválido, devolve **todos** os problemas e não calcula pela metade. Senão, a nota de cada um que jogou é o
+  `roundScore` das notas que recebeu (aparada com 4+, simples com 3 ou menos, `null` sem nota) e o Craque e o Perna de
+  Pau vêm do `tallyAwards` com desempate pela nota da rodada. Sem votos: todos sem nota, `mvpIds` e `flopIds` vazios.
+  `RoundVoteIssue = { voterId, kind: 'RATING', targetId, code: RatingSheetError } | { voterId, kind: 'AWARD', field, code: BallotError }`.
+- `pickVotingRound(rounds)`: a rodada em `VOTING` de data marcada mais recente, ou `null`.
+- `pickLatestResult(rounds, now, { highlightDays = RESULT_HIGHLIGHT_DAYS } = {})`: a `CLOSED` que fechou por último,
+  desde que tenha fechado há **menos** de 7 dias (`RESULT_HIGHLIGHT_DAYS`; com 7 dias exatos já saiu), ou `null`.
+  É o "O resultado saiu" do início. `now` vem de fora.
+- `VOTING_END_REASONS` = `ALL_VOTED` | `DEADLINE_PASSED` | `ADMIN_CLOSED` (`VotingEndReason`), igual ao enum do banco
+  (`domain-enums.spec.ts`). Os dois primeiros são os automáticos (`VOTING_CLOSE_REASONS`).
+
+**Regras da votação (decisões do dono, 14 nov 2026):**
+- **Prazo: 24 horas** (`Group.votingDeadlineHours`), contadas de `Round.votingOpenedAt`; por grupo no banco, sem tela
+  para mudar. A migration trocou 48 por 24 nos grupos que existiam.
+- **"Todos votaram" conta só quem ainda está ativo.** Quem jogou e foi desativado continua **recebendo** nota (todo
+  `TeamPlayer` precisa ser avaliado por quem vota), mas não segura a votação aberta.
+- **Anonimato:** nenhuma rota devolve voto de outra pessoa, nem para o admin. Todos veem a contagem
+  ("9 de 16 já votaram"); o **admin** vê também **quem falta votar** (nunca o voto).
+- **Apuração gravada ao fechar:** no mesmo passo que leva a rodada a `CLOSED`, a API grava em cada `TeamPlayer` a nota
+  (`roundScore`, `null` sem nota), `ratingsCount`, `isMvp` e `isFlop`, e na rodada `closedAt` e `votingEndReason`.
+  Dali em diante o resultado não muda (nem se o prazo do grupo mudar nem se alguém for desativado).
+- **Três caminhos de fechamento, o que vier primeiro:** o último voto (fecha na hora, na mesma transação), o relógio da
+  API (`VotingCloser`, a cada `VOTING_CLOSER_INTERVAL_MS`, padrão 60 000; `0` desliga) e quem abre o app depois do
+  prazo (`GET /rounds`, `GET .../voting` e `GET .../voting/result` fecham as vencidas do grupo antes de responder).
+  Em produção o despertador (`producao`) chama o mesmo `VotingService.closeDueVotings(now, groupId?)` de fora.
+- **Voto depois do prazo é recusado** (409 `VOTING_CLOSED`) mesmo que ninguém tenha fechado ainda: o `PUT` fecha a
+  rodada ali mesmo (`DEADLINE_PASSED`) e responde o 409. O prazo vale pela hora, não por quem acordou o servidor.
+- **Sem votos:** a rodada fecha no prazo sem nota e sem prêmio para ninguém (votar é opcional).
+- Se o admin encerra quando já era hora de fechar (prazo ou todos votaram), o motivo gravado é o verdadeiro, não `ADMIN_CLOSED`.
+
+**Banco:** `Vote` (um pacote por votante e rodada: `roundId`, `voterId`, `mvpId`, `flopId`; `@@unique([roundId, voterId])`) e
+`Rating` (uma nota do pacote: `voteId`, `targetId`, `value`; `@@unique([voteId, targetId])`). Enviar de novo troca
+o pacote inteiro numa transação (nenhuma nota antiga sobra). `Round.closedAt` e `Round.votingEndReason`;
+`TeamPlayer.roundScore/ratingsCount/isMvp/isFlop`. Enum `VotingEndReason`.
+
+**Na API** (`apps/api/src/voting`, rotas sob `/api/groups/:groupId/rounds/:roundId/voting`; contrato em
+`packages/shared/src/voting.ts`):
+- `GET /` → `VotingView` (qualquer membro): `players` (todos que jogaram, meu time primeiro e, em cada time, os
+  titulares do goleiro ao atacante e depois os reservas), `progress` `{ voted, total }` só de ativos, `deadline`,
+  `serverTime`, `pending` (só para o admin em `VOTING`, `null` para jogador), `me` (`played`, o meu `vote`) e
+  `permissions` (`vote` = jogou e `isVotingOpen`; `close` = admin e `VOTING`). Antes de `VOTING` responde 200 sem poder votar.
+- `PUT /vote` (`SubmitVoteInput`): só quem jogou. Ordem das checagens: etapa (`VOTING_NOT_OPEN`/`VOTING_CLOSED`, 409) →
+  prazo (409 `VOTING_CLOSED` e fecha) → jogou (403 `VOTER_DID_NOT_PLAY`) → pacote (400 `{ code, message, issues }`, com
+  o `code` do domain: `MISSING_RATING`, `SELF_VOTE`, `INVALID_STEP`, `OUT_OF_RANGE`, `TARGET_DID_NOT_PLAY`,
+  `SAME_PLAYER_BOTH`, `DUPLICATE_TARGET`; `issues[]` = `{ path, code, message }`). O corpo é o `submitVoteSchema` com a
+  nota só como número, para o passo e a faixa saírem como código do domain.
+- `POST /close` (admin, `NOT_ADMIN` 403 no service): fecha com `ADMIN_CLOSED`; fora de `VOTING` → 409 `INVALID_TRANSITION`.
+- `GET /result` → `RoundResult` (`CLOSED`; senão 409 `RESULT_NOT_READY`): placar, `mvps`, `flops`, `players` em ordem
+  de nota (sem nota por último, depois pelo apelido) com `rank` da rodada (empate divide a posição, como `rankByRating`),
+  gols, assistências e gols contra. `votes` = `{ voted: votos enviados, total: quem jogou }`.
+- Quem erra de grupo, não é membro ou está inativo → 404; rodada de outro grupo pedida pelo grupo do usuário → 404.
+- **Trava por rodada:** `RoundLockService` (`apps/api/src/rounds/round-lock.service.ts`), usada por `match` e `voting`.
+  Votar, encerrar e fechar sozinho rodam nela: dois `PUT` do mesmo votante dão dois 200 e um voto só (o último vence);
+  o último voto e o `close` juntos fecham a rodada uma vez só (o outro leva 409).
+- `GET /rounds` traz `votingId` (`pickVotingRound`) e `lastResult` (`pickLatestResult`); `GET .../history` traz
+  `mvps` (Craque(s), com `avatar`) em cada partida `CLOSED` (lista vazia antes).
+- **Seed:** `--cenario=votacao` (rodada atual em `VOTING` aberta há 30 min, com parte dos votos; Carlão e Rafa, os admins,
+  sem votar) e `--cenario=encerrada` (rodada atual `CLOSED` hoje, com resultado). As 8 rodadas passadas vêm com votos e
+  resultado gravado, fechadas por motivos diferentes.
+
+**Evite:** gravar o resultado fora da transação do fechamento; calcular a nota ao ler (o resultado é o gravado);
+devolver voto de outra pessoa (nem para o admin); fechar fora do `RoundLockService`; contar quem foi desativado como
+"falta votar"; deixar o 409 de prazo vencido desfazer o fechamento (o fechamento é commitado e só depois o erro sai);
+mexer no prazo de uma rodada já aberta esperando que o resultado mude.
 
 ### Presença: `validateAttendanceChange` 🚧
 **O que é:** quem pode marcar Vou / Não vou numa rodada e até quando (`src/round/attendance.ts`). Regras decididas
@@ -647,8 +722,9 @@ careca na tela; hex de pele ou cabelo solto na tela (são tokens).
 
 ## Conceitos ainda não implementados 📋
 
-Já existem como tabelas no banco (`apps/api/prisma/schema.prisma`, enums iguais aos do domain), mas ainda
-sem regras nem rotas. Rodada e Scout já têm regras (ver "Rodada, placar e scouts" acima).
+O que sobra abaixo existe só como tabela no banco (`apps/api/prisma/schema.prisma`, enums iguais aos do domain),
+sem regras próprias nem rotas. Rodada, Scout, Voto e Resultado já têm regras e rotas (ver "Rodada, placar e
+scouts" e "Votação, fechamento e resultado" acima).
 
 ### Grupo e participação (`Group` / `Membership`)
 **O que é:** grupo = uma pelada. Membership = um usuário num grupo, com papel (`ADMIN` ou `PLAYER`) e os dados de

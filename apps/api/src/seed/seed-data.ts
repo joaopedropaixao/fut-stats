@@ -293,3 +293,9 @@ export const RESENHA_GOALS: MatchScore = { WHITE: 2, BLACK: 1 };
 
 /** Gols contra entre os lançados da `resenha`, por time que ganhou o gol. */
 export const RESENHA_OWN_GOALS_FOR: Partial<Record<'WHITE' | 'BLACK', number>> = { WHITE: 1 };
+
+/**
+ * Quem fica sem votar no cenário `votacao`: os dois admins, que são quem se entra como no login de dev
+ * (a tela de votar aparece para eles e o admin ainda vê quem falta).
+ */
+export const DEV_WITHOUT_VOTE: ReadonlySet<string> = new Set(['Carlão', 'Rafa']);
