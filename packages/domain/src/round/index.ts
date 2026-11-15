@@ -4,5 +4,6 @@ export * from './schedule';
 export * from './events';
 export * from './lineup-draft';
 export * from './match';
+export * from './rotation';
 export * from './status';
 export * from './voting';

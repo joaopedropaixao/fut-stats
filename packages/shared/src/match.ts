@@ -1,4 +1,10 @@
-import { ROUND_TRANSITION_ERRORS } from '@fut-stats/domain';
+import {
+  ROUND_TRANSITION_ERRORS,
+  rotationPlan,
+  rotationStatus,
+  type RotationPlan,
+  type RotationStatus,
+} from '@fut-stats/domain';
 import { z } from 'zod';
 import {
   avatarSchema,
@@ -7,7 +13,10 @@ import {
   matchScoreSchema,
   positionSchema,
   roundStatusSchema,
+  DEFAULT_ROTATION_MINUTES,
+  ROTATION_ERROR_LABELS,
   teamSchema,
+  isValidRotationMinutes,
 } from './domain';
 
 /** Corpo de PUT .../match/score e de POST .../match/finish (finalizar o jogo informando o placar final). */
@@ -65,6 +74,23 @@ export const matchPermissionsSchema = z.object({
   launchOwn: z.boolean(),
   /** Admin e `IN_PROGRESS` ou `POST_MATCH`: lança de qualquer um. */
   launchAny: z.boolean(),
+  /** Admin, `IN_PROGRESS` e algum time com reserva. */
+  rotate: z.boolean(),
+});
+
+/** Estado persistido do cronômetro compartilhado do rodízio. */
+export const matchRotationSchema = z.object({
+  startedAt: z.iso.datetime(),
+  minutes: z.number().int(),
+});
+
+/** Corpo de POST .../match/rotation; corpo vazio usa a duração padrão. */
+export const startRotationSchema = z.object({
+  minutes: z
+    .number()
+    .int()
+    .refine(isValidRotationMinutes, { message: ROTATION_ERROR_LABELS.INVALID_DURATION })
+    .default(DEFAULT_ROTATION_MINUTES),
 });
 
 /** Resposta de GET (e de toda escrita) em /api/groups/:groupId/rounds/:roundId/match. */
@@ -73,6 +99,10 @@ export const matchViewSchema = z.object({
   number: z.number().int(),
   scheduledAt: z.iso.datetime(),
   status: roundStatusSchema,
+  /** Presente somente durante `IN_PROGRESS`; nulo quando o rodízio está desligado. */
+  rotation: matchRotationSchema.nullable(),
+  /** Instante do servidor que gerou esta visão, para corrigir o relógio local. */
+  serverTime: z.iso.datetime(),
   /** Nulo até o admin lançar. */
   score: matchScoreSchema.nullable(),
   /** Gols (com gol contra a favor) e assistências lançados, por time (`tallyMatchEvents`). */
@@ -105,3 +135,33 @@ export type MatchPlayer = z.infer<typeof matchPlayerSchema>;
 export type MatchEventItem = z.infer<typeof matchEventSchema>;
 export type MatchPermissions = z.infer<typeof matchPermissionsSchema>;
 export type MatchView = z.infer<typeof matchViewSchema>;
+export type MatchRotation = z.infer<typeof matchRotationSchema>;
+export type StartRotationInput = z.infer<typeof startRotationSchema>;
+
+/** Monta os times da visão e calcula o plano determinístico do rodízio. */
+export function matchRotationPlan(view: MatchView): RotationPlan | null {
+  if (!view.rotation) return null;
+  const teams = {
+    WHITE: view.players
+      .filter((player) => player.team === 'WHITE' && !player.isReserve)
+      .map((player) => ({ playerId: player.membershipId, position: player.position })),
+    BLACK: view.players
+      .filter((player) => player.team === 'BLACK' && !player.isReserve)
+      .map((player) => ({ playerId: player.membershipId, position: player.position })),
+    reserves: {
+      WHITE: view.players
+        .filter((player) => player.team === 'WHITE' && player.isReserve)
+        .map((player) => player.membershipId),
+      BLACK: view.players
+        .filter((player) => player.team === 'BLACK' && player.isReserve)
+        .map((player) => player.membershipId),
+    },
+  };
+  return rotationPlan(teams, {
+    seed: view.roundId,
+    durationMinutes: view.rotation.minutes,
+  });
+}
+
+export { rotationStatus };
+export type { RotationPlan, RotationStatus };
