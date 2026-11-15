@@ -551,3 +551,278 @@
     caret-color: var(--color-accent);
   }
 }
+
+/*
+ * Pacote do Craque (fatia pacote-do-craque): faixas das cartas e animações do pacote. Tudo em degraus e só
+ * `transform` / `opacity` (reduzir movimento troca por um fade ou deixa parado).
+ */
+
+/* Faixas: bronze, prata e ouro (família do --color-gold). A carta apagada (antes do rosto) usa o escuro. */
+.card-frame {
+  --card-bg: var(--color-surface-3);
+  --card-ink: var(--color-text);
+  --card-ink-2: var(--color-text-muted);
+  background-color: var(--card-bg);
+  color: var(--card-ink);
+}
+
+.card-frame[data-tier='gold'] {
+  --card-bg: linear-gradient(135deg, #f6d77a 0%, #e8a93a 30%, #fbe7a8 55%, #d4f0e6 78%, #e8a93a 100%);
+  --card-ink: #111111;
+  --card-ink-2: #3a2a10;
+}
+
+.card-frame[data-tier='silver'] {
+  --card-bg: linear-gradient(135deg, #f4f7fa 0%, #a9b4bf 30%, #e6ecf1 55%, #c3d3e3 78%, #93a0ad 100%);
+  --card-ink: #111111;
+  --card-ink-2: #28303a;
+}
+
+.card-frame[data-tier='bronze'] {
+  --card-bg: linear-gradient(135deg, #efbf93 0%, #b8703f 30%, #e8b283 55%, #d3a27b 78%, #9a5a2e 100%);
+  --card-ink: #130a03;
+  --card-ink-2: #2d1a0c;
+}
+
+.card-frame[data-tier] {
+  background-image: var(--card-bg);
+}
+
+/* O pacote treme: fecha o toque, em degraus que crescem (700 ms) */
+@keyframes pack-shake {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  10% {
+    transform: translate(-3px, 0) rotate(-2deg);
+  }
+  20% {
+    transform: translate(3px, 1px) rotate(2deg);
+  }
+  30% {
+    transform: translate(-4px, -1px) rotate(-3deg);
+  }
+  40% {
+    transform: translate(4px, 1px) rotate(3deg);
+  }
+  50% {
+    transform: translate(-6px, 0) rotate(-4deg);
+  }
+  60% {
+    transform: translate(6px, -1px) rotate(4deg);
+  }
+  70% {
+    transform: translate(-6px, 1px) rotate(-5deg);
+  }
+  80% {
+    transform: translate(6px, 0) rotate(5deg);
+  }
+  90% {
+    transform: translate(-3px, 0) rotate(-2deg);
+  }
+}
+
+@utility animate-pack-shake {
+  animation: pack-shake 700ms steps(1, end) both;
+}
+
+/* Miniatura do início: treme de leve, num laço com pausa (parada com reduzir movimento) */
+@keyframes pack-wobble {
+  0%,
+  60%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  64% {
+    transform: translate(-2px, 0) rotate(-4deg);
+  }
+  72% {
+    transform: translate(2px, 0) rotate(4deg);
+  }
+  80% {
+    transform: translate(-2px, 0) rotate(-3deg);
+  }
+  88% {
+    transform: translate(2px, 0) rotate(3deg);
+  }
+  96% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@utility animate-pack-wobble {
+  animation: pack-wobble 2400ms steps(1, end) infinite;
+}
+
+/* Rasgo: a tampa sai girando em degraus e a luz vaza em faixas (600 ms) */
+@keyframes pack-flap {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    transform: translate(-46px, -64px) rotate(-24deg);
+  }
+}
+
+@utility animate-pack-flap {
+  animation: pack-flap 420ms steps(5, end) both;
+}
+
+@keyframes pack-light {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@utility animate-pack-light {
+  transform-origin: 50% 100%;
+  animation: pack-light 480ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* Flash da revelação: branco que apaga em degraus */
+@keyframes pack-flash {
+  0% {
+    opacity: 0;
+  }
+  1% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@utility animate-pack-flash {
+  animation: pack-flash 280ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* Carta que cai virada (Perna de Pau): despenca, bate no chão e assenta torta */
+@keyframes pack-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-220px) rotate(-28deg);
+  }
+  1% {
+    opacity: 1;
+  }
+  55% {
+    transform: translateY(0) rotate(14deg);
+  }
+  70% {
+    transform: translateY(-14px) rotate(9deg);
+  }
+  100% {
+    transform: translateY(0) rotate(6deg);
+  }
+}
+
+@utility animate-pack-drop {
+  animation: pack-drop 600ms steps(8, end) both;
+}
+
+/* A sua carta: vira de costas para a frente (a largura em degraus, como a moeda) */
+@keyframes pack-flip {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.1) translateY(24px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1) translateY(0);
+  }
+}
+
+@utility animate-pack-flip {
+  animation: pack-flip 420ms steps(5, end) both;
+}
+
+/* Raios de luz atrás da carta: giram em degraus devagar enquanto a carta aparece */
+@keyframes pack-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-pack-burst {
+  animation: pack-burst 360ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* Brilho holográfico na carta do Craque: uma faixa diagonal atravessa em degraus, num laço lento */
+@keyframes holo-sweep {
+  0%,
+  55% {
+    opacity: 0;
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  56% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(260%) skewX(-18deg);
+  }
+}
+
+@utility animate-holo {
+  animation: holo-sweep 3600ms steps(14, end) infinite;
+}
+
+/* Entrada da carta do final: sobe em degraus, uma depois da outra */
+@keyframes final-in {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-final-in {
+  animation: final-in 280ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* Reduzir movimento: o pacote do início fica parado; as cartas finais entram só com fade; sem brilho */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pack-wobble,
+  .animate-holo,
+  .animate-pack-flash,
+  .animate-pack-burst {
+    animation: none !important;
+  }
+
+  .animate-holo {
+    display: none;
+  }
+
+  .animate-final-in {
+    animation-name: vs-fade;
+    animation-duration: 200ms !important;
+    animation-timing-function: linear !important;
+    animation-delay: 0ms !important;
+  }
+}
