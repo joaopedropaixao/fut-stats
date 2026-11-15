@@ -1,0 +1,85 @@
+import { describe, expect, it } from 'vitest';
+import type { PackCard } from './deck';
+import { cardAnnouncement, frameAnnouncement, shareFileName, shareText } from './pack-text';
+import { player } from './fixtures';
+
+const card = (
+  kind: PackCard['kind'],
+  nickname: string,
+  score: number,
+  tier: PackCard['tier'],
+  you = false,
+  rank = 1,
+): PackCard => ({
+  kind,
+  player: player('x', nickname, score, rank),
+  score,
+  tier,
+  you,
+  rank,
+  phrase: null,
+});
+
+describe('textos do pacote', () => {
+  it('C22: anuncia cada carta com a faixa por extenso', () => {
+    expect(cardAnnouncement(card('craque', 'Ronaldinho', 9.1, 'gold'), 12)).toBe(
+      'Craque da rodada 12: Ronaldinho, nota 9,1, ouro',
+    );
+    expect(cardAnnouncement(card('flop', 'Zagueirão', 4.2, 'bronze'), 12)).toBe(
+      'Perna de pau: Zagueirão, nota 4,2, bronze',
+    );
+    expect(cardAnnouncement(card('mine', 'Dedé', 7.4, 'silver', true, 3), 12)).toBe(
+      'Sua carta: nota 7,4, prata, 3º na rodada',
+    );
+  });
+
+  it('V1: o anúncio do Craque diz gols, assistências e a frase; o do Perna de Pau, a piada', () => {
+    const craque = card('craque', 'Ronaldinho', 9.1, 'gold');
+    craque.player.goals = 1;
+    craque.player.assists = 2;
+    craque.phrase = 'Dono do jogo';
+    expect(cardAnnouncement(craque, 12)).toBe(
+      'Craque da rodada 12: Ronaldinho, nota 9,1, ouro, 1 gol, 2 assistências. Dono do jogo',
+    );
+    const flop = card('flop', 'Zagueirão', 4.2, 'bronze');
+    flop.phrase = 'Na próxima vai';
+    expect(cardAnnouncement(flop, 12)).toBe(
+      'Perna de pau: Zagueirão, nota 4,2, bronze. Na próxima vai',
+    );
+  });
+
+  it('C10: o Craque sendo você, o anúncio diz VOCÊ', () => {
+    expect(cardAnnouncement(card('craque', 'Dedé', 8.4, 'gold', true), 12)).toBe(
+      'Você é o craque da rodada 12: nota 8,4, ouro',
+    );
+  });
+
+  it('C19: textos do Compartilhar', () => {
+    expect(shareText(card('craque', 'Ronaldinho', 9.1, 'gold'), 12)).toBe(
+      'Craque da rodada 12: Ronaldinho, nota 9,1',
+    );
+    expect(shareText(card('mine', 'Dedé', 7.4, 'silver', true, 3), 12)).toBe(
+      'Minha nota na rodada 12: 7,4 (prata)',
+    );
+  });
+
+  it('nome do arquivo da imagem', () => {
+    expect(shareFileName(card('mine', 'Dedé', 7.4, 'silver'), 12)).toBe(
+      'fut-stats-rodada-12-minha-carta.png',
+    );
+    expect(shareFileName(card('craque', 'Ronaldinho', 9.1, 'gold'), 12)).toBe(
+      'fut-stats-rodada-12-craque.png',
+    );
+  });
+
+  it('C22: o Craque só é anunciado quando o rosto aparece; as outras cartas, ao aparecer', () => {
+    const craque = card('craque', 'Ronaldinho', 9.1, 'gold');
+    expect(frameAnnouncement(craque, false, 12)).toBe('');
+    expect(frameAnnouncement(craque, true, 12)).toBe(
+      'Craque da rodada 12: Ronaldinho, nota 9,1, ouro',
+    );
+    expect(frameAnnouncement(card('flop', 'Zagueirão', 4.2, 'bronze'), false, 12)).toContain(
+      'Perna de pau',
+    );
+  });
+});

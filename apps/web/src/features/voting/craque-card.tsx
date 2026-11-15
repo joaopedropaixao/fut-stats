@@ -1,69 +1,63 @@
-import type { ResultPlayer } from '@fut-stats/shared';
-import type { CSSProperties } from 'react';
-import { PixelBodyLarge } from '../../components/ui/pixel-body-large';
-import { PixelDigits } from '../../components/ui/pixel-digits';
-import { PixelText } from '../../components/ui/pixel-text';
-import { formatRating } from '../../lib/rating-format';
+import type { CardTier, ResultPlayer } from '@fut-stats/shared';
+import type { ReactNode } from 'react';
+import { PlayerCard, type CardClues } from './player-card';
 
 type CraqueCardProps = {
   player: ResultPlayer;
   roundNumber: number;
+  /** A faixa pela nota (`cardTier`); sem ela, a carta é calculada pelo chamador. */
+  tier: CardTier;
   /** Atraso da entrada em degraus (ms): a segunda carta de um empate entra depois da primeira. */
   delay?: number;
+  /** Walkout: as pistas que já apareceram. Sem elas, a carta está pronta. */
+  clues?: CardClues;
+  /** O Craque sou eu: carta especial, o grande momento dobrado, com o selo VOCÊ. */
+  special?: boolean;
+  /** Mostra os gols e as assistências do Craque na carta. */
+  stats?: boolean;
+  /** Entra com a animação de grande momento (na página). */
+  enter?: boolean;
+  hidden?: boolean;
+  className?: string;
+  children?: ReactNode;
 };
 
-/** Estrela cheia do canto da carta (a mesma da folha, em tinta escura). */
-function SolidStar() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden className="shrink-0 fill-on-accent">
-      <path d="M12 2l3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5 7.5-.7z" />
-    </svg>
-  );
-}
-
 /**
- * A carta do Craque (folha: Carta/Craque): ouro, só ela inclinada, com a nota em dígitos pixel, o bonequinho, o
- * apelido, "CRAQUE" e a rodada. Entra em degraus (320 ms); com "reduzir movimento", só um fade. É a peça que a
- * fatia `pacote-do-craque` vai revelar: componente isolado, sem depender da tela do resultado.
+ * A carta do Craque (folha: Carta/Craque), inclinada, na faixa da nota: a nota em dígitos pixel, a posição, o
+ * bonequinho, o apelido, "CRAQUE" e a rodada. Estende a base comum das cartas (`PlayerCard`): faz o walkout do
+ * pacote (pistas em degraus) e, sendo o Craque você, vira a carta especial com o selo "VOCÊ".
  */
-export function CraqueCard({ player, roundNumber, delay = 0 }: CraqueCardProps) {
+export function CraqueCard({
+  player,
+  roundNumber,
+  tier,
+  delay = 0,
+  clues,
+  special,
+  stats,
+  enter,
+  hidden,
+  className,
+  children,
+}: CraqueCardProps) {
   return (
-    <article
-      aria-label={`Craque da rodada ${roundNumber}: ${player.nickname}`}
-      style={
-        {
-          '--moment-delay': `${delay}ms`,
-          backgroundImage:
-            'linear-gradient(135deg, #F6D77A 0%, #E8A93A 30%, #FBE7A8 55%, #D4F0E6 78%, #E8A93A 100%)',
-          boxShadow: '#000 0 0 0 3px inset, 6px 6px 0 0 #000',
-        } as CSSProperties
-      }
-      className="animate-moment-in flex min-h-60 w-full max-w-44 -rotate-[4deg] flex-col justify-between p-3 text-on-accent"
+    <PlayerCard
+      player={player}
+      tier={tier}
+      score={player.score}
+      kind="Craque"
+      note={`Rodada ${roundNumber}`}
+      clues={clues}
+      you={special}
+      special={special}
+      stats={stats ? { goals: player.goals, assists: player.assists } : undefined}
+      delay={delay}
+      enter={enter}
+      hidden={hidden}
+      className={className}
+      label={`Craque da rodada ${roundNumber}: ${player.nickname}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        {player.score !== null ? (
-          <PixelDigits
-            value={formatRating(player.score)}
-            scale={4}
-            label={`Nota ${formatRating(player.score)}`}
-          />
-        ) : (
-          <span />
-        )}
-        <SolidStar />
-      </div>
-      <div aria-hidden className="flex justify-center">
-        <PixelBodyLarge
-          team={player.team === 'WHITE' ? 'white' : 'black'}
-          avatar={player.avatar}
-          scale={3}
-        />
-      </div>
-      <div className="flex flex-col gap-0.5">
-        <PixelText wrap>{player.nickname}</PixelText>
-        <PixelText>Craque</PixelText>
-        <PixelText>{`Rodada ${roundNumber}`}</PixelText>
-      </div>
-    </article>
+      {children}
+    </PlayerCard>
   );
 }

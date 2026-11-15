@@ -1,5 +1,10 @@
-import { VOTING_END_REASON_LABELS, VOTING_ERROR_LABELS, type RoundResult } from '@fut-stats/shared';
-import { useEffect } from 'react';
+import {
+  cardTier,
+  VOTING_END_REASON_LABELS,
+  VOTING_ERROR_LABELS,
+  type RoundResult,
+} from '@fut-stats/shared';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states';
 import { Icon } from '../../components/ui/icons';
@@ -8,13 +13,23 @@ import { useCurrentGroup } from '../../features/group/use-current-group';
 import { RoundHeading } from '../../features/lineup/round-heading';
 import { Scoreboard } from '../../features/match/scoreboard';
 import { RouteButton } from '../../features/rounds/route-button';
+import { Button } from '../../components/ui/button';
+import { buildDeck, type PackCard } from '../../features/pack/deck';
+import { CraqueMoves, CraqueNumbers, PhraseBanner } from '../../features/pack/craque-extras';
+import { flopPhrase } from '../../features/pack/impact-phrase';
+import { useMatch } from '../../features/match/queries';
+import { ShareButton } from '../../features/pack/share-button';
 import { ApiError } from '../../lib/api';
+import { cn } from '../../lib/cn';
 import { CraqueCard } from '../../features/voting/craque-card';
 import { FlopCard } from '../../features/voting/flop-card';
 import { MyScoreCard } from '../../features/voting/my-score-card';
 import { useResult, useVoting } from '../../features/voting/queries';
-import { markResultOpened } from '../../features/voting/result-opened';
+import { hasOpenedResult, markResultOpened } from '../../features/voting/result-opened';
 import { ResultTable } from '../../features/voting/result-table';
+
+// O pacote (animação, cartas e sprites) sai em outro pedaço: só quem abre o resultado pela primeira vez baixa
+const PackOpening = lazy(() => import('../../features/pack/pack-opening'));
 
 /** /rodadas/:roundId/resultado: a carta do Craque, o Perna de Pau, a minha nota e a tabela da rodada. */
 export function ResultPage() {
@@ -118,17 +133,137 @@ function Failure({
   );
 }
 
+/** O brilho holográfico da carta do Craque: uma faixa diagonal que atravessa em degraus (parada com reduzir movimento). */
+function Holo() {
+  return (
+    <span
+      aria-hidden
+      className="animate-holo pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-[linear-gradient(100deg,transparent_0%,rgb(255_255_255/60%)_50%,transparent_100%)]"
+    />
+  );
+}
+
+/**
+ * O palco do Craque na página: holofote, gradiente e padrão pixel; a carta (com gols, assistências e a frase) em
+ * foco, e embaixo os números dele e os lances dele na partida (`useMatch`, só leitura). Empate: as cartas lado a
+ * lado e um painel por Craque.
+ */
+function CraqueStage({ result, cards }: { result: RoundResult; cards: PackCard[] }) {
+  const { group } = useCurrentGroup();
+  const match = useMatch(group?.id ?? '', group ? result.roundId : undefined);
+  const tie = cards.length > 1;
+  return (
+    <div className="moment-frame craque-stage animate-moment-in flex flex-col items-center gap-8 px-4 py-8">
+      <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-8">
+        {cards.map((card, i) => (
+          <div
+            key={card.player.membershipId}
+            className={cn(
+              'flex max-w-full flex-col items-center gap-5',
+              tie ? 'w-48' : 'w-48 min-[360px]:w-full min-[360px]:max-w-xs',
+            )}
+          >
+            <CraqueCard
+              player={card.player}
+              tier={card.tier}
+              roundNumber={result.number}
+              special={card.you}
+              stats
+              delay={i * 160}
+              enter
+            >
+              <Holo />
+            </CraqueCard>
+            {card.phrase !== null && <PhraseBanner phrase={card.phrase} className="w-full" />}
+            <ShareButton card={card} roundNumber={result.number} block />
+          </div>
+        ))}
+      </div>
+      {cards.map((card) => (
+        <div key={card.player.membershipId} className="flex w-full flex-col items-center gap-5">
+          {tie && (
+            <PixelText
+              wrap
+              className="text-center text-gold"
+            >{`Números de ${card.player.nickname}`}</PixelText>
+          )}
+          <CraqueNumbers player={card.player} />
+          {match.data && <CraqueMoves events={match.data.events} player={card.player} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Loaded({ result }: { result: RoundResult }) {
   const { roundId } = result;
   const myId = result.me.membershipId;
-  // Abriu o resultado: o card do início vira uma linha simples neste aparelho
-  useEffect(() => markResultOpened(roundId, myId), [roundId, myId]);
+  const deck = buildDeck(result);
+  const hasPack = deck.length > 0;
+  // O pacote abre na primeira vez (por rodada e por jogador); depois o resultado abre direto
+  const [view, setView] = useState<'pack' | 'page'>(() =>
+    hasPack && !hasOpenedResult(roundId, myId) ? 'pack' : 'page',
+  );
+  const craqueTitle = useRef<HTMLHeadingElement>(null);
+  const focusTitle = useRef(false);
+
+  // "Já abri" é marcado no fim do pacote (ou no Pular). Sem pacote (ninguém votou), ao abrir a página
+  const markOpened = useCallback(() => markResultOpened(roundId, myId), [roundId, myId]);
+  useEffect(() => {
+    if (!hasPack) markOpened();
+  }, [hasPack, markOpened]);
+
+  useEffect(() => {
+    if (view === 'page' && focusTitle.current) {
+      focusTitle.current = false;
+      craqueTitle.current?.focus({ preventScroll: false });
+    }
+  }, [view]);
 
   const mine = result.me.played ? result.players.find((p) => p.membershipId === myId) : undefined;
+  const mineCard: PackCard | null =
+    mine && mine.score !== null
+      ? {
+          kind: 'mine',
+          player: mine,
+          score: mine.score,
+          tier: cardTier(mine.score),
+          you: true,
+          rank: mine.rank,
+          phrase: null,
+        }
+      : null;
   const nobodyVoted = result.votes.voted === 0;
+
+  if (view === 'pack') {
+    return (
+      <div className="flex flex-col gap-6 pb-4">
+        <Suspense fallback={<SkeletonList rows={4} label="Preparando o pacote" />}>
+          <PackOpening
+            result={result}
+            onFinish={markOpened}
+            onDone={() => {
+              focusTitle.current = true;
+              setView('page');
+            }}
+          />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 pb-4">
+      {hasPack && (
+        <Button
+          label="Abrir o pacote de novo"
+          icon="pack"
+          variant="outline"
+          size={48}
+          block
+          onClick={() => setView('pack')}
+        />
+      )}
       <Scoreboard status="CLOSED" score={result.score} winner={result.winner} />
       {nobodyVoted ? (
         <EmptyState
@@ -139,35 +274,27 @@ function Loaded({ result }: { result: RoundResult }) {
         <>
           {result.mvps.length > 0 && (
             <section aria-label="Craque" className="flex flex-col gap-3">
-              <PixelText as="h2" size={24} wrap className="text-gold">
-                {result.mvps.length > 1 ? 'Craques da rodada' : 'Craque da rodada'}
-              </PixelText>
-              <div
-                className="moment-frame animate-moment-in flex flex-col items-center gap-6 bg-track px-4 py-8 min-[360px]:flex-row min-[360px]:justify-center min-[360px]:gap-5"
-                style={{
-                  backgroundImage:
-                    'radial-gradient(220px 180px at 50% 50%, rgb(232 169 58 / 30%) 0, transparent 180px)',
-                }}
-              >
-                {result.mvps.map((player, i) => (
-                  <CraqueCard
-                    key={player.membershipId}
-                    player={player}
-                    roundNumber={result.number}
-                    delay={i * 160}
-                  />
-                ))}
-              </div>
+              <h2 ref={craqueTitle} tabIndex={-1} className="outline-none">
+                <PixelText size={24} wrap className="text-gold">
+                  {result.mvps.length > 1 ? 'Craques da rodada' : 'Craque da rodada'}
+                </PixelText>
+              </h2>
+              <CraqueStage result={result} cards={deck.filter((c) => c.kind === 'craque')} />
             </section>
           )}
           {result.flops.length > 0 && (
             <section aria-label="Perna de pau" className="flex flex-col gap-3">
               {result.flops.map((player, i) => (
-                <FlopCard key={player.membershipId} player={player} delay={200 + i * 160} />
+                <FlopCard
+                  key={player.membershipId}
+                  player={player}
+                  phrase={flopPhrase(result.roundId, player.membershipId)}
+                  delay={200 + i * 160}
+                />
               ))}
             </section>
           )}
-          {mine && <MyScoreCard me={mine} />}
+          {mine && <MyScoreCard me={mine} card={mineCard} roundNumber={result.number} />}
           <section aria-label="Notas da rodada" className="flex flex-col gap-3">
             <PixelText as="h2">{`Notas · ${result.votes.voted} de ${result.votes.total} votaram`}</PixelText>
             <ResultTable players={result.players} myMembershipId={myId} />

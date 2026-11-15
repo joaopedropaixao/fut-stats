@@ -248,6 +248,18 @@ de calcular as notas da rodada; ignorar voto inválido em silêncio; aceitar fol
 Craque/Perna de Pau (o voto é um pacote); converter para `ValidRatings`/`ValidBallots` com
 `as` fora do `parse*` (fura o carimbo); passar `playedIds` com quem só confirmou presença e não jogou.
 
+### Faixa da carta: `cardTier` ✅
+**O que é:** a faixa (bronze, prata ou ouro) da carta de um jogador no pacote do Craque, pela nota da rodada.
+Mora em `src/round-score/card-tier.ts` e é reexportada pelo `shared` (o web não importa o domain direto).
+**Regras:** nota **< 6** = bronze; **6 a 7,9** = prata; **≥ 8** = ouro. O corte é inclusivo na faixa de cima
+(6,0 é prata, 8,0 é ouro). As notas da rodada têm uma casa (`roundScore`), então a comparação `>=` direta é segura.
+**Assinatura:** `cardTier(rating: number, cuts: CardTierCuts = DEFAULT_CARD_TIER_CUTS): CardTier`, com
+`CardTier = 'bronze' | 'silver' | 'gold'` e `CardTierCuts = { silver, gold }` (padrão `{ silver: 6, gold: 8 }`).
+**Configurável:** os cortes entram por `cuts`, sem mexer na função.
+**Onde é usada:** moldura e fundo das cartas do pacote do Craque (Craque, Perna de Pau e a carta de quem jogou).
+**Não faz:** não tem texto nem cor (UI no web); não trata `null`: quem não tem nota (`roundScore` = `null`) não tem
+faixa e o chamador nem chama. Não valida a faixa da nota (0 a 10 é do `isValidRating`).
+
 ### Cartola: `cartolaPoints` / `priceVariation` / `validateCartolaSquad` ✅
 **O que é:** as regras do Cartola da pelada (`src/cartola/`): pontos de um jogador escalado na rodada,
 variação de preço depois da rodada e validação da escalação de um participante (1-2-3-1, orçamento, capitão).

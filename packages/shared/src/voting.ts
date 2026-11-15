@@ -120,4 +120,10 @@ export type VotingView = z.infer<typeof votingViewSchema>;
 export type ResultPlayer = z.infer<typeof resultPlayerSchema>;
 export type RoundResult = z.infer<typeof roundResultSchema>;
 export type { VotingEndReason };
-export { RESULT_HIGHLIGHT_DAYS, VOTING_END_REASONS } from '@fut-stats/domain';
+export {
+  cardTier,
+  DEFAULT_CARD_TIER_CUTS,
+  RESULT_HIGHLIGHT_DAYS,
+  VOTING_END_REASONS,
+} from '@fut-stats/domain';
+export type { CardTier, CardTierCuts } from '@fut-stats/domain';
