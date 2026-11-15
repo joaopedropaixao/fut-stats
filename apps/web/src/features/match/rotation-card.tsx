@@ -12,6 +12,7 @@ import { TeamSegmented } from '../lineup/team-segmented';
 import type { TeamKey } from '../lineup/lineup-draft';
 import { useRotationClock } from './use-rotation-clock';
 import { rotationPhase, type RotationPhase } from './rotation-phase';
+import { playRotationWhistle, shouldWhistleOnTurnChange } from './rotation-sound';
 
 const PREFS_KEY = 'fut-stats:rotation:preferences:v1';
 type Preferences = { sound: boolean; wakeLock: boolean };
@@ -76,24 +77,6 @@ function useWakeLock(enabled: boolean) {
   return supported;
 }
 
-function playBeep(context: AudioContext | null) {
-  if (!context) return;
-  try {
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = 'square';
-    oscillator.frequency.value = 880;
-    gain.gain.setValueAtTime(0.07, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.12);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.12);
-  } catch {
-    // Áudio indisponível não pode interromper a tela do jogo.
-  }
-}
-
 function PreferenceSwitch({
   label,
   checked,
@@ -139,6 +122,7 @@ export function RotationCard({
   const [preferences, setPreferences] = useState(readPreferences);
   const audio = useRef<AudioContext | null>(null);
   const lastChange = useRef<string | null>(null);
+  const lastTurn = useRef<{ team: TeamKey; index: number } | null>(null);
   const rotation = view.rotation;
   const { elapsedMs } = useRotationClock(view.serverTime, rotation?.startedAt ?? null);
   const plan = useMemo(() => matchRotationPlan(view), [view]);
@@ -149,6 +133,7 @@ export function RotationCard({
   const turns = plan?.[team].turns ?? [];
   const currentTurn = turns.find((turn) => elapsedMs >= turn.startMs && elapsedMs < turn.endMs);
   const visibleTurn = currentTurn ?? turns.at(-1);
+  const turnIndex = visibleTurn?.index ?? null;
   const elapsedInTurn = visibleTurn ? elapsedMs - visibleTurn.startMs : 0;
   const nextInMs = status?.teams[team].next?.inMs ?? null;
   const phase: RotationPhase = status
@@ -178,6 +163,18 @@ export function RotationCard({
   useEffect(() => savePreferences(preferences), [preferences]);
 
   useEffect(() => {
+    if (turnIndex === null) return;
+    const currentTurn = { team, index: turnIndex };
+    const shouldWhistle = shouldWhistleOnTurnChange(
+      lastTurn.current,
+      currentTurn,
+      preferences.sound,
+    );
+    lastTurn.current = currentTurn;
+    if (shouldWhistle) playRotationWhistle(audio.current, true);
+  }, [team, turnIndex, preferences.sound]);
+
+  useEffect(() => {
     if (lastChange.current === null) {
       lastChange.current = phase === 'CHANGE' ? nextKey : '';
       return;
@@ -188,7 +185,6 @@ export function RotationCard({
     }
     if (lastChange.current === nextKey) return;
     lastChange.current = nextKey;
-    if (preferences.sound) playBeep(audio.current);
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate?.(120);
   }, [nextKey, phase, preferences.sound]);
 
