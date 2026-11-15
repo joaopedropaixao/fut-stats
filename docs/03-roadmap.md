@@ -39,7 +39,7 @@ abaixo).
 | 4 ✅ | `perfil-jogador` | Par | — | **Onda 1.** Bonequinho pixel ao escolher o apelido (cor da pele e cabelo), que vira o rosto do jogador em todo lugar; editar perfil; admin cuida do elenco (nota inicial, goleiro contratado, admin, ativo/inativo). **Fecha a Fase 1** |
 | 5 ✅ | `orcamento-de-bundle` | Front | — | **Onda 1.** Rotas com `lazy` e limite de tamanho do bundle conferido no build (e no CI) |
 | 6 | `rodizio-reservas` | Par | `placar-e-lances` | **Onda 2.** Botão opcional na tela do jogo: cronômetro (60 min por padrão) que divide o tempo entre os jogadores de linha de cada time e avisa quem entra e quem sai (pedido do dono, 25 out 2026) |
-| 7 | `historico` | Par | PR #31 (fechar) | **Onda 2.** Aba Histórico: partidas finalizadas com placar e o resultado de quem vê; detalhe com o campo e os lances |
+| 7 ✅ | `historico` | Par | PR #31 (fechar) | **Onda 2.** Aba Histórico: partidas finalizadas com placar e o resultado de quem vê; detalhe com o campo e os lances |
 | 8 | `votacao` | Par | — | **Onda 3.** Tabelas do voto, tela "Dê sua nota", Craque / Perna de Pau, fechar a votação (todos votaram, prazo ou admin), apuração gravada e resultado da rodada |
 | 9 | `auditoria-da-rodada` | Back | `placar-e-lances` | **Onda 4.** Tabela `RoundLog` (quem, o quê, quando, antes/depois) gravada na mesma transação de toda escrita de placar, etapa e lance, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
 | 10 | `ranking` | Par | `votacao` | **Onda 4.** Ranking geral, por posição e de goleiros; perfil do jogador com estatísticas; a nota do seletor passa a acompanhar as rodadas |
@@ -90,7 +90,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [x] Admin: criar rodada; jogadores: confirmar presença
 - [x] Admin: montar Branco x Preto manualmente e lançar o placar (montar: `montar-times` ✅; placar: `placar-e-lances` ✅)
 - [x] Scouts: jogador lança os próprios gols/assistências (na Resenha pós-jogo); admin lança/corrige de todos
-- [ ] Histórico de rodadas e partidas
+- [x] Histórico de rodadas e partidas
 
 ## Fase 2: Seletor de times
 - [x] Algoritmo `balanceTeams` (Branco x Preto, 1-2-3-1, um goleiro por time) com testes

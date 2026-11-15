@@ -190,4 +190,24 @@ Regras de visual do documento de autonomia valem como critério.
   (25 out 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**2 voltas. Veredito: APROVADO (volta 2, 2026-11-15).**
+
+- **Volta 1:** C1–C26 OK; C27 FALHA. A 320 px, no campo do detalhe, o "VOCÊ" sob o Carlão ficava por cima do "THIAGUINHO". Corrigido no `pitch.tsx` compartilhado: as linhas do campo ficaram em degraus (`pitch-layout.ts`, com teste) e o campo ficou mais alto, também em `/times` e `/rodadas/:id/times`.
+- **Volta 2:** C27 OK nas cinco larguras, em Branco e Preto. Sem regressão do campo em `/times` e `/rodadas/:id/times`. C17–C21 OK.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1–C3 | OK | `status.test.ts`, `match.test.ts` (unitário) |
+| C4–C11 | OK | `apps/api/src/history/history.spec.ts` + curl na API real (23 partidas criadas pelas rotas) |
+| C12 | OK | `lineups.spec.ts` "C12"; com a lista antiga de status, o teste falha (reproduz o bug) |
+| C13–C26 | OK | Playwright a 390 px, dados reais (mock só para carregando/erro do C25); console sem erros |
+| C27 | OK (volta 2) | Checagem automática a 320/375/390/430/1280: sem rolagem horizontal, sobreposição, corte nem alvo menor que 44 px |
+
+Fora do escopo, já existia na develop @19180c2: no construtor de uma rodada agendada (`/rodadas/:id/times`), a página rola 24 px na horizontal a 320 px.
+
+Decisões dos DEVs, aceitas pelo TPL:
+- A lista também exige os dois gols não nulos. Não muda nada, porque toda rodada finalizada tem placar.
+- O shared reexporta `isMatchFinished`, para o web não copiar a regra.
+- O placar do detalhe não mostra "✓ VENCEU", porque o `MatchView` não traz o vencedor e o spec não pede.
+- O local do detalhe vem do `GET .../rounds/:id`.
+- Os cards entram com `animate-moment-in` (vira fade com movimento reduzido, como pede o C26), com o `--moment-delay` em degraus.
