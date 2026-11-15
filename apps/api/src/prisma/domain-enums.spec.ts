@@ -7,6 +7,7 @@ import {
   ROLES,
   ROUND_STATUSES,
   TEAMS,
+  VOTING_END_REASONS,
   type AvatarHair,
   type AvatarHairColor,
   type AvatarSkin,
@@ -15,6 +16,7 @@ import {
   type Role,
   type RoundStatus,
   type Team,
+  type VotingEndReason,
 } from '@fut-stats/domain';
 import {
   AvatarHair as DbAvatarHair,
@@ -25,6 +27,7 @@ import {
   Role as DbRole,
   RoundStatus as DbRoundStatus,
   Team as DbTeam,
+  VotingEndReason as DbVotingEndReason,
 } from '../generated/prisma/enums';
 
 // O Prisma gera os próprios enums a partir do schema. Estes testes garantem que eles continuam
@@ -39,6 +42,7 @@ const avatarSkinTypesMatch: Equals<DbAvatarSkin, AvatarSkin> = true;
 const avatarHairTypesMatch: Equals<DbAvatarHair, AvatarHair> = true;
 const avatarHairColorTypesMatch: Equals<DbAvatarHairColor, AvatarHairColor> = true;
 const matchEventTypesMatch: Equals<DbMatchEventType, MatchEventType> = true;
+const votingEndReasonTypesMatch: Equals<DbVotingEndReason, VotingEndReason> = true;
 
 describe('enums do banco x domain', () => {
   it('Position tem os mesmos valores, na mesma ordem', () => {
@@ -59,6 +63,12 @@ describe('enums do banco x domain', () => {
   it('MatchEventType tem os mesmos valores, na mesma ordem', () => {
     expect(matchEventTypesMatch).toBe(true);
     expect(Object.values(DbMatchEventType)).toEqual([...MATCH_EVENT_TYPES]);
+  });
+
+  it('C9: VotingEndReason tem os mesmos valores, na mesma ordem (ALL_VOTED, DEADLINE_PASSED, ADMIN_CLOSED)', () => {
+    expect(votingEndReasonTypesMatch).toBe(true);
+    expect(Object.values(DbVotingEndReason)).toEqual([...VOTING_END_REASONS]);
+    expect([...VOTING_END_REASONS]).toEqual(['ALL_VOTED', 'DEADLINE_PASSED', 'ADMIN_CLOSED']);
   });
 
   it('RoundStatus tem os mesmos valores, na mesma ordem', () => {
