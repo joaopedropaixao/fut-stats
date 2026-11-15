@@ -9,8 +9,14 @@ import {
   RATING_MAX,
   RATING_MIN,
   ROUND_STATUSES,
+  ROTATION_ERRORS,
+  ROTATION_MINUTES_MAX,
+  ROTATION_MINUTES_MIN,
+  ROTATION_MINUTES_STEP,
   TEAMS,
   validateScore,
+  DEFAULT_ROTATION_MINUTES,
+  isValidRotationMinutes,
 } from '@fut-stats/domain';
 import type {
   Award,
@@ -25,6 +31,7 @@ import type {
   RatingSheetError,
   RoundStatus,
   RoundTransitionError,
+  RotationError,
   ScoreEntryError,
   Team,
 } from '@fut-stats/domain';
@@ -50,6 +57,7 @@ export const ratingSchema = z
   .refine(isValidRating, { message: 'A nota deve ir de 0 a 10, de 0,5 em 0,5' });
 
 export const roundStatusSchema = z.enum(ROUND_STATUSES);
+export const rotationErrorSchema = z.enum(ROTATION_ERRORS);
 export const matchEventTypeSchema = z.enum(MATCH_EVENT_TYPES);
 export const matchResultSchema = z.enum(MATCH_RESULTS);
 
@@ -180,3 +188,20 @@ export const SCORE_ENTRY_ERROR_LABELS: Readonly<Record<ScoreEntryError, string>>
   NOT_ADMIN: 'Só o admin pode fazer isso',
   INVALID_SCORE: 'O placar precisa ser um número inteiro, zero ou mais',
 };
+
+/** Mensagens dos códigos de erro do rodízio. */
+export const ROTATION_ERROR_LABELS: Readonly<Record<RotationError, string>> = {
+  NOT_ADMIN: 'Só o admin pode fazer isso',
+  ROUND_NOT_IN_PROGRESS: 'O rodízio só existe com o jogo rolando',
+  NO_RESERVES: 'Nenhum time tem reserva: não há o que revezar',
+  INVALID_DURATION: 'A duração vai de 20 a 120 minutos, de 5 em 5',
+};
+
+export {
+  DEFAULT_ROTATION_MINUTES,
+  ROTATION_MINUTES_MAX,
+  ROTATION_MINUTES_MIN,
+  ROTATION_MINUTES_STEP,
+  isValidRotationMinutes,
+};
+export type { RotationError };

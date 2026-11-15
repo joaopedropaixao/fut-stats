@@ -412,6 +412,23 @@ devolvem só `ROUND_NOT_OPEN` (lances: tudo fora de `POST_MATCH`; placar: tudo f
 - Passar `Attendance` (confirmados) como `teams` ou `playedIds`; esquecer `confirmedIds` no `RoundState`; exigir o
   1-2-3-1 completo no rascunho (`validateLineupDraft` aceita incompleto; quem exige é a publicação).
 
+### Rodízio das reservas: `rotationPlan` e `rotationStatus` ✅
+**O que é:** o revezamento opcional de reservas durante uma partida em `IN_PROGRESS` (`src/round/rotation.ts`).
+O cronômetro usa uma duração em minutos e calcula separadamente as saídas de cada time.
+
+**Tipos e regras:** `RotationPlan` mapeia `WHITE` e `BLACK` a turnos com início, fim e jogadores fora; `RotationStatus`
+informa o tempo decorrido/restante, o fim do período e, por time, quem está fora e a próxima troca. A duração padrão é
+60 minutos; valores válidos vão de 20 a 120, em passos de 5. Os goleiros não entram na rotação. Reservas de cada time
+ficam fora no primeiro turno; depois, titulares de linha são distribuídos em grupos do tamanho da reserva. Cada plano é
+estável para a mesma rodada e time. Um time sem reservas tem zero turnos.
+
+**Permissão:** `validateRotationStart(actor, round, minutes)` só aceita admin, rodada em jogo, ao menos uma reserva em
+algum time e duração válida. `validateRotationStop(actor, round)` exige admin e jogo em andamento. O domain recebe o
+tempo decorrido de quem o chama; não lê o relógio, persiste dados nem define texto visual.
+
+**Evite:** incluir goleiro ou reserva do outro time no plano; criar uma rotação para time sem reserva; usar relógio local
+sem compensar `serverTime` na tela.
+
 **Na API** (`apps/api/src/match`, rotas sob `/api/groups/:groupId/rounds/:roundId/match`; contrato em
 `packages/shared/src/match.ts`): `GET /` devolve a `MatchView` a qualquer membro (times, lances com `team` = o time que
 ganhou o lance, `tally`, `me` com o resultado, `permissions` e `canRemove` calculados com o domain, e `errors` do próximo

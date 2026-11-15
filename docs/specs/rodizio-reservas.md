@@ -103,7 +103,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C33 | time escolhido não tem reserva | olhar | "PRETO: SEM RESERVAS. NINGUÉM SAI." no lugar dos blocos | Playwright |
 | C34 | qualquer membro | "Ver tabela" | gaveta com todos os turnos do time escolhido: horário de jogo ("0:00 – 8:34") e quem fica fora; o turno de agora marcado com "AGORA"; a minha linha com "VOCÊ" | Playwright |
 | C35 | admin, rodízio rodando | "⋯" do card → "Reiniciar" / "Parar rodízio" | Reiniciar abre a gaveta de ligar; Parar abre a gaveta "Parar o rodízio?" e, confirmado, o card some e volta a tecla "Ligar rodízio" | Playwright |
-| C36 | interruptores **Som** e **Tela ligada** no card | ligar | Som: um bipe curto a cada troca (desligado por padrão). Tela ligada: pede o Wake Lock; onde o navegador não tem, o interruptor não aparece. Os dois ficam lembrados no aparelho | Playwright (existência e estado) |
+| C36 | interruptores **Som** e **Tela ligada** no card | ligar | Som: um apito curto sintetizado a cada virada de turno (desligado por padrão). Tela ligada: pede o Wake Lock; onde o navegador não tem, o interruptor não aparece. Os dois ficam lembrados no aparelho | Playwright (existência e estado) |
 | C37 | acabou o tempo | olhar | "FIM DO TEMPO" com o tempo total; para o admin, o texto "Finalize o jogo com o placar" | Playwright (relógio simulado) |
 | C38 | outro membro com a tela aberta | o admin liga ou para o rodízio | aparece ou some em até 15 s (o polling que já existe em jogo) | Playwright |
 | C39 | relógio do celular 2 min errado | abrir | a contagem bate com a de outro aparelho (usa `serverTime` para corrigir) | unitário (`clock-offset`) + Playwright |
@@ -193,8 +193,9 @@ Regras de visual do documento de autonomia valem como critério.
   (contagem, prepara, troca) é uma função pura com teste (`rotation-phase.ts`).
 - **Gavetas** (`Sheet`): ligar, parar e a tabela. 180 ms para abrir, ~100 ms para fechar; a de confirmar fecha na
   hora e a chamada segue.
-- **Som e tela ligada:** preferência em `localStorage` (com `try/catch`, como `vs-seen.ts`). Bipe por WebAudio (sem
-  arquivo). Wake Lock pedido de novo ao voltar para a aba.
+- **Som e tela ligada:** preferência em `localStorage` (com `try/catch`, como `vs-seen.ts`). Apito curto de troca
+  sintetizado por WebAudio (sem arquivo) ao virar o turno, somente se Som estiver ligado. Wake Lock pedido de novo
+  ao voltar para a aba.
 - **Início** (`game-card.tsx`): a linha do rodízio quando `rotation` existe.
 - Nada de regra no front: tabela e estado vêm de `matchRotationPlan` e `rotationStatus` (domain, via shared); o que
   pode vem de `permissions.rotate`. Sem dependência nova.
@@ -208,7 +209,7 @@ Regras de visual do documento de autonomia valem como critério.
 - Cada um fica fora um turno — é a divisão igual mais simples de explicar no banco de reservas.
 - Ordem sorteada com semente da rodada — ninguém é "sempre o primeiro a sair", e a tabela não muda ao recarregar.
 - Sem pausa: parou o jogo por muito tempo, o admin reinicia — evita estado de pausa no banco e na conta.
-- Aviso só com a tela aberta (vibração, bipe opcional, tela ligada) — navegador não acorda celular bloqueado sem
+- Aviso só com a tela aberta (vibração, apito opcional, tela ligada) — navegador não acorda celular bloqueado sem
   push agendado, que precisaria de um agendador no servidor.
 - Duração ajustável na gaveta — nem toda pelada tem 60 minutos; o padrão continua 60.
 
@@ -226,4 +227,74 @@ Regras de visual do documento de autonomia valem como critério.
   ajustável ao ligar, padrão 60 min (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+
+**Veredito final: APROVADO** — C1–C43 passaram após cinco voltas funcionais. A QA5 foi conduzida em navegador real com dois contextos isolados, API/banco da equipe e Playwright; a revisão focada de C43 foi feita independentemente na mesma sessão/rodada, sem alterar código. QA1–QA4 tiveram reprovações de evidência e cobertura corrigidas antes da aprovação final.
+
+| Volta | Resultado | Pendência identificada | Resolução |
+|---|---|---|---|
+| QA1 | Reprovada | Sobreposição/fluxo em C29 e C43 | Correções do front e regressão adicionadas antes das voltas seguintes |
+| QA2 | Reprovada | C29/C43 ainda precisavam de confirmação | QA3 e QA4 ampliaram a auditoria e prepararam fixtures |
+| QA3 | Reprovada | C33 sem estado compatível; C43 incompleto | Fixtures C33/C42 e roteiro de tela preparados |
+| QA4 | Reprovada | C33 sem fixture visual compatível; C43 incompleto; outros fluxos sem evidência | Fixtures dedicadas e instruções completas para QA5 |
+| QA5 | Aprovada | Primeira medição de C43 comparou bounds fora do recorte rolável | Follow-up independente confirmou a rolagem, o recorte pintado e hit-tests em cinco larguras; falso positivo, sem mudança CSS |
+
+### Resultado final por cenário
+
+| Cenário | Tipo | Resultado | Evidência | Quem corrige |
+|---|---|---|---|---|
+| C1 — plano com uma reserva | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:59` | — |
+| C2 — plano com duas reservas | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:73` | — |
+| C3 — time sem reserva | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:87` | — |
+| C4 — planos independentes por time | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:91` | — |
+| C5 — seed estável e distinta por rodada | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:97` | — |
+| C6 — duração de 45 min | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:106` | — |
+| C7 — estado aos 4 min | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:118` | — |
+| C8 — limite exato de turno | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:130` | — |
+| C9 — último turno e fim | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:137` | — |
+| C10 — tempo negativo | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:151` | — |
+| C11 — validação de início admin | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:161` | — |
+| C12 — erros/prioridade e duração | Unitário | ✅ | `packages/domain/src/round/rotation.test.ts:172,210` | — |
+| C13 — iniciar, persistir e devolver MatchView | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:80` | — |
+| C14 — início sem corpo usa 60 min | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:99` | — |
+| C15 — reiniciar com nova duração/instante | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:109` | — |
+| C16 — parar e limpar os dois campos | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:129` | — |
+| C17 — duração inválida retorna 400 | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:149` | — |
+| C18 — início/parada fora de jogo retorna 409 | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:158` | — |
+| C19 — sem reservas retorna 409 e rotate=false | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:176` | — |
+| C20 — jogador comum recebe 403 | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:191` | — |
+| C21 — MatchView traz serverTime/permissão | API integração + API real | ✅ | `apps/api/src/match/match-rotation.spec.ts:207`; API da fixture principal: `permissions.rotate=false` para Luquinha | — |
+| C22 — finalizar oculta rotação fora de IN_PROGRESS | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:230` | — |
+| C23 — grupo alheio/não membro/inativo | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:252` | — |
+| C24 — start concorrente com finish | API integração | ✅ | `apps/api/src/match/match-rotation.spec.ts:299`; `Promise.all`, view final `POST_MATCH` com `rotation:null` | — |
+| C25 — seed em-jogo com reservas e rodízio desligado | Integração seed | ✅ | `apps/api/src/seed/seed.spec.ts:183` | — |
+| C26 — admin vê “Ligar rodízio” ao parar | Playwright | ✅ | `c26-ligar-rodizio.png`; “Finalizar jogo” continua sendo a única ação amarela | — |
+| C27 — gaveta, duração e resumo por time | Playwright | ✅ | `c27-gaveta-ligar.png`, 60→55 min recalculou 8:34→7:51 e voltou a 60 | — |
+| C28 — confirmação abre card | Playwright | ✅ | `c28-card-apareceu.png`; gaveta fechou e card apareceu | — |
+| C29 — contagem, seletor, ENTRA/SAI e apelidos | Playwright, dois usuários | ✅ | `c29-contagem.png`, `c29-contagem-admin.png`; seletor abre no Branco do jogador; contagem mudou por segundo | — |
+| C30 — reserva envolvida na troca | Playwright, Luquinha | ✅ | `c30-voce-entra.png`; faixa “VOCÊ ENTRA”, etiqueta “VOCÊ” e “VOCÊ ESTÁ NO BANCO” | — |
+| C31 — PREPARA aos 30 s | Playwright com relógio simulado | ✅ | `c31-prepara.png`; texto + ícone de alerta, cor warning; teste unitário `apps/web/src/features/match/rotation-phase.test.ts:4` | — |
+| C32 — TROCA, vibração e retorno à contagem | Playwright com relógio simulado | ✅ | `c32-troca.png`; mensagem de troca, `navigator.vibrate` chamado com `[120]`, retorna ao próximo turno; teste unitário `rotation-phase.test.ts:11` | — |
+| C33 — time sem reserva | Playwright, fixture dedicada | ✅ | `c33-preto-sem-reservas.png`; exibe literalmente “PRETO: SEM RESERVAS. NINGUÉM SAI.” | — |
+| C34 — tabela de turnos e AGORA | Playwright, interface | ✅ | `c34-tabela-turnos.png`; períodos, AGORA e linha VOCÊ visíveis | — |
+| C35 — reiniciar e parar | Playwright, interface | ✅ | Reinício confirmado na interação da gaveta; `c35-parar-rodizio.png` confirma diálogo; após confirmar o card some e Ligar retorna (`c26-ligar-rodizio.png`) | — |
+| C36 — som, Tela ligada, Wake Lock e preferência | Playwright, jogador | ✅ | `c36-som-tela-ligada.png`; toggles lembrados após navegação, `wakeLock.request()` chamado, alvos 152×76 em 390 px | — |
+| C37 — fim do tempo | Playwright com relógio simulado, admin/jogador | ✅ | `c37-fim-do-tempo.png`, `c37-fim-do-tempo-jogador.png`; admin recebe “Finalize o jogo com o placar”; teste unitário `rotation-phase.test.ts:23` | — |
+| C38 — polling entre aparelhos | Playwright, dois contextos | ✅ | `c38-polling.png`; remoção em ~1,9 s e inclusão em ~8 s, dentro de 15 s | — |
+| C39 — relógio local 2 min adiantado | Playwright + unitário | ✅ | `c39-relogio-corrigido.png`; contagem compatível com serverTime; teste `rotation-phase.test.ts:30` | — |
+| C40 — card no início | Playwright, interface | ✅ | `c40-inicio.png`; início mostra “RODÍZIO: PRÓXIMA TROCA EM” | — |
+| C41 — movimento reduzido | Playwright `prefers-reduced-motion` | ✅ | `c41-movimento-reduzido.png`; animação de troca sem piscar/bater (`animation:none`; transição 0s) | — |
+| C42 — sem reservas não permite ligar | Playwright + API | ✅ | `c42-sem-reservas.png`, `c42-sem-reservas-jogador.png`; ambos sem botão; API retorna 200, `rotation:null`, 14 jogadores e `permissions.rotate=false` | — |
+| C43 — larguras/estados, gaveta/tabela, apelido longo e alvos | Playwright real, 320/375/390/430/1280 | ✅ | Rechecagem independente: `main` é `overflow-y:auto`, y=24–768; a nav fica em y=776–836. Em scrollTop=0, os retângulos crus das preferências ficam fora do recorte do `main` (interseção visível 0); após scroll real com wheel, ficam no recorte, acima da nav e `elementFromPoint` acerta os dois centros em todas as larguras. `documentElement.scrollWidth == innerWidth`, tabela/gaveta sem overflow, Marcelinho completo, alvos ≥44 px; medidas abaixo. Prints C43 e vistas `jogo-rodizio-320.png`, `jogo-rodizio-desktop.png`. | — |
+
+### Revisão independente de C43
+
+Na primeira medição de C43, os `getBoundingClientRect()` crus dos interruptores Som/Tela ligada atravessavam a faixa vertical da navegação fixa quando estavam fora do recorte visível do `main`. A revisão independente intersectou os retângulos com o ancestral `main` (`overflow-y: auto`), confirmou que os controles não estavam pintados sob a navegação no início e rolou a área até o fim. Em 320, 375, 390, 430 e 1280 px, ambos os interruptores ficaram inteiros acima da navegação após a rolagem, e `document.elementFromPoint()` atingiu os dois controles. A largura do documento igualou o viewport, os apelidos de 10 letras ficaram inteiros e os alvos excederam 44 px. Os prints de início e fim estão no álbum `docs/design/prints/rodizio-reservas/`. O follow-up foi realizado na mesma sessão QA5 (`ctx_bc0ba900d6d8`, relacionado ao dispatch original e à retomada), sem alteração de código ou repetição das suites.
+
+Álbum visual final: `docs/design/prints/rodizio-reservas/` (33 capturas, fluxos C26–C43 e vistas do jogo em 320 px e desktop). A tabela acima registra o resultado de cada cenário; o relatório detalhado e as medições Playwright foram preservados na trilha de QA externa.
+
+### Follow-up focal do apito (15 nov 2026)
+
+- O dono pediu um apito curto sintetizado com WebAudio, exclusivamente na virada real do turno quando Som está ligado. A preferência local persistida continua desligada por padrão; montar a tela, trocar seletor e entrar em PREPARA/TROCA não devem apitar. Retornar de aba oculta sincroniza o relógio sem apito atrasado; a vibração e o texto de troca permanecem.
+- QA6 independente reprovou o primeiro ajuste: após reload, a preferência ligada não recriava o contexto de áudio. O DEV-front corrigiu criando/retomando `AudioContext` silenciosamente em gesto do usuário, inclusive após reload, e suprimindo eventos de troca acumulados em background. Os testes unitários cobrem preferência e sincronização de visibilidade. Evidência runtime do DEV: `.playwright-mcp/qa6-evidencia.md` no worktree front, com retorno silencioso, uma virada audível, Som desligado sem apito e console sem erros; execução Playwright usou a API real e navegador isolado com `visibilityState` oculto via init script.
+- QA7 independente não aprovou o ajuste: o browser Playwright isolado não pôde ser iniciado (`Browser is already in use` e host CUA indisponível). Por isso, reload, som ligado/desligado, visibilidade oculta, retorno, vibração, texto e console ficaram sem evidência independente desta revisão. Não foi atribuída falha funcional ao código nem reutilizado outro browser. A aprovação final do follow-up de áudio depende de repetir QA em browser independente disponível; o histórico C1–C43 e álbum visual aprovado não foram refeitos.
+- No branch integrado após a correção: `pnpm lint`, `pnpm typecheck`, testes completos com `TEST_DATABASE_URL` isolado (API 22 suítes/443 testes, domain 29/422, web 43/416, shared 1/2) e `pnpm build` passaram.

@@ -18,6 +18,11 @@ describe('pixelDigitsPath', () => {
     expect(pixelDigitsPath('8,4').width).toBe(6 + 1 + 2 + 1 + 6);
   });
 
+  it('desenha relógios com dois pontos estreitos', () => {
+    expect(isPixelText('2:51')).toBe(true);
+    expect(pixelDigitsPath('2:51').width).toBe(6 + 1 + 2 + 1 + 6 + 1 + 6);
+  });
+
   it('desloca o segundo caractere pela largura do primeiro + 1', () => {
     const { d } = pixelDigitsPath('11');
     expect(d).toContain('M9 0h2v1h-2z');

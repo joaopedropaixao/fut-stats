@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:rotation-overlap": "vitest run src/features/match/rotation-layout.test.ts",
     "test:watch": "vitest",
     "generate:icons": "node scripts/generate-icons.mjs"
   },

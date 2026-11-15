@@ -352,6 +352,36 @@
   animation: live-blink 900ms steps(1, end) infinite alternate;
 }
 
+/* A virada do rodízio chama atenção por um instante, sem brilho ou movimento contínuo. */
+@keyframes rotation-change {
+  0%,
+  100% {
+    outline: 0 solid transparent;
+  }
+  50% {
+    outline: 3px solid var(--color-warning);
+  }
+}
+
+@utility animate-rotation-change {
+  animation: rotation-change 360ms steps(2, end) 1;
+}
+
+@keyframes rotation-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-rotation-message {
+  animation: rotation-message-in 200ms steps(4, end) both;
+}
+
 /* Confete pixel do YOU WIN: cai em degraus (1,4 s) e some no chão do card */
 @keyframes confetti-fall {
   0% {
@@ -489,6 +519,14 @@
 
   .animate-confetti-fall {
     display: none;
+  }
+
+  .animate-rotation-change {
+    animation: none;
+  }
+
+  .animate-rotation-message {
+    animation: vs-fade 200ms linear both !important;
   }
 }
 

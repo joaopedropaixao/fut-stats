@@ -21,6 +21,7 @@ import { eventNoticeTitle } from '../../features/match/match-text';
 import { PlayerLines } from '../../features/match/player-lines';
 import { useMatch, useMatchActions } from '../../features/match/queries';
 import { ResultCard } from '../../features/match/result-card';
+import { RotationCard } from '../../features/match/rotation-card';
 import { hasSeenResult } from '../../features/match/result-seen';
 import { ScoreStepper, Scoreboard } from '../../features/match/scoreboard';
 import { RouteButton } from '../../features/rounds/route-button';
@@ -41,7 +42,7 @@ function Content({ groupId, roundId }: { groupId: string; roundId: string | unde
   const match = useMatch(groupId, roundId);
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <RouteButton
         to={roundId ? `/rodadas/${roundId}` : '/rodadas'}
         label="Rodada"
@@ -73,7 +74,7 @@ function Content({ groupId, roundId }: { groupId: string; roundId: string | unde
       ) : (
         <Board groupId={groupId} view={match.data} />
       )}
-    </>
+    </div>
   );
 }
 
@@ -139,7 +140,7 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
     actions.launch.isPending && actions.launch.variables?.type === type;
 
   return (
-    <div className="flex flex-col gap-6 pb-4">
+    <div className="flex flex-col gap-4 pb-4">
       {!started ? (
         <BeforeMatch view={view} onStart={() => setConfirming('start')} />
       ) : (
@@ -169,6 +170,15 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
           />
           {view.status === 'IN_PROGRESS' && (
             <>
+              {(view.rotation || permissions.rotate) && (
+                <RotationCard
+                  view={view}
+                  onStart={(minutes) => actions.startRotation.mutateAsync({ minutes })}
+                  onStop={() => actions.stopRotation.mutateAsync()}
+                  onError={fail}
+                  pending={actions.startRotation.isPending || actions.stopRotation.isPending}
+                />
+              )}
               <Note icon="alert">
                 {permissions.finish
                   ? 'Os lances entram na Resenha, depois do jogo. Quando o jogo acabar, finalize com o placar.'
