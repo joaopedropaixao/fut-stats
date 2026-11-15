@@ -9,6 +9,7 @@ import { Ordinal } from './ordinal';
 import { PODIUM_TEXT, podiumLabel, podiumTier } from './podium';
 import { formatAverage, missingRounds, missingRoundsText, trendLabel } from './ranking-text';
 import { RankConfetti } from './rank-confetti';
+import { Spotlight } from './spotlight';
 import { TrendMark } from './trend-mark';
 import { useRankReveal } from './use-rank-reveal';
 
@@ -71,11 +72,13 @@ export function YouCard({ me, minRatedGames, closedRounds }: YouCardProps) {
       className="moment-frame animate-moment-in relative flex flex-col overflow-hidden bg-surface-raised"
     >
       <div className="flex items-center gap-4 p-4">
+        {/* O palco do holofote: escuro, com o feixe atrás do bonequinho (a grade 16 x 16 cabe em 80 e 96 px de 5 e 6 px) */}
         <span
           aria-hidden
-          className="inline-flex size-20 shrink-0 min-[360px]:size-24 items-end justify-center bg-field pb-2 shadow-[inset_0_0_0_3px_#000]"
+          className="relative inline-flex size-20 shrink-0 items-end justify-center overflow-hidden bg-[#07140c] pb-2 shadow-[inset_0_0_0_3px_#000] min-[360px]:size-24"
         >
-          <PlayerSprite team={null} avatar={me.avatar} scale={5} />
+          <Spotlight />
+          <PlayerSprite team={null} avatar={me.avatar} scale={5} className="relative" />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           {rank === null ? (
