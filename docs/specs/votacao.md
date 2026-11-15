@@ -352,6 +352,10 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
   o motivo verdadeiro (`DEADLINE_PASSED` / `ALL_VOTED`), não `ADMIN_CLOSED`; na corrida do C19 o perdedor leva sempre
   409; `RoundResult.votes.total` conta todos que jogaram (estável depois de fechar), o `progress` da votação só os
   ativos; rodada `CLOSED` sem `closedAt` (só dado antigo de dev) responde `RESULT_NOT_READY`.
+- Ajustes de tela (TPL, 2026-11-15): "SUA NOTA" diz "POSIÇÃO 3 DA RODADA" (o "º" da Silkscreen parece "+");
+  "Votos enviados" usa só o pulinho de 2 quadros (sem pose nova de sprite); "A votação fechou" tem o texto pelo
+  `closeReason`; com o resultado em destaque, o card da votação usa tecla de contorno (uma amarela por tela); as
+  listas de nota e escolha mostram os 15 inteiros.
 - Cruzamento com `rodizio-reservas` (checkpoint de 2026-11-15, Base 7e3902d) — o rodízio põe `rotationStartedAt` e
   `rotationMinutes` em `Round` (migration `round_rotation`) e mexe em `apps/api/src/match` e na tela do jogo. Ele entra
   primeiro: a migration `voting` sai com data posterior e é refeita no rebase se o Prisma acusar drift. Em `match`,
