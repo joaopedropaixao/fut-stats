@@ -85,7 +85,8 @@ validado ou **todos** os problemas encontrados (não para no primeiro).
 
 ### Jogador: `Player` ✅
 **O que é:** o que as regras precisam saber de um jogador: `id`, `primaryPosition`, `secondaryPositions`
-(usadas quando falta gente na principal) e `rating` (nota de referência: média recente ou a inicial do admin).
+(usadas quando falta gente na principal) e `rating` (a **nota de referência**: média das 5 últimas notas de rodada,
+com a inicial do admin completando; ver "Ranking pela nota". Sem rodada com nota, é a inicial).
 **Não é:** `User` (login) nem `Membership` (participação no grupo). Não tem nome, foto nem email.
 **Evite:** passar a entidade do Prisma direto; adicionar campos de tela; recalcular `rating` dentro de uma regra.
 
@@ -594,20 +595,66 @@ formulário da rodada nova usa a sugestão; sem rodada no grupo, cai em "amanhã
 **Evite:** fixar um dia da semana; calcular a sugestão no front.
 
 ### Ranking pela nota: `rankByRating` 🚧
-**O que é:** a posição de cada jogador no ranking do grupo pela nota (`src/ranking/rank.ts`). Decidido pelo dono em
-24 out 2026: a lista de presença mostra a nota e a posição de cada um.
+**O que é:** o ranking do grupo e a nota que o seletor usa (`packages/domain/src/ranking/`). Só conta rodada
+**encerrada** (`CLOSED`: é quando a nota e os prêmios estão gravados). Recorte: todas as do grupo, desde o início
+(temporada entra com o Cartola, v1.1).
 
-**Assinatura:** `rankByRating(players: readonly { id, rating }[]): Map<string, number>` (`id → posição`).
+**Funções** (`rankByRating`, `playerStats`, `minRatedGames`, `rankPlayers`, `rankTrend`, `referenceRating`; todas puras; nada lança; arredondamento meio para cima, como `roundScore`):
+- `rankByRating(players: readonly { id, rating }[]): Map<string, number>`: maior nota é 1º; empate divide a posição e
+  pula a seguinte (1, 2, 2, 4), como tabela de campeonato. Decidido pelo dono em 24 out 2026: a lista de presença
+  mostra a nota e a posição de cada um.
+- `playerStats(records: readonly PlayerRoundRecord[]): PlayerStats`: as estatísticas do jogador. `PlayerRoundRecord`
+  = uma por rodada encerrada que ele jogou, **da mais antiga para a mais recente**: `{ result, goals, assists,
+  ownGoals, score, mvp, flop, playedAsGoalkeeper, goalsConceded }`. Devolve `games`, `wins`, `draws`, `losses`,
+  `goals`, `assists`, `ownGoals`, `mvps`, `flops`, `ratedGames`, `average` (média das notas, 2 casas; `null` sem nota;
+  rodada sem nota conta jogo e não entra na média), `streak` (`{ result, count }`: resultados iguais seguidos no fim da
+  lista; `null` sem rodada) e `goalkeeper` (`games`, `conceded`, `cleanSheets`, `concededPerGame` em 2 casas, só das
+  rodadas com `playedAsGoalkeeper`; sempre presente, zerado se nunca jogou no gol: quem mostra é a API).
+- `minRatedGames(closedRounds, { target = 3 }?)`: `min(3, rodadas encerradas do grupo)`, nunca menos que 1. Assim o
+  ranking existe desde a primeira rodada e, da terceira em diante, um jogo bom não põe ninguém na ponta.
+- `rankPlayers(players: readonly { id, average, ratedGames }[], { minRatedGames }): Map<string, number | null>`:
+  `rankByRating` na `average` de quem tem `ratedGames >= minRatedGames`; os outros ficam `null` (sem posição), mesmo
+  com a maior média. Os classificados vêm primeiro no mapa, na ordem do ranking.
+- `rankTrend(before, after): Map<string, number | null>`: quantas posições subiu (+) ou desceu (−) entre dois
+  rankings (`posição antes − posição depois`). Só entra quem está no `after`; sem posição antes ou depois, `null`.
+- `referenceRating(initialRating, roundScores, { window = DEFAULT_REFERENCE_WINDOW (5) }?)`: ver "Nota de referência".
 
-**Faz:** maior nota é 1º; empate divide a posição e pula a seguinte (1, 2, 2, 4), como tabela de campeonato.
+**Nota de referência** (é o `Player.rating`: a que o seletor, o card de equilíbrio e a lista de presença usam):
+média das **5 últimas** notas de rodada do jogador, com a **nota inicial do admin completando as que faltam** (com 2
+notas: 2 medidas + 3 vezes a inicial, ÷ 5). Sem rodada com nota é a inicial; com 5 ou mais, a inicial não pesa mais.
+`roundScores` vem da mais antiga para a mais recente; resultado com 2 casas. É um número diferente da **média do
+ranking** (todas as rodadas) de propósito: o ranking premia a história; o seletor quer saber como o jogador está agora.
 
-**Não faz:** não escolhe a nota. **Até a Fase 3 a nota é a inicial** (`Membership.initialRating`, definida pelo admin);
-com a votação, passa a ser a média da temporada e o ranking geral/por posição entra.
+**Regras do ranking** (respostas do dono, 14 nov 2026):
+- **Média** = média simples das notas de rodada, 2 casas para ordenar (a tela mostra 1).
+- **Mínimo para classificar:** nota em pelo menos `minRatedGames(rodadas encerradas do grupo)` rodadas; quem tem menos
+  aparece depois dos classificados, sem posição ("POUCOS JOGOS").
+- **Por posição:** o mesmo ranking, só entre quem tem aquela **posição principal**. Goleiros: quem tem `GOALKEEPER`
+  como principal, com os números de goleiro.
+- **Gol contra não conta como gol** do jogador. **Goleiro é contado pela vaga em que jogou:** só entram nos números
+  de goleiro as rodadas em que foi **titular** na vaga `GOALKEEPER` (reserva não tem vaga fixa); "gols sofridos" = o
+  placar do adversário.
+- **Tendência:** compara o ranking com e sem a última rodada encerrada (cada um com o mínimo que o grupo tinha
+  naquela hora). Sem rodada, ou sem posição antes ou depois, é `null`.
+- **Inativos** ficam fora das listas e das posições dos outros (o histórico deles continua nas partidas).
 
-**Na API:** o detalhe da rodada manda `rating` e `rank` em cada membro da lista de presença, contados entre os
-membros ativos do grupo.
+**Na API** (`apps/api/src/ranking`; contrato em `packages/shared/src/ranking.ts`):
+- `GET /api/groups/:groupId/ranking` (qualquer membro ativo) → `Ranking`: `closedRounds`, `minRatedGames`, `players`
+  (classificados por posição e apelido; depois os de poucos jogos, por jogos e apelido) e `me`. Cada jogador com
+  `rank`, `positionRank`, `trend` e `stats` (`goalkeeper` só para quem tem `GOALKEEPER` como principal).
+- `GET /api/groups/:groupId/members/:membershipId/stats` → `PlayerProfile` (o jogador do ranking + posições
+  secundárias, `isHiredGoalkeeper`, `role`, `referenceRating` e as 5 últimas rodadas que jogou). Membership inativa, de
+  outro grupo ou inexistente: 404.
+- `RankingService.referenceRatings(groupId, db?)` → `Map<membershipId, nota>` de todo membro do grupo. A lista de
+  presença (`GET .../rounds/:roundId`), a escalação (`GET .../lineup`: `rating`, `rank`) e o seletor
+  (`POST .../lineup/suggestion`: o `rating` dos jogadores do `balanceTeams`) usam esse mapa no lugar da nota inicial;
+  `rank` é a posição por ele. O **roster do admin** continua com a **nota inicial** (`Membership.initialRating`),
+  que é o que ele edita.
+- Tudo é calculado na leitura, sem tabela de ranking.
 
-**Evite:** ordenar ou numerar o ranking no front; empate com posições diferentes.
+**Evite:** ordenar ou numerar o ranking no front; empate com posições diferentes; contar rodada que não está
+`CLOSED`; usar a média do ranking no seletor (ou a nota de referência no ranking); mostrar a nota inicial na lista de
+presença; contar gol contra como gol.
 
 ### Grupo, convite e entrada: `toSlug` / `validateNickname` / `validateJoinGroup` / `compareNicknames` / `isNicknameTaken` / `validatePlayerPositions` / `validateMemberAdminChange` / `DEFAULT_INITIAL_RATING` 🚧
 **O que é:** regras puras de criar grupo e entrar nele (`packages/domain/src/group`).

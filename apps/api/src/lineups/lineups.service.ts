@@ -41,6 +41,7 @@ import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RankingService } from '../ranking/ranking.service';
 
 type Db = Pick<PrismaService, 'teamPlayer' | 'membership' | 'round'>;
 
@@ -55,7 +56,6 @@ const memberSelect = {
   ...AVATAR_SELECT,
   primaryPosition: true,
   isHiredGoalkeeper: true,
-  initialRating: true,
 } as const;
 
 interface MemberRow {
@@ -67,7 +67,6 @@ interface MemberRow {
   avatarHairColor: PlayerAvatar['hairColor'];
   primaryPosition: AttendanceMember['primaryPosition'];
   isHiredGoalkeeper: boolean;
-  initialRating: number;
 }
 
 interface TeamPlayerRow {
@@ -102,7 +101,10 @@ function toState(
 
 @Injectable()
 export class LineupsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ranking: RankingService,
+  ) {}
 
   /**
    * Os times da rodada. O admin vê o rascunho; os outros só depois de publicar (`published` = a rodada já
@@ -133,7 +135,8 @@ export class LineupsService {
 
     // Ranking entre ativos e escalados (um escalado que ficou inativo ainda aparece com posição).
     const placedIds = new Set(rows.map((row) => row.membership.id));
-    const ranks = await this.ranks(this.prisma, membership.groupId, placedIds);
+    const ratings = await this.ranking.referenceRatings(membership.groupId);
+    const ranks = await this.ranks(this.prisma, membership.groupId, placedIds, ratings);
     const respondedAt = await this.respondedAt(round.id);
     const toMember = (m: MemberRow): AttendanceMember => ({
       membershipId: m.id,
@@ -143,7 +146,7 @@ export class LineupsService {
       primaryPosition: m.primaryPosition,
       isHiredGoalkeeper: m.isHiredGoalkeeper,
       respondedAt: respondedAt.get(m.id) ?? null,
-      rating: m.initialRating,
+      rating: ratings.get(m.id)!,
       rank: ranks.get(m.id)!,
     });
     const confirmedSet = new Set(confirmedIds);
@@ -203,14 +206,16 @@ export class LineupsService {
         active: true,
         attendances: { some: { roundId: round.id, confirmed: true } },
       },
-      select: { id: true, primaryPosition: true, secondaryPositions: true, initialRating: true },
+      select: { id: true, primaryPosition: true, secondaryPositions: true },
       orderBy: [{ nickname: 'asc' }, { createdAt: 'asc' }],
     });
+    // A nota de referência (as 5 últimas rodadas, com a inicial completando), não só a inicial do admin.
+    const ratings = await this.ranking.referenceRatings(membership.groupId);
     const players: Player[] = confirmed.map((m) => ({
       id: m.id,
       primaryPosition: m.primaryPosition,
       secondaryPositions: m.secondaryPositions,
-      rating: m.initialRating,
+      rating: ratings.get(m.id)!,
     }));
 
     const history = await this.playedHistory(membership.groupId, round.scheduledAt);
@@ -443,13 +448,18 @@ export class LineupsService {
     });
   }
 
-  /** Posição de cada membro ativo (e dos escalados) no ranking do grupo pela nota. */
-  private async ranks(db: Db, groupId: string, extraIds: ReadonlySet<string>) {
+  /** Posição de cada membro ativo (e dos escalados) no ranking do grupo pela nota de referência. */
+  private async ranks(
+    db: Db,
+    groupId: string,
+    extraIds: ReadonlySet<string>,
+    ratings: ReadonlyMap<string, number>,
+  ) {
     const members = await db.membership.findMany({
       where: { groupId, OR: [{ active: true }, { id: { in: [...extraIds] } }] },
-      select: { id: true, initialRating: true },
+      select: { id: true },
     });
-    return rankByRating(members.map((m) => ({ id: m.id, rating: m.initialRating })));
+    return rankByRating(members.map((m) => ({ id: m.id, rating: ratings.get(m.id)! })));
   }
 
   private async respondedAt(roundId: string): Promise<Map<string, string>> {

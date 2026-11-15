@@ -33,6 +33,7 @@ import {
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import { PrismaService } from '../prisma/prisma.service';
+import { RankingService } from '../ranking/ranking.service';
 import { VotingService } from '../voting/voting.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -75,6 +76,7 @@ export class RoundsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly voting: VotingService,
+    private readonly ranking: RankingService,
   ) {}
 
   async create(membership: GroupMembership, input: CreateRoundInput): Promise<RoundDetail> {
@@ -165,7 +167,6 @@ export class RoundsService {
         ...AVATAR_SELECT,
         primaryPosition: true,
         isHiredGoalkeeper: true,
-        initialRating: true,
         attendances: { where: { roundId }, select: { confirmed: true, updatedAt: true } },
       },
       orderBy: [{ nickname: 'asc' }, { createdAt: 'asc' }],
@@ -173,17 +174,10 @@ export class RoundsService {
 
     const attendance: RoundDetail['attendance'] = { confirmed: [], declined: [], pending: [] };
     let myAttendance: boolean | null = null;
-    // Ranking do grupo pela nota (até a Fase 3, a inicial), entre os membros ativos
-    const ranks = rankByRating(members.map((m) => ({ id: m.id, rating: m.initialRating })));
-    for (const {
-      id,
-      attendances,
-      initialRating,
-      avatarSkin,
-      avatarHair,
-      avatarHairColor,
-      ...member
-    } of members) {
+    // Ranking do grupo pela nota de referência (a que o seletor usa), entre os membros ativos
+    const ratings = await this.ranking.referenceRatings(membership.groupId);
+    const ranks = rankByRating(members.map((m) => ({ id: m.id, rating: ratings.get(m.id)! })));
+    for (const { id, attendances, avatarSkin, avatarHair, avatarHairColor, ...member } of members) {
       const answer = attendances[0]?.confirmed ?? null;
       if (id === membership.id) myAttendance = answer;
       const item: AttendanceMember = {
@@ -191,7 +185,7 @@ export class RoundsService {
         ...member,
         avatar: toAvatar({ avatarSkin, avatarHair, avatarHairColor }),
         respondedAt: attendances[0]?.updatedAt.toISOString() ?? null,
-        rating: initialRating,
+        rating: ratings.get(id)!,
         rank: ranks.get(id)!,
       };
       if (answer === null) attendance.pending.push(item);
