@@ -15,6 +15,7 @@ export function AppShell() {
   const session = useSession();
   const mainRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
+  const isMatchRoute = /^\/rodadas\/[^/]+\/jogo$/.test(pathname);
   const firstRender = useRef(true);
   // Trocou de tela e o pedaço dela ainda está vindo: a tela anterior fica; passou de 300 ms, entra o esqueleto
   const loadingScreen = useDelayedFlag(useNavigation().state === 'loading', SLOW_NAVIGATION_MS);
@@ -46,7 +47,7 @@ export function AppShell() {
   const failed = session.errorUpdateCount > 0;
 
   return (
-    <ShellFrame mainRef={mainRef} showTabs={ready}>
+    <ShellFrame mainRef={mainRef} showTabs={ready} isMatchRoute={isMatchRoute}>
       {!ready && !failed && <SkeletonList rows={3} />}
       {!ready && failed && (
         <ErrorState
@@ -66,14 +67,27 @@ export function ShellFrame({
   children,
   mainRef,
   showTabs,
+  isMatchRoute = false,
 }: {
   children: ReactNode;
   mainRef?: Ref<HTMLElement>;
   showTabs: boolean;
+  isMatchRoute?: boolean;
 }) {
   return (
-    <div className="mx-auto flex min-h-dvh max-w-content flex-col px-4 pt-6 pb-[calc(96px+env(safe-area-inset-bottom))]">
-      <main ref={mainRef} className="flex flex-1 flex-col gap-6">
+    <div
+      className={`mx-auto flex max-w-content flex-col px-4 pt-6 ${
+        isMatchRoute
+          ? 'h-dvh overflow-hidden pb-[calc(76px+env(safe-area-inset-bottom))]'
+          : 'min-h-dvh pb-[calc(96px+env(safe-area-inset-bottom))]'
+      }`}
+    >
+      <main
+        ref={mainRef}
+        className={`flex flex-1 flex-col gap-6 ${
+          isMatchRoute ? 'min-h-0 overflow-y-auto overscroll-contain pb-4' : ''
+        }`}
+      >
         {children}
       </main>
       {showTabs && (
