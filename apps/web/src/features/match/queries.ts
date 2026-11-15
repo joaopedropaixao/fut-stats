@@ -1,7 +1,9 @@
 import {
   matchViewSchema,
+  startRotationSchema,
   type LaunchMatchEventInput,
   type MatchView,
+  type StartRotationInput,
   type SetMatchScoreInput,
 } from '@fut-stats/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -50,6 +52,15 @@ export function useMatchActions(groupId: string, roundId: string) {
     finish: useMutation({
       mutationFn: (score: SetMatchScoreInput) => apiPost(`${path}/finish`, matchViewSchema, score),
       onSuccess: setViewAndRefreshRound,
+    }),
+    startRotation: useMutation({
+      mutationFn: (input: StartRotationInput) =>
+        apiPost(`${path}/rotation`, matchViewSchema, startRotationSchema.parse(input)),
+      onSuccess: setView,
+    }),
+    stopRotation: useMutation({
+      mutationFn: () => apiDeleteJson(`${path}/rotation`, matchViewSchema),
+      onSuccess: setView,
     }),
     openVoting: useMutation({
       mutationFn: () => apiPost(`${path}/open-voting`, matchViewSchema),

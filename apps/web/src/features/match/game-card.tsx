@@ -1,9 +1,11 @@
-import { TEAM_LABELS, type MatchView } from '@fut-stats/shared';
+import { matchRotationPlan, rotationStatus, TEAM_LABELS, type MatchView } from '@fut-stats/shared';
 import type { CSSProperties } from 'react';
 import { PixelText } from '../../components/ui/pixel-text';
 import { RouteButton } from '../rounds/route-button';
 import { goalsOfScore } from './match-text';
 import { Scoreboard } from './scoreboard';
+import { PixelDigits } from '../../components/ui/pixel-digits';
+import { useRotationClock } from './use-rotation-clock';
 
 /** O texto e a tecla do card, conforme a etapa e quem vê. O que pode vem da visão; aqui só se escolhe a frase. */
 function copy(view: MatchView): { message: string; action: string } {
@@ -36,6 +38,9 @@ export function GameCard({ view }: { view: MatchView }) {
       >
         <div className="animate-row-in flex flex-col gap-2">
           <PixelText wrap>{message}</PixelText>
+          {view.status === 'IN_PROGRESS' && view.rotation && view.me.team && (
+            <RotationHomeLine view={view} />
+          )}
           {showTally && (
             <ul className="flex flex-col gap-1 text-text-muted">
               {(['WHITE', 'BLACK'] as const).map((team) => (
@@ -54,5 +59,25 @@ export function GameCard({ view }: { view: MatchView }) {
         />
       </div>
     </section>
+  );
+}
+
+function RotationHomeLine({ view }: { view: MatchView }) {
+  const rotation = view.rotation;
+  const team = view.me.team;
+  const { elapsedMs } = useRotationClock(view.serverTime, rotation?.startedAt ?? null);
+  if (!rotation || !team) return null;
+  const plan = matchRotationPlan(view);
+  if (!plan?.[team].turns.length) return null;
+  const status = rotationStatus(plan, rotation.minutes, elapsedMs);
+  const remaining = status.teams[team].next?.inMs;
+  if (remaining === undefined || remaining === null || status.finished) return null;
+  const seconds = Math.ceil(remaining / 1000);
+  const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  return (
+    <span className="flex flex-wrap items-center gap-1 text-text-muted">
+      <PixelText wrap>RODÍZIO: PRÓXIMA TROCA EM</PixelText>
+      <PixelDigits value={time} scale={2} decorative />
+    </span>
   );
 }

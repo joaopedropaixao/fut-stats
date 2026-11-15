@@ -21,6 +21,7 @@ import { eventNoticeTitle } from '../../features/match/match-text';
 import { PlayerLines } from '../../features/match/player-lines';
 import { useMatch, useMatchActions } from '../../features/match/queries';
 import { ResultCard } from '../../features/match/result-card';
+import { RotationCard } from '../../features/match/rotation-card';
 import { hasSeenResult } from '../../features/match/result-seen';
 import { ScoreStepper, Scoreboard } from '../../features/match/scoreboard';
 import { RouteButton } from '../../features/rounds/route-button';
@@ -169,6 +170,15 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
           />
           {view.status === 'IN_PROGRESS' && (
             <>
+              {(view.rotation || permissions.rotate) && (
+                <RotationCard
+                  view={view}
+                  onStart={(minutes) => actions.startRotation.mutateAsync({ minutes })}
+                  onStop={() => actions.stopRotation.mutateAsync()}
+                  onError={fail}
+                  pending={actions.startRotation.isPending || actions.stopRotation.isPending}
+                />
+              )}
               <Note icon="alert">
                 {permissions.finish
                   ? 'Os lances entram na Resenha, depois do jogo. Quando o jogo acabar, finalize com o placar.'
