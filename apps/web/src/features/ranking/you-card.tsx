@@ -1,11 +1,14 @@
 import type { RankingPlayer } from '@fut-stats/shared';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
+import { Bump } from '../../components/ui/bump';
 import { PlayerSprite } from '../../components/ui/pixel-sprite';
 import { cn } from '../../lib/cn';
 import { Ordinal } from './ordinal';
 import { formatAverage, missingRounds, missingRoundsText, trendLabel } from './ranking-text';
+import { RankConfetti } from './rank-confetti';
 import { TrendMark } from './trend-mark';
+import { useRankReveal } from './use-rank-reveal';
 
 /**
  * Frase em pixel que quebra por palavra. O `PixelText` com número dentro guarda o resto da frase num trecho que não
@@ -27,6 +30,8 @@ function WrappedPixel({ text }: { text: string }) {
 type YouCardProps = {
   me: RankingPlayer;
   minRatedGames: number;
+  /** Rodadas encerradas do grupo: a animação de subir ou descer toca uma vez por rodada nova. */
+  closedRounds: number;
 };
 
 /**
@@ -34,15 +39,16 @@ type YouCardProps = {
  * O meu bonequinho, a minha posição em dígitos pixel, a média e a tendência. Quem ainda não entrou vê quantas
  * rodadas faltam. Ouro só se eu for o líder.
  */
-export function YouCard({ me, minRatedGames }: YouCardProps) {
+export function YouCard({ me, minRatedGames, closedRounds }: YouCardProps) {
   const { rank, trend, stats } = me;
+  const reveal = useRankReveal({ membershipId: me.membershipId, closedRounds, rank, trend });
   const leader = rank === 1;
   const missing = missingRounds(minRatedGames, stats.ratedGames);
 
   return (
     <section
       aria-label={rank === null ? missingRoundsText(missing) : `Você está em ${rank}º`}
-      className="moment-frame animate-moment-in flex flex-col bg-surface-raised"
+      className="moment-frame animate-moment-in relative flex flex-col overflow-hidden bg-surface-raised"
     >
       <div className="flex items-center gap-4 p-4">
         <span
@@ -63,12 +69,14 @@ export function YouCard({ me, minRatedGames }: YouCardProps) {
                 Você está em
               </PixelText>
               <span className="flex items-start gap-1" aria-hidden>
-                <PixelDigits
-                  value={rank}
-                  scale={6}
-                  decorative
-                  className={leader ? 'text-gold' : 'text-text'}
-                />
+                <Bump value={reveal.shown ?? rank} scale={1.25}>
+                  <PixelDigits
+                    value={reveal.shown ?? rank}
+                    scale={6}
+                    decorative
+                    className={leader ? 'text-gold' : 'text-text'}
+                  />
+                </Bump>
                 <Ordinal scale={3} className={cn('mt-1', leader ? 'text-gold' : 'text-text')} />
               </span>
             </>
@@ -88,7 +96,9 @@ export function YouCard({ me, minRatedGames }: YouCardProps) {
           </span>
           {trend !== null && (
             <span className="flex items-center gap-2">
-              <TrendMark trend={trend} />
+              <Bump value={reveal.finished ? 1 : 0} scale={1.6} origin="50% 50%">
+                <TrendMark trend={trend} />
+              </Bump>
               <span aria-hidden className="text-sm text-text-muted">
                 {trendLabel(trend)}
               </span>
@@ -96,6 +106,7 @@ export function YouCard({ me, minRatedGames }: YouCardProps) {
           )}
         </div>
       )}
+      {reveal.celebrate && <RankConfetti />}
     </section>
   );
 }

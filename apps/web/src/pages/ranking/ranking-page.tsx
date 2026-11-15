@@ -63,7 +63,9 @@ function Ranking({ groupId }: { groupId: string }) {
         />
       ) : (
         <>
-          {me && <YouCard me={me} minRatedGames={data.minRatedGames} />}
+          {me && (
+            <YouCard me={me} minRatedGames={data.minRatedGames} closedRounds={data.closedRounds} />
+          )}
           <div className="flex flex-col gap-3">
             <Segmented
               label="Ranking"
