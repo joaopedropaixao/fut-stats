@@ -73,7 +73,7 @@ export async function renderCardPng(card: PackCard, roundNumber: number): Promis
       color: resolveColor('var(--color-text)'),
       align: 'center',
     });
-    drawPhrase(ctx, card.phrase!, oy + CARD_H * scale + 34);
+    drawPhrase(ctx, card.phrase!);
   } else {
     text(ctx, 'Fut Stats', SHARE_WIDTH / 2, 1268, {
       size: 40,
@@ -120,16 +120,20 @@ function drawStage(ctx: CanvasRenderingContext2D) {
   }
 }
 
-/** A frase de impacto: faixa escura com contorno de ouro e sombra dura, letras claras, em até duas linhas. */
-function drawPhrase(ctx: CanvasRenderingContext2D, phrase: string, y: number) {
+/**
+ * A frase de impacto: faixa escura com contorno de ouro e sombra dura, letras claras, em até duas linhas. Ancorada
+ * embaixo, com 28 px de respiro até a borda da imagem (a sombra incluída), qualquer que seja o número de linhas.
+ */
+function drawPhrase(ctx: CanvasRenderingContext2D, phrase: string) {
   const x = 60;
   const w = SHARE_WIDTH - 120;
   const size = 32;
+  const step = size + 6;
+  const shadow = 8;
   ctx.font = `700 ${size}px Silkscreen, monospace`;
-  const upper = phrase.toUpperCase();
   const lines: string[] = [];
   let current = '';
-  for (const word of upper.split(' ')) {
+  for (const word of phrase.toUpperCase().split(' ')) {
     const next = current ? `${current} ${word}` : word;
     if (current && ctx.measureText(next).width > w - 48) {
       lines.push(current);
@@ -137,8 +141,8 @@ function drawPhrase(ctx: CanvasRenderingContext2D, phrase: string, y: number) {
     } else current = next;
   }
   lines.push(current);
-  const h = 28 + lines.length * (size + 8);
-  const shadow = 8;
+  const h = 28 + lines.length * step;
+  const y = SHARE_HEIGHT - 28 - shadow - h;
   ctx.fillStyle = '#000';
   ctx.fillRect(x + shadow, y + shadow, w, h);
   ctx.fillStyle = resolveColor('var(--color-gold)');
@@ -146,7 +150,7 @@ function drawPhrase(ctx: CanvasRenderingContext2D, phrase: string, y: number) {
   ctx.fillStyle = '#000';
   ctx.fillRect(x + 8, y + 8, w - 16, h - 16);
   lines.forEach((line, i) =>
-    text(ctx, line, SHARE_WIDTH / 2, y + 18 + i * (size + 8), {
+    text(ctx, line, SHARE_WIDTH / 2, y + 17 + i * step, {
       size,
       color: resolveColor('var(--color-text)'),
       align: 'center',
@@ -184,12 +188,13 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
     const sw = 64;
     const sx = CARD_W - 9 - sw;
     ctx.fillStyle = '#000';
-    ctx.fillRect(sx + 3, 12, sw, 24);
+    ctx.fillRect(sx + 3, 10, sw, 28);
     ctx.fillStyle = resolveColor('var(--color-text)');
-    ctx.fillRect(sx, 9, sw, 24);
+    ctx.fillRect(sx, 7, sw, 28);
     ctx.fillStyle = '#000';
-    ctx.fillRect(sx + 3, 12, sw - 6, 18);
-    text(ctx, 'Você', sx + sw / 2, 13, {
+    ctx.fillRect(sx + 3, 10, sw - 6, 22);
+    // o texto desce um pouco: o acento do Ê precisa de folga em cima, dentro do selo
+    text(ctx, 'Você', sx + sw / 2, 17, {
       color: resolveColor('var(--color-text)'),
       align: 'center',
     });
@@ -246,7 +251,7 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
   const note =
     card.kind === 'mine'
       ? card.rank !== null
-        ? `#${card.rank} na rodada`
+        ? `Posição ${card.rank}`
         : ''
       : `Rodada ${roundNumber}`;
   text(ctx, player.nickname, 12, 208, { color: tier.ink, maxWidth: CARD_W - 24 });

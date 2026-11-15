@@ -26,7 +26,7 @@ export type PlayerCardProps = {
   score: number | null;
   /** O tipo da carta, escrito: "Craque", "Perna de pau", "Sua carta". */
   kind: string;
-  /** A segunda linha de texto da base ("Rodada 12", "Hoje não deu", "#3 na rodada"). */
+  /** A segunda linha de texto da base ("Rodada 12", "Hoje não deu", "Posição 3"). */
   note: string;
   clues?: CardClues;
   /** Carta de quem vê: selo VOCÊ. */

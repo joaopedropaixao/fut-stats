@@ -48,7 +48,7 @@ export function FlopPackCard({
   );
 }
 
-/** A sua carta: a sua nota, a sua posição e "#N na rodada", na faixa da nota. */
+/** A sua carta: a sua nota, a sua posição e "Posição N", na faixa da nota. */
 export function MinePackCard({
   player,
   tier,
@@ -65,7 +65,7 @@ export function MinePackCard({
       tier={tier}
       score={player.score}
       kind="Sua carta"
-      note={rank !== null ? `#${rank} na rodada` : 'Sem posição'}
+      note={rank !== null ? `Posição ${rank}` : 'Sem posição'}
       you
       tilt="rotate-[-2deg]"
       clues={clues}
