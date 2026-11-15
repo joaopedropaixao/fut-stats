@@ -7,6 +7,7 @@ import {
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
 import { Badge } from '../../components/ui/badge';
+import { MemberAvatar } from '../rounds/member-avatar';
 import { PlayerSprite } from '../../components/ui/pixel-sprite';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
@@ -83,6 +84,25 @@ export function MatchCard({ item, avatar, index }: MatchCardProps) {
           )}
         </div>
       </div>
+      {item.mvps.length > 0 && (
+        <ul
+          aria-label="Craque da rodada"
+          className="flex flex-col gap-2 px-4 py-3 shadow-[inset_0_3px_0_0_var(--color-border-strong)]"
+        >
+          {item.mvps.map((mvp) => (
+            <li
+              key={mvp.membershipId}
+              className="flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1.5"
+            >
+              <MemberAvatar nickname={mvp.nickname} avatar={mvp.avatar} size={40} />
+              <Badge variant="craque" label="Craque" />
+              <PixelText wrap className="min-w-0 text-gold">
+                {mvp.nickname}
+              </PixelText>
+            </li>
+          ))}
+        </ul>
+      )}
     </Link>
   );
 }

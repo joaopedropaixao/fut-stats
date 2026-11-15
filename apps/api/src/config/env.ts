@@ -10,6 +10,11 @@ export const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   /** Quantos dias a sessão vale depois do login. */
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  /**
+   * De quantos em quantos milissegundos o relógio da API fecha votações vencidas. Padrão 60 000 (1 minuto);
+   * `0` desliga (os testes). Fechar também acontece no último voto e ao abrir o app depois do prazo.
+   */
+  VOTING_CLOSER_INTERVAL_MS: z.coerce.number().int().min(0).default(60_000),
   /** Credenciais do client OAuth "Web application" do Google Cloud. */
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),

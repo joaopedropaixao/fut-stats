@@ -35,6 +35,7 @@ import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import type { Position } from '../generated/prisma/enums';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RoundLockService } from '../rounds/round-lock.service';
 
 /** Erros de quem pode (dono do lance, admin) saem como 403; o resto (momento, números) como 409. */
 const FORBIDDEN_CODES: ReadonlySet<string> = new Set(['NOT_ADMIN', 'NOT_OWN_EVENT']);
@@ -87,7 +88,10 @@ function toRoundTeams(rows: readonly TeamPlayerRow[]): RoundTeams | null {
 
 @Injectable()
 export class MatchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly roundLock: RoundLockService,
+  ) {}
 
   /** O jogo da rodada: placar, quem jogou, lances, o que quem pede pode fazer e o que trava o próximo passo. */
   async view(membership: GroupMembership, roundId: string): Promise<MatchView> {
@@ -296,23 +300,13 @@ export class MatchService {
     return this.view(membership, roundId);
   }
 
-  /**
-   * Toda escrita da rodada roda aqui: uma transação que começa travando a linha da rodada (`FOR UPDATE`).
-   * Quem chega depois espera o commit de quem travou e só então carrega, valida e grava, então a validação
-   * sempre vê o que o pedido anterior gravou (placar no limite, etapa, lance já apagado). Rodada de outro grupo
-   * ou inexistente não trava nada e leva 404. A resposta (`view`) é montada depois do commit.
-   */
+  /** Toda escrita da rodada roda na trava por rodada (`RoundLockService`), compartilhada com a votação. */
   private withRoundLock<T>(
     groupId: string,
     roundId: string,
     work: (tx: Tx) => Promise<T>,
   ): Promise<T> {
-    return this.prisma.$transaction(async (tx) => {
-      const locked = await tx.$queryRaw<{ locked: number }[]>`
-        SELECT 1 AS locked FROM "Round" WHERE id = ${roundId} AND "groupId" = ${groupId} FOR UPDATE`;
-      if (locked.length === 0) throw new NotFoundException();
-      return work(tx);
-    });
+    return this.roundLock.withRoundLock(groupId, roundId, work);
   }
 
   /** Muda a etapa só se ninguém mudou antes (dois admins ao mesmo tempo: o segundo leva 409). */

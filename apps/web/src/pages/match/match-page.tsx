@@ -194,6 +194,13 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
                   ? 'A votação está aberta. O placar e os lances não mudam mais.'
                   : 'A rodada foi encerrada. O placar e os lances não mudam mais.'}
               </Note>
+              {view.status === 'VOTING' && (
+                <RouteButton
+                  to={`/rodadas/${view.roundId}/votar`}
+                  label="Ir para a votação"
+                  block
+                />
+              )}
               <EventList view={view} onRemove={(event) => void remove(event)} removing />
             </>
           )}

@@ -10,9 +10,9 @@
 | **Modo** | Par |
 | **Parte de** | — |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @7e3902d |
 | **Depende de** | perfil-jogador, historico |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/domain/src/round-score, packages/shared/src/voting.ts, packages/shared/src/round.ts, packages/shared/src/history.ts, packages/shared/src/domain.ts, apps/api/src/voting, apps/api/src/match, apps/api/src/rounds, apps/api/src/history, apps/api/src/seed, apps/api/src/config/env.ts, .env.example, apps/web/src/features/voting, apps/web/src/pages/voting, apps/web/src/pages/rounds/home.tsx, apps/web/src/pages/rounds/detail.tsx, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/router.tsx |
+| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/domain/src/round-score, packages/shared/src/voting.ts, packages/shared/src/round.ts, packages/shared/src/history.ts, packages/shared/src/domain.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/match, apps/api/src/rounds, apps/api/src/history, apps/api/src/seed, apps/api/src/config/env.ts, .env.example, apps/web/src/features/voting, apps/web/src/pages/voting, apps/web/src/pages/rounds/home.tsx, apps/web/src/pages/rounds/detail.tsx, apps/web/src/pages/match, apps/web/src/features/match, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/router.tsx |
 
 ## Produto
 
@@ -170,7 +170,9 @@ Schemas em `packages/shared/src/voting.ts` (arquivo novo, exportado no `index.ts
 | `POST` | `/close` | admin | — | `VotingView` | 403 `NOT_ADMIN`; 404; 409 `RoundTransitionError` |
 | `GET` | `/result` | membro | — | `RoundResult` | 404; 409 `RESULT_NOT_READY` |
 
-Erro de regra vem como `{ code, message }`. Quem pode → 403; momento → 409; conteúdo do voto → 400.
+Erro de regra vem como `{ code, message }`. Quem pode → 403; momento → 409; conteúdo do voto → 400, com
+`issues: { path, code, message }[]` (`path` = `ratings.<targetId>`, `mvpId` ou `flopId`; o `code` de topo é o do
+primeiro problema, notas antes de prêmios).
 
 ```ts
 // packages/shared/src/voting.ts
@@ -181,7 +183,8 @@ export const VOTING_ERROR_LABELS = {
 } as const;
 export const VOTING_END_REASON_LABELS: Record<VotingEndReason, string>; // 'Todo mundo votou', 'O prazo acabou', 'O admin encerrou'
 
-export const ratingEntrySchema = z.object({ targetId: z.string().min(1), value: ratingSchema });
+// value é z.number(): passo e faixa vêm do domain (INVALID_STEP / OUT_OF_RANGE no 400), não do Zod
+export const ratingEntrySchema = z.object({ targetId: z.string().min(1), value: z.number() });
 
 /** Corpo de PUT .../voting/vote: o pacote inteiro. Enviar de novo substitui. */
 export const submitVoteSchema = z.object({
@@ -302,7 +305,7 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
 - **Início** (`pages/rounds/home.tsx`): acima do bloco da próxima rodada, o card da votação
   (`features/voting/voting-card.tsx`) quando `votingId` existe, e o card do resultado
   (`features/voting/result-alert.tsx`) quando `lastResult` existe e ainda não foi aberto neste aparelho
-  (`result-opened.ts`, no padrão de `vs-seen.ts`). Os dois são `moment-frame` com entrada em degraus. Só um
+  (`result-opened.ts`, no padrão de `features/match/result-seen.ts`: por rodada e por `membershipId`). Os dois são `moment-frame` com entrada em degraus. Só um
   mostra tecla amarela por vez: resultado antes de votação. A fatia `feed` reorganiza essa área depois.
 - **Votar** (`pages/voting/vote-page.tsx`): um reducer puro com teste (`features/voting/vote-flow.ts`) guarda o
   passo, as notas e as escolhas; o rascunho vai para `localStorage` por `roundId` + `membershipId` (com
@@ -345,6 +348,19 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
   só front e merece uma volta de design própria.
 - Admin vê quem falta, nunca o voto — resposta do dono à P12.
 - `withRoundLock` vira provider comum — placar, lances e votos disputam a mesma rodada.
+- Decididas na implementação (TPL, 2026-11-15): `close` do admin com o prazo já vencido ou todos já tendo votado grava
+  o motivo verdadeiro (`DEADLINE_PASSED` / `ALL_VOTED`), não `ADMIN_CLOSED`; na corrida do C19 o perdedor leva sempre
+  409; `RoundResult.votes.total` conta todos que jogaram (estável depois de fechar), o `progress` da votação só os
+  ativos; rodada `CLOSED` sem `closedAt` (só dado antigo de dev) responde `RESULT_NOT_READY`.
+- Ajustes de tela (TPL, 2026-11-15): "SUA NOTA" diz "POSIÇÃO 3 DA RODADA" (o "º" da Silkscreen parece "+");
+  "Votos enviados" usa só o pulinho de 2 quadros (sem pose nova de sprite); "A votação fechou" tem o texto pelo
+  `closeReason`; com o resultado em destaque, o card da votação usa tecla de contorno (uma amarela por tela); as
+  listas de nota e escolha mostram os 15 inteiros.
+- Cruzamento com `rodizio-reservas` (checkpoint de 2026-11-15, Base 7e3902d) — o rodízio põe `rotationStartedAt` e
+  `rotationMinutes` em `Round` (migration `round_rotation`) e mexe em `apps/api/src/match` e na tela do jogo. Ele entra
+  primeiro: a migration `voting` sai com data posterior e é refeita no rebase se o Prisma acusar drift. Em `match`,
+  a votação só troca o `withRoundLock` privado pelo provider (mantendo as chamadas) e o passo Resenha → Votação na
+  tela; nada além disso.
 
 ## Fora do escopo
 - Abertura do pacote do Craque e Compartilhar (`pacote-do-craque`).
@@ -361,4 +377,26 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
 - P14 · Pacote do Craque em fatia própria? → Sim, `pacote-do-craque` (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**2 voltas · VEREDITO: APROVADO** (2026-11-15). Testado em `feature/votacao-front` (contém o back), API :3100,
+web :5273, banco `fut_stats_votacao`.
+
+Volta 1: reprovada só por C6 sem teste unitário com o id (a regra funcionava; provada na integração). Observações
+corrigidas junto: 409 no console ao abrir `/resultado` com a votação aberta; linha "RESULTADO DA RODADA N" quebrando
+em 390 px. Volta 2: as três corrigidas, regressão do fluxo principal e C66 de novo nas telas mexidas.
+
+| Id | Resultado | Evidência |
+|---|---|---|
+| C1–C5 | ok | `packages/domain/src/round-score/results.test.ts` |
+| C6 | ok (volta 2) | `packages/domain/src/round/voting.test.ts` (ativos → `ALL_VOTED`; com o desativado na lista → `null`) |
+| C7, C8 | ok | `packages/domain/src/round/current.test.ts` |
+| C9 | ok | `apps/api/src/prisma/domain-enums.spec.ts` |
+| C10–C32 | ok | `apps/api/src/voting/voting.spec.ts` (id no nome de cada teste), sem mock de Prisma; permissões conferidas também pela API |
+| C33 | ok | `apps/api/src/seed/seed.spec.ts`; os três seeds rodaram |
+| C34–C37 | ok | Playwright: cards do início (aberta, já votei, não jogou) e "Ir para a votação" no detalhe e no jogo |
+| C38–C54 | ok | Playwright: nota (6,0 no primeiro toque, passo 0,5, limites, régua), revisão, Craque, Perna de Pau, enviado com `hop`, rascunho retomado, seus votos e edição, votação fechou, não jogou, admin (faltam votar, gaveta 0,18 s), medidor em 14 s, erro de rede |
+| C55–C63 | ok | Playwright: resultado saiu → linha, carta do Craque, Perna de Pau, sua nota, tabela, empate (lado a lado / empilhado em 320), sem votos, ainda não saiu (sem 409 no console), histórico |
+| C64 | ok | `reduce`: só `vs-fade`; `hop` parado |
+| C65 | ok | esqueleto, 500 com "Tentar de novo", não encontrada |
+| C66 | ok | checagem automática em 320, 375, 390, 430 e 1280: sem rolagem horizontal, sobreposição, texto cortado; alvos ≥ 44 px |
+
+"Pronto" na raiz: lint, typecheck, test (api 427, domain 409, web 399, shared 2) e build ok. JS inicial 146,0 de 150 kB.

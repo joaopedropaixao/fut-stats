@@ -26,6 +26,11 @@ export function formatRoundDay(value: DateInput): string {
   return `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]}`;
 }
 
+/** "SÁB": o dia da semana de uma data real (o prazo da votação), no fuso do aparelho. */
+export function formatRoundWeekday(value: DateInput): string {
+  return WEEKDAYS[toDate(value).getDay()]!;
+}
+
 /** "9H" na hora cheia, "9H30" nas outras. */
 export function formatRoundTime(value: DateInput): string {
   const date = toDate(value);

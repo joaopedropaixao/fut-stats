@@ -19,20 +19,20 @@ const VARIANT: Record<BadgeVariant, string> = {
   deadline: 'text-text shadow-card',
 };
 
-function Star() {
+export function Star({ size = 13 }: { size?: number }) {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden className="shrink-0 fill-gold">
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden className="shrink-0 fill-gold">
       <path d="M12 2l3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5 7.5-.7z" />
     </svg>
   );
 }
 
 /** Pernas de pau (ícone do Perna de Pau). */
-function Stilts() {
+export function Stilts({ size = 16 }: { size?: number }) {
   return (
     <svg
-      width="16"
-      height="16"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

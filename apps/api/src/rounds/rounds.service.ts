@@ -9,6 +9,9 @@ import {
   isRoundDeletable,
   isRoundEditable,
   pickCurrentRound,
+  pickLatestResult,
+  pickVotingRound,
+  RESULT_HIGHLIGHT_DAYS,
   rankByRating,
   suggestNextRoundDate,
   validateAttendanceChange,
@@ -30,6 +33,9 @@ import {
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import { PrismaService } from '../prisma/prisma.service';
+import { VotingService } from '../voting/voting.service';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Só conta quem confirmou e segue ativo no grupo. */
 const confirmedCount = {
@@ -66,7 +72,10 @@ function toActor(membership: GroupMembership): RoundActor {
 
 @Injectable()
 export class RoundsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly voting: VotingService,
+  ) {}
 
   async create(membership: GroupMembership, input: CreateRoundInput): Promise<RoundDetail> {
     const round = await this.prisma.round.create({
@@ -85,7 +94,10 @@ export class RoundsService {
    * rodada da vez (`pickCurrentRound`), para o início não repetir a regra.
    */
   async list(groupId: string, now = new Date()): Promise<RoundList> {
-    const [upcoming, past, lastCreated] = await Promise.all([
+    // Votação com o prazo vencido e ninguém fechou ainda: fecha antes de responder (a API gratuita dorme).
+    await this.voting.closeDueVotings(now, groupId);
+
+    const [upcoming, past, lastCreated, recentlyClosed] = await Promise.all([
       this.prisma.round.findMany({
         where: { groupId, scheduledAt: { gte: now } },
         select: summarySelect,
@@ -104,8 +116,19 @@ export class RoundsService {
         // number desempata rodadas criadas no mesmo milissegundo
         orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
       }),
+      // Só as que fecharam dentro do destaque do resultado; quem decide qual é a última é o domain
+      this.prisma.round.findMany({
+        where: {
+          groupId,
+          status: 'CLOSED',
+          closedAt: { gt: new Date(now.getTime() - RESULT_HIGHLIGHT_DAYS * DAY_MS) },
+        },
+        select: { id: true, number: true, status: true, closedAt: true },
+      }),
     ]);
     const current = pickCurrentRound([...upcoming, ...past], now);
+    const voting = pickVotingRound([...upcoming, ...past]);
+    const lastResult = pickLatestResult(recentlyClosed, now);
     const suggestedAt = suggestNextRoundDate(lastCreated?.scheduledAt ?? null, now);
     return {
       upcoming: upcoming.map(toSummary),
@@ -113,6 +136,14 @@ export class RoundsService {
       currentId: current?.id ?? null,
       suggestion: suggestedAt
         ? { scheduledAt: suggestedAt.toISOString(), location: lastCreated!.location }
+        : null,
+      votingId: voting?.id ?? null,
+      lastResult: lastResult
+        ? {
+            roundId: lastResult.id,
+            number: lastResult.number,
+            closedAt: lastResult.closedAt!.toISOString(),
+          }
         : null,
     };
   }

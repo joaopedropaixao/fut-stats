@@ -15,6 +15,7 @@ import { useLineup } from '../../features/lineup/queries';
 import { RoundHeading } from '../../features/lineup/round-heading';
 import { EventList } from '../../features/match/event-list';
 import { useMatch } from '../../features/match/queries';
+import { ResultBlock } from '../../features/voting/result-block';
 import { Scoreboard } from '../../features/match/scoreboard';
 import { RouteButton } from '../../features/rounds/route-button';
 import { useRound } from '../../features/rounds/queries';
@@ -146,6 +147,7 @@ function Finished({
           hideYouBanner
         />
       )}
+      {view.status === 'CLOSED' && <ResultBlock groupId={groupId} roundId={view.roundId} />}
       <EventList view={view} only={lineup.data ? team : undefined} />
     </div>
   );

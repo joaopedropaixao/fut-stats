@@ -451,6 +451,20 @@
   animation: coin-spin 140ms steps(1, end) 4;
 }
 
+/* Votos enviados: o bonequinho dá um pulinho de 2 quadros (parado no chão, no ar), sem parar. Reduzir movimento: parado. */
+@keyframes hop {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-12px);
+  }
+}
+
+@utility animate-hop {
+  animation: hop 400ms steps(1, end) infinite alternate;
+}
+
 /* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */
 @media (prefers-reduced-motion: reduce) {
   *,

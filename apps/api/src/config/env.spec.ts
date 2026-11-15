@@ -45,6 +45,22 @@ describe('validateEnv', () => {
     expect(validateEnv({ ...valid, SESSION_TTL_DAYS: '7' }).SESSION_TTL_DAYS).toBe(7);
   });
 
+  it('o relógio de fechar votações roda a cada minuto por padrão, aceita outro valor e 0 desliga', () => {
+    expect(validateEnv(valid).VOTING_CLOSER_INTERVAL_MS).toBe(60_000);
+    expect(
+      validateEnv({ ...valid, VOTING_CLOSER_INTERVAL_MS: '5000' }).VOTING_CLOSER_INTERVAL_MS,
+    ).toBe(5000);
+    expect(
+      validateEnv({ ...valid, VOTING_CLOSER_INTERVAL_MS: '0' }).VOTING_CLOSER_INTERVAL_MS,
+    ).toBe(0);
+  });
+
+  it('falha quando VOTING_CLOSER_INTERVAL_MS é negativo', () => {
+    expect(() => validateEnv({ ...valid, VOTING_CLOSER_INTERVAL_MS: '-1' })).toThrow(
+      /VOTING_CLOSER_INTERVAL_MS/,
+    );
+  });
+
   it('falha quando SESSION_TTL_DAYS não é inteiro positivo', () => {
     expect(() => validateEnv({ ...valid, SESSION_TTL_DAYS: '0' })).toThrow(/SESSION_TTL_DAYS/);
   });

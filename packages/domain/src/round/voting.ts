@@ -52,3 +52,11 @@ export function shouldCloseVoting(now: Date, voting: VotingState): boolean {
 export function isVotingOpen(status: RoundStatus, now: Date, voting: VotingState): boolean {
   return status === 'VOTING' && !shouldCloseVoting(now, voting);
 }
+
+/** Por que a votação fechou: os dois motivos automáticos mais o admin encerrando (igual ao enum do banco). */
+export const VOTING_END_REASONS = [...VOTING_CLOSE_REASONS, 'ADMIN_CLOSED'] as const;
+
+export type VotingEndReason = (typeof VOTING_END_REASONS)[number];
+
+/** Por quantos dias o início destaca "O resultado saiu" depois do fechamento. */
+export const RESULT_HIGHLIGHT_DAYS = 7;
