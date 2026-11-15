@@ -10,21 +10,24 @@ import { eventLaunchedBy, goalsOfScore } from './match-text';
 
 type EventListProps = {
   view: Pick<MatchView, 'events' | 'score' | 'tally'>;
-  onRemove: (event: MatchView['events'][number]) => void;
-  removing: boolean;
+  /** Sem `onRemove`, a lista é só para ler (histórico): nada de lixeira. */
+  onRemove?: (event: MatchView['events'][number]) => void;
+  removing?: boolean;
+  /** Mostra só os lances deste time (o seletor da tela escolheu). */
+  only?: (typeof TEAMS)[number];
 };
 
 const TEAMS = ['WHITE', 'BLACK'] as const;
 
 /** Lances por time: gol contra aparece no time que ganhou o gol; o anel do avatar é o time de quem fez. */
-export function EventList({ view, onRemove, removing }: EventListProps) {
+export function EventList({ view, onRemove, removing = false, only }: EventListProps) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-4">
       <h2 id={headingId}>
         <PixelText>Lances</PixelText>
       </h2>
-      {TEAMS.map((team) => {
+      {TEAMS.filter((team) => !only || team === only).map((team) => {
         const list = view.events.filter((event) => event.team === team);
         const goals = view.tally.goals[team];
         const scored = view.score?.[team];
@@ -48,7 +51,9 @@ export function EventList({ view, onRemove, removing }: EventListProps) {
             <ul className="flex flex-col bg-surface shadow-card">
               {list.length === 0 && (
                 <li className="flex min-h-16 items-center px-4 text-sm text-text-muted">
-                  Nenhum gol ou assistência lançado ainda.
+                  {onRemove
+                    ? 'Nenhum gol ou assistência lançado ainda.'
+                    : `Nenhum lance do ${TEAM_LABELS[team]} nesta partida`}
                 </li>
               )}
               {list.map((event, i) => (
@@ -79,7 +84,7 @@ export function EventList({ view, onRemove, removing }: EventListProps) {
                         ` · ${eventLaunchedBy(event.type, event.createdByNickname)}`}
                     </p>
                   </div>
-                  {event.canRemove && (
+                  {onRemove && event.canRemove && (
                     <IconButton
                       icon="trash"
                       label={`Remover ${MATCH_EVENT_TYPE_LABELS[event.type].toLowerCase()} de ${event.nickname}`}

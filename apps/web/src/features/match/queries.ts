@@ -6,6 +6,7 @@ import {
 } from '@fut-stats/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiDeleteJson, apiGet, apiPost, apiPut } from '../../lib/api';
+import { historyKey } from '../history/history-key';
 import { roundKey, roundsKey } from '../rounds/queries';
 import { matchRefreshInterval } from './refresh-interval';
 
@@ -37,6 +38,8 @@ export function useMatchActions(groupId: string, roundId: string) {
     setView(view);
     void queryClient.invalidateQueries({ queryKey: roundKey(groupId, roundId), exact: true });
     void queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true });
+    // A partida entra no Histórico ao finalizar: a lista refaz ao abrir
+    void queryClient.invalidateQueries({ queryKey: historyKey(groupId), exact: true });
   };
 
   return {
@@ -54,7 +57,10 @@ export function useMatchActions(groupId: string, roundId: string) {
     }),
     setScore: useMutation({
       mutationFn: (score: SetMatchScoreInput) => apiPut(`${path}/score`, matchViewSchema, score),
-      onSuccess: setView,
+      onSuccess: (view: MatchView) => {
+        setView(view);
+        void queryClient.invalidateQueries({ queryKey: historyKey(groupId), exact: true });
+      },
     }),
     launch: useMutation({
       mutationFn: (input: LaunchMatchEventInput) =>

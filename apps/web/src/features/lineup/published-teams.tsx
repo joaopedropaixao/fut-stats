@@ -15,10 +15,22 @@ type PublishedTeamsProps = {
   roundId?: string;
   /** Quem está vendo: o time dele abre primeiro, com a faixa "Você joga no ...". */
   myMembershipId?: string;
+  /** Sem o time escolhido pela tela, o seletor é daqui. Com ele, a tela também usa a escolha (os lances do time). */
+  team?: TeamKey;
+  onTeamChange?: (team: TeamKey) => void;
+  /** Esconde a faixa "Você joga no ..." quando a tela já tem a sua (o histórico mostra o resultado no lugar). */
+  hideYouBanner?: boolean;
 };
 
 /** Os times publicados: o mesmo campo 1-2-3-1 da montagem, só para ver, um time de cada vez. */
-export function PublishedTeams({ lineup, roundId, myMembershipId }: PublishedTeamsProps) {
+export function PublishedTeams({
+  lineup,
+  roundId,
+  myMembershipId,
+  team: controlled,
+  onTeamChange,
+  hideYouBanner,
+}: PublishedTeamsProps) {
   const draft = useMemo(() => draftFromLineup(lineup), [lineup]);
   const members = useMemo(() => membersOf(lineup), [lineup]);
   const me = TEAM_KEYS.flatMap((key) => [
@@ -31,20 +43,26 @@ export function PublishedTeams({ lineup, roundId, myMembershipId }: PublishedTea
     BLACK: lineup.teams.BLACK.starters.map((p) => p.avatar),
   };
   const [chosen, setChosen] = useState<TeamKey | null>(null);
-  const team = chosen ?? myTeam ?? 'WHITE';
+  const team = controlled ?? chosen ?? myTeam ?? 'WHITE';
 
   return (
     <div className="flex flex-col gap-4">
       <Mismatch lineup={lineup} />
       {roundId && <VsBoard roundId={roundId} starters={starters} myTeam={myTeam} />}
-      {me && (
+      {me && !hideYouBanner && (
         <YouBanner
           team={me.key}
           avatar={me.player.avatar}
           position={me.reserve ? null : POSITION_LABELS[me.player.position]}
         />
       )}
-      <TeamSegmented value={team} onChange={setChosen} />
+      <TeamSegmented
+        value={team}
+        onChange={(next) => {
+          setChosen(next);
+          onTeamChange?.(next);
+        }}
+      />
       <Pitch team={team} draft={draft[team]} members={members} meId={myMembershipId} />
       <Reserves
         team={team}

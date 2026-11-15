@@ -11,6 +11,7 @@ const AREAS = [
   () => import('../pages/match/match-page'),
   () => import('../pages/perfil/perfil-area'),
   () => import('../pages/elenco/elenco-area'),
+  () => import('../pages/historico/historico-area'),
   () => import('../pages/entrar-e-grupo/start-area'),
 ];
 

@@ -14,6 +14,7 @@ import type { Tab } from './components/ui/tab-bar';
 import { PlaceholderPage } from './pages/placeholder';
 import { profileRoute, startRoutes } from './pages/entrar-e-grupo/routes';
 import { rosterRoutes } from './pages/elenco/routes';
+import { historyRoutes } from './pages/historico/routes';
 import { profileEditRoutes } from './pages/perfil/routes';
 import { roundsRoutes } from './pages/rounds/routes';
 import { timesRoutes } from './pages/times/routes';
@@ -27,6 +28,12 @@ const TAB_PAGES: Partial<Record<string, RouteObject>> = {
   '/times': {
     path: '/times',
     lazy: async () => ({ Component: (await import('./pages/times/times-area')).TeamsTabPage }),
+  },
+  '/historico': {
+    path: '/historico',
+    lazy: async () => ({
+      Component: (await import('./pages/historico/historico-area')).HistoryPage,
+    }),
   },
   '/perfil': profileRoute,
 };
@@ -49,6 +56,7 @@ export const router = createBrowserRouter([
           ...TABS.map((tab) => TAB_PAGES[tab.to] ?? placeholderRoute(tab)),
           ...roundsRoutes,
           ...timesRoutes,
+          ...historyRoutes,
           ...profileEditRoutes,
           ...rosterRoutes,
         ],
