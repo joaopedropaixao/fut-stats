@@ -4,7 +4,6 @@ import {
   avatarSchema,
   matchScoreSchema,
   positionSchema,
-  ratingSchema,
   roundStatusSchema,
   teamSchema,
 } from './domain';
@@ -28,7 +27,11 @@ export const VOTING_END_REASON_LABELS: Readonly<Record<VotingEndReason, string>>
 
 export const votingEndReasonSchema = z.enum(VOTING_END_REASONS);
 
-export const ratingEntrySchema = z.object({ targetId: z.string().min(1), value: ratingSchema });
+export const ratingEntrySchema = z.object({
+  targetId: z.string().min(1),
+  // Só "é número": o passo e a faixa da nota vêm do domain (INVALID_STEP / OUT_OF_RANGE), com o code da regra.
+  value: z.number(),
+});
 
 /** Corpo de PUT .../voting/vote: o pacote inteiro. Enviar de novo substitui. */
 export const submitVoteSchema = z.object({
