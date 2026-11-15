@@ -23,12 +23,33 @@ Este registro separa o que foi relatado pelo coordenador do que aparece nos arte
 | TPL parou apesar de QA aprovado e da instrução para entregar. | **Relato do coordenador**; os arquivos QA demonstram aprovação final, mas não a causa da parada do TPL. | Uma aprovação completa do QA deve levar à etapa de entrega, sem espera artificial. O TPL segue até abrir o PR e informar o dono; merge continua separado e autorizado pelo dono/orquestrador. |
 | Spec do apito foi atualizado antes do código. | **Relato do coordenador**; a ordem temporal não está demonstrada nos relatórios QA consultados. | Registrar e revisar o contrato/spec antes da implementação reduziu ambiguidade para os DEVs. Manter esse comportamento como regra, com evidência do spec aprovado anterior ao primeiro commit de código. |
 
+### Registro adicional: QA7 e recuperação do browser
+
+**Fonte:** relato do coordenador sobre QA7, dispatch `ctx_f321662b8cb9`, task `task_80a2cfeef25e` e sessão Codex `01a1e0f9-bd5a-7991-9249-3a597b65631a`.
+
+O erro `Browser is already in use... use --isolated` reapareceu. A chamada da ferramenta usou `isolatedContext`, mas isso não isolou o processo Playwright MCP que mantém o lock. A QA foi encerrada com o processo confirmado como `exited/released` (`exitCause: operator_close`); o histórico e o binding `qa-7` continuam registrados em `team.mjs`. O worker original está settled.
+
+**Recuperação indicada:** retomar a mesma sessão QA7, preservando `gpt-6-luna/medium`, com override de configuração do processo MCP:
+
+```sh
+codex resume --no-daemon --model gpt-6-luna \
+  -c model_reasoning_effort="medium" \
+  -c mcp_servers.playwright.args="[\"@playwright/mcp@latest\",\"--isolated\"]" \
+  -C /Users/joaopedropaixao/orca/workspaces/fut-stats/rodizio-reservas \
+  01a1e0f9-bd5a-7991-9249-3a597b65631a
+```
+
+Não adicionar bypass de permissões. Como o worker original já está settled, o coordenador supervisiona a retomada/retry na mesma sessão. Antes de retomar, pedir à QA evidência de navegação real usando o browser isolado. Não iniciar QA8 nem repetir suítes: primeiro confirmar o isolamento do processo e a evidência do navegador; retomar só a verificação necessária.
+
+Este episódio reforça que o critério de prontidão do browser deve verificar a configuração efetiva do processo MCP. `isolatedContext` por chamada não prova isolamento do processo, e o encerramento confirmado mais a preservação do binding permitem recuperar a sessão correta sem criar outra QA.
+
 ### O que os relatórios QA comprovam
 
 - QA2 registrou reprovação em C29/C43 e uma divergência de `packages/shared` no worktree front; registrou também suites e verificações de API/Playwright que passaram naquele ciclo.
 - QA3 registrou reprovação por falta de prova visual de C33/C42 e cobertura incompleta de C43. Também registra indisponibilidade transitória da API, reinício e repetição dos fluxos, e baselines sem alterações.
 - QA4 continuou sem aprovar: pediu fixture real para o caso sem reservas, revalidações e cobertura de C43 em vários estados e viewports.
 - QA5 registrou fixtures para C33/C42, aprovação de C1–C43 e a rechecagem de C43 com clipping, scroll, screenshot e hit-test. O QA5 diz que reutilizou os checks integrados informados pelo TPL, sem repetir as suites completas.
+- QA7 e sua recuperação são registrados como relato operacional do coordenador; os identificadores, encerramento, binding preservado e comando recomendado acima não foram inferidos dos relatórios QA2–QA5.
 - `orca orchestration run-show --id run_938627b8c1c2 --json --full` confirmou o Run e seu objetivo. O retorno não continha histórico de Task/Dispatch removido; portanto, este Run identifica o contexto, mas não é prova autônoma dos relatos de operação acima.
 
 ## Fluxo desejado
