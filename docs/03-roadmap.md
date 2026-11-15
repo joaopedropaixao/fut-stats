@@ -43,7 +43,7 @@ abaixo).
 | 8 ✅ | `votacao` | Par | — | **Onda 3.** Tabelas do voto, tela "Dê sua nota", Craque / Perna de Pau, fechar a votação (todos votaram, prazo ou admin), apuração gravada e resultado da rodada |
 | 9 | `auditoria-da-rodada` | Back | `placar-e-lances` | **Onda 4.** Tabela `RoundLog` (quem, o quê, quando, antes/depois) gravada na mesma transação de toda escrita de placar, etapa e lance, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
 | 10 ✅ | `ranking` | Par | `votacao` | **Onda 4.** Ranking geral, por posição e de goleiros; perfil do jogador com estatísticas; a nota do seletor passa a acompanhar as rodadas |
-| 11 | `pacote-do-craque` | Front | `votacao` | **Onda 4.** Grande momento: o resultado chega como pacote, que rasga e revela a carta do Craque, com Compartilhar (fatia nova, 14 nov 2026) |
+| 11 ✅ | `pacote-do-craque` | Front | `votacao` | **Onda 4.** Grande momento: o resultado chega como pacote, que rasga e revela as cartas do Craque (com walkout), do Perna de Pau e a sua (bronze/prata/ouro pela nota), com Compartilhar (fatia nova, 14 nov 2026; reforço 15 nov) |
 | 12 | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
 | 13 | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Onda 5.** SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
 | 14 | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado |

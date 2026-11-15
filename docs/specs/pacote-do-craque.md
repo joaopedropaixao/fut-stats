@@ -164,4 +164,41 @@ movimento, já aberto com "Abrir o pacote de novo", página com brilho holográf
 - Reforço 15 nov 2026 (dono testou a votação: "faltou animação e alguma festinha" no Craque; "bem dopamina mesmo!") → três cartas (Craque, Perna de Pau, a sua), faixa bronze/prata/ouro pela nota (cortes 6 e 8), walkout com pistas, ~2 s por carta, uma vez por jogador, brilho holográfico e Compartilhar na sua carta, cards do início com uma cor de destaque cada.
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**2 voltas, VEREDITO: APROVADO** (15 nov 2026).
+
+- **Volta 1, reprovada com 2 falhas, ambas no "Pular":**
+  - C16/C25: com os dois Craques juntos, a 2ª carta e o "Pular" ficavam sob a barra de baixo.
+  - Em tela baixa (375×667, 320×568), o "Pular" ficava escondido em todos os quadros.
+- **Volta 2, aprovada:** dois Craques lado a lado a partir de 360 px, empilhados só em 320; "Pular" no topo do quadro; a página rola até o pacote. Também entraram:
+  - o rótulo "CRAQUE / RODADA N" fica no pacote durante o rasgo;
+  - o card do início sem votos diz "Notas fechadas. Veja como foi a rodada.";
+  - o leitor de tela anuncia o Craque só quando o rosto aparece.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1 card do início | OK | Tecla amarela "Abrir pacote", pacote em miniatura tremendo (parado com reduzir movimento) |
+| C2 fechado | OK | "Pular" de 44 px nas 5 larguras |
+| C3 tremendo / C4 rasgo | OK | `c3-suspense-tremendo`, `c4-rasgo` |
+| C5 walkout | OK | Time → posição → nota em degraus → rosto com flash, estrelas, confete; `vibrate(40)` |
+| C6 Craque / C7 Perna de Pau | OK | `c6-craque-revelado`, `c7-perna-de-pau` (virada, rachada, "HOJE NÃO DEU") |
+| C8 sua carta | OK | Bronze 5,5 / prata 6,9 / ouro 8,5 |
+| C9 não joguei | OK | Duas cartas |
+| C10 Craque sou eu | OK | Selo "VOCÊ", flash e vibração duplos, o dobro de estrelas e confete, sem 3ª carta |
+| C11 Pular | OK | De qualquer quadro leva às cartas finais |
+| C12 página | OK | Foco no título "Craque da rodada" |
+| C13 já abri / outro jogador | OK | Chave rodada + membershipId; "Abrir o pacote de novo"; outro jogador vê o pacote fechado |
+| C14 sem armazenamento | OK | Abre duas vezes sem erro |
+| C15 reduzir movimento | OK | Fade direto para as cartas finais, sem vibração nem brilho |
+| C16 dois Craques | OK | Dois walkouts, lado a lado a partir de 360 px, empilhados em 320, acima da barra |
+| C17 sem votos | OK | Sem pacote; card do início com "Ver resultado" |
+| C18 brilho holográfico | OK | `steps(14)`, laço de 3,6 s |
+| C19 Compartilhar com arquivo | OK | PNG 1080×1350; textos do Craque e da sua carta |
+| C20 só texto / wa.me | OK | Sem arquivo manda o texto; sem `share`, abre `wa.me` |
+| C21 cancelar | OK | Sem aviso |
+| C22 leitor de tela | OK | Botão do pacote, anúncio por carta, foco no título das cartas finais |
+| C23 tempos | OK | 2 a 2,5 s por carta (Craque 2,5 s: para de se mexer em ~1,75 s); só `transform`/`opacity` |
+| C24 cards do início | OK | Uma cor de destaque por card; prints antes e depois |
+| C25 larguras | OK | 320×568, 360, 375×667, 390×844, 430×932 e 1280: sem rolagem horizontal, sem sobreposição, alvos ≥ 44 px |
+| D1 `cardTier` | OK | `packages/domain/src/round-score/card-tier.test.ts` |
+
+Pronto na raiz: lint, typecheck e test verdes (domain 417, shared 2, api 427, web 424), build verde. JS inicial com 146,1 de 150 kB; o pacote fica num pedaço lazy (`pack-opening` 12,3 kB, `share-card` 2,9 kB).
