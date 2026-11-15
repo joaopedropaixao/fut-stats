@@ -93,8 +93,8 @@ Cada cenário tem um id. Os testes levam o id no nome.
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| C22 | seed com rodadas encerradas | abrir a aba Ranking (`/ranking`) | título "Ranking"; no topo o card de grande momento **"VOCÊ ESTÁ EM 4º"** (meu bonequinho, minha média em dígitos pixel, a tendência); abaixo as abas **Geral · Posição · Goleiros** (folha: Abas/Ranking) | Playwright |
-| C23 | aba Geral | olhar a lista (folha: Card/Ranking) | linha por jogador: posição em dígitos pixel, rosto, apelido inteiro, "Meia · 12 jogos", média com 1 casa e a tendência (▲ 2 / ▼ 1 / =, com nome para leitor de tela: "subiu 2 posições"). **Só o líder em ouro.** A minha linha com "VOCÊ" e fundo de destaque | Playwright |
+| C22 | seed com rodadas encerradas | abrir a aba Ranking (`/ranking`) | título "Ranking"; no topo o card de grande momento **"VOCÊ ESTÁ EM 4º"** (meu bonequinho, minha média em dígitos pixel, a tendência; pódio com coroa/medalha e moldura de ouro, prata ou bronze no top 3; holofote pixel atrás do bonequinho; animação de subir/descer uma vez por rodada, ver Volta de design); abaixo as abas **Geral · Posição · Goleiros** (folha: Abas/Ranking) | Playwright |
+| C23 | aba Geral | olhar a lista (folha: Card/Ranking) | linha por jogador: posição em dígitos pixel, rosto, apelido inteiro, "Meia · 12 jogos", média com 1 casa e a tendência (▲ 2 / ▼ 1 / =, com nome para leitor de tela: "subiu 2 posições"). **Pódio:** 1º, 2º e 3º com medalha pixel pequena ao lado do número (ouro, prata, bronze, com nome para leitor de tela), em todas as abas pela posição mostrada (volta de design). A minha linha com "VOCÊ" e fundo de destaque | Playwright |
 | C24 | empate na média | olhar | os dois com a mesma posição; a seguinte é pulada | Playwright |
 | C25 | jogadores com poucos jogos | rolar | seção "POUCOS JOGOS", sem posição, com "Precisa de 3 rodadas com nota para entrar no ranking" | Playwright |
 | C26 | aba Posição | tocar | seletor Zagueiro · Ala · Meia · Atacante (abre na minha posição; goleiro abre em Zagueiro); a lista mostra só aquela posição, com a posição dentro dela | Playwright |
@@ -105,7 +105,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C31 | jogador sem rodada encerrada | abrir o perfil | "Ainda sem jogos encerrados" no lugar da grade | Playwright |
 | C32 | grupo sem rodada encerrada | abrir o Ranking | vazio: "O ranking começa quando a primeira votação fechar" | Playwright |
 | C33 | lista de presença (início e detalhe da rodada) | olhar | a nota e a posição mostradas são as de referência (batem com C18) | Playwright |
-| C34 | reduzir movimento | abrir | cards com fade, sem degraus | Playwright (`emulateMedia`) |
+| C34 | reduzir movimento | abrir | cards com fade, sem degraus; a posição aparece direto no valor final, sem confete | Playwright (`emulateMedia`) |
 | C35 | carregando; erro da API; jogador não encontrado | Ranking e perfil | esqueleto; "Não deu para carregar o ranking" com "Tentar de novo"; não encontrado com voltar. Console sem erros no fluxo real | Playwright |
 | C36 | larguras 320, 375, 390, 430 px e desktop | Ranking (três abas, com apelidos de 10 letras e posição de dois dígitos) e perfil do jogador | sem rolagem horizontal, sem sobreposição, sem texto cortado; a grade de estatísticas tem 2 colunas em 320 px e 4 a partir de 390 px; alvos ≥ 44 px; no desktop, coluna centralizada. Checagem automática passa | Playwright |
 
@@ -239,6 +239,35 @@ Card/Ranking) e "Figurinhas".
   a história; o seletor quer saber como o jogador está agora. A tela do ranking mostra a média; listas de presença
   e times mostram a nota de referência.
 - Goleiro contado pela vaga em que jogou — a regra que o Cartola já usa.
+
+## Volta de design (15/11/2026, pedida pelo dono no PR #67)
+O dono achou o card do topo "com o fundo verde, que é meio padrão do app" e escolheu três ideias. Aprovado por ele
+depois de testar.
+
+1. **Animação de subir/descer** (`features/ranking/rank-seen.ts`, `rank-reveal.ts`, `use-rank-reveal.ts`,
+   `rank-confetti.tsx`). Na primeira abertura do ranking depois de uma rodada nova, o número vai em degraus da
+   posição antiga (`rank + trend`, da API) para a nova, no máximo 6 números (salto maior é amostrado), e a seta pula.
+   Subiu: confete pixel (ouro, verde e branco). Desceu: só a seta vermelha. Manteve, sem tendência ou fora do
+   ranking: nada. Uma vez por rodada e por jogador: chave `fut-stats:ranking-visto:<membershipId>:<closedRounds>`,
+   storage injetável com `try/catch` (padrão do `result-seen.ts`). Só `transform`/`opacity` em `steps()`; reduzir
+   movimento mostra o final. Duração ≈ 0,9 s em +2; num salto de 5 ou mais chega a ≈ 1,3 s (contagem + confete),
+   aceito pelo dono ao aprovar a volta; ajuste é `MAX_REVEAL_STEPS` ou confete mais curto.
+2. **Pódio** (`podium.ts`, `medal.tsx`). Top 3 com coroa (1º) ou medalha com fita (2º, 3º) e moldura na cor do
+   degrau no card do topo; medalha pequena nas listas (Geral por `rank`, Posição/Goleiros por `positionRank`; empate
+   ganha a mesma). A medalha é o sinal, a cor reforça. Substitui o "só o líder em ouro" e a pergunta do 1º em ouro
+   nas abas Posição/Goleiros. A figurinha usa as mesmas cores e medalha, para não divergir. Tokens novos
+   `--color-silver*` e `--color-bronze*` (`theme.css`, `docs/design/tokens.css`, `DESIGN.md`); nenhum amarelo de
+   ação. A moldura pela média (`cardTier`, PR #69) fica fora.
+3. **Fundo do card: holofote pixel atrás do bonequinho** (`spotlight.tsx`, commit próprio `a3fbbbb`, reversível com
+   `git revert` sozinho; o dono disse que o fundo é teste). **Escolhido no lugar do corte diagonal do `Scoreboard`**
+   porque o branco/preto do placar quer dizer "Branco x Preto" (os times) e o número da posição cairia sobre uma
+   das metades, piorando o contraste em 320 px; o holofote fica só no quadro do bonequinho, o número e o texto
+   seguem no fundo do card (contraste 9,8 / 7,15; ouro 5,69, prata 6,6, bronze 5,63) e o jogador ganha palco.
+
+QA da volta: aprovado. Animação (subiu, desceu, manteve, segunda abertura, reduzir movimento, storage bloqueado),
+pódio nas três abas, no topo e na figurinha, sem amarelo de ação, revert do holofote limpo (`git apply --check -R`),
+checagem automática em 320/375/390/430/1280 (80 combinações, 0 problemas), console sem erros, web verde e JS
+inicial 146,4 de 150 kB. Prints `design-*` no álbum (antes/depois, com e sem holofote, pódio, quadros da animação).
 
 ## Fora do escopo
 - Temporadas e reinício do ranking.
