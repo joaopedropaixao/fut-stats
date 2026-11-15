@@ -1,9 +1,15 @@
 import {
+  AVATAR_HAIR_COLORS,
+  AVATAR_HAIRS,
+  AVATAR_SKINS,
   MATCH_EVENT_TYPES,
   POSITIONS,
   ROLES,
   ROUND_STATUSES,
   TEAMS,
+  type AvatarHair,
+  type AvatarHairColor,
+  type AvatarSkin,
   type MatchEventType,
   type Position,
   type Role,
@@ -11,6 +17,9 @@ import {
   type Team,
 } from '@fut-stats/domain';
 import {
+  AvatarHair as DbAvatarHair,
+  AvatarHairColor as DbAvatarHairColor,
+  AvatarSkin as DbAvatarSkin,
   MatchEventType as DbMatchEventType,
   Position as DbPosition,
   Role as DbRole,
@@ -26,6 +35,9 @@ const positionTypesMatch: Equals<DbPosition, Position> = true;
 const teamTypesMatch: Equals<DbTeam, Team> = true;
 const roleTypesMatch: Equals<DbRole, Role> = true;
 const roundStatusTypesMatch: Equals<DbRoundStatus, RoundStatus> = true;
+const avatarSkinTypesMatch: Equals<DbAvatarSkin, AvatarSkin> = true;
+const avatarHairTypesMatch: Equals<DbAvatarHair, AvatarHair> = true;
+const avatarHairColorTypesMatch: Equals<DbAvatarHairColor, AvatarHairColor> = true;
 const matchEventTypesMatch: Equals<DbMatchEventType, MatchEventType> = true;
 
 describe('enums do banco x domain', () => {
@@ -52,5 +64,20 @@ describe('enums do banco x domain', () => {
   it('RoundStatus tem os mesmos valores, na mesma ordem', () => {
     expect(roundStatusTypesMatch).toBe(true);
     expect(Object.values(DbRoundStatus)).toEqual([...ROUND_STATUSES]);
+  });
+
+  it('AvatarSkin tem os mesmos valores, na mesma ordem', () => {
+    expect(avatarSkinTypesMatch).toBe(true);
+    expect(Object.values(DbAvatarSkin)).toEqual([...AVATAR_SKINS]);
+  });
+
+  it('AvatarHair tem os mesmos valores, na mesma ordem', () => {
+    expect(avatarHairTypesMatch).toBe(true);
+    expect(Object.values(DbAvatarHair)).toEqual([...AVATAR_HAIRS]);
+  });
+
+  it('AvatarHairColor tem os mesmos valores, na mesma ordem', () => {
+    expect(avatarHairColorTypesMatch).toBe(true);
+    expect(Object.values(DbAvatarHairColor)).toEqual([...AVATAR_HAIR_COLORS]);
   });
 });

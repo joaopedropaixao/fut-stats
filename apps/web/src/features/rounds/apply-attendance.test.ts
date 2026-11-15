@@ -6,6 +6,7 @@ const member = (id: string, nickname: string): AttendanceMember => ({
   membershipId: id,
   nickname,
   photoUrl: null,
+  avatar: { skin: 'TAN', hair: 'SHORT', hairColor: 'BLACK' },
   primaryPosition: 'MIDFIELDER',
   isHiredGoalkeeper: false,
   respondedAt: null,

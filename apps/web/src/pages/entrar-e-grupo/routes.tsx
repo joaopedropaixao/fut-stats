@@ -27,5 +27,5 @@ export const startRoutes: RouteObject[] = [
 /** /perfil entra dentro do shell, na aba Perfil. */
 export const profileRoute: RouteObject = {
   path: '/perfil',
-  lazy: async () => ({ Component: (await import('./profile-page')).ProfilePage }),
+  lazy: async () => ({ Component: (await import('../perfil/perfil-area')).ProfilePage }),
 };

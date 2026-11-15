@@ -1,4 +1,4 @@
-import { TEAM_LABELS } from '@fut-stats/shared';
+import { TEAM_LABELS, type PlayerAvatar } from '@fut-stats/shared';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { SpriteTeam } from '../../components/ui/pixel-sprite-maps';
 import { PlayerSprite } from '../../components/ui/pixel-sprite';
@@ -11,8 +11,8 @@ type Phase = 'entry' | 'clash' | 'final';
 
 type VsBoardProps = {
   roundId: string;
-  /** Titulares de cada time (os bonequinhos do quadro). */
-  counts: Record<TeamKey, number>;
+  /** Os bonequinhos dos titulares de cada time (pele e cabelo de cada um, camisa do time). */
+  starters: Record<TeamKey, readonly PlayerAvatar[]>;
   /** O time de quem vê (`null` se não está escalado). */
   myTeam: TeamKey | null;
 };
@@ -36,7 +36,7 @@ const VS_SHADOW = '[text-shadow:#000_4px_4px_0,#000_-2px_-2px_0,#000_2px_-2px_0,
  * Na primeira vez da rodada toca (até 0,9 s, com "Pular"); depois vai direto ao quadro final. Com "reduzir
  * movimento" não anima: o quadro final aparece com um fade. A animação é decorativa (aria-hidden).
  */
-export function VsBoard({ roundId, counts, myTeam }: VsBoardProps) {
+export function VsBoard({ roundId, starters, myTeam }: VsBoardProps) {
   const [reduced] = useState(prefersReducedMotion);
   const [animated] = useState(() => !reduced && !hasSeenVs(roundId));
   const [phase, setPhase] = useState<Phase>(animated ? 'entry' : 'final');
@@ -78,8 +78,8 @@ export function VsBoard({ roundId, counts, myTeam }: VsBoardProps) {
         )}
       >
         <div className={cn('absolute inset-0', phase === 'clash' && 'animate-vs-shake')}>
-          <TeamBlock team="WHITE" phase={phase} count={counts.WHITE} />
-          <TeamBlock team="BLACK" phase={phase} count={counts.BLACK} />
+          <TeamBlock team="WHITE" phase={phase} avatars={starters.WHITE} />
+          <TeamBlock team="BLACK" phase={phase} avatars={starters.BLACK} />
           {phase === 'entry' && <SpeedLines />}
           {phase === 'clash' && <div className="animate-vs-flash absolute inset-0 bg-team-white" />}
           <span
@@ -110,12 +110,20 @@ export function VsBoard({ roundId, counts, myTeam }: VsBoardProps) {
 }
 
 /** Um time no quadro: nome, 7 bonequinhos e a contagem. Branco em cima à esquerda, Preto embaixo à direita. */
-function TeamBlock({ team, phase, count }: { team: TeamKey; phase: Phase; count: number }) {
+function TeamBlock({
+  team,
+  phase,
+  avatars,
+}: {
+  team: TeamKey;
+  phase: Phase;
+  avatars: readonly PlayerAvatar[];
+}) {
+  const count = avatars.length;
   const white = team === 'WHITE';
   const sprite: SpriteTeam = white ? 'white' : 'black';
   const ink = white ? 'text-team-black' : 'text-team-white';
   const reveal = cn(phase !== 'final' && 'invisible');
-  const players = Math.min(count, 7);
   return (
     <div
       className={cn(
@@ -125,16 +133,17 @@ function TeamBlock({ team, phase, count }: { team: TeamKey; phase: Phase; count:
       )}
     >
       {white && (
-        <PixelText size={32} className={reveal}>
+        <PixelText size={32} className={cn('max-[359px]:text-pixel-md', reveal)}>
           {TEAM_LABELS[team]}
         </PixelText>
       )}
       {!white && <Counts count={count} className={reveal} />}
       <div className="flex gap-0.5">
-        {Array.from({ length: players }, (_, i) => (
+        {avatars.slice(0, 7).map((avatar, i) => (
           <PlayerSprite
             key={i}
             team={sprite}
+            avatar={avatar}
             scale={2}
             className={phase === 'entry' ? 'animate-vs-run' : undefined}
             style={
@@ -148,7 +157,7 @@ function TeamBlock({ team, phase, count }: { team: TeamKey; phase: Phase; count:
       </div>
       {white && <Counts count={count} className={reveal} />}
       {!white && (
-        <PixelText size={32} className={reveal}>
+        <PixelText size={32} className={cn('max-[359px]:text-pixel-md', reveal)}>
           {TEAM_LABELS[team]}
         </PixelText>
       )}
@@ -157,7 +166,13 @@ function TeamBlock({ team, phase, count }: { team: TeamKey; phase: Phase; count:
 }
 
 function Counts({ count, className }: { count: number; className?: string }) {
-  return <PixelText className={className}>{`${count} jogadores`}</PixelText>;
+  // Em 320 px o nome do time e a contagem não cabem na metade do quadro: fica só o número
+  return (
+    <span className={cn('inline-flex items-baseline gap-1.5', className)}>
+      <PixelText>{`${count}`}</PixelText>
+      <PixelText className="max-[359px]:hidden">jogadores</PixelText>
+    </span>
+  );
 }
 
 /** Linhas de velocidade atrás de cada time, só na entrada. */

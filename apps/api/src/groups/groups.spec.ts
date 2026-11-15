@@ -1,4 +1,4 @@
-import { DEFAULT_INITIAL_RATING } from '@fut-stats/domain';
+import { DEFAULT_AVATAR, DEFAULT_INITIAL_RATING } from '@fut-stats/domain';
 import {
   groupResponseSchema,
   invitePreviewSchema,
@@ -121,6 +121,8 @@ describe('grupos e convite', () => {
         slug: group.slug,
         role: 'PLAYER',
         membershipId: playerMembership.id,
+        nickname: 'Apelido',
+        avatar: DEFAULT_AVATAR,
         memberCount: 2,
       });
     });
@@ -172,6 +174,7 @@ describe('grupos e convite', () => {
         primaryPosition: 'MIDFIELDER',
         secondaryPositions: [],
         isHiredGoalkeeper: false,
+        avatar: DEFAULT_AVATAR,
       });
       expect(res.body[0]).not.toHaveProperty('initialRating');
     });
@@ -290,6 +293,8 @@ describe('grupos e convite', () => {
         slug: group.slug,
         role: 'PLAYER',
         membershipId: expect.any(String),
+        nickname: 'Baixinho',
+        avatar: DEFAULT_AVATAR,
         memberCount: 2,
       });
       const membership = await t.prisma.membership.findUniqueOrThrow({

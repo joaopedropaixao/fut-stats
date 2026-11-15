@@ -56,7 +56,11 @@ export function Bench({ players, pickedId, onPick }: BenchProps) {
                           : 'bg-surface-raised active:bg-surface-3',
                       )}
                     >
-                      <MemberAvatar nickname={p.nickname} goalkeeper={p.isHiredGoalkeeper} />
+                      <MemberAvatar
+                        nickname={p.nickname}
+                        avatar={p.avatar}
+                        goalkeeper={p.isHiredGoalkeeper}
+                      />
                       <PixelText>{p.nickname}</PixelText>
                     </button>
                   </li>

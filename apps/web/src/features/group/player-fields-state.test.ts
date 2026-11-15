@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_AVATAR } from '../../lib/avatar';
 import {
   initialPlayerFields,
   playerFieldsReducer,
@@ -13,13 +14,30 @@ describe('validatePlayerFields', () => {
   });
 
   it('devolve os dados com o apelido sem espaço nas pontas', () => {
-    expect(validatePlayerFields({ nickname: '  Bia ', position: 'DEFENDER' })).toEqual({
-      data: { nickname: 'Bia', primaryPosition: 'DEFENDER' },
+    expect(
+      validatePlayerFields({ nickname: '  Bia ', position: 'DEFENDER', avatar: DEFAULT_AVATAR }),
+    ).toEqual({
+      data: { nickname: 'Bia', primaryPosition: 'DEFENDER', avatar: DEFAULT_AVATAR },
+    });
+  });
+
+  it('leva o bonequinho montado para o corpo do pedido', () => {
+    const avatar = { skin: 'DARK', hair: 'AFRO', hairColor: 'RED' } as const;
+    expect(validatePlayerFields({ nickname: 'Bia', position: 'WINGER', avatar })).toEqual({
+      data: { nickname: 'Bia', primaryPosition: 'WINGER', avatar },
     });
   });
 });
 
 describe('playerFieldsReducer', () => {
+  it('começa com o bonequinho padrão e guarda o que a pessoa monta', () => {
+    expect(initialPlayerFields.avatar).toEqual(DEFAULT_AVATAR);
+    const avatar = { skin: 'LIGHT', hair: 'LONG', hairColor: 'BLOND' } as const;
+    expect(
+      playerFieldsReducer(initialPlayerFields, { type: 'avatar', value: avatar }).avatar,
+    ).toEqual(avatar);
+  });
+
   const withErrors = playerFieldsReducer(initialPlayerFields, {
     type: 'errors',
     errors: { nickname: 'Informe o apelido', primaryPosition: 'Escolha sua posição' },

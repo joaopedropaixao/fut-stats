@@ -1,5 +1,11 @@
 import { SessionService, SESSION_COOKIE } from '../auth/session.service';
-import type { Role } from '../generated/prisma/enums';
+import type {
+  AvatarHair,
+  AvatarHairColor,
+  AvatarSkin,
+  Position,
+  Role,
+} from '../generated/prisma/enums';
 import type { TestApp } from './test-app';
 
 let seq = 0;
@@ -29,7 +35,18 @@ export async function addMember(
   t: TestApp,
   userId: string,
   groupId: string,
-  data: { role?: Role; active?: boolean } = {},
+  data: {
+    role?: Role;
+    active?: boolean;
+    nickname?: string;
+    primaryPosition?: Position;
+    secondaryPositions?: Position[];
+    initialRating?: number;
+    isHiredGoalkeeper?: boolean;
+    avatarSkin?: AvatarSkin;
+    avatarHair?: AvatarHair;
+    avatarHairColor?: AvatarHairColor;
+  } = {},
 ) {
   return t.prisma.membership.create({
     data: {
@@ -37,10 +54,14 @@ export async function addMember(
       groupId,
       role: data.role ?? 'PLAYER',
       active: data.active ?? true,
-      nickname: 'Apelido',
-      primaryPosition: 'MIDFIELDER',
-      secondaryPositions: [],
-      initialRating: 6,
+      nickname: data.nickname ?? 'Apelido',
+      primaryPosition: data.primaryPosition ?? 'MIDFIELDER',
+      secondaryPositions: data.secondaryPositions ?? [],
+      initialRating: data.initialRating ?? 6,
+      isHiredGoalkeeper: data.isHiredGoalkeeper ?? false,
+      avatarSkin: data.avatarSkin,
+      avatarHair: data.avatarHair,
+      avatarHairColor: data.avatarHairColor,
     },
   });
 }

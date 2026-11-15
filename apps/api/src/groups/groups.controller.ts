@@ -1,14 +1,27 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Res,
+} from '@nestjs/common';
 import {
   createGroupSchema,
   joinGroupSchema,
+  updateMemberSchema,
   type CreateGroupInput,
   type GroupResponse,
   type Invite,
   type InvitePreview,
   type JoinGroupInput,
   type Member,
+  type RosterMember,
   type SessionUser,
+  type UpdateMemberInput,
 } from '@fut-stats/shared';
 import type { Response } from 'express';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -40,6 +53,33 @@ export class GroupsController {
   @Get(':groupId/members')
   members(@CurrentMembership() membership: GroupMembership): Promise<Member[]> {
     return this.groups.listMembers(membership);
+  }
+
+  /** O elenco: todos os membros, ativos ou não, com nota inicial. Só o admin. */
+  @GroupRole('ADMIN')
+  @Get(':groupId/roster')
+  roster(@CurrentMembership() membership: GroupMembership): Promise<RosterMember[]> {
+    return this.groups.roster(membership);
+  }
+
+  @GroupMember()
+  @Get(':groupId/members/:membershipId')
+  member(
+    @CurrentMembership() membership: GroupMembership,
+    @Param('membershipId') membershipId: string,
+  ): Promise<Member> {
+    return this.groups.getMember(membership, membershipId);
+  }
+
+  /** O próprio edita o perfil; o admin edita o de qualquer um (e os campos só dele). */
+  @GroupMember()
+  @Patch(':groupId/members/:membershipId')
+  updateMember(
+    @CurrentMembership() membership: GroupMembership,
+    @Param('membershipId') membershipId: string,
+    @Body(new ZodValidationPipe(updateMemberSchema)) body: UpdateMemberInput,
+  ): Promise<Member | RosterMember> {
+    return this.groups.updateMember(membership, membershipId, body);
   }
 
   @GroupRole('ADMIN')

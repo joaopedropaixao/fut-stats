@@ -10,7 +10,7 @@
 | **Modo** | Par |
 | **Parte de** | — |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @ec7b977 |
 | **Depende de** | — |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/group, packages/shared/src/group.ts, packages/shared/src/auth.ts, packages/shared/src/round.ts, packages/shared/src/match.ts, apps/api/src/groups, apps/api/src/auth, apps/api/src/rounds, apps/api/src/lineups, apps/api/src/match, apps/api/src/seed, apps/web/src/components/ui/avatar.tsx, apps/web/src/components/ui/pixel-sprite, apps/web/src/features/group, apps/web/src/features/lineup, apps/web/src/features/match, apps/web/src/features/rounds, apps/web/src/pages/entrar-e-grupo, apps/web/src/pages/perfil, apps/web/src/pages/elenco, apps/web/src/router.tsx |
 
@@ -148,10 +148,12 @@ export const AVATAR_HAIR_COLORS = ['BLACK', 'BROWN', 'BLOND', 'RED', 'GRAY'] as 
 export interface PlayerAvatar { skin: AvatarSkin; hair: AvatarHair; hairColor: AvatarHairColor }
 export const DEFAULT_AVATAR: PlayerAvatar = { skin: 'TAN', hair: 'SHORT', hairColor: 'BLACK' };
 
-// packages/shared/src/group.ts (acréscimos)
+// packages/shared/src/domain.ts (fica aqui, e não no group.ts, para auth/round/match importarem sem ciclo)
 export const avatarSchema = z.object({
   skin: z.enum(AVATAR_SKINS), hair: z.enum(AVATAR_HAIRS), hairColor: z.enum(AVATAR_HAIR_COLORS),
 });
+
+// packages/shared/src/group.ts (acréscimos)
 export const AVATAR_SKIN_LABELS: Record<AvatarSkin, string>;           // 'Pele clara' ... 'Pele escura' (leitor de tela)
 export const AVATAR_HAIR_LABELS: Record<AvatarHair, string>;           // Careca, Curto, Cacheado, Black power, Comprido, Moicano
 export const AVATAR_HAIR_COLOR_LABELS: Record<AvatarHairColor, string>; // Preto, Castanho, Loiro, Ruivo, Grisalho
@@ -315,5 +317,70 @@ Regras de visual do documento de autonomia valem como critério (o QA confere um
   (14 nov 2026).
 - P13 · Foto fica de fora da v1? → Sim: o bonequinho é o rosto (14 nov 2026).
 
+## Volta de design (dono, 14/11/2026)
+O dono testou no navegador, gostou dos jogadores e das animações e pediu três ajustes. O dono deixou as decisões com
+o TPL; ficam registradas aqui.
+
+**D1 · Cores do cabelo pouco distintas** ("vermelha, amarela e branca diferenciando muito pouco, muito disso por
+conta da quantidade de blocos pixelados do cabelo"). Causa: no corpo 8 × 12 o cabelo tem 4 a 10 pixels, sem
+contorno, e o grisalho (#c4c4c0) fica quase igual à camisa neutra e à pele clara. Escolha, em conjunto:
+- **mais área de cabelo**, que vem de graça com o corpo grande do D2 (cabeça com 10 px de largura em vez de 4–6);
+- **contorno escuro de 1 px** (`--color-outline`, o mesmo `K` do rosto 12 × 12) em volta da cabeça e do cabelo no
+  corpo grande: é o que separa o grisalho e o loiro da pele clara e da camisa;
+- **dois tons por cor de cabelo** (base + sombra, tokens `--color-hair-<cor>-shade`), a sombra na borda de baixo do
+  cabelo: dá volume e deixa a cor legível mesmo com poucos blocos (vale para o corpo grande e o rosto);
+- **tons mais distantes**: loiro mais dourado e saturado, ruivo mais vivo (laranja-avermelhado), grisalho mais
+  frio e mais escuro que a camisa neutra e que a pele clara. Critério: cada cor de cabelo se distingue de cada tom
+  de pele, da camisa neutra e das camisas dos times (contraste visível, sem depender de rótulo);
+- **amostra de cor** do seletor (48 × 48, sem mudar o tamanho) mostra os dois tons com contorno, como o cabelo fica.
+Descartado: aumentar as amostras (já têm 48 px; o problema era o boneco, não a amostra).
+
+**D2 · Boneco grande com pouco detalhe** ("no Elenco os jogadores parecem com mais detalhe... diminuir o tamanho
+dos pixels?"). Causa: o Elenco usa o rosto 12 × 12 com contorno, ampliado pouco; o montador e a figurinha usam o
+corpo 8 × 12 ampliado 8 vezes, então cada bloco fica enorme. Escolha: **corpo grande 16 × 24**, no mesmo traço do
+rosto 12 × 12 (contorno `K`, olhos de 1 px, cabelo com dois tons), desenhado das mesmas três escolhas, nas telas
+grandes: `AvatarBuilder` (escala 4 = 64 × 96, o mesmo tamanho de hoje), figurinha do Perfil e do Editar (escala 4)
+e card de resultado (escala 2). O corpo 8 × 12 continua no VS, na faixa VOCÊ e na vitrine; o rosto 12 × 12 nas
+listas e no campo. Continua pixel art (grade inteira, `crispEdges`, escala inteira). Os mapas novos ficam num módulo
+próprio importado só pelas telas grandes (fora do JS inicial; o orçamento do bundle segue verde).
+Resposta ao dono: sim, é isso: nas telas grandes o boneco passa a ter o dobro de blocos, cada bloco fica com
+metade do tamanho, e nas listas e no campo segue o desenho pequeno.
+
+**D3 · Erro de campo longe do Salvar** ("o Salvar é lá embaixo e o erro só fica pra cima"). Escolha: ao falhar o
+envio (validação do formulário ou erro de campo da API, como `NICKNAME_TAKEN`), a tela **rola até o primeiro campo
+com erro** (centralizado; sem animação com reduzir movimento) e **põe o foco nele**, e mostra **um aviso curto logo
+acima do botão** (`role="alert"`), com o texto do erro do campo (ex.: "Esse apelido já está em uso no grupo"). Vale
+para Editar perfil, Editar jogador, `/comecar` e `/convite/:code`. Texto e não toast: fica ao lado do botão que o
+jogador acabou de tocar e não some sozinho. Com teste que reproduz (a escolha do primeiro campo com erro e o aviso).
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C53 | montando o boneco, pele clara | escolhe grisalho, loiro e ruivo | as três cores se distinguem no boneco grande e na amostra; contorno e dois tons no cabelo | Playwright (prints antes/depois) |
+| C54 | montador, figurinha e card de resultado | abrir | boneco grande 16 × 24 no traço do rosto; VS, faixa VOCÊ, listas e campo seguem com o desenho pequeno | Playwright + unitário dos mapas |
+| C55 | Editar perfil / Editar jogador / começar / convite, com apelido em uso (ou outro erro de campo) | Salvar / Criar / Entrar | rola até o campo com erro, foco nele, aviso curto acima do botão | unitário + Playwright |
+
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+3 voltas. **Veredito final: APROVADO** (volta 3, 14/11/2026).
+
+| Volta | Veredito | Falhas |
+|---|---|---|
+| 1 | reprovado | dev-front: C38 linha do Elenco com 74/98 px (não 72); C48 card de resultado com 7 cópias do meu boneco (decisão: um só bonequinho, o de quem vê); `-front` sem o #60 e rotas novas sem `lazy` |
+| 2 | reprovado | dev-front: correção do C48 sem teste que reproduz o bug |
+| 3 | aprovado | — |
+
+| Cenários | Tipo | Resultado | Evidência |
+|---|---|---|---|
+| C1–C8 | unitário | ✅ | `packages/domain/src/group/{avatar,positions,members}.test.ts` |
+| C9–C27 | integração | ✅ | `apps/api/src/groups/members.spec.ts` (Postgres real; C12 concorrência com `Promise.all`) |
+| C28 | integração | ✅ | `apps/api/src/groups/avatar-views.spec.ts` |
+| C29 | integração | ✅ | `apps/api/src/seed/seed.spec.ts` |
+| C30–C51 | Playwright | ✅ | fluxo real contra a API da equipe; álbum em `docs/design/prints/perfil-jogador/`; C48 e C38 com teste em `result-card.test.tsx` e `roster-row.test.tsx` |
+| C52 | Playwright | ✅ | checagem automática de sobreposição verde em 320/375/390/430/1280 nas 7 telas |
+
+Orçamento de bundle: JS inicial 144,8/150 kB; `perfil-area` 3,5 kB e `elenco-area` 2,3 kB fora do carregamento inicial.
+
+**Volta de design (14/11/2026):** QA curto aprovado. C53 (cores do cabelo), C54 (corpo grande 16 × 24) e C55 (erro de
+campo rola, foca e avisa acima do botão) ✅ no Playwright e nos unitários `pixel-body-large-maps.test.ts` e
+`field-errors.test.ts`; regressão de C30–C36, C39 e C48 ✅; sobreposição verde nas telas mexidas; JS inicial
+144,8/150 kB, sprite grande num pedaço próprio. Fora da volta: em 320 px, o placar do jogo (`scoreboard.tsx`, da
+fatia placar-e-lances) passa 21 px da borda; fica para ticket próprio.

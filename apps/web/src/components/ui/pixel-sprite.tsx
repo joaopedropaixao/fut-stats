@@ -1,15 +1,20 @@
+import type { PlayerAvatar } from '@fut-stats/shared';
 import { useMemo, type CSSProperties } from 'react';
+import { DEFAULT_AVATAR } from '../../lib/avatar';
 import {
-  PLAYER_SPRITE,
+  playerPalette,
+  playerSpriteMap,
   SPRITE_PLAYER_HEIGHT,
   SPRITE_PLAYER_WIDTH,
   spritePaths,
-  teamPalette,
   type SpriteTeam,
 } from './pixel-sprite-maps';
 
 type PlayerSpriteProps = {
-  team: SpriteTeam;
+  /** Sem time (`null`), a camisa é neutra. */
+  team: SpriteTeam | null;
+  /** O bonequinho do jogador (pele e cabelo). Sem ele, o padrão. */
+  avatar?: PlayerAvatar;
   /** Escala inteira (nunca fração): 2 → 16x24, 3 → 24x36. */
   scale?: number;
   className?: string;
@@ -17,8 +22,18 @@ type PlayerSpriteProps = {
 };
 
 /** O bonequinho em pixel, decorativo (o nome do jogador vem sempre em texto ao lado). */
-export function PlayerSprite({ team, scale = 2, className, style }: PlayerSpriteProps) {
-  const paths = useMemo(() => spritePaths(PLAYER_SPRITE, teamPalette(team)), [team]);
+export function PlayerSprite({
+  team,
+  avatar = DEFAULT_AVATAR,
+  scale = 2,
+  className,
+  style,
+}: PlayerSpriteProps) {
+  const { skin, hair, hairColor } = avatar;
+  const paths = useMemo(() => {
+    const value = { skin, hair, hairColor };
+    return spritePaths(playerSpriteMap(value), playerPalette(value, team));
+  }, [skin, hair, hairColor, team]);
   return (
     <svg
       aria-hidden

@@ -7,6 +7,9 @@ type SwitchProps = {
   label: string;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
+  /** Travado: o estado aparece, não muda, e o `hint` diz por quê (cadeado, não só cor). */
+  disabled?: boolean;
+  hint?: string;
   className?: string;
 };
 
@@ -14,13 +17,21 @@ type SwitchProps = {
  * Interruptor com linha: o nome, o estado escrito (✓ LIGADO / × DESLIGADO) e o botão.
  * Cor nunca é o único sinal. Área de toque de 80 x 48.
  */
-export function Switch({ label, checked, onCheckedChange, className }: SwitchProps) {
+export function Switch({
+  label,
+  checked,
+  onCheckedChange,
+  disabled,
+  hint,
+  className,
+}: SwitchProps) {
   const labelId = useId();
+  const hintId = useId();
 
   return (
     <div className={cn('flex min-h-19 items-center justify-between gap-3 px-4 py-3', className)}>
-      <div className="flex flex-col gap-1.5">
-        <PixelText>{label}</PixelText>
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <PixelText wrap>{label}</PixelText>
         <span
           id={labelId}
           className={cn('flex items-center gap-1.5', checked ? 'text-success' : 'text-text-muted')}
@@ -28,15 +39,22 @@ export function Switch({ label, checked, onCheckedChange, className }: SwitchPro
           <Icon name={checked ? 'check' : 'x'} size={14} strokeWidth={3} />
           <PixelText>{checked ? 'Ligado' : 'Desligado'}</PixelText>
         </span>
+        {hint && (
+          <p id={hintId} className="flex items-start gap-1.5 text-caption text-text-muted">
+            {disabled && <Icon name="lock" size={14} className="mt-0.5 shrink-0" />}
+            {hint}
+          </p>
+        )}
       </div>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
         aria-label={label}
-        aria-describedby={labelId}
+        aria-describedby={hint ? `${labelId} ${hintId}` : labelId}
+        disabled={disabled}
         onClick={() => onCheckedChange(!checked)}
-        className="flex h-12 w-20 shrink-0 items-center justify-center"
+        className="flex h-12 w-20 shrink-0 items-center justify-center disabled:opacity-60"
       >
         <span
           className={cn(

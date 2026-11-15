@@ -42,6 +42,7 @@ export function Reserves({ team, reserves, members, pickedId = null, onBox, meId
               <span className={cn('inline-flex rounded-full', me && `-m-2 p-2 ${YOU_RING}`)}>
                 <Avatar
                   nickname={member.nickname}
+                  avatar={member.avatar}
                   team={team === 'WHITE' ? 'white' : 'black'}
                   size={32}
                   gap="surface"

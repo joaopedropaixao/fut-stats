@@ -14,6 +14,7 @@ import { Sheet } from '../../components/ui/sheet';
 import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states';
 import { useNotice } from '../../components/ui/use-notice';
 import { useCurrentGroup } from '../../features/group/use-current-group';
+import { DEFAULT_AVATAR } from '../../lib/avatar';
 import { RoundHeading } from '../../features/lineup/round-heading';
 import { EventList } from '../../features/match/event-list';
 import { eventNoticeTitle } from '../../features/match/match-text';
@@ -87,6 +88,7 @@ const OWN_KEYS: { type: EventType; label: string }[] = [
 
 function Board({ groupId, view }: { groupId: string; view: MatchView }) {
   const actions = useMatchActions(groupId, view.roundId);
+  const { group } = useCurrentGroup();
   const notice = useNotice();
   const [confirming, setConfirming] = useState<Confirming>(null);
   const { permissions, me } = view;
@@ -148,6 +150,7 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
               result={me.result}
               score={view.score}
               myTeam={me.team}
+              avatar={group?.avatar ?? DEFAULT_AVATAR}
             />
           )}
           <Scoreboard

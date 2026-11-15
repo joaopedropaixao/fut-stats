@@ -52,6 +52,34 @@ enum MatchEventType {
   OWN_GOAL
 }
 
+/// Tom de pele do bonequinho. Igual a `AvatarSkin` do domain (do mais claro ao mais escuro).
+enum AvatarSkin {
+  LIGHT
+  FAIR
+  TAN
+  BROWN
+  DARK
+}
+
+/// Estilo de cabelo do bonequinho. Igual a `AvatarHair` do domain; careca ignora a cor.
+enum AvatarHair {
+  BALD
+  SHORT
+  CURLY
+  AFRO
+  LONG
+  MOHAWK
+}
+
+/// Cor do cabelo do bonequinho. Igual a `AvatarHairColor` do domain.
+enum AvatarHairColor {
+  BLACK
+  BROWN
+  BLOND
+  RED
+  GRAY
+}
+
 /// Pessoa que faz login (Google). Não tem dado de pelada: isso fica na Membership de cada grupo.
 model User {
   id        String   @id @default(cuid())
@@ -81,10 +109,10 @@ model Group {
 
 /// Um usuário dentro de um grupo: papel e dados de jogador daquele grupo.
 model Membership {
-  id                 String     @id @default(cuid())
+  id                 String          @id @default(cuid())
   userId             String
   groupId            String
-  role               Role       @default(PLAYER)
+  role               Role            @default(PLAYER)
   nickname           String
   photoUrl           String?
   primaryPosition    Position
@@ -92,11 +120,15 @@ model Membership {
   /// Nota de 0 a 10 (passo 0,5) definida pelo admin no cadastro; validada na borda.
   initialRating      Float
   /// Goleiro contratado por fora (não paga mensalidade). Dado de cadastro, não muda as regras.
-  isHiredGoalkeeper  Boolean    @default(false)
+  isHiredGoalkeeper  Boolean         @default(false)
   /// Desativar em vez de apagar: o histórico de rodadas continua apontando para a membership.
-  active             Boolean    @default(true)
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  active             Boolean         @default(true)
+  /// Bonequinho pixel do jogador naquela pelada (o rosto dele no app). Padrão = `DEFAULT_AVATAR` do domain.
+  avatarSkin         AvatarSkin      @default(TAN)
+  avatarHair         AvatarHair      @default(SHORT)
+  avatarHairColor    AvatarHairColor @default(BLACK)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   user         User         @relation(fields: [userId], references: [id])
   group        Group        @relation(fields: [groupId], references: [id])

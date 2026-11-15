@@ -52,7 +52,8 @@ function buttonClasses({
   return cn(
     'inline-flex items-center justify-center gap-2 px-4 select-none',
     'transition-[translate,background-color,box-shadow] duration-(--duration-fast) ease-out',
-    { 56: 'h-14', 52: 'h-13', 48: 'h-12', 44: 'h-11' }[size],
+    // min-h: o rótulo comprido quebra em duas linhas em vez de ser cortado (320 px)
+    { 56: 'min-h-14', 52: 'min-h-13', 48: 'min-h-12', 44: 'min-h-11' }[size],
     block && 'w-full',
     disabled ? DISABLED : VARIANT[variant],
     className,
@@ -86,7 +87,9 @@ function Content({
       ) : (
         mark
       )}
-      <PixelText>{label}</PixelText>
+      <PixelText wrap className="min-w-0 text-center">
+        {label}
+      </PixelText>
     </>
   );
 }
@@ -96,6 +99,8 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> &
     /** Rótulo inteiro, sem abreviar; se não couber, use `block`. */
     label: string;
     icon?: IconName;
+    /** Desenho próprio antes do rótulo, quando o ícone de traço não serve (ex.: o dado pixel). */
+    mark?: ReactNode;
     loading?: boolean;
     /** Para mover o foco até o botão (ex.: ao abrir ou fechar uma confirmação). */
     ref?: Ref<HTMLButtonElement>;
@@ -104,6 +109,7 @@ type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> &
 export function Button({
   label,
   icon,
+  mark,
   loading,
   variant = 'primary',
   size,
@@ -132,7 +138,14 @@ export function Button({
       })}
       {...rest}
     >
-      <Content label={label} icon={icon} variant={variant} loading={loading} disabled={disabled} />
+      <Content
+        label={label}
+        icon={icon}
+        mark={mark}
+        variant={variant}
+        loading={loading}
+        disabled={disabled}
+      />
     </button>
   );
 }

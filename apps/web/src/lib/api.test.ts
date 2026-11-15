@@ -13,7 +13,17 @@ import {
 
 const me = {
   user: { id: 'u1', name: 'Ronaldo', email: 'ro@exemplo.com', avatarUrl: null },
-  groups: [{ id: 'g1', name: 'Pelada', slug: 'pelada', role: 'ADMIN', membershipId: 'm1' }],
+  groups: [
+    {
+      id: 'g1',
+      name: 'Pelada',
+      slug: 'pelada',
+      role: 'ADMIN',
+      membershipId: 'm1',
+      nickname: 'Beto',
+      avatar: { skin: 'TAN', hair: 'SHORT', hairColor: 'BLACK' },
+    },
+  ],
 };
 
 function mockFetch(status: number, body: unknown) {

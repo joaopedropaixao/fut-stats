@@ -36,7 +36,7 @@ abaixo).
 | 1 ✅ | `montar-times` | Par | PR #33 (fechar) | Admin monta Branco x Preto tocando no jogador e na vaga, e publica |
 | 2 ✅ | `seletor-de-times` | Par | `montar-times` | Gerar com `balanceTeams`, ajustar tocando, regerar e publicar. Subiu para depois de `montar-times` (24 out 2026): ajuda a testar as telas seguintes |
 | 3 ✅ | `placar-e-lances` | Par | PR #32 (fechar) | Placar, gols, assistências e gol contra; jogador lança os próprios, admin de todos |
-| 4 | `perfil-jogador` | Par | — | **Onda 1.** Bonequinho pixel ao escolher o apelido (cor da pele e cabelo), que vira o rosto do jogador em todo lugar; editar perfil; admin cuida do elenco (nota inicial, goleiro contratado, admin, ativo/inativo). **Fecha a Fase 1** |
+| 4 ✅ | `perfil-jogador` | Par | — | **Onda 1.** Bonequinho pixel ao escolher o apelido (cor da pele e cabelo), que vira o rosto do jogador em todo lugar; editar perfil; admin cuida do elenco (nota inicial, goleiro contratado, admin, ativo/inativo). **Fecha a Fase 1** |
 | 5 ✅ | `orcamento-de-bundle` | Front | — | **Onda 1.** Rotas com `lazy` e limite de tamanho do bundle conferido no build (e no CI) |
 | 6 | `rodizio-reservas` | Par | `placar-e-lances` | **Onda 2.** Botão opcional na tela do jogo: cronômetro (60 min por padrão) que divide o tempo entre os jogadores de linha de cada time e avisa quem entra e quem sai (pedido do dono, 25 out 2026) |
 | 7 | `historico` | Par | PR #31 (fechar) | **Onda 2.** Aba Histórico: partidas finalizadas com placar e o resultado de quem vê; detalhe com o campo e os lances |
@@ -84,8 +84,8 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 
 ## Fase 1: Núcleo do grupo
 - [x] Grupo + link de convite
-- [ ] Perfil do jogador (apelido, foto, posição, nota inicial definida pelo admin)
-- [ ] Cadastro dos goleiros contratados (`isHiredGoalkeeper`; goleiro é a posição `GOALKEEPER`)
+- [x] Perfil do jogador (apelido, bonequinho pixel no lugar da foto, posição, nota inicial definida pelo admin) (`perfil-jogador` ✅)
+- [x] Cadastro dos goleiros contratados (`isHiredGoalkeeper`; goleiro é a posição `GOALKEEPER`)
 - [x] Regras da rodada no domínio: ciclo de status e quem pode lançar scout
 - [x] Admin: criar rodada; jogadores: confirmar presença
 - [x] Admin: montar Branco x Preto manualmente e lançar o placar (montar: `montar-times` ✅; placar: `placar-e-lances` ✅)

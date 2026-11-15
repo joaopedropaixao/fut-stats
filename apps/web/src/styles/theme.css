@@ -106,6 +106,24 @@
   --z-toast: 30;
   --z-drag: 40;
 
+  /* Bonequinho do jogador: pele (do mais claro ao mais escuro) e cabelo. Nunca hex solto nos componentes (ficam fora do @theme: o Tailwind só gera o que tem utilitário). */
+  --color-skin-1: #fbe0cc;
+  --color-skin-2: #f0c09a;
+  --color-skin-3: #d9a07a;
+  --color-skin-4: #a9704c;
+  --color-skin-5: #6f4529;
+  --color-hair-black: #2a2420;
+  --color-hair-black-shade: #120e0c;
+  --color-hair-brown: #6a3f22;
+  --color-hair-brown-shade: #43260f;
+  --color-hair-blond: #f2b705;
+  --color-hair-blond-shade: #c07a00;
+  --color-hair-red: #e8501a;
+  --color-hair-red-shade: #a62d0b;
+  --color-hair-gray: #8896a6;
+  --color-hair-gray-shade: #566474;
+  --color-hair-black-rim: #7a6f66; /* contorno claro do cabelo preto sobre a pele mais escura */
+
   --touch-min: 44px;
   --border-width: 2px;
 

@@ -31,6 +31,7 @@ import {
   type SetMatchScoreInput,
 } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
+import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import type { Position } from '../generated/prisma/enums';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -105,6 +106,7 @@ export class MatchService {
         membershipId: event.membershipId,
         nickname: event.nickname,
         photoUrl: event.photoUrl,
+        avatar: event.avatar,
         playerTeam,
         team: event.type === 'OWN_GOAL' ? opponentOf(playerTeam) : playerTeam,
         createdByNickname: event.createdByNickname,
@@ -348,7 +350,7 @@ export class MatchService {
             team: true,
             position: true,
             isReserve: true,
-            membership: { select: { nickname: true, photoUrl: true } },
+            membership: { select: { nickname: true, photoUrl: true, ...AVATAR_SELECT } },
           },
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         },
@@ -358,7 +360,7 @@ export class MatchService {
             membershipId: true,
             type: true,
             createdAt: true,
-            membership: { select: { nickname: true, photoUrl: true } },
+            membership: { select: { nickname: true, photoUrl: true, ...AVATAR_SELECT } },
             createdBy: { select: { nickname: true } },
           },
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -392,6 +394,7 @@ export class MatchService {
         membershipId: p.membershipId,
         nickname: p.membership.nickname,
         photoUrl: p.membership.photoUrl,
+        avatar: toAvatar(p.membership),
         team: p.team,
         position: p.position,
         isReserve: p.isReserve,
@@ -402,6 +405,7 @@ export class MatchService {
         membershipId: e.membershipId,
         nickname: e.membership.nickname,
         photoUrl: e.membership.photoUrl,
+        avatar: toAvatar(e.membership),
         createdByNickname: e.createdBy.nickname,
         createdAt: e.createdAt,
       })),

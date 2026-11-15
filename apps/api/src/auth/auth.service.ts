@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { MeResponse, SessionUser } from '@fut-stats/shared';
+import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -10,12 +11,24 @@ export class AuthService {
   async me(user: SessionUser): Promise<MeResponse> {
     const memberships = await this.prisma.membership.findMany({
       where: { userId: user.id, active: true },
-      select: { id: true, role: true, group: { select: { id: true, name: true, slug: true } } },
+      select: {
+        id: true,
+        role: true,
+        nickname: true,
+        ...AVATAR_SELECT,
+        group: { select: { id: true, name: true, slug: true } },
+      },
       orderBy: { group: { name: 'asc' } },
     });
     return {
       user,
-      groups: memberships.map(({ id, role, group }) => ({ ...group, role, membershipId: id })),
+      groups: memberships.map((m) => ({
+        ...m.group,
+        role: m.role,
+        membershipId: m.id,
+        nickname: m.nickname,
+        avatar: toAvatar(m),
+      })),
     };
   }
 }

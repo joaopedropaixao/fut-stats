@@ -1,4 +1,7 @@
 import {
+  AVATAR_HAIR_COLORS,
+  AVATAR_HAIRS,
+  AVATAR_SKINS,
   isValidRating,
   MATCH_EVENT_TYPES,
   MATCH_RESULTS,
@@ -32,6 +35,13 @@ import { z } from 'zod';
 
 export const positionSchema = z.enum(POSITIONS);
 export const teamSchema = z.enum(TEAMS);
+
+/** Bonequinho pixel do jogador (pele, cabelo e cor do cabelo). Aqui para auth, round e match importarem sem ciclo. */
+export const avatarSchema = z.object({
+  skin: z.enum(AVATAR_SKINS),
+  hair: z.enum(AVATAR_HAIRS),
+  hairColor: z.enum(AVATAR_HAIR_COLORS),
+});
 
 export const ratingSchema = z
   .number()

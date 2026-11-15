@@ -11,19 +11,30 @@ type PositionPickerProps = {
   value: Position | null;
   onChange: (position: Position) => void;
   error?: string;
+  /** Título da lista (padrão "Sua posição"). */
+  label?: string;
 };
 
 /**
  * Escolha da posição principal, na lista de opções da folha ("Escolha o dia"): a escolhida ganha contorno
  * creme e ✓ (cor nunca é o único sinal). Rádio nativo: as setas do teclado trocam a opção.
  */
-export function PositionPicker({ value, onChange, error }: PositionPickerProps) {
+export function PositionPicker({
+  value,
+  onChange,
+  error,
+  label = 'Sua posição',
+}: PositionPickerProps) {
   const id = useId();
   const errorId = `${id}-erro`;
   return (
-    <fieldset className="flex flex-col gap-2" aria-describedby={error ? errorId : undefined}>
+    <fieldset
+      data-field="primaryPosition"
+      className="flex flex-col gap-2"
+      aria-describedby={error ? errorId : undefined}
+    >
       <legend className="mb-2">
-        <PixelText>Sua posição</PixelText>
+        <PixelText>{label}</PixelText>
       </legend>
       <div
         className={cn(

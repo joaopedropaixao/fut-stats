@@ -1,5 +1,6 @@
 import { Controller, Param, Post, Res } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { DEFAULT_AVATAR } from '@fut-stats/domain';
 import { meResponseSchema } from '@fut-stats/shared';
 import type { Response } from 'express';
 import request from 'supertest';
@@ -139,6 +140,8 @@ describe('sessão', () => {
             slug: admin.slug,
             role: 'ADMIN',
             membershipId: adminMembership.id,
+            nickname: 'Apelido',
+            avatar: DEFAULT_AVATAR,
           },
           {
             id: player.id,
@@ -146,6 +149,8 @@ describe('sessão', () => {
             slug: player.slug,
             role: 'PLAYER',
             membershipId: playerMembership.id,
+            nickname: 'Apelido',
+            avatar: DEFAULT_AVATAR,
           },
         ],
       });
