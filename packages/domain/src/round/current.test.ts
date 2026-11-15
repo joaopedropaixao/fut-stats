@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pickCurrentRound, type RoundAtTime } from './current';
+import { pickCurrentRound, pickLatestResult, pickVotingRound, type RoundAtTime } from './current';
 import type { RoundStatus } from './status';
 
 const now = new Date('2026-10-23T21:00:00Z');
@@ -74,5 +74,60 @@ describe('pickCurrentRound', () => {
       at('encerrada', 'CLOSED', '2026-10-16T20:00:00Z'),
     ];
     expect(pickCurrentRound(rounds, now)).toBeNull();
+  });
+});
+
+describe('pickVotingRound', () => {
+  const round = (id: string, status: RoundStatus, iso: string) => at(id, status, iso);
+
+  it('C7: devolve a VOTING de data mais recente, ignorando as outras etapas', () => {
+    const rounds = [
+      round('velha', 'VOTING', '2026-10-09T20:00:00Z'),
+      round('nova', 'VOTING', '2026-10-16T20:00:00Z'),
+      round('fechada', 'CLOSED', '2026-10-23T20:00:00Z'),
+      round('agendada', 'SCHEDULED', '2026-10-30T20:00:00Z'),
+    ];
+    expect(pickVotingRound(rounds)?.id).toBe('nova');
+  });
+
+  it('C7: sem nenhuma em votação, null', () => {
+    expect(pickVotingRound([round('f', 'CLOSED', '2026-10-09T20:00:00Z')])).toBeNull();
+    expect(pickVotingRound([])).toBeNull();
+  });
+});
+
+describe('pickLatestResult', () => {
+  const DAY = 24 * 3_600_000;
+  const closed = (id: string, daysAgo: number | null, status: RoundStatus = 'CLOSED') => ({
+    id,
+    status,
+    closedAt: daysAgo === null ? null : new Date(now.getTime() - daysAgo * DAY),
+  });
+
+  it('C8: a fechada há 6 dias entra; a de 8 dias, não', () => {
+    expect(pickLatestResult([closed('seis', 6), closed('oito', 8)], now)?.id).toBe('seis');
+    expect(pickLatestResult([closed('oito', 8)], now)).toBeNull();
+  });
+
+  it('C8: entre duas dentro do prazo, a que fechou por último', () => {
+    expect(
+      pickLatestResult([closed('tres', 3), closed('um', 1), closed('cinco', 5)], now)?.id,
+    ).toBe('um');
+  });
+
+  it('o prazo é de RESULT_HIGHLIGHT_DAYS (7): exatamente 7 dias já saiu', () => {
+    expect(pickLatestResult([closed('sete', 7)], now)).toBeNull();
+    expect(pickLatestResult([closed('quase', 6.99)], now)?.id).toBe('quase');
+  });
+
+  it('o prazo pode ser trocado', () => {
+    expect(pickLatestResult([closed('oito', 8)], now, { highlightDays: 10 })?.id).toBe('oito');
+    expect(pickLatestResult([closed('dois', 2)], now, { highlightDays: 1 })).toBeNull();
+  });
+
+  it('só conta rodada CLOSED com closedAt', () => {
+    expect(
+      pickLatestResult([closed('votando', 1, 'VOTING'), closed('sem-data', null)], now),
+    ).toBeNull();
   });
 });
