@@ -9,9 +9,9 @@
 | **Modo** | Par |
 | **Parte de** | PR #31 (fechar), branch `origin/feature/tela-historico`: aproveitar `matchWinner` e a paginação por cursor; as telas são refeitas |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @19180c2 (checkpoint de início 2026-11-15: entraram #60, #62 e #63; nada no histórico conflita, as rotas novas seguem o `lazy` e entram em `app/preload.ts`) |
 | **Depende de** | perfil-jogador |
-| **Toca em** | packages/domain/src/round, packages/shared/src/history.ts, packages/shared/src/index.ts, apps/api/src/history, apps/api/src/lineups/lineups.service.ts, apps/api/src/app.module.ts, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/pages/rounds/detail.tsx, apps/web/src/router.tsx |
+| **Toca em** | packages/domain/src/round, packages/shared/src/history.ts, packages/shared/src/index.ts, apps/api/src/history, apps/api/src/lineups/lineups.service.ts, apps/api/src/app.module.ts, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/pages/rounds/detail.tsx, apps/web/src/router.tsx, apps/web/src/app/preload.ts |
 
 ## Produto
 
@@ -163,7 +163,7 @@ Regras de visual do documento de autonomia valem como critério.
     `PublishedTeams` sem o VS (sem `roundId`) para o campo e as reservas; `EventList` só leitura por time.
   - O texto do resultado sai de uma função pura com teste (`history-text.ts`): vitória, derrota, empate, não jogou.
 - **Detalhe da rodada** (`pages/rounds/detail.tsx`): `nextStep` aponta para o histórico em `VOTING` e `CLOSED`.
-- Rotas novas com `lazy` (ver `orcamento-de-bundle`).
+- Rotas novas com `lazy` (ver `orcamento-de-bundle`): `pages/historico/routes.ts` + `historico-area.ts` (as duas telas no mesmo pedaço), e uma linha em `app/preload.ts`. O JS inicial está em 144,8 de 150 kB: nada das telas novas entra nele.
 - Nada de regra no front: vencedor e resultado vêm da API. Sem dependência nova.
 - Ao abrir o PR desta fatia, fechar o PR #31.
 
