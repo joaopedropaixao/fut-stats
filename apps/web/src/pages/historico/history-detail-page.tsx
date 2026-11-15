@@ -1,9 +1,13 @@
-import type { MatchScore, MatchView, PlayerAvatar } from '@fut-stats/shared';
+import {
+  isMatchFinished,
+  type MatchScore,
+  type MatchView,
+  type PlayerAvatar,
+} from '@fut-stats/shared';
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states';
 import { useCurrentGroup } from '../../features/group/use-current-group';
-import { isMatchFinished } from '../../features/history/history-text';
 import { ResultBanner } from '../../features/history/result-banner';
 import type { TeamKey } from '../../features/lineup/lineup-draft';
 import { PublishedTeams } from '../../features/lineup/published-teams';

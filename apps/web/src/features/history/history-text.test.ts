@@ -1,12 +1,6 @@
 import type { HistoryItem } from '@fut-stats/shared';
 import { describe, expect, it } from 'vitest';
-import {
-  cardAriaLabel,
-  detailResultText,
-  formatLongDay,
-  isMatchFinished,
-  listResultText,
-} from './history-text';
+import { cardAriaLabel, detailResultText, formatLongDay, listResultText } from './history-text';
 
 const base: HistoryItem = {
   roundId: 'r12',
@@ -94,16 +88,5 @@ describe('formatLongDay', () => {
   it('escreve o dia da semana e o mês por extenso, no fuso do aparelho', () => {
     expect(formatLongDay(new Date(2026, 9, 17, 12))).toBe('sábado 17 de outubro');
     expect(formatLongDay(new Date(2026, 0, 4, 12))).toBe('domingo 4 de janeiro');
-  });
-});
-
-describe('isMatchFinished', () => {
-  it('C22: só a Resenha, a votação e a encerrada têm partida para ver', () => {
-    expect(isMatchFinished('SCHEDULED')).toBe(false);
-    expect(isMatchFinished('TEAMS_PUBLISHED')).toBe(false);
-    expect(isMatchFinished('IN_PROGRESS')).toBe(false);
-    expect(isMatchFinished('POST_MATCH')).toBe(true);
-    expect(isMatchFinished('VOTING')).toBe(true);
-    expect(isMatchFinished('CLOSED')).toBe(true);
   });
 });

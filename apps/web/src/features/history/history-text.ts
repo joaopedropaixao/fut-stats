@@ -4,19 +4,10 @@ import {
   type HistoryItem,
   type MatchResult,
   type MatchScore,
-  type RoundDetail,
 } from '@fut-stats/shared';
 
 type Me = HistoryItem['me'];
 export type ResultKind = MatchResult | 'NONE';
-
-/**
- * A partida já tem placar final para mostrar (Resenha, votação ou encerrada)? É o mesmo recorte do `isMatchFinished`
- * do domain, que a API usa para montar a lista: o web não depende do domain, então o recorte fica escrito aqui.
- */
-export function isMatchFinished(status: RoundDetail['status']): boolean {
-  return status === 'POST_MATCH' || status === 'VOTING' || status === 'CLOSED';
-}
 
 /** O resultado de quem vê, curto, para a faixa do card da lista. O resultado vem da API; aqui só se escolhe a frase. */
 export function listResultText(me: Me): { kind: ResultKind; text: string } {
