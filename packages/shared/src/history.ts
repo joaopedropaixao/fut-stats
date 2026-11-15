@@ -46,3 +46,6 @@ export type HistoryQuery = z.infer<typeof historyQuerySchema>;
 export type HistoryItem = z.infer<typeof historyItemSchema>;
 export type HistoryList = z.infer<typeof historyListSchema>;
 export type { MatchWinner };
+
+/** Reexportado para o web decidir "a partida terminou?" sem copiar a regra (a regra mora no domain). */
+export { isMatchFinished } from '@fut-stats/domain';
