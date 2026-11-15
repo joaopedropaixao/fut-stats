@@ -178,7 +178,7 @@ Pedidos do dono e o que a equipe escolheu:
 
 **C23 revisado:** Craque ~3 s; carta sua (Craque "VOCÊ" ou Perna de Pau você) ~4 s; demais ≤ ~2 s; só `transform`/`opacity`.
 
-**Ajuste do dono (15 nov 2026, sem volta de QA):** quando quem abre não é o Craque nem o Perna de Pau, o Craque revelado segura +2,5 s (5,5 s no total) para dar tempo de ler gols, assistências e frase; no empate, a pausa vai no quadro das duas cartas juntas (1,6 + 2,5 s). Toque adianta e "Pular" continua. Os casos em que você é o Craque ou o Perna de Pau não mudam.
+**Ajuste do dono (15 nov 2026, sem volta de QA):** quando quem abre não é o Craque nem o Perna de Pau, o Craque revelado fica **4,75 s** no total para dar tempo de ler gols, assistências e frase; no empate, o quadro das duas cartas juntas também fica **4,75 s** (igualado pelo dono depois de testar os 5,5 s e os 4,1 s do primeiro ajuste). Toque adianta e "Pular" continua. Os casos em que você é o Craque ou o Perna de Pau não mudam.
 
 Cenários desta volta (QA curto: estes, sobreposição e telas mexidas):
 

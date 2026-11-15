@@ -15,19 +15,20 @@ export type Frame =
 /**
  * Duração de cada quadro (ms), do toque até passar para o próximo sozinho. O Craque fica ~3 s; a carta sua (o
  * Craque "VOCÊ" ou você sendo o Perna de Pau) segura ~4 s, a festa ou a piada; as outras, ~2 s. Quando quem abre
- * não é o Craque nem o Perna de Pau, o Craque revelado segura mais `readHold` para dar tempo de ler gols,
- * assistências e a frase (no empate, o quadro das duas cartas juntas).
+ * não é o Craque nem o Perna de Pau, o Craque revelado fica `craqueHeld` no total para dar tempo de ler gols,
+ * assistências e a frase (no empate, o quadro das duas cartas juntas fica `duoHeld`).
  */
 export const FRAME_MS = {
   shake: 700,
   tear: 600,
   craque: 3000,
+  craqueHeld: 4750,
   craqueYou: 4000,
   duo: 1600,
+  duoHeld: 4750,
   flop: 2000,
   flopYou: 4000,
   mine: 2000,
-  readHold: 2500,
 } as const;
 
 export function buildFrames(deck: readonly PackCard[]): Frame[] {
@@ -58,11 +59,11 @@ export function frameDuration(frame: Frame): number | null {
     case 'tear':
       return FRAME_MS.tear;
     case 'duo':
-      return FRAME_MS.duo + (frame.hold ? FRAME_MS.readHold : 0);
+      return frame.hold ? FRAME_MS.duoHeld : FRAME_MS.duo;
     case 'card': {
       const { kind, you } = frame.card;
       if (kind === 'craque')
-        return you ? FRAME_MS.craqueYou : FRAME_MS.craque + (frame.hold ? FRAME_MS.readHold : 0);
+        return you ? FRAME_MS.craqueYou : frame.hold ? FRAME_MS.craqueHeld : FRAME_MS.craque;
       if (kind === 'flop') return you ? FRAME_MS.flopYou : FRAME_MS.flop;
       return FRAME_MS.mine;
     }

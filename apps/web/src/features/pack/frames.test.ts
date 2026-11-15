@@ -54,8 +54,8 @@ describe('quadros do pacote', () => {
     expect(durations[0]).toBeNull();
     expect(durations.at(-1)).toBeNull();
     // fechado, suspense, rasgo, Craque, Perna de Pau, sua carta, final
-    // quem abre não é o Craque nem o Perna de Pau: 3 s + 2,5 s para ler gols, assistências e a frase
-    expect(durations[3]).toBe(5500);
+    // quem abre não é o Craque nem o Perna de Pau: 4,75 s no total para ler gols, assistências e a frase
+    expect(durations[3]).toBe(4750);
     expect(durations[4]).toBe(2000);
     expect(durations[5]).toBe(2000);
     // do toque até a última carta parar, o walkout do Craque termina dentro do quadro
@@ -98,7 +98,7 @@ describe('quadros do pacote', () => {
     // fechado, suspense, rasgo, Craque 1, Craque 2, as duas juntas, Perna de Pau, sua carta, final
     expect(durations[3]).toBe(3000);
     expect(durations[4]).toBe(3000);
-    expect(durations[5]).toBe(1600 + 2500);
+    expect(durations[5]).toBe(4750);
     expect(durations[6]).toBe(2000);
   });
 });
