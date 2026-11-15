@@ -651,6 +651,42 @@ describe('times da rodada (escalação)', () => {
       expect(otherGroupTogether).toBeGreaterThan(0);
     });
 
+    it('C12: a rodada na Resenha (POST_MATCH) conta no histórico do seletor: a dupla que venceu junta é separada', async () => {
+      const s = await setupSuggest();
+      const pair = [s.ids[2]!, s.ids[3]!];
+      // 5 goleadas da dupla, todas em rodadas na Resenha (a que o histórico esquecia)
+      for (let i = 1; i <= 5; i += 1) {
+        await t.prisma.round.create({
+          data: {
+            groupId: s.group.id,
+            scheduledAt: new Date(Date.now() - 7 * i * DAY_MS),
+            status: 'POST_MATCH',
+            whiteGoals: 4,
+            blackGoals: 0,
+            teamPlayers: {
+              create: pair.map((membershipId) => ({
+                membershipId,
+                team: 'WHITE' as const,
+                position: 'DEFENDER' as const,
+                isReserve: false,
+              })),
+            },
+          },
+        });
+      }
+
+      for (let i = 0; i < 30; i += 1) {
+        const { teams } = (await suggest(s, s.adminUser.id).expect(200)).body as {
+          teams: SaveLineupInput;
+        };
+        const together = (['WHITE', 'BLACK'] as const).some((team) => {
+          const ids = [...teams[team].starters.map((x) => x.membershipId), ...teams[team].reserves];
+          return pair.every((id) => ids.includes(id));
+        });
+        expect(together).toBe(false);
+      }
+    });
+
     it('seletor C16: rodadas jogadas sem placar não tiram da janela as com placar', async () => {
       const s = await setupSuggest();
       const day = (n: number) => new Date(Date.now() - n * DAY_MS);

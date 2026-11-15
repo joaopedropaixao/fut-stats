@@ -12,22 +12,8 @@ import {
   type TeamKey,
 } from './lineup-draft';
 import { NoPresence } from './no-presence';
+import { PITCH_HEIGHT, PITCH_HEIGHT_ME, SLOT_POSITION } from './pitch-layout';
 import { YOU_RING, YouTag } from './you-tag';
-
-/**
- * Onde cada vaga do 1-2-3-1 fica no campo (ataque em cima, goleiro embaixo).
- * Na linha de três, o meio fica mais atrás para os nomes não se encostarem.
- */
-const SLOT_POSITION: Record<SlotKey, { left: string; top: number }> = {
-  FWD: { left: '50%', top: 30 },
-  // Nos extremos o nome (até 10 letras) não pode passar da borda do campo em 320 px
-  WING1: { left: 'max(18.4%, 70px)', top: 160 },
-  MID: { left: '50%', top: 196 },
-  WING2: { left: 'min(77.1%, calc(100% - 70px))', top: 160 },
-  DEF1: { left: '27.9%', top: 296 },
-  DEF2: { left: '72.1%', top: 296 },
-  GK: { left: '50%', top: 392 },
-};
 
 type PitchProps = {
   team: TeamKey;
@@ -63,9 +49,9 @@ export function Pitch({
       aria-label={`Campo do ${TEAM_LABELS[team]}`}
       className={cn(
         'relative scroll-mt-4 shrink-0 overflow-hidden bg-linear-to-b from-[#1f5a33] to-field shadow-[inset_0_0_0_3px_#000,4px_4px_0_var(--color-shadow)]',
-        // A etiqueta "Você" embaixo do goleiro pede um pouco mais de campo
-        meHere ? 'h-128' : 'h-120',
       )}
+      // A etiqueta "Você" embaixo do goleiro pede um pouco mais de campo
+      style={{ height: meHere ? PITCH_HEIGHT_ME : PITCH_HEIGHT }}
     >
       <ChalkLines />
       {SLOTS.map(({ key, position }) => {
@@ -131,17 +117,35 @@ function ChalkLines() {
   return (
     <svg
       aria-hidden
-      viewBox="0 0 358 480"
+      viewBox={`0 0 358 ${PITCH_HEIGHT}`}
       preserveAspectRatio="none"
       className="absolute inset-0 size-full"
       fill="none"
       stroke="rgb(255 255 255 / 30%)"
       strokeWidth="2"
     >
-      <rect x="14" y="14" width="330" height="452" vectorEffect="non-scaling-stroke" />
+      <rect
+        x="14"
+        y="14"
+        width="330"
+        height={PITCH_HEIGHT - 28}
+        vectorEffect="non-scaling-stroke"
+      />
       <path d="M119 14a60 60 0 0 0 120 0" vectorEffect="non-scaling-stroke" />
-      <rect x="99" y="392" width="160" height="74" vectorEffect="non-scaling-stroke" />
-      <rect x="139" y="438" width="80" height="28" vectorEffect="non-scaling-stroke" />
+      <rect
+        x="99"
+        y={SLOT_POSITION.GK.top}
+        width="160"
+        height={PITCH_HEIGHT - 14 - SLOT_POSITION.GK.top}
+        vectorEffect="non-scaling-stroke"
+      />
+      <rect
+        x="139"
+        y={PITCH_HEIGHT - 42}
+        width="80"
+        height="28"
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   );
 }

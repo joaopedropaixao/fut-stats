@@ -1,7 +1,13 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { ROUND_STATUS_LABELS, TEAM_LABELS, type MatchView } from '@fut-stats/shared';
+import {
+  ROUND_STATUS_LABELS,
+  TEAM_LABELS,
+  type MatchView,
+  type MatchWinner,
+} from '@fut-stats/shared';
 import { Bump } from '../../components/ui/bump';
 import { IconButton } from '../../components/ui/button';
+import { Icon } from '../../components/ui/icons';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { pixelDigitsPath } from '../../components/ui/pixel-glyphs';
 import { PixelText } from '../../components/ui/pixel-text';
@@ -49,6 +55,10 @@ type ScoreboardProps = {
   compact?: boolean;
   /** Sem o contorno e a entrada próprios: quem usa já enquadra (o card do início). */
   bare?: boolean;
+  /** Sem a faixa da etapa em cima: quem usa já diz a etapa (card do histórico). */
+  hideStatus?: boolean;
+  /** Partida encerrada: o time vencedor ganha "✓ Venceu" (empate, "= Empate") embaixo do nome. */
+  winner?: MatchWinner;
   /** Admin com o placar aberto: −/+ de cada time embaixo. Cada toque grava. */
   editor?: { busy: boolean; onChange: (next: Score) => void };
 };
@@ -58,7 +68,15 @@ type ScoreboardProps = {
  * momento: contorno de 3px, sombra dura e entrada em degraus; o dígito que muda bate. A etapa fica numa faixa
  * própria em cima, longe dos dígitos. Sem placar lançado, o traço "–" no lugar dos dígitos.
  */
-export function Scoreboard({ status, score, compact, bare, editor }: ScoreboardProps) {
+export function Scoreboard({
+  status,
+  score,
+  compact,
+  bare,
+  hideStatus,
+  winner,
+  editor,
+}: ScoreboardProps) {
   const baseScale = compact ? 6 : Math.max(score?.WHITE ?? 0, score?.BLACK ?? 0) >= 100 ? 8 : 12;
   const row = useRef<HTMLDivElement>(null);
   const width = useRowWidth(row);
@@ -74,18 +92,24 @@ export function Scoreboard({ status, score, compact, bare, editor }: ScoreboardP
       aria-label="Placar"
       className={cn('flex flex-col bg-surface', !bare && 'moment-frame animate-moment-in')}
     >
-      <div className="flex h-11 items-center bg-track px-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
-        <span className="inline-flex items-center gap-2 text-text">
-          {live && (
-            <span
-              aria-hidden
-              className="animate-live-blink size-2.5 shrink-0 rounded-full bg-success"
-            />
-          )}
-          <PixelText>{ROUND_STATUS_LABELS[status]}</PixelText>
-        </span>
-      </div>
-      <div className="flex flex-col gap-3 px-5 pt-6 pb-5" style={DIAGONAL}>
+      {!hideStatus && (
+        <div className="flex h-11 items-center bg-track px-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
+          <span className="inline-flex items-center gap-2 text-text">
+            {live && (
+              <span
+                aria-hidden
+                className="animate-live-blink size-2.5 shrink-0 rounded-full bg-success"
+              />
+            )}
+            <PixelText>{ROUND_STATUS_LABELS[status]}</PixelText>
+          </span>
+        </div>
+      )}
+      <div
+        // Com "Venceu" sobre o nome, o texto do lado branco precisa de todo o espaço até o corte (320 px)
+        className={cn('flex flex-col gap-3 pt-6 pb-5', winner ? 'px-4' : 'px-5')}
+        style={DIAGONAL}
+      >
         <div ref={row} className="flex items-end justify-between">
           {score ? (
             <>
@@ -114,13 +138,19 @@ export function Scoreboard({ status, score, compact, bare, editor }: ScoreboardP
             </>
           )}
         </div>
-        <div className="flex items-center justify-between">
-          <PixelText className="px-2 py-0.5 text-team-black shadow-[inset_0_0_0_2px_#000]">
-            {TEAM_LABELS.WHITE}
-          </PixelText>
-          <PixelText className="px-2 py-0.5 text-team-white shadow-[inset_0_0_0_2px_#fff]">
-            {TEAM_LABELS.BLACK}
-          </PixelText>
+        <div className="flex items-end justify-between gap-2">
+          <div className="flex flex-col items-start gap-1.5 text-team-black">
+            {winner && <WinnerMark team="WHITE" winner={winner} />}
+            <PixelText className="px-2 py-0.5 shadow-[inset_0_0_0_2px_#000]">
+              {TEAM_LABELS.WHITE}
+            </PixelText>
+          </div>
+          <div className="flex flex-col items-end gap-1.5 text-team-white">
+            {winner && <WinnerMark team="BLACK" winner={winner} />}
+            <PixelText className="px-2 py-0.5 shadow-[inset_0_0_0_2px_#fff]">
+              {TEAM_LABELS.BLACK}
+            </PixelText>
+          </div>
         </div>
       </div>
       {!score && !live && (
@@ -130,6 +160,24 @@ export function Scoreboard({ status, score, compact, bare, editor }: ScoreboardP
       )}
       {editor && <ScoreEditor score={score ?? { WHITE: 0, BLACK: 0 }} {...editor} />}
     </section>
+  );
+}
+
+/** "✓ Venceu" sobre o nome do time que ganhou (acima, onde o corte diagonal deixa mais espaço); no empate, "= Empate" nos dois. Quem perdeu não ganha marca. */
+function WinnerMark({ team, winner }: { team: Team; winner: MatchWinner }) {
+  if (winner !== 'DRAW' && winner !== team) return null;
+  return (
+    <span className="inline-flex items-center gap-1">
+      {winner === 'DRAW' ? (
+        <span aria-hidden className="flex w-3.5 flex-col gap-0.75">
+          <span className="h-0.5 bg-current" />
+          <span className="h-0.5 bg-current" />
+        </span>
+      ) : (
+        <Icon name="check" size={14} strokeWidth={3.5} />
+      )}
+      <PixelText>{winner === 'DRAW' ? 'Empate' : 'Venceu'}</PixelText>
+    </span>
   );
 }
 

@@ -9,9 +9,9 @@
 | **Modo** | Par |
 | **Parte de** | PR #31 (fechar), branch `origin/feature/tela-historico`: aproveitar `matchWinner` e a paginação por cursor; as telas são refeitas |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @19180c2 (checkpoint de início 2026-11-15: entraram #60, #62 e #63; nada no histórico conflita, as rotas novas seguem o `lazy` e entram em `app/preload.ts`) |
 | **Depende de** | perfil-jogador |
-| **Toca em** | packages/domain/src/round, packages/shared/src/history.ts, packages/shared/src/index.ts, apps/api/src/history, apps/api/src/lineups/lineups.service.ts, apps/api/src/app.module.ts, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/pages/rounds/detail.tsx, apps/web/src/router.tsx |
+| **Toca em** | packages/domain/src/round, packages/shared/src/history.ts, packages/shared/src/index.ts, apps/api/src/history, apps/api/src/lineups/lineups.service.ts, apps/api/src/app.module.ts, apps/web/src/pages/historico, apps/web/src/features/history, apps/web/src/pages/rounds/detail.tsx, apps/web/src/router.tsx, apps/web/src/app/preload.ts |
 
 ## Produto
 
@@ -163,7 +163,7 @@ Regras de visual do documento de autonomia valem como critério.
     `PublishedTeams` sem o VS (sem `roundId`) para o campo e as reservas; `EventList` só leitura por time.
   - O texto do resultado sai de uma função pura com teste (`history-text.ts`): vitória, derrota, empate, não jogou.
 - **Detalhe da rodada** (`pages/rounds/detail.tsx`): `nextStep` aponta para o histórico em `VOTING` e `CLOSED`.
-- Rotas novas com `lazy` (ver `orcamento-de-bundle`).
+- Rotas novas com `lazy` (ver `orcamento-de-bundle`): `pages/historico/routes.ts` + `historico-area.ts` (as duas telas no mesmo pedaço), e uma linha em `app/preload.ts`. O JS inicial está em 144,8 de 150 kB: nada das telas novas entra nele.
 - Nada de regra no front: vencedor e resultado vêm da API. Sem dependência nova.
 - Ao abrir o PR desta fatia, fechar o PR #31.
 
@@ -190,4 +190,24 @@ Regras de visual do documento de autonomia valem como critério.
   (25 out 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**2 voltas. Veredito: APROVADO (volta 2, 2026-11-15).**
+
+- **Volta 1:** C1–C26 OK; C27 FALHA. A 320 px, no campo do detalhe, o "VOCÊ" sob o Carlão ficava por cima do "THIAGUINHO". Corrigido no `pitch.tsx` compartilhado: as linhas do campo ficaram em degraus (`pitch-layout.ts`, com teste) e o campo ficou mais alto, também em `/times` e `/rodadas/:id/times`.
+- **Volta 2:** C27 OK nas cinco larguras, em Branco e Preto. Sem regressão do campo em `/times` e `/rodadas/:id/times`. C17–C21 OK.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1–C3 | OK | `status.test.ts`, `match.test.ts` (unitário) |
+| C4–C11 | OK | `apps/api/src/history/history.spec.ts` + curl na API real (23 partidas criadas pelas rotas) |
+| C12 | OK | `lineups.spec.ts` "C12"; com a lista antiga de status, o teste falha (reproduz o bug) |
+| C13–C26 | OK | Playwright a 390 px, dados reais (mock só para carregando/erro do C25); console sem erros |
+| C27 | OK (volta 2) | Checagem automática a 320/375/390/430/1280: sem rolagem horizontal, sobreposição, corte nem alvo menor que 44 px |
+
+Fora do escopo, já existia na develop @19180c2: no construtor de uma rodada agendada (`/rodadas/:id/times`), a página rola 24 px na horizontal a 320 px.
+
+Decisões dos DEVs, aceitas pelo TPL:
+- A lista também exige os dois gols não nulos. Não muda nada, porque toda rodada finalizada tem placar.
+- O shared reexporta `isMatchFinished`, para o web não copiar a regra.
+- O placar do detalhe não mostra "✓ VENCEU", porque o `MatchView` não traz o vencedor e o spec não pede.
+- O local do detalhe vem do `GET .../rounds/:id`.
+- Os cards entram com `animate-moment-in` (vira fade com movimento reduzido, como pede o C26), com o `--moment-delay` em degraus.

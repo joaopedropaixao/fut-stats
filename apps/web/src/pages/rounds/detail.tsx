@@ -80,7 +80,7 @@ function nextStep(round: RoundDetail, isAdmin: boolean): { to: string; label: st
       return { to: `/rodadas/${round.id}/jogo`, label: 'Ir para a Resenha' };
     case 'VOTING':
     case 'CLOSED':
-      return { to: `/rodadas/${round.id}/jogo`, label: 'Ver o jogo' };
+      return { to: `/historico/${round.id}`, label: 'Ver partida' };
   }
 }
 

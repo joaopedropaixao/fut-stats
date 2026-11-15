@@ -7,6 +7,7 @@ import { envFilePaths } from './config/env-files';
 import { DevModule } from './dev/dev.module';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
+import { HistoryModule } from './history/history.module';
 import { LineupsModule } from './lineups/lineups.module';
 import { MatchModule } from './match/match.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -27,6 +28,7 @@ import { RoundsModule } from './rounds/rounds.module';
     RoundsModule,
     LineupsModule,
     MatchModule,
+    HistoryModule,
     DevModule.forEnvironment(),
   ],
 })

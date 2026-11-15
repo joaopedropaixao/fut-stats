@@ -45,6 +45,13 @@ export const MATCH_RESULTS = ['WIN', 'LOSS', 'DRAW'] as const;
 
 export type MatchResult = (typeof MATCH_RESULTS)[number];
 
+/** Quem venceu a partida, pelo placar: um dos times ou empate (`matchWinner`). */
+export const MATCH_WINNERS = ['WHITE', 'BLACK', 'DRAW'] as const satisfies readonly (
+  Team | 'DRAW'
+)[];
+
+export type MatchWinner = (typeof MATCH_WINNERS)[number];
+
 export const SCORE_ERRORS = ['INVALID_SCORE'] as const;
 
 export type ScoreError = (typeof SCORE_ERRORS)[number];
@@ -98,4 +105,10 @@ export function matchResult(score: MatchScore, team: Team): MatchResult {
   const diff = score[team] - score[opponentOf(team)];
   if (diff > 0) return 'WIN';
   return diff < 0 ? 'LOSS' : 'DRAW';
+}
+
+/** Quem venceu pelo placar: o time com mais gols ou empate (inclusive 0 a 0). Não há desempate. */
+export function matchWinner(score: MatchScore): MatchWinner {
+  if (score.WHITE === score.BLACK) return 'DRAW';
+  return score.WHITE > score.BLACK ? 'WHITE' : 'BLACK';
 }
