@@ -8,7 +8,14 @@ const score = { WHITE: 3, BLACK: 2 };
 
 function render(result: 'WIN' | 'LOSS' | 'DRAW') {
   return renderToString(
-    <ResultCard roundId="r1" result={result} score={score} myTeam="WHITE" avatar={ME} />,
+    <ResultCard
+      roundId="r1"
+      membershipId="m1"
+      result={result}
+      score={score}
+      myTeam="WHITE"
+      avatar={ME}
+    />,
   );
 }
 

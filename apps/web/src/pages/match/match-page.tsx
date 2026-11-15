@@ -147,6 +147,7 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
           {me.result && view.score && me.team && (
             <ResultMoment
               roundId={view.roundId}
+              membershipId={me.membershipId}
               result={me.result}
               score={view.score}
               myTeam={me.team}
@@ -284,9 +285,9 @@ function Board({ groupId, view }: { groupId: string; view: MatchView }) {
   );
 }
 
-/** O card de resultado toca uma vez por rodada: o que o navegador lembrou vale na hora em que ele entra. */
+/** O card de resultado toca uma vez por rodada e por jogador: o que o navegador lembrou vale na hora em que ele entra. */
 function ResultMoment(props: ComponentProps<typeof ResultCard>) {
-  const [show] = useState(() => !hasSeenResult(props.roundId));
+  const [show] = useState(() => !hasSeenResult(props.roundId, props.membershipId));
   return show ? <ResultCard {...props} /> : null;
 }
 

@@ -18,22 +18,31 @@ const broken = {
   },
 };
 
-describe('card de resultado visto por rodada', () => {
+describe('card de resultado visto por rodada e por jogador', () => {
   it('começa sem ter visto e lembra depois de marcar', () => {
     const storage = memory();
-    expect(hasSeenResult('r1', storage)).toBe(false);
-    markResultSeen('r1', storage);
-    expect(hasSeenResult('r1', storage)).toBe(true);
+    expect(hasSeenResult('r1', 'm1', storage)).toBe(false);
+    markResultSeen('r1', 'm1', storage);
+    expect(hasSeenResult('r1', 'm1', storage)).toBe(true);
   });
 
   it('é por rodada: outra rodada toca de novo', () => {
     const storage = memory();
-    markResultSeen('r1', storage);
-    expect(hasSeenResult('r2', storage)).toBe(false);
+    markResultSeen('r1', 'm1', storage);
+    expect(hasSeenResult('r2', 'm1', storage)).toBe(false);
+  });
+
+  it('é por jogador: no mesmo navegador, quem entra depois ainda vê o card (bug do YOU LOSE)', () => {
+    const storage = memory();
+    markResultSeen('r1', 'admin', storage);
+    expect(hasSeenResult('r1', 'admin', storage)).toBe(true);
+    expect(hasSeenResult('r1', 'jota', storage)).toBe(false);
+    markResultSeen('r1', 'jota', storage);
+    expect(hasSeenResult('r1', 'jota', storage)).toBe(true);
   });
 
   it('sem armazenamento não quebra: lê como não visto e marcar não faz nada', () => {
-    expect(hasSeenResult('r1', broken)).toBe(false);
-    expect(() => markResultSeen('r1', broken)).not.toThrow();
+    expect(hasSeenResult('r1', 'm1', broken)).toBe(false);
+    expect(() => markResultSeen('r1', 'm1', broken)).not.toThrow();
   });
 });

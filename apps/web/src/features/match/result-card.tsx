@@ -19,6 +19,8 @@ type Phase = 'entry' | 'clash' | 'final';
 
 type ResultCardProps = {
   roundId: string;
+  /** Quem vê: o "já vi" é por jogador, não por navegador. */
+  membershipId: string;
   result: MatchResult;
   score: MatchScore;
   /** O time de quem vê. */
@@ -152,13 +154,20 @@ function TeamBand({ team, shown }: { team: Team; shown: boolean }) {
  * por rodada (o chamador decide); "Pular" leva ao quadro final. Com "reduzir movimento" só aparece o quadro
  * final, com um fade (sem confete). A animação é decorativa (aria-hidden): o resultado é anunciado em texto.
  */
-export function ResultCard({ roundId, result, score, myTeam, avatar }: ResultCardProps) {
+export function ResultCard({
+  roundId,
+  membershipId,
+  result,
+  score,
+  myTeam,
+  avatar,
+}: ResultCardProps) {
   const [reduced] = useState(prefersReducedMotion);
   const [phase, setPhase] = useState<Phase>(reduced ? 'final' : 'entry');
   const [animated] = useState(!reduced);
   const heading = useRef<HTMLHeadingElement>(null);
 
-  useEffect(() => markResultSeen(roundId), [roundId]);
+  useEffect(() => markResultSeen(roundId, membershipId), [roundId, membershipId]);
 
   useEffect(() => {
     if (phase === 'final') return;
