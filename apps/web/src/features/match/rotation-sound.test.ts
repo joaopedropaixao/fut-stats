@@ -68,23 +68,85 @@ describe('playRotationWhistle', () => {
 describe('shouldWhistleOnTurnChange', () => {
   it('apita uma vez quando muda o índice do turno do time selecionado', () => {
     expect(
-      shouldWhistleOnTurnChange({ team: 'WHITE', index: 1 }, { team: 'WHITE', index: 2 }, true),
+      shouldWhistleOnTurnChange(
+        { team: 'WHITE', index: 1 },
+        { team: 'WHITE', index: 2 },
+        {
+          enabled: true,
+          visible: true,
+          syncingAfterBackground: false,
+        },
+      ),
     ).toBe(true);
   });
 
   it('não apita ao entrar em PREPARA/TROCA, na montagem ou ao alternar o seletor', () => {
     expect(
-      shouldWhistleOnTurnChange({ team: 'WHITE', index: 1 }, { team: 'WHITE', index: 1 }, true),
+      shouldWhistleOnTurnChange(
+        { team: 'WHITE', index: 1 },
+        { team: 'WHITE', index: 1 },
+        {
+          enabled: true,
+          visible: true,
+          syncingAfterBackground: false,
+        },
+      ),
     ).toBe(false);
-    expect(shouldWhistleOnTurnChange(null, { team: 'WHITE', index: 1 }, true)).toBe(false);
     expect(
-      shouldWhistleOnTurnChange({ team: 'WHITE', index: 1 }, { team: 'BLACK', index: 2 }, true),
+      shouldWhistleOnTurnChange(
+        null,
+        { team: 'WHITE', index: 1 },
+        {
+          enabled: true,
+          visible: true,
+          syncingAfterBackground: false,
+        },
+      ),
+    ).toBe(false);
+    expect(
+      shouldWhistleOnTurnChange(
+        { team: 'WHITE', index: 1 },
+        { team: 'BLACK', index: 2 },
+        {
+          enabled: true,
+          visible: true,
+          syncingAfterBackground: false,
+        },
+      ),
     ).toBe(false);
   });
 
   it('não apita quando Som está desligado, mesmo com virada de turno', () => {
     expect(
-      shouldWhistleOnTurnChange({ team: 'WHITE', index: 1 }, { team: 'WHITE', index: 2 }, false),
+      shouldWhistleOnTurnChange(
+        { team: 'WHITE', index: 1 },
+        { team: 'WHITE', index: 2 },
+        {
+          enabled: false,
+          visible: true,
+          syncingAfterBackground: false,
+        },
+      ),
+    ).toBe(false);
+  });
+
+  it('sincroniza a virada sem apitar enquanto está oculto ou ao voltar', () => {
+    const previous = { team: 'WHITE', index: 1 } as const;
+    const current = { team: 'WHITE', index: 2 } as const;
+
+    expect(
+      shouldWhistleOnTurnChange(previous, current, {
+        enabled: true,
+        visible: false,
+        syncingAfterBackground: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldWhistleOnTurnChange(previous, current, {
+        enabled: true,
+        visible: true,
+        syncingAfterBackground: true,
+      }),
     ).toBe(false);
   });
 });

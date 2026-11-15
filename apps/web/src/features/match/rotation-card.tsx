@@ -43,6 +43,16 @@ function savePreferences(prefs: Preferences) {
   }
 }
 
+function resumeRotationAudio(audio: { current: AudioContext | null }) {
+  if (typeof AudioContext === 'undefined') return;
+  try {
+    audio.current ??= new AudioContext();
+    if (audio.current.state === 'suspended') void audio.current.resume().catch(() => {});
+  } catch {
+    audio.current = null;
+  }
+}
+
 function useWakeLock(enabled: boolean) {
   const [supported] = useState(() => typeof navigator !== 'undefined' && 'wakeLock' in navigator);
   const lock = useRef<{ release: () => Promise<void> } | null>(null);
@@ -123,6 +133,9 @@ export function RotationCard({
   const audio = useRef<AudioContext | null>(null);
   const lastChange = useRef<string | null>(null);
   const lastTurn = useRef<{ team: TeamKey; index: number } | null>(null);
+  const hiddenSinceLastVisible = useRef(false);
+  const [visibilityRestore, setVisibilityRestore] = useState(0);
+  const handledVisibilityRestore = useRef(0);
   const rotation = view.rotation;
   const { elapsedMs } = useRotationClock(view.serverTime, rotation?.startedAt ?? null);
   const plan = useMemo(() => matchRotationPlan(view), [view]);
@@ -163,16 +176,36 @@ export function RotationCard({
   useEffect(() => savePreferences(preferences), [preferences]);
 
   useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        hiddenSinceLastVisible.current = true;
+        return;
+      }
+      if (!hiddenSinceLastVisible.current) return;
+      hiddenSinceLastVisible.current = false;
+      if (preferences.sound) resumeRotationAudio(audio);
+      setVisibilityRestore((restore) => restore + 1);
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [preferences.sound]);
+
+  useEffect(() => {
     if (turnIndex === null) return;
     const currentTurn = { team, index: turnIndex };
-    const shouldWhistle = shouldWhistleOnTurnChange(
-      lastTurn.current,
-      currentTurn,
-      preferences.sound,
-    );
+    if (handledVisibilityRestore.current !== visibilityRestore) {
+      lastTurn.current = currentTurn;
+      handledVisibilityRestore.current = visibilityRestore;
+      return;
+    }
+    const shouldWhistle = shouldWhistleOnTurnChange(lastTurn.current, currentTurn, {
+      enabled: preferences.sound,
+      visible: document.visibilityState === 'visible',
+      syncingAfterBackground: false,
+    });
     lastTurn.current = currentTurn;
     if (shouldWhistle) playRotationWhistle(audio.current, true);
-  }, [team, turnIndex, preferences.sound]);
+  }, [team, turnIndex, preferences.sound, visibilityRestore]);
 
   useEffect(() => {
     if (lastChange.current === null) {
@@ -242,6 +275,12 @@ export function RotationCard({
     <>
       <section
         aria-label="Rodízio"
+        onPointerDownCapture={() => {
+          if (preferences.sound) resumeRotationAudio(audio);
+        }}
+        onKeyDownCapture={() => {
+          if (preferences.sound) resumeRotationAudio(audio);
+        }}
         className={`moment-frame animate-moment-in flex flex-col bg-surface-raised ${phase === 'CHANGE' ? 'animate-rotation-change' : ''}`}
       >
         <header className="flex min-h-11 items-center justify-between bg-track px-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
@@ -383,14 +422,7 @@ export function RotationCard({
               label="Som"
               checked={preferences.sound}
               onChange={(sound) => {
-                if (sound && typeof AudioContext !== 'undefined') {
-                  try {
-                    audio.current ??= new AudioContext();
-                    void audio.current.resume();
-                  } catch {
-                    audio.current = null;
-                  }
-                }
+                if (sound) resumeRotationAudio(audio);
                 setPreferences((old) => ({ ...old, sound }));
               }}
             />

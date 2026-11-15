@@ -1,14 +1,21 @@
 import type { TeamKey } from '../lineup/lineup-draft';
 
 type RotationTurnKey = { team: TeamKey; index: number };
+type TurnSoundState = {
+  enabled: boolean;
+  visible: boolean;
+  syncingAfterBackground: boolean;
+};
 
 export function shouldWhistleOnTurnChange(
   previous: RotationTurnKey | null,
   current: RotationTurnKey | null,
-  enabled: boolean,
+  state: TurnSoundState,
 ): boolean {
   return Boolean(
-    enabled &&
+    state.enabled &&
+    state.visible &&
+    !state.syncingAfterBackground &&
     previous &&
     current &&
     previous.team === current.team &&
