@@ -6,14 +6,17 @@ export type Frame =
   | { kind: 'closed' }
   | { kind: 'shake' }
   | { kind: 'tear' }
-  | { kind: 'card'; card: PackCard }
+  /** `hold`: o Craque revelado fica mais tempo para ler (quem abre não é o Craque nem o Perna de Pau). */
+  | { kind: 'card'; card: PackCard; hold?: boolean }
   /** Empate de Craque: as duas cartas juntas, depois de cada uma fazer o seu walkout. */
-  | { kind: 'duo'; cards: PackCard[] }
+  | { kind: 'duo'; cards: PackCard[]; hold?: boolean }
   | { kind: 'final' };
 
 /**
  * Duração de cada quadro (ms), do toque até passar para o próximo sozinho. O Craque fica ~3 s; a carta sua (o
- * Craque "VOCÊ" ou você sendo o Perna de Pau) segura ~4 s, a festa ou a piada; as outras, ~2 s.
+ * Craque "VOCÊ" ou você sendo o Perna de Pau) segura ~4 s, a festa ou a piada; as outras, ~2 s. Quando quem abre
+ * não é o Craque nem o Perna de Pau, o Craque revelado segura mais `readHold` para dar tempo de ler gols,
+ * assistências e a frase (no empate, o quadro das duas cartas juntas).
  */
 export const FRAME_MS = {
   shake: 700,
@@ -24,17 +27,21 @@ export const FRAME_MS = {
   flop: 2000,
   flopYou: 4000,
   mine: 2000,
+  readHold: 2500,
 } as const;
 
 export function buildFrames(deck: readonly PackCard[]): Frame[] {
   const craques = deck.filter((c) => c.kind === 'craque');
   const rest = deck.filter((c) => c.kind !== 'craque');
+  // Quem abre não é o Craque nem o Perna de Pau: o Craque revelado fica mais tempo para ler
+  const hold = !deck.some((c) => (c.kind === 'craque' || c.kind === 'flop') && c.you);
+  const tie = craques.length > 1;
   return [
     { kind: 'closed' },
     { kind: 'shake' },
     { kind: 'tear' },
-    ...craques.map((card): Frame => ({ kind: 'card', card })),
-    ...(craques.length > 1 ? [{ kind: 'duo', cards: craques } as Frame] : []),
+    ...craques.map((card): Frame => ({ kind: 'card', card, hold: hold && !tie })),
+    ...(tie ? [{ kind: 'duo', cards: craques, hold } as Frame] : []),
     ...rest.map((card): Frame => ({ kind: 'card', card })),
     { kind: 'final' },
   ];
@@ -51,10 +58,11 @@ export function frameDuration(frame: Frame): number | null {
     case 'tear':
       return FRAME_MS.tear;
     case 'duo':
-      return FRAME_MS.duo;
+      return FRAME_MS.duo + (frame.hold ? FRAME_MS.readHold : 0);
     case 'card': {
       const { kind, you } = frame.card;
-      if (kind === 'craque') return you ? FRAME_MS.craqueYou : FRAME_MS.craque;
+      if (kind === 'craque')
+        return you ? FRAME_MS.craqueYou : FRAME_MS.craque + (frame.hold ? FRAME_MS.readHold : 0);
       if (kind === 'flop') return you ? FRAME_MS.flopYou : FRAME_MS.flop;
       return FRAME_MS.mine;
     }

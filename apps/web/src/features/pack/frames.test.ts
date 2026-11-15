@@ -46,7 +46,7 @@ describe('quadros do pacote', () => {
     ]);
   });
 
-  it('C23: o fechado e o final esperam; o Craque segue sozinho em ~3 s e as outras cartas em ~2 s', () => {
+  it('C23: o fechado e o final esperam; o Craque (+ pausa de leitura) segue sozinho e as outras cartas em ~2 s', () => {
     const deck = buildDeck(
       result({ mvps: [ronaldinho], flops: [zague], players: [ronaldinho, eu, zague] }),
     );
@@ -54,7 +54,8 @@ describe('quadros do pacote', () => {
     expect(durations[0]).toBeNull();
     expect(durations.at(-1)).toBeNull();
     // fechado, suspense, rasgo, Craque, Perna de Pau, sua carta, final
-    expect(durations[3]).toBe(3000);
+    // quem abre não é o Craque nem o Perna de Pau: 3 s + 2,5 s para ler gols, assistências e a frase
+    expect(durations[3]).toBe(5500);
     expect(durations[4]).toBe(2000);
     expect(durations[5]).toBe(2000);
     // do toque até a última carta parar, o walkout do Craque termina dentro do quadro
@@ -84,7 +85,7 @@ describe('quadros do pacote', () => {
     expect(durations).toHaveLength(6);
   });
 
-  it('V3: sem carta sua entre os especiais, nenhum quadro passa de ~3 s', () => {
+  it('V3: sem carta sua entre os especiais, no empate só o quadro das duas juntas ganha a pausa de leitura', () => {
     const outro = player('c', 'Zé', 9.1, 1);
     const deck = buildDeck(
       result({
@@ -93,9 +94,12 @@ describe('quadros do pacote', () => {
         players: [ronaldinho, outro, eu, zague],
       }),
     );
-    for (const ms of buildFrames(deck).map(frameDuration)) {
-      if (ms !== null) expect(ms).toBeLessThanOrEqual(3000);
-    }
+    const durations = buildFrames(deck).map(frameDuration);
+    // fechado, suspense, rasgo, Craque 1, Craque 2, as duas juntas, Perna de Pau, sua carta, final
+    expect(durations[3]).toBe(3000);
+    expect(durations[4]).toBe(3000);
+    expect(durations[5]).toBe(1600 + 2500);
+    expect(durations[6]).toBe(2000);
   });
 });
 
