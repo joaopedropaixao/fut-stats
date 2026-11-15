@@ -16,6 +16,7 @@ import { profileRoute, startRoutes } from './pages/entrar-e-grupo/routes';
 import { rosterRoutes } from './pages/elenco/routes';
 import { historyRoutes } from './pages/historico/routes';
 import { profileEditRoutes } from './pages/perfil/routes';
+import { rankingRoutes } from './pages/ranking/routes';
 import { roundsRoutes } from './pages/rounds/routes';
 import { timesRoutes } from './pages/times/routes';
 import { votingRoutes } from './pages/voting/routes';
@@ -29,6 +30,10 @@ const TAB_PAGES: Partial<Record<string, RouteObject>> = {
   '/times': {
     path: '/times',
     lazy: async () => ({ Component: (await import('./pages/times/times-area')).TeamsTabPage }),
+  },
+  '/ranking': {
+    path: '/ranking',
+    lazy: async () => ({ Component: (await import('./pages/ranking/ranking-area')).RankingPage }),
   },
   '/historico': {
     path: '/historico',
@@ -59,6 +64,7 @@ export const router = createBrowserRouter([
           ...votingRoutes,
           ...timesRoutes,
           ...historyRoutes,
+          ...rankingRoutes,
           ...profileEditRoutes,
           ...rosterRoutes,
         ],

@@ -3,6 +3,11 @@ import { Badge } from '../../components/ui/badge';
 import { PixelBodyLarge } from '../../components/ui/pixel-body-large';
 import { PixelText } from '../../components/ui/pixel-text';
 import { Turf } from '../../components/ui/turf';
+import { PixelDigits } from '../../components/ui/pixel-digits';
+import { Medal } from '../ranking/medal';
+import { Ordinal } from '../ranking/ordinal';
+import { PODIUM_TEXT, podiumLabel, podiumTier } from '../ranking/podium';
+import { formatAverage } from '../ranking/ranking-text';
 import { YouTag } from '../lineup/you-tag';
 
 type PlayerCardProps = {
@@ -13,6 +18,10 @@ type PlayerCardProps = {
   isAdmin: boolean;
   /** É a figurinha de quem está vendo: ganha a etiqueta "VOCÊ". */
   mine?: boolean;
+  /** Posição no ranking geral (`null` = poucos jogos) e média: quando vêm, a figurinha mostra o placar do jogador. */
+  ranking?: { rank: number | null; average: number | null };
+  /** Nível do apelido: a tela do jogador o tem como título (h1); no Perfil o título é "Perfil". */
+  heading?: 'h1' | 'h2';
 };
 
 /** "Ala", "Ala e Meia", "Ala, Meia e Atacante". */
@@ -33,6 +42,8 @@ export function PlayerCard({
   secondaryPositions = [],
   isAdmin,
   mine,
+  ranking,
+  heading = 'h2',
 }: PlayerCardProps) {
   return (
     <section
@@ -49,12 +60,12 @@ export function PlayerCard({
         {(mine || isAdmin) && (
           <span className="absolute top-3 right-3 left-3 flex flex-wrap items-start justify-between gap-2">
             {mine ? <YouTag /> : <span />}
-            {isAdmin && <Badge label="Admin" variant="admin" />}
+            {isAdmin && <Badge label="Admin" variant="neutral" className="bg-surface-raised" />}
           </span>
         )}
       </Turf>
       <div className="flex flex-col gap-2 p-4">
-        <PixelText as="h2" size={24} wrap className="outline-none">
+        <PixelText as={heading} size={24} wrap className="outline-none">
           {nickname}
         </PixelText>
         <PixelText className="text-text-muted">{POSITION_LABELS[position]}</PixelText>
@@ -62,6 +73,58 @@ export function PlayerCard({
           <p className="text-sm text-text-muted">{`Também joga de ${listPositions(secondaryPositions)}`}</p>
         )}
       </div>
+      {ranking && <RankingStrip rank={ranking.rank} average={ranking.average} />}
     </section>
+  );
+}
+
+/**
+ * A faixa de baixo da figurinha: a posição no ranking e a média, em dígitos pixel. Pódio (ouro, prata e bronze) com a medalha ao lado; sem posição
+ * (poucos jogos), o texto diz por quê.
+ */
+function RankingStrip({ rank, average }: { rank: number | null; average: number | null }) {
+  const tier = podiumTier(rank);
+  const tone = tier ? PODIUM_TEXT[tier] : 'text-text';
+  return (
+    <dl className="flex flex-wrap gap-x-6 gap-y-3 px-4 py-3 shadow-[inset_0_3px_0_0_var(--color-border-strong)]">
+      <div className="flex flex-col gap-1.5">
+        <dt>
+          <PixelText className="text-text-muted">Ranking</PixelText>
+        </dt>
+        <dd className="m-0 flex h-9 items-start gap-1">
+          {rank === null ? (
+            <PixelText wrap>Poucos jogos</PixelText>
+          ) : (
+            <>
+              <PixelDigits
+                value={rank}
+                scale={4}
+                label={podiumLabel(rank) ?? `${rank}º no ranking`}
+                className={tone}
+              />
+              <Ordinal scale={2} className={`mt-0.5 ${tone}`} />
+              {tier && <Medal tier={tier} scale={3} className="ml-1.5 mt-0.5" />}
+            </>
+          )}
+        </dd>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <dt>
+          <PixelText className="text-text-muted">Média</PixelText>
+        </dt>
+        <dd className="m-0 flex h-9 items-end">
+          {average === null ? (
+            <span aria-label="Sem média" className="mb-2 h-0.5 w-4 bg-text-muted" />
+          ) : (
+            <PixelDigits
+              value={formatAverage(average)}
+              scale={4}
+              label={`Média ${formatAverage(average)}`}
+              className={tone}
+            />
+          )}
+        </dd>
+      </div>
+    </dl>
   );
 }

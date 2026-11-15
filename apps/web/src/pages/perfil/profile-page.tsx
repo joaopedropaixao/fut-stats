@@ -6,12 +6,14 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
-import { ErrorState } from '../../components/ui/states';
+import { ErrorState, SkeletonList } from '../../components/ui/states';
 import { useFlashNotice } from '../../features/group/flash';
 import { InviteCard } from '../../features/group/invite-card';
 import { useMember } from '../../features/group/members';
 import { PlayerCard } from '../../features/group/player-card';
 import { setCurrentGroupId, useCurrentGroup } from '../../features/group/use-current-group';
+import { PlayerStats } from '../../features/ranking/player-stats';
+import { usePlayerProfile } from '../../features/ranking/queries';
 import { RouteButton } from '../../features/rounds/route-button';
 import { sessionQueryKey } from '../../features/session/use-session';
 import { apiPostNoContent } from '../../lib/api';
@@ -29,6 +31,8 @@ export function ProfilePage() {
   const navigate = useNavigate();
   const notice = useFlashNotice();
   const member = useMember(group?.id ?? '', group?.membershipId);
+  // As estatísticas da minha participação (as mesmas da figurinha de qualquer jogador)
+  const stats = usePlayerProfile(group?.id ?? '', group?.membershipId);
   const logout = useMutation({
     mutationFn: () => apiPostNoContent('/auth/logout'),
     onSuccess: () => {
@@ -66,6 +70,7 @@ export function ProfilePage() {
               secondaryPositions={member.data.secondaryPositions}
               isAdmin={isAdmin}
               mine
+              ranking={stats.data && { rank: stats.data.rank, average: stats.data.stats.average }}
             />
           ) : (
             <PlayerCardSkeleton />
@@ -90,6 +95,18 @@ export function ProfilePage() {
               />
             )}
           </div>
+          {stats.isError ? (
+            <ErrorState
+              title="Não deu para carregar as suas estatísticas"
+              message="Confira a internet e tente de novo."
+              onRetry={() => void stats.refetch()}
+              retrying={stats.isFetching}
+            />
+          ) : stats.data ? (
+            <PlayerStats profile={stats.data} />
+          ) : (
+            <SkeletonList rows={3} label="Carregando as suas estatísticas" />
+          )}
         </>
       )}
 

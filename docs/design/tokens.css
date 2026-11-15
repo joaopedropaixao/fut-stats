@@ -36,6 +36,12 @@
   --color-gold: #e8a93a; /* mérito / recompensa (Craque, líder, aviso de resultado, bloco "?" e moeda) */
   --color-gold-light: #f4d65e; /* família gold: faixa clara da face do bloco "?" e da moeda */
   --color-gold-shadow: #8a5a1c; /* família gold: sombra de baixo e da direita; no bloco "usado", a face */
+  --color-silver: #b9c3d1; /* pódio do ranking: 2º lugar (medalha e moldura); nunca o amarelo de ação */
+  --color-silver-light: #e6ecf5; /* família silver: faixa clara da medalha */
+  --color-silver-shadow: #5d6a7d; /* família silver: sombra de baixo e da direita */
+  --color-bronze: #c27a3f; /* pódio do ranking: 3º lugar (medalha e moldura) */
+  --color-bronze-light: #e9a56a; /* família bronze: faixa clara da medalha */
+  --color-bronze-shadow: #6b3a16; /* família bronze: sombra de baixo e da direita */
   --color-outline: #000000; /* contorno preto fixo da pixel art (não vira cinza no tema Noite) */
   --color-flop: #c4a07c; /* madeira: Perna de Pau */
   --color-success: #22c55e; /* vitória, presença confirmada, aviso de presença */

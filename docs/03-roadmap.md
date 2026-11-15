@@ -42,7 +42,7 @@ abaixo).
 | 7 ✅ | `historico` | Par | PR #31 (fechar) | **Onda 2.** Aba Histórico: partidas finalizadas com placar e o resultado de quem vê; detalhe com o campo e os lances |
 | 8 ✅ | `votacao` | Par | — | **Onda 3.** Tabelas do voto, tela "Dê sua nota", Craque / Perna de Pau, fechar a votação (todos votaram, prazo ou admin), apuração gravada e resultado da rodada |
 | 9 | `auditoria-da-rodada` | Back | `placar-e-lances` | **Onda 4.** Tabela `RoundLog` (quem, o quê, quando, antes/depois) gravada na mesma transação de toda escrita de placar, etapa e lance, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
-| 10 | `ranking` | Par | `votacao` | **Onda 4.** Ranking geral, por posição e de goleiros; perfil do jogador com estatísticas; a nota do seletor passa a acompanhar as rodadas |
+| 10 ✅ | `ranking` | Par | `votacao` | **Onda 4.** Ranking geral, por posição e de goleiros; perfil do jogador com estatísticas; a nota do seletor passa a acompanhar as rodadas |
 | 11 | `pacote-do-craque` | Front | `votacao` | **Onda 4.** Grande momento: o resultado chega como pacote, que rasga e revela a carta do Craque, com Compartilhar (fatia nova, 14 nov 2026) |
 | 12 | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
 | 13 | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Onda 5.** SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
@@ -101,7 +101,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [x] Abertura/fechamento da votação (todos votaram, prazo expirou ou o admin encerrou)
 - [x] Tela "Dê sua nota" (um jogador por vez; stepper e régua no lugar do swipe)
 - [x] Craque / Perna de Pau
-- [ ] Ranking geral e por posição + perfil com stats
+- [x] Ranking geral e por posição + perfil com stats
 
 ## Fase 4: Feed e lançamento do MVP 🚀
 - [ ] Feed de notícias/resenhas (admin cria), reações e comentários
