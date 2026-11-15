@@ -91,6 +91,30 @@ test('bind só associa a tentativa registrada e o Stop não herda papel de outra
   const f = fixture(t),
     w = f.wt('um');
   f.run('reserve', '--team', 'um', '--agent', 'codex', '--worktree', w);
+  f.run(
+    'approve',
+    '--team',
+    'um',
+    '--mode',
+    'Front',
+    '--spec',
+    f.brief,
+    '--evidence',
+    'aprovação fixture',
+  );
+  const proof = join(f.dir, 'setup.json');
+  writeFileSync(
+    proof,
+    JSON.stringify({
+      worktree: w,
+      head: f.git(w, 'rev-parse', 'HEAD'),
+      checks: {
+        install: { command: 'fixture install', exitCode: 0, evidence: 'log' },
+        environment: { command: 'fixture ambiente', exitCode: 0, evidence: 'log' },
+      },
+    }),
+  );
+  f.run('ready', '--team', 'um', '--worktree', w, '--stage', 'dev', '--proof', proof);
   f.run('prepare', '--team', 'um', '--role', 'dev-front', '--worktree', w, '--spec', f.brief);
   assert.notEqual(f.run('bind', '--team', 'um', '--key', 'dev-front', '--session', 's1').status, 0);
   assert.equal(

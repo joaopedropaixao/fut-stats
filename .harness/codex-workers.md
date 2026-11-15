@@ -43,6 +43,12 @@ Para mensagens e runs, seguir a preamble do Orca e .harness/operacao.md.
 - Antes de worker_done com relatório, marcar phase delivering. Stop roda a verificação
   adicional do DEV nesse worktree; não confiar no Stop como substituto da evidência explícita.
 - No retorno para corrigir, voltar a working; repetir verificações e relatório ao entregar.
+- No Par, back produz o contrato como primeiro marco no próprio binding e registra
+  `team.mjs contract --team <fatia> --session <id> --sha <commit> --evidence <referência>`.
+  Informar o SHA ao TPL sem worker_done: ainda há implementação. Front aguarda esse marco.
+- Se o coordenador encerrou a tentativa, uma nova execução usa a chave de follow-up fornecida
+  por ele; nunca sobrescrever recibo ou fabricar binding. Recuperação da mesma sessão preserva
+  o histórico; conferir novamente worktree, prontidão e contrato antes de agir.
 
 ## QA
 

@@ -10,6 +10,8 @@ import {
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { approve, approvalFor, ready, gate, nonempty, timestamp } from './lifecycle.mjs';
 const roles = ['tpl', 'lider-v1', 'dev-back', 'dev-front', 'qa'];
 function git(cwd, ...args) {
   const r = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -36,7 +38,10 @@ function transaction(cwd, fn) {
   }
   try {
     const state = readState(dir);
+    if (state.schemaVersion && state.schemaVersion !== 2)
+      throw new Error('Versão de estado não suportada.');
     const result = fn(state, dir);
+    state.schemaVersion = 2;
     const temp = join(dir, 'state.tmp');
     writeFileSync(temp, JSON.stringify(state, null, 2) + '\n', { mode: 0o600 });
     renameSync(temp, join(dir, 'state.json'));
@@ -146,6 +151,7 @@ export function run(command, o, cwd = process.cwd()) {
       if (!['working', 'waiting', 'delivering'].includes(o.phase))
         throw new Error('Fase inválida.');
       binding.phase = o.phase;
+      binding.updatedAt = timestamp();
       return binding;
     }
     const name = validTeam(required(o, 'team'));
@@ -173,6 +179,9 @@ export function run(command, o, cwd = process.cwd()) {
           throw new Error('Sem vaga: limite conjunto de três equipes.');
       }
       const entry = {
+        id: randomUUID(),
+        createdAt: timestamp(),
+        ...(agent === 'codex' ? { policyVersion: 2 } : {}),
         name,
         agent,
         kind,
@@ -189,6 +198,51 @@ export function run(command, o, cwd = process.cwd()) {
     }
     const t = state.teams[name];
     if (!t) throw new Error('Reserve a equipe primeiro.');
+    if (command === 'approve') return approve(t, o);
+    if (command === 'ready') {
+      const wt = checkout(cwd, required(o, 'worktree'), [
+        'feature/' + name,
+        'feature/' + name + '-back',
+        'feature/' + name + '-front',
+      ]);
+      return ready(t, o, wt, git);
+    }
+    if (command === 'contract') {
+      const binding = state.sessions[required(o, 'session')];
+      const assignment = sessionAssignment(cwd, o.session);
+      if (binding?.team !== name || assignment?.role !== 'dev-back')
+        throw new Error('Contrato exige sessão back vinculada neste worktree.');
+      const approval = approvalFor(t);
+      const sha = git(cwd, 'rev-parse', '--verify', `${required(o, 'sha')}^{commit}`);
+      git(cwd, 'merge-base', '--is-ancestor', sha, 'HEAD');
+      if (
+        !git(
+          cwd,
+          'diff-tree',
+          '--root',
+          '--no-commit-id',
+          '--name-only',
+          '-r',
+          sha,
+          '--',
+          'packages/shared',
+        )
+      )
+        throw new Error('Commit do contrato precisa alterar packages/shared.');
+      const contract = {
+        sha,
+        worktree: assignment.worktree,
+        key: binding.key,
+        session: o.session,
+        approvalDigest: approval.digest,
+        evidence: nonempty(o.evidence, 'evidência do contrato'),
+        recordedAt: timestamp(),
+      };
+      t.contractHistory ??= [];
+      if (t.contract) t.contractHistory.push(t.contract);
+      t.contract = contract;
+      return contract;
+    }
     if (command === 'prepare') {
       const role = required(o, 'role');
       if (!roles.includes(role)) throw new Error('Papel inválido.');
@@ -196,14 +250,45 @@ export function run(command, o, cwd = process.cwd()) {
         throw new Error('Papel incompatível com o tipo da reserva.');
       if (role === 'qa' && !/^[1-9]\d*$/.test(o.round || ''))
         throw new Error('QA exige --round positivo e único.');
-      const key = role === 'qa' ? `qa-${o.round}` : role;
+      let key = role === 'qa' ? `qa-${o.round}` : role;
+      let previous;
+      if (o.after) {
+        previous = t.attempts[o.after];
+        if (!previous || previous.status !== 'settled')
+          throw new Error('Antecessor deve estar encerrado (settled).');
+        if (previous.role !== role || previous.worktree !== realpathSync(required(o, 'worktree')))
+          throw new Error('Follow-up deve preservar papel e worktree.');
+        if (role === 'qa' && previous.round !== o.round)
+          throw new Error('Recuperação QA preserva a rodada.');
+        nonempty(o.reason, 'motivo do follow-up');
+        if (Object.values(t.attempts).some((a) => a.previousKey === o.after))
+          throw new Error('Antecessor já tem tentativa sucessora; reconcilie o follow-up.');
+        key = `${o.after}-next`;
+      }
       if (t.attempts[key])
         throw new Error(
           'Tentativa já preparada. Inspecione o recibo e o Orca; não relançar após resultado ambíguo.',
         );
+      if (
+        t.policyVersion === 2 &&
+        Object.values(t.attempts).some(
+          (a) => a.role === role && ['prepared', 'recorded'].includes(a.status),
+        )
+      )
+        throw new Error('Papel já tem tentativa ativa; reconcilie antes de preparar outra.');
       const branches = ['feature/' + name];
       if (role.startsWith('dev-')) branches.push('feature/' + name + '-' + role.slice(4));
       const wt = checkout(cwd, required(o, 'worktree'), branches);
+      if (t.policyVersion === 2 && role === 'qa') {
+        const devs = Object.values(t.attempts).filter((a) => a.role.startsWith('dev-'));
+        if (devs.some((a) => a.status !== 'settled'))
+          throw new Error('QA exige DEVs encerrados e reconciliados.');
+        for (const dev of devs) {
+          const target = checkout(cwd, dev.worktree, [dev.branch]);
+          gate(t, 'qa', target, git);
+        }
+      }
+      const gates = gate(t, role, wt, git);
       const briefPath = realpathSync(required(o, 'spec'));
       if (
         !briefPath.endsWith('.md') ||
@@ -217,7 +302,7 @@ export function run(command, o, cwd = process.cwd()) {
         role === 'tpl' || role === 'lider-v1'
           ? `${t.agent === 'codex' ? '.agents' : '.claude'}/skills/${role}/SKILL.md`
           : `.harness/roles/${role}.md`;
-      const text = `# Kickoff ${role}: ${name}\n\nFerramenta: ${t.agent}\nPapel: ${role}\nChave: ${key}\nEquipe: ${name}\nWorktree: ${wt.path}\nBranch: ${wt.branch}\nVaga: ${t.slot ?? 'não usa banco'}\nAPI: ${t.apiPort}\nWeb: ${t.webPort}\nBanco: ${t.database}\n\nLeia AGENTS.md e ${source}.\n${t.agent === 'codex' ? 'Leia .harness/codex-workers.md antes de agir. Vincule a sessão com team.mjs bind; depois siga o papel.' : 'Use apenas Claude pessoal e as skills .claude/skills; o corpo de papel é compartilhado.'}\nNão assuma outra tarefa nem troque de ferramenta automaticamente.\n\n${brief}\n`;
+      const text = `# Kickoff ${role}: ${name}\n\nFerramenta: ${t.agent}\nPapel: ${role}\nChave: ${key}\nEquipe: ${name}\nWorktree: ${wt.path}\nBranch: ${wt.branch}\nVaga: ${t.slot ?? 'não usa banco'}\nAPI: ${t.apiPort}\nWeb: ${t.webPort}\nBanco: ${t.database}\n${gates.approval ? `Aprovação: ${gates.approval.spec} (sha256 ${gates.approval.digest})\n` : ''}${gates.contract ? `Contrato: ${gates.contract.sha}\n` : ''}\nLeia AGENTS.md e ${source}.\n${t.agent === 'codex' ? 'Leia .harness/codex-workers.md antes de agir. Vincule a sessão com team.mjs bind; depois siga o papel.' : 'Use apenas Claude pessoal e as skills .claude/skills; o corpo de papel é compartilhado.'}\nNão assuma outra tarefa nem troque de ferramenta automaticamente.\n\n${brief}\n`;
       writeFileSync(specFile, text, { mode: 0o600 });
       const argv =
         t.agent === 'codex'
@@ -242,6 +327,11 @@ export function run(command, o, cwd = process.cwd()) {
             ]
           : null;
       t.attempts[key] = {
+        id: randomUUID(),
+        createdAt: timestamp(),
+        ...(previous ? { previousKey: o.after, reason: o.reason } : {}),
+        ...(role === 'qa' ? { round: o.round } : {}),
+        ...gates,
         key,
         role,
         worktree: wt.path,
@@ -257,7 +347,16 @@ export function run(command, o, cwd = process.cwd()) {
         throw new Error(
           'Há tentativas preparadas ou workers não encerrados. Reconcilie antes de liberar.',
         );
-      required(o, 'evidence');
+      nonempty(o.evidence, 'evidência de liberação');
+      state.archives ??= [];
+      state.archives.push({
+        team: t,
+        sessions: Object.fromEntries(
+          Object.entries(state.sessions).filter(([, b]) => b.team === name),
+        ),
+        releasedAt: timestamp(),
+        evidence: o.evidence,
+      });
       delete state.teams[name];
       for (const [id, b] of Object.entries(state.sessions))
         if (b.team === name) delete state.sessions[id];
@@ -271,7 +370,12 @@ export function run(command, o, cwd = process.cwd()) {
         throw new Error('Worker com recibo não pode ser cancelado como não lançado.');
       const evidence = required(o, 'evidence');
       t.history ??= [];
-      t.history.push({ ...a, status: 'cancelled-before-launch', evidence });
+      t.history.push({
+        ...a,
+        status: 'cancelled-before-launch',
+        evidence,
+        cancelledAt: timestamp(),
+      });
       delete t.attempts[key];
       return { cancelled: key, evidence };
     }
@@ -284,8 +388,15 @@ export function run(command, o, cwd = process.cwd()) {
       if (a.status !== 'prepared' && JSON.stringify(a.receipt) !== JSON.stringify(receipt))
         throw new Error('Recibo divergente; não substituir outro worker.');
       if (a.status === 'settled') throw new Error('Worker já encerrado.');
+      const allAttempts = [
+        ...Object.values(state.teams),
+        ...(state.archives || []).map((x) => x.team),
+      ].flatMap((x) => [...Object.values(x.attempts), ...(x.history || [])]);
+      if (allAttempts.some((other) => other !== a && other.receipt?.dispatch === receipt.dispatch))
+        throw new Error('Dispatch do recibo já pertence a outra tentativa.');
       a.receipt = receipt;
       a.status = 'recorded';
+      a.recordedAt ??= timestamp();
       return a;
     }
     if (command === 'bind') {
@@ -297,8 +408,14 @@ export function run(command, o, cwd = process.cwd()) {
       if (t.agent !== 'codex') throw new Error('Vínculo de hook é específico do Codex.');
       if (realpathSync(cwd) !== a.worktree)
         throw new Error('Vincule de dentro do worktree atribuído.');
+      checkout(cwd, a.worktree, [a.branch]);
+      gate(t, a.role, { path: a.worktree, branch: a.branch }, git);
       const old = state.sessions[id];
-      if (old && (old.team !== name || old.key !== key))
+      const recovering =
+        old?.team === name &&
+        a.previousKey === old.key &&
+        t.attempts[old.key]?.status === 'settled';
+      if (old && (old.team !== name || old.key !== key) && !recovering)
         throw new Error('Sessão já pertence a outra atribuição.');
       if (
         Object.entries(state.sessions).some(
@@ -306,7 +423,18 @@ export function run(command, o, cwd = process.cwd()) {
         )
       )
         throw new Error('Atribuição já vinculada a outra sessão.');
-      state.sessions[id] = { team: name, key, phase: old?.phase || 'working' };
+      const history = old?.history || [];
+      if (recovering) {
+        const { history: ignored, ...prior } = old;
+        history.push(prior);
+      }
+      state.sessions[id] = {
+        team: name,
+        key,
+        phase: recovering ? 'working' : old?.phase || 'working',
+        boundAt: recovering ? timestamp() : old?.boundAt || timestamp(),
+        history,
+      };
       return state.sessions[id];
     }
     if (command === 'settle') {
@@ -315,6 +443,7 @@ export function run(command, o, cwd = process.cwd()) {
         throw new Error('Tentativa sem recibo: reconciliar antes de encerrar.');
       a.status = 'settled';
       a.evidence = o.evidence;
+      a.settledAt = timestamp();
       return a;
     }
     throw new Error('Comando desconhecido.');

@@ -221,6 +221,24 @@ test('DEV simples não recebe cobrança de push do TPL e mantém proteção do c
   const input = join(directory, 'worker-brief.md');
   writeFileSync(input, 'Fixture de papel.');
   run('reserve', { team: 'native-worker', agent: 'codex', worktree }, directory);
+  run(
+    'approve',
+    { team: 'native-worker', mode: 'Front', spec: input, evidence: 'aprovação fixture' },
+    directory,
+  );
+  const proof = join(directory, 'worker-setup.json');
+  writeFileSync(
+    proof,
+    JSON.stringify({
+      worktree,
+      head: git('-C', worktree, 'rev-parse', 'HEAD').trim(),
+      checks: {
+        install: { command: 'fixture install', exitCode: 0, evidence: 'log' },
+        environment: { command: 'fixture ambiente', exitCode: 0, evidence: 'log' },
+      },
+    }),
+  );
+  run('ready', { team: 'native-worker', worktree, stage: 'dev', proof }, directory);
   run('prepare', { team: 'native-worker', role: 'dev-front', worktree, spec: input }, directory);
   run(
     'record',

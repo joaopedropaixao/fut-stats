@@ -61,6 +61,13 @@ original; checks explícitos e evidências continuam obrigatórios antes de repo
   É detecção posterior, não isolamento de ferramentas, banco ou efeitos externos.
 - Modelos, ferramentas, confiança dos hooks e login são verificados no ambiente real antes
   da primeira implementação. Testes em fixtures não demonstram que a sessão do usuário já os ativou.
+- Novas equipes Codex usam ciclo v2: aprovação do spec, prontidão por HEAD/worktree e contrato
+  escrito pelo back antes do front. Comandos `approve`, `ready`, `contract` e `prepare --after`
+  estão documentados em `.harness/operacao.md`. Atestação de setup não é verificação automática
+  do processo MCP nem de liveness. Equipes existentes não são migradas implicitamente.
+- Recibos são imutáveis; follow-ups têm IDs próprios e predecessor. Release preserva histórico
+  operacional em `archives`, no estado compartilhado fora do Git. Roteamento e métricas são
+  etapas posteriores: o modelo padrão desta entrega continua Luna/medium.
 
 Para uma tarefa individual fora da Trilha, usar worktree/branch próprios e AGENTS.md; não é
 necessário criar uma equipe apenas para usar o Codex. Fatias da Trilha seguem o fluxo completo.
