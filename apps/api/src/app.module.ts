@@ -11,6 +11,7 @@ import { HistoryModule } from './history/history.module';
 import { LineupsModule } from './lineups/lineups.module';
 import { MatchModule } from './match/match.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RankingModule } from './ranking/ranking.module';
 import { RoundsModule } from './rounds/rounds.module';
 import { VotingModule } from './voting/voting.module';
 
@@ -31,6 +32,7 @@ import { VotingModule } from './voting/voting.module';
     MatchModule,
     HistoryModule,
     VotingModule,
+    RankingModule,
     DevModule.forEnvironment(),
   ],
 })
