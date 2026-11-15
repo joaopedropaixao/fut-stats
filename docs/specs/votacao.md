@@ -170,7 +170,9 @@ Schemas em `packages/shared/src/voting.ts` (arquivo novo, exportado no `index.ts
 | `POST` | `/close` | admin | — | `VotingView` | 403 `NOT_ADMIN`; 404; 409 `RoundTransitionError` |
 | `GET` | `/result` | membro | — | `RoundResult` | 404; 409 `RESULT_NOT_READY` |
 
-Erro de regra vem como `{ code, message }`. Quem pode → 403; momento → 409; conteúdo do voto → 400.
+Erro de regra vem como `{ code, message }`. Quem pode → 403; momento → 409; conteúdo do voto → 400, com
+`issues: { path, code, message }[]` (`path` = `ratings.<targetId>`, `mvpId` ou `flopId`; o `code` de topo é o do
+primeiro problema, notas antes de prêmios).
 
 ```ts
 // packages/shared/src/voting.ts
@@ -181,7 +183,8 @@ export const VOTING_ERROR_LABELS = {
 } as const;
 export const VOTING_END_REASON_LABELS: Record<VotingEndReason, string>; // 'Todo mundo votou', 'O prazo acabou', 'O admin encerrou'
 
-export const ratingEntrySchema = z.object({ targetId: z.string().min(1), value: ratingSchema });
+// value é z.number(): passo e faixa vêm do domain (INVALID_STEP / OUT_OF_RANGE no 400), não do Zod
+export const ratingEntrySchema = z.object({ targetId: z.string().min(1), value: z.number() });
 
 /** Corpo de PUT .../voting/vote: o pacote inteiro. Enviar de novo substitui. */
 export const submitVoteSchema = z.object({
@@ -345,6 +348,10 @@ Regras de visual do documento de autonomia valem como critério. Peças da folha
   só front e merece uma volta de design própria.
 - Admin vê quem falta, nunca o voto — resposta do dono à P12.
 - `withRoundLock` vira provider comum — placar, lances e votos disputam a mesma rodada.
+- Decididas na implementação (TPL, 2026-11-15): `close` do admin com o prazo já vencido ou todos já tendo votado grava
+  o motivo verdadeiro (`DEADLINE_PASSED` / `ALL_VOTED`), não `ADMIN_CLOSED`; na corrida do C19 o perdedor leva sempre
+  409; `RoundResult.votes.total` conta todos que jogaram (estável depois de fechar), o `progress` da votação só os
+  ativos; rodada `CLOSED` sem `closedAt` (só dado antigo de dev) responde `RESULT_NOT_READY`.
 - Cruzamento com `rodizio-reservas` (checkpoint de 2026-11-15, Base 7e3902d) — o rodízio põe `rotationStartedAt` e
   `rotationMinutes` em `Round` (migration `round_rotation`) e mexe em `apps/api/src/match` e na tela do jogo. Ele entra
   primeiro: a migration `voting` sai com data posterior e é refeita no rebase se o Prisma acusar drift. Em `match`,
