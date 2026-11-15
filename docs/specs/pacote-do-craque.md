@@ -174,7 +174,7 @@ Pedidos do dono e o que a equipe escolheu:
 | V4 | "o você ali ficou bom, mas ele camufla um pouco no branco do card" | Selo "VOCÊ" com **fundo escuro** (tinta), letras claras, **contorno grosso e sombra dura**, legível em bronze, prata, ouro e na especial | Contraste em qualquer faixa |
 | V5 | 2+1 cartas no desktop | Fica como está | Decidido pelo dono |
 | V6 | Chamada extra `GET voting/result` no início | Fica por ora. **Pendência:** o início deve saber do pacote por um **aviso empurrado** (push/SSE/webhook) em vez de perguntar à API; anotado na fatia `pwa-e-push` do roadmap | Decidido pelo dono |
-| — | Card ouro empilhado sobre o laranja no início | **Não mexer nesta volta** (o dono decide pelo `inicio-depois-390.png`) | Pendente com o dono |
+| V7 | Card ouro empilhado sobre o laranja no início | O card **VOTAÇÃO ABERTA fica neutro** (sem laranja nem ouro; o amarelo só na tecla de ação, se houver), com borda grossa, sombra dura e entrada animada. O ouro fica só no card do pacote ("O RESULTADO SAIU") | Decidido pelo dono depois de ver o `inicio-depois-390.png`: uma recompensa só em ouro na tela |
 
 **C23 revisado:** Craque ~3 s; carta sua (Craque "VOCÊ" ou Perna de Pau você) ~4 s; demais ≤ ~2 s; só `transform`/`opacity`.
 
@@ -188,6 +188,7 @@ Cenários desta volta (QA curto: estes, sobreposição e telas mexidas):
 | V2 | quadro revelado e página do resultado | palco com holofote, gradiente e padrão; painel de números; na página, os lances do Craque; a carta continua o foco; sem sobreposição em 320–430 e desktop | Playwright (antes/depois) |
 | V3 | Craque comum / Craque "VOCÊ" / Perna de Pau você | ~3 s / ~4 s / ~4 s; demais ~2 s; toque adianta; Pular visível | Playwright (medido) |
 | V4 | selo "VOCÊ" em bronze, prata, ouro e especial | legível, contraste alto | Playwright (prints) |
+| V7 | início com a votação aberta e o resultado saiu | votação neutra, ouro só no card do pacote, amarelo só na tecla | Playwright (antes/depois, 320 e 390) |
 
 ## QA
 **2 voltas, VEREDITO: APROVADO** (15 nov 2026).
