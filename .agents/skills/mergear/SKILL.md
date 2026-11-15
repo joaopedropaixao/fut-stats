@@ -20,9 +20,11 @@ completo de dependências, rebase, conflitos, CI, merge, quadro e avisos; não d
   pelo quadro e dispatch Orca correto. Não enviar ao terminal nem mudar ferramenta de uma equipe.
 - Se vários Runs estiverem abertos, usar IDs registrados; seguir a CLI da versão instalada.
   Quadro é fonte de status; o registro team.mjs é identidade/recursos, não veredito de qualidade.
-- Cleanup: verificar worker_done e ausência de escrita antes de settle. Confirmar commits
-  integrados e Git limpo antes de remover worktrees pelo Orca. Preservar chats mantidos para
-  o dono; não remover por tempo sem atividade. Só liberar vaga após parar servidores próprios.
+- Cleanup: verificar worker_done e ausência de escrita antes de settle. Depois da integração,
+  confirmar commits integrados (ou equivalência após rebase), Git limpo, workers encerrados e
+  recursos liberados; então descartar chats/terminais e worktrees da equipe sem pedir confirmação.
+  Se um critério falhar, reconciliar ou registrar o impedimento. Arquitetura pausada não está
+  finalizada. Preservar `feature/plugin-harness` e seu worktree, conforme AGENTS.md.
 - feature/plugin-harness e seu worktree permanecem, conforme AGENTS.md, para próximas entregas.
 - Reportar PRs integrados, pendências e limpeza efetivamente realizada. Não afirmar hooks
   ativados nem tarefa de produto concluída apenas porque o PR de harness foi mergeado.

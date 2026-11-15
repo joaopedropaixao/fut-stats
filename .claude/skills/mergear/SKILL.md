@@ -62,14 +62,17 @@ Para cada PR:
    - a fatia mergeada sai do quadro: `quadro.sh rm <fatia>`.
 
 ## 3. Arrumar
-0. Preserve sempre feature/plugin-harness e seu worktree (AGENTS.md). Para outras fatias,
-   siga settle/release de `.harness/operacao.md` somente após confirmar workers e servidores encerrados.
-   Worker do Orca da fatia mergeada (`orca orchestration worker-list --json`): ele foi mantido aberto para o dono.
-   Se o dono não vai mais usar o chat, conte isso a ele e, com o ok, remova o worktree pelo Orca
-   (`orca worktree rm --worktree id:<id> --json`) em vez de `git worktree remove`, depois de conferir o item 1.
-1. Para cada branch mergeada: o worktree ainda existe? Confira `git -C <wt> log origin/develop..HEAD` e
-   `git -C <wt> status --short`. Vazio e workers encerrados → remover pelo Orca e apagar somente a branch integrada, exceto plugin-harness. **Não vazio → pergunte**
-   (pode ser uma sessão do Orca ainda trabalhando). Nunca encadeie a checagem e a remoção no mesmo comando.
+0. Preserve sempre `feature/plugin-harness` e seu worktree (AGENTS.md). Para cada outra entrega
+   integrada, aplique settle/release de `.harness/operacao.md` e descarte chats/terminais e worktrees
+   da equipe sem pedir confirmação de preservação. Antes, comprove que os commits estão integrados
+   (ou seus equivalentes após rebase), o Git está limpo, workers encerrados e recursos liberados.
+   Se algum critério falhar, não remova ainda; reconcilie ou registre o impedimento. Arquitetura
+   pausada não é entrega finalizada.
+1. Confira cada worktree com `git -C <wt> log origin/develop..HEAD`, `git -C <wt> status --short`
+   e, quando os SHAs mudarem por rebase, `git -C <wt> cherry origin/develop <branch>`. Após
+   servidores parados e recursos liberados, remova chats/terminais e worktrees pelo Orca; nunca
+   use `git worktree remove`. Apague somente a branch integrada, exceto plugin-harness. Não
+   encadeie a checagem e a remoção no mesmo comando.
 2. PR antigo que a fatia substitui (coluna "Parte de" da Trilha): feche com um comentário apontando o novo.
 3. Responda ao dono: o que entrou (PR e uma linha cada), o que ficou e por quê, o que foi limpo e o próximo passo da
    Trilha.

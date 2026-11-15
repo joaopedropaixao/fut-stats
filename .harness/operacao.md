@@ -95,12 +95,22 @@ coordenador registra o recibo e responde para ele prosseguir. Não precisa relan
 
 Somente após worker_done, validações e inspeção de que o worker/helpers encerraram:
 `node .harness/team.mjs settle --team <fatia> --key <key> --evidence <provas>`.
-Depois do merge autorizado, remover a linha do quadro e os worktrees de implementação somente
-com Git limpo, nenhum commit exclusivo e nenhum worker ativo. Usar Orca para remover worktrees.
-Preservar chat mantido aberto se o dono ainda usa; confirmar antes de removê-lo.
-Liberar a reserva apenas depois de parar os servidores próprios e conferir que nenhuma sessão
-usa as portas/banco: `release --team <fatia> --evidence <provas>`. O helper não para processos,
-não apaga worktrees e não comprova liveness: essa verificação é do coordenador.
+Após integrar a entrega na `develop`, descartar os chats/terminais e worktrees da equipe sem pedir
+confirmação de preservação. Faça isso somente depois de comprovar que os commits estão integrados
+(ou que seus equivalentes estão presentes após rebase), o Git está limpo, workers/helpers estão
+encerrados e recursos foram liberados. Se algum critério falhar, não remover ainda; reconciliar ou
+registrar o impedimento. Trabalho pausado, inclusive arquitetura em andamento, não está finalizado.
+
+Sequência de cleanup:
+1. Conferir `worker_done`, ausência de escrita e validações; então registrar `settle`.
+2. Confirmar integração dos commits (ou equivalência após rebase), `git status --short` vazio e
+   ausência de commits exclusivos em relação à `origin/develop`.
+3. Parar servidores próprios e confirmar que nenhuma sessão usa as portas/banco; liberar com
+   `node .harness/team.mjs release --team <fatia> --evidence <provas>`.
+4. Remover pelo Orca os chats/terminais da equipe e os worktrees. Remover a linha do quadro.
+
+O helper não para processos, não apaga worktrees e não comprova liveness: essa verificação é do
+coordenador. `feature/plugin-harness` e seu worktree são exceções permanentes definidas em AGENTS.md.
 
 Para revisar: `node .harness/team.mjs status`. Um desenho de sessão não muda outra sessão;
 estado local é rastreabilidade e coordenação, não uma barreira de segurança.

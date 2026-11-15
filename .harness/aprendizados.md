@@ -49,9 +49,11 @@ Este episódio reforça que o critério de prontidão do browser deve verificar 
 
 O retry navegou pela tela real no browser isolado. O relatório registra que Som ligado persistiu após reload; mount não criou `AudioContext` nem oscilador; um gesto inerte criou `AudioContext` em estado `running`, ainda sem oscilador; e a primeira virada visível acelerada emitiu um único tom `sine` curto e chamou `navigator.vibrate(120)`. O fluxo autenticado teve zero erros de console e um aviso do React Router.
 
-**Veredito QA7: reprovada por dois requisitos inconclusivos, sem defeito de implementação confirmado.** Não foi possível certificar uma virada seguinte silenciosa com Som desligado: avançar o relógio além do polling fez a resposta HTTP real ressincronizar `serverTime`. Também não foi possível observar `visibilityState === 'hidden'`: duas páginas e `bringToFront()` mantiveram a página visível. O relatório pede para uma eventual repetição uma janela de clock abaixo do intervalo de polling e um browser que permita estado hidden. As suítes web mencionadas no relatório passaram (lint, typecheck e 416 testes); esta atualização documental não executa suítes nem inicia nova rodada.
+**Estado no relatório:** QA7 foi reprovada por dois requisitos inconclusivos, sem defeito de implementação confirmado. Não foi possível certificar uma virada seguinte silenciosa com Som desligado: avançar o relógio além do polling fez a resposta HTTP real ressincronizar `serverTime`. Também não foi possível observar `visibilityState === 'hidden'`: duas páginas e `bringToFront()` mantiveram a página visível. As suítes web mencionadas no relatório passaram (lint, typecheck e 416 testes).
 
-O coordenador informou que QA não alterou código, spec ou banco. A instrução permanece: não iniciar QA8 nem repetir suítes neste retorno. Se uma nova verificação for autorizada no fluxo da equipe, primeiro confirmar navegação real pelo MCP isolado e preparar apenas as condições que faltaram; manter a mesma sessão/binding da QA7.
+**Fechamento informado pelo coordenador:** um follow-up confirmou que a virada com Som desligado permaneceu silenciosa. Só `visibilityState === 'hidden'` ficou sem prova; essa exceção foi aceita no merge do PR #68. O PR #68 está integrado em `develop` no commit `03c89e1d98f9f641e392f4798b0ee45d54d3f2a7`. Não iniciar QA8 nem repetir suítes. QA não alterou código, spec ou banco; o coordenador informou estar removendo os três worktrees da equipe.
+
+Esta atualização documental não executou suítes nem iniciou nova rodada. O follow-up fecha a dúvida de áudio; não converte a observação de `hidden` em evidência, apenas registra a exceção aceita no merge.
 
 ### O que os relatórios QA comprovam
 
@@ -115,3 +117,7 @@ Não alterar hooks, helper, defaults de modelo, settings pessoais nem lançar eq
 ## Escopo desta entrega
 
 Esta sessão registra aprendizados e propostas. Não altera produto, hooks, helper ou defaults, não assume nem lança equipes e não faz merge. O documento será publicado em PR documental pessoal para `develop`; a sessão `aprendizados-harness` permanece disponível para o dono continuar este registro.
+
+## Decisão do dono: cleanup pós-integração
+
+Após finalizar e integrar cada entrega, descartar chats/terminais e worktrees da equipe sem pedir confirmação de preservação, desde que os commits estejam comprovadamente integrados (ou equivalentes após rebase), o Git esteja limpo, os workers encerrados e os recursos liberados. `feature/plugin-harness` e seu worktree permanecem preservados conforme AGENTS.md. Arquitetura pausada não conta como tarefa finalizada. Esta decisão foi aplicada às regras de cleanup em AGENTS.md, `.harness/operacao.md` e nos adaptadores mergear Codex/Claude.
