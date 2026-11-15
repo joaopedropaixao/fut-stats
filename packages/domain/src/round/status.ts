@@ -161,3 +161,16 @@ export function isRoundDeletable(status: RoundStatus): boolean {
 export function isRoundEditable(status: RoundStatus): boolean {
   return isBeforeMatch(status);
 }
+
+/**
+ * O jogo já terminou: da Resenha em diante (`POST_MATCH`, `VOTING`, `CLOSED`). É o que entra no histórico;
+ * toda rodada assim tem placar (finalizar exige o placar).
+ */
+export function isMatchFinished(status: RoundStatus): boolean {
+  return status === 'POST_MATCH' || status === 'VOTING' || status === 'CLOSED';
+}
+
+/** A rodada já foi jogada: em jogo ou finalizada. Rodada agendada ou com times só publicados não conta. */
+export function isRoundPlayed(status: RoundStatus): boolean {
+  return status === 'IN_PROGRESS' || isMatchFinished(status);
+}

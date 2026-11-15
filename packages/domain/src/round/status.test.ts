@@ -4,7 +4,9 @@ import { roundPlayerIds, type MatchEvent } from './match';
 import {
   canTransitionRound,
   isRoundDeletable,
+  isMatchFinished,
   isRoundEditable,
+  isRoundPlayed,
   ROUND_STATUSES,
   validateRoundTeams,
   validateRoundTransition,
@@ -292,5 +294,22 @@ describe('isRoundDeletable', () => {
 describe('isRoundEditable', () => {
   it('data, hora e local só mudam antes do jogo', () => {
     expect(ROUND_STATUSES.filter(isRoundEditable)).toEqual(['SCHEDULED', 'TEAMS_PUBLISHED']);
+  });
+});
+
+describe('isMatchFinished', () => {
+  it('C1: só da Resenha em diante (POST_MATCH, VOTING e CLOSED)', () => {
+    expect(ROUND_STATUSES.filter(isMatchFinished)).toEqual(['POST_MATCH', 'VOTING', 'CLOSED']);
+  });
+});
+
+describe('isRoundPlayed', () => {
+  it('C2: em jogo ou finalizada (IN_PROGRESS, POST_MATCH, VOTING e CLOSED)', () => {
+    expect(ROUND_STATUSES.filter(isRoundPlayed)).toEqual([
+      'IN_PROGRESS',
+      'POST_MATCH',
+      'VOTING',
+      'CLOSED',
+    ]);
   });
 });

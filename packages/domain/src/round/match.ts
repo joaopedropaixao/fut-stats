@@ -104,3 +104,9 @@ export function matchResult(score: MatchScore, team: Team): MatchResult {
   if (diff > 0) return 'WIN';
   return diff < 0 ? 'LOSS' : 'DRAW';
 }
+
+/** Quem venceu pelo placar: o time com mais gols ou empate (inclusive 0 a 0). Não há desempate. */
+export function matchWinner(score: MatchScore): MatchWinner {
+  if (score.WHITE === score.BLACK) return 'DRAW';
+  return score.WHITE > score.BLACK ? 'WHITE' : 'BLACK';
+}
