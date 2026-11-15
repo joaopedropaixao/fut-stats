@@ -255,4 +255,27 @@ Card/Ranking) e "Figurinhas".
   enquanto o grupo tiver menos de 3) (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+2 voltas. **Veredito: aprovado** (volta 2, 15/11/2026).
+
+Volta 1 reprovou com 2 falhas de front: a frase "FALTAM N RODADAS…" de quem está fora do ranking não quebrava e
+gerava rolagem horizontal (C22/C36); a etiqueta ADMIN amarela dividia a figurinha com o ouro do líder (C29/C30).
+Decisão do TPL: ADMIN neutro sempre na figurinha. Ambas corrigidas com teste que reproduz.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1–C9 (domínio) | ✅ | `packages/domain/src/ranking/{stats,ranking,reference}.test.ts`, id no nome |
+| C10–C16, C18–C20 (API) | ✅ | `apps/api/src/ranking/ranking.spec.ts` (18 testes, Postgres real); C18 também ao vivo na lista de presença |
+| C17, C21 (404) | ✅ | `ranking.spec.ts` + curl (inexistente, outro grupo e inativo → 404; sem login → 401) |
+| C22 | ✅ | `c22-voce-esta-em`, `c22-fora-do-ranking-390/320`; `you-card.test.tsx` |
+| C23–C28 | ✅ | `c23`…`c28`; C24 com dado montado no navegador (a seed não tem empate) |
+| C29, C30 | ✅ | `c29-figurinha`, `c29-figurinha-goleiro`, `c30-meu-perfil`, `c30-admin-lider`; `player-card.test.tsx` |
+| C31, C32, C35 | ✅ | dado montado no navegador (sem caso na seed); "não encontrado" com 404 real |
+| C33 | ✅ | `c33-lista-de-presenca` (nota e posição de referência iguais à API) |
+| C34 | ✅ | `vs-fade 0.2s`, sem degraus |
+| C36 | ✅ | checagem automática em 320/375/390/430/1280: 70 combinações (três abas como Carlão e Serginho, figurinhas de goleiro, nome longo, poucos jogos e admin, /perfil), sem rolagem, corte, sobreposição ou alvo < 44 px; console sem erros |
+
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` verdes (api 445 testes); JS inicial 146,4 de 150 kB.
+
+Decisões dos DEVs fora do texto (nenhuma fere o spec): tendência só na aba Geral; Posição/Goleiros mostram
+`positionRank` e o 1º da posição em ouro; rótulos da grade em Chakra Petch 13 px (Silkscreen não cabe);
+reserva não conta como jogo no gol; poucos jogos por `stats.games` e apelido; tendência `null` com ≤ 1 rodada.
