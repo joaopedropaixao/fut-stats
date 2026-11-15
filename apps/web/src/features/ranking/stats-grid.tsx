@@ -30,7 +30,7 @@ export function StatsGrid({ cells, className }: StatsGridProps) {
       {cells.map((cell) => (
         <div
           key={cell.label}
-          className="flex min-w-0 flex-col-reverse items-center justify-between gap-2 bg-surface-raised px-1 py-3"
+          className="flex min-w-0 flex-col-reverse items-center justify-between gap-2 bg-surface-raised px-2 py-3"
         >
           <dt className="min-h-9 text-center text-[13px] leading-4.5 font-semibold text-text-muted uppercase">
             {breakable(cell.label)}

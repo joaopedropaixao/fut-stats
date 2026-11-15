@@ -133,7 +133,7 @@ export function shownRank(player: RankingPlayer, tab: RankingTab): number | null
   return tab === 'geral' ? player.rank : player.positionRank;
 }
 
-/** A palavra comprida ganha um ponto de quebra (hífen suave): "ASSISTÊNCIAS" não é cortada na célula estreita. */
+/** A palavra comprida ganha um ponto de quebra (hífen suave): "Assistências" não é cortada na célula estreita. */
 export function breakable(label: string): string {
-  return label.replace('ASSISTÊNCIAS', 'ASSIS\u00ADTÊNCIAS');
+  return label.replace(/assis(tências)/i, (_all, rest: string) => `Assis\u00AD${rest}`);
 }

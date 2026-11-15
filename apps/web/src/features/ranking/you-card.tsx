@@ -7,6 +7,23 @@ import { Ordinal } from './ordinal';
 import { formatAverage, missingRounds, missingRoundsText, trendLabel } from './ranking-text';
 import { TrendMark } from './trend-mark';
 
+/**
+ * Frase em pixel que quebra por palavra. O `PixelText` com número dentro guarda o resto da frase num trecho que não
+ * quebra (`whitespace-pre`) e ele vazava do card em 320 px; aqui cada palavra é uma peça que pode ir para a linha de baixo.
+ */
+function WrappedPixel({ text }: { text: string }) {
+  return (
+    <p className="flex flex-wrap gap-x-3 gap-y-1">
+      <span className="sr-only">{text}</span>
+      {text.split(' ').map((word, i) => (
+        <span key={i} aria-hidden>
+          <PixelText>{word}</PixelText>
+        </span>
+      ))}
+    </p>
+  );
+}
+
 type YouCardProps = {
   me: RankingPlayer;
   minRatedGames: number;
@@ -37,7 +54,7 @@ export function YouCard({ me, minRatedGames }: YouCardProps) {
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           {rank === null ? (
             <>
-              <PixelText wrap>{missingRoundsText(missing)}</PixelText>
+              <WrappedPixel text={missingRoundsText(missing)} />
               <p className="text-sm text-text-muted">{`Você tem ${stats.ratedGames} de ${minRatedGames} rodadas com nota.`}</p>
             </>
           ) : (

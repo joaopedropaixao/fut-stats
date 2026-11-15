@@ -2,6 +2,7 @@ import type { RankingPlayer } from '@fut-stats/shared';
 import { describe, expect, it } from 'vitest';
 import {
   formatAverage,
+  breakable,
   goalkeeperLines,
   minimumText,
   missingRounds,
@@ -190,5 +191,12 @@ describe('rankingRows (C24, C25, C26, C27)', () => {
   });
   it('posição sem ninguém fica vazia', () => {
     expect(rankingRows(players, 'posicao', 'FORWARD')).toEqual({ ranked: [], few: [] });
+  });
+});
+
+describe('breakable (C36)', () => {
+  it('"Assistências" ganha o hífen suave; as outras palavras ficam como estão', () => {
+    expect(breakable('Assistências')).toBe('Assis\u00ADtências');
+    expect(breakable('Vitórias')).toBe('Vitórias');
   });
 });

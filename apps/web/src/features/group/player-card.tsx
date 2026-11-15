@@ -58,7 +58,7 @@ export function PlayerCard({
         {(mine || isAdmin) && (
           <span className="absolute top-3 right-3 left-3 flex flex-wrap items-start justify-between gap-2">
             {mine ? <YouTag /> : <span />}
-            {isAdmin && <Badge label="Admin" variant="admin" />}
+            {isAdmin && <Badge label="Admin" variant="neutral" className="bg-surface-raised" />}
           </span>
         )}
       </Turf>
