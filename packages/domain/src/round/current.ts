@@ -1,3 +1,4 @@
+import { RESULT_HIGHLIGHT_DAYS } from './voting';
 import type { RoundStatus } from './status';
 
 /** O mínimo de uma rodada para saber se ela é a atual. */
@@ -16,6 +17,7 @@ export interface CurrentRoundOptions {
 
 const DEFAULT_STALE_AFTER_HOURS = 24;
 const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 /**
  * A rodada que o app mostra como "a da vez" (início e aba Times): a que está em jogo ou na Resenha pós-jogo, se houver
@@ -43,4 +45,47 @@ export function pickCurrentRound<T extends RoundAtTime>(
     )
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
   return upcoming[0] ?? null;
+}
+
+/**
+ * A rodada com a votação aberta (`VOTING`) que o início mostra: a de data marcada mais recente.
+ * Sem nenhuma, `null`. Fechou por prazo ou pelo admin, deixa de ser essa (vira o resultado).
+ */
+export function pickVotingRound<T extends RoundAtTime>(rounds: readonly T[]): T | null {
+  return (
+    rounds
+      .filter((round) => round.status === 'VOTING')
+      .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime())[0] ?? null
+  );
+}
+
+/** O mínimo de uma rodada para saber se o resultado dela ainda está em destaque. */
+export interface RoundClosedAt {
+  status: RoundStatus;
+  closedAt: Date | null;
+}
+
+export interface LatestResultOptions {
+  /** Por quantos dias o resultado fica em destaque depois de fechar. Padrão: `RESULT_HIGHLIGHT_DAYS` (7). */
+  highlightDays?: number;
+}
+
+/**
+ * O resultado que o início destaca ("O resultado saiu"): a rodada `CLOSED` que fechou por último, desde que
+ * tenha fechado há menos de `highlightDays` dias (com exatamente 7 dias, já saiu do destaque). Sem nenhuma, `null`.
+ * `now` vem de fora (o domínio não lê relógio).
+ */
+export function pickLatestResult<T extends RoundClosedAt>(
+  rounds: readonly T[],
+  now: Date,
+  { highlightDays = RESULT_HIGHLIGHT_DAYS }: LatestResultOptions = {},
+): T | null {
+  const oldest = now.getTime() - highlightDays * DAY_MS;
+  const closed = rounds
+    .filter(
+      (round): round is T & { closedAt: Date } =>
+        round.status === 'CLOSED' && round.closedAt !== null && round.closedAt.getTime() > oldest,
+    )
+    .sort((a, b) => b.closedAt.getTime() - a.closedAt.getTime());
+  return closed[0] ?? null;
 }

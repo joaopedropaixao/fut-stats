@@ -1,6 +1,12 @@
 import { MATCH_WINNERS, type MatchWinner } from '@fut-stats/domain';
 import { z } from 'zod';
-import { matchResultSchema, matchScoreSchema, roundStatusSchema, teamSchema } from './domain';
+import {
+  avatarSchema,
+  matchResultSchema,
+  matchScoreSchema,
+  roundStatusSchema,
+  teamSchema,
+} from './domain';
 
 /** Tamanho da página do histórico (proteção de entrada, não regra da pelada). */
 export const HISTORY_PAGE_DEFAULT = 20;
@@ -35,6 +41,8 @@ export const historyItemSchema = z.object({
   winner: matchWinnerSchema,
   /** Quem pede: o time em que jogou (titular ou reserva) e o resultado. Nulo = não jogou. */
   me: z.object({ team: teamSchema, result: matchResultSchema }).nullable(),
+  /** Craque(s) da rodada; vazio antes de CLOSED. */
+  mvps: z.array(z.object({ membershipId: z.string(), nickname: z.string(), avatar: avatarSchema })),
 });
 
 export const historyListSchema = z.object({

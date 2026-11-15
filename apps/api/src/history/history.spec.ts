@@ -110,6 +110,7 @@ describe('histórico de partidas', () => {
       score: { WHITE: 3, BLACK: 2 },
       winner: 'WHITE',
       me: null,
+      mvps: [],
     });
     expect(res.body.items[1].location).toBeNull();
     expect(res.body.items[0].winner).toBe('DRAW');

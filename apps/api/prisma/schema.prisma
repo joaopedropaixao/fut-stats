@@ -43,6 +43,13 @@ enum RoundStatus {
   CLOSED
 }
 
+/// Por que a votação fechou. Igual a `VotingEndReason` do domain.
+enum VotingEndReason {
+  ALL_VOTED
+  DEADLINE_PASSED
+  ADMIN_CLOSED
+}
+
 /// Tipo de lance registrado na rodada. Igual a `MatchEventType` do domain.
 /// OWN_GOAL = gol contra: fica com quem fez e conta no placar do adversário.
 /// Gols sofridos não são lance: saem do placar (gols do time adversário).
@@ -99,7 +106,8 @@ model Group {
   name                String
   slug                String   @unique
   inviteCode          String   @unique @default(cuid())
-  votingDeadlineHours Int      @default(48)
+  /// Prazo da votação, em horas contadas de quando o admin abriu (Round.votingOpenedAt).
+  votingDeadlineHours Int      @default(24)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -130,12 +138,17 @@ model Membership {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  user         User         @relation(fields: [userId], references: [id])
-  group        Group        @relation(fields: [groupId], references: [id])
-  attendances  Attendance[]
-  teamPlayers  TeamPlayer[]
-  matchEvents  MatchEvent[] @relation("MatchEventPlayer")
-  eventsLogged MatchEvent[] @relation("MatchEventCreatedBy")
+  user            User         @relation(fields: [userId], references: [id])
+  group           Group        @relation(fields: [groupId], references: [id])
+  attendances     Attendance[]
+  teamPlayers     TeamPlayer[]
+  matchEvents     MatchEvent[] @relation("MatchEventPlayer")
+  eventsLogged    MatchEvent[] @relation("MatchEventCreatedBy")
+  /// Votos que deu (o pacote), os que o escolheram Craque e Perna de Pau e as notas que recebeu.
+  votesCast       Vote[]       @relation("VoteVoter")
+  votesAsMvp      Vote[]       @relation("VoteMvp")
+  votesAsFlop     Vote[]       @relation("VoteFlop")
+  ratingsReceived Rating[]
 
   @@unique([userId, groupId])
   @@index([groupId])
@@ -143,27 +156,31 @@ model Membership {
 
 /// Encontro semanal = uma partida Branco x Preto.
 model Round {
-  id             String      @id @default(cuid())
-  groupId        String
+  id              String           @id @default(cuid())
+  groupId         String
   /// Número da rodada no grupo (1, 2, 3...), "RODADA 12". Quem preenche é o banco: um trigger
   /// (migration round_number) grava o maior número do grupo + 1 em todo insert; o 0 do default
   /// nunca fica salvo. Apagar a última rodada libera o número; apagar outra deixa um buraco.
-  number         Int         @default(0)
-  scheduledAt    DateTime
-  location       String?
-  status         RoundStatus @default(SCHEDULED)
+  number          Int              @default(0)
+  scheduledAt     DateTime
+  location        String?
+  status          RoundStatus      @default(SCHEDULED)
   /// Placar: nulo até o admin lançar.
-  whiteGoals     Int?
-  blackGoals     Int?
+  whiteGoals      Int?
+  blackGoals      Int?
   /// Quando a rodada entrou em votação (o `openedAt` dela). Nulo antes; gravado no open-voting.
-  votingOpenedAt DateTime?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  votingOpenedAt  DateTime?
+  /// Quando a votação fechou e por quê; nulos até fechar (`CLOSED`). O resultado fica gravado no `TeamPlayer`.
+  closedAt        DateTime?
+  votingEndReason VotingEndReason?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   group       Group        @relation(fields: [groupId], references: [id])
   attendances Attendance[]
   teamPlayers TeamPlayer[]
   matchEvents MatchEvent[]
+  votes       Vote[]
 
   @@unique([groupId, number])
   @@index([groupId, scheduledAt])
@@ -193,6 +210,12 @@ model TeamPlayer {
   position     Position
   /// Reserva entra no revezamento e conta como tendo jogado.
   isReserve    Boolean  @default(false)
+  /// Resultado da rodada, gravado ao fechar a votação e que não muda mais: nota (nula = ninguém deu),
+  /// quantas notas recebeu e se levou Craque e Perna de Pau.
+  roundScore   Float?
+  ratingsCount Int      @default(0)
+  isMvp        Boolean  @default(false)
+  isFlop       Boolean  @default(false)
   createdAt    DateTime @default(now())
 
   round      Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
@@ -219,4 +242,41 @@ model MatchEvent {
   createdBy  Membership @relation("MatchEventCreatedBy", fields: [createdById], references: [id])
 
   @@index([roundId])
+}
+
+/// O voto de um jogador na rodada: um pacote (notas de todos + Craque + Perna de Pau). Enviar de novo troca tudo.
+/// Anônimo: nenhuma rota devolve quem votou em quem.
+model Vote {
+  id        String   @id @default(cuid())
+  roundId   String
+  voterId   String
+  /// Craque.
+  mvpId     String
+  /// Perna de Pau.
+  flopId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  round   Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  voter   Membership @relation("VoteVoter", fields: [voterId], references: [id])
+  mvp     Membership @relation("VoteMvp", fields: [mvpId], references: [id])
+  flop    Membership @relation("VoteFlop", fields: [flopId], references: [id])
+  ratings Rating[]
+
+  /// Um pacote por votante por rodada.
+  @@unique([roundId, voterId])
+}
+
+/// Uma nota de um pacote de votos: 0 a 10, de 0,5 em 0,5 (validada na borda e no domain).
+model Rating {
+  id       String @id @default(cuid())
+  voteId   String
+  targetId String
+  value    Float
+
+  vote   Vote       @relation(fields: [voteId], references: [id], onDelete: Cascade)
+  target Membership @relation(fields: [targetId], references: [id])
+
+  @@unique([voteId, targetId])
+  @@index([targetId])
 }

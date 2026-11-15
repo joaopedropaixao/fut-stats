@@ -46,6 +46,22 @@ const PATHS = {
       <path d="M12 10v4M12 17.5v.01" />
     </>
   ),
+  // Votação: a urna com o voto dentro (folha: Aviso/Votação)
+  urn: (
+    <>
+      <path d="M4 13h16v7H4z" />
+      <path d="M8 13V4h8v9" />
+      <path d="M10.5 8.5l1.3 1.3 2.7-2.8" />
+    </>
+  ),
+  // Resultado: o pacote do Craque, fechado com a fita
+  pack: (
+    <>
+      <path d="M4 9h16v11H4z" />
+      <path d="M12 9v11M4 13.5h16" />
+      <path d="M12 9c-3.5-5-7-2.5-4 0M12 9c3.5-5 7-2.5 4 0" />
+    </>
+  ),
   // Abas
   feed: <path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" />,
   ranking: (

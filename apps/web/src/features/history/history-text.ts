@@ -79,5 +79,10 @@ export function cardAriaLabel(item: HistoryItem): string {
     `Preto ${item.score.BLACK}`,
     result,
     ...(stage ? [ROUND_STATUS_LABELS[item.status]] : []),
+    ...(item.mvps.length > 0
+      ? [
+          `${item.mvps.length > 1 ? 'Craques' : 'Craque'} ${item.mvps.map((m) => m.nickname).join(' e ')}`,
+        ]
+      : []),
   ].join(', ');
 }

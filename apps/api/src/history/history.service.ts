@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
+  compareNicknames,
   isMatchFinished,
   matchResult,
   matchWinner,
@@ -8,6 +9,7 @@ import {
 } from '@fut-stats/domain';
 import { INVALID_CURSOR_LABEL, type HistoryList, type HistoryQuery } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
+import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -63,8 +65,16 @@ export class HistoryService {
         status: true,
         whiteGoals: true,
         blackGoals: true,
-        // O time de quem pede, titular ou reserva: no máximo uma linha por rodada.
-        teamPlayers: { where: { membershipId }, select: { team: true } },
+        // O time de quem pede (titular ou reserva) e o(s) Craque(s): as linhas de quem pede e de quem levou o prêmio.
+        teamPlayers: {
+          where: { OR: [{ membershipId }, { isMvp: true }] },
+          select: {
+            membershipId: true,
+            team: true,
+            isMvp: true,
+            membership: { select: { nickname: true, ...AVATAR_SELECT } },
+          },
+        },
       },
     });
 
@@ -73,7 +83,18 @@ export class HistoryService {
       items: page.map((round) => {
         // `finished` garante o placar; o `?? 0` só estreita o tipo.
         const score = { WHITE: round.whiteGoals ?? 0, BLACK: round.blackGoals ?? 0 };
-        const team: Team | undefined = round.teamPlayers[0]?.team;
+        const team: Team | undefined = round.teamPlayers.find(
+          (p) => p.membershipId === membershipId,
+        )?.team;
+        // `isMvp` só é gravado ao fechar a votação: antes disso a lista é vazia.
+        const mvps = round.teamPlayers
+          .filter((p) => p.isMvp)
+          .sort((a, b) => compareNicknames(a.membership.nickname, b.membership.nickname))
+          .map((p) => ({
+            membershipId: p.membershipId,
+            nickname: p.membership.nickname,
+            avatar: toAvatar(p.membership),
+          }));
         return {
           roundId: round.id,
           number: round.number,
@@ -83,6 +104,7 @@ export class HistoryService {
           score,
           winner: matchWinner(score),
           me: team ? { team, result: matchResult(score, team) } : null,
+          mvps,
         };
       }),
       nextCursor: rows.length > limit ? page[page.length - 1]!.id : null,

@@ -31,6 +31,24 @@ describe('votingDeadline', () => {
 });
 
 describe('votingCloseReason', () => {
+  it('C6: com todos os ativos votados e um jogador desativado sem voto fora da lista, fecha ALL_VOTED', () => {
+    // "davi" jogou, foi desativado e não votou: a API não o põe em `playedIds` (só os ativos contam)
+    const activeIds = ['ana', 'bia', 'caio'];
+    expect(
+      votingCloseReason(
+        hoursLater(1),
+        voting({ playedIds: activeIds, votedIds: ['caio', 'ana', 'bia'] }),
+      ),
+    ).toBe('ALL_VOTED');
+    // Se ele estivesse na lista, seguraria a votação aberta
+    expect(
+      votingCloseReason(
+        hoursLater(1),
+        voting({ playedIds: [...activeIds, 'davi'], votedIds: ['ana', 'bia', 'caio'] }),
+      ),
+    ).toBeNull();
+  });
+
   it('aberta: dentro do prazo e faltando votos', () => {
     expect(votingCloseReason(hoursLater(1), voting({ votedIds: ['ana'] }))).toBeNull();
   });

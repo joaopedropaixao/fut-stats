@@ -71,6 +71,12 @@ export const roundListSchema = z.object({
   suggestion: z
     .object({ scheduledAt: z.iso.datetime(), location: z.string().nullable() })
     .nullable(),
+  /** A rodada com votação aberta (`pickVotingRound`). Nula quando não há. */
+  votingId: z.string().nullable(),
+  /** O último resultado ainda em destaque (`pickLatestResult`, até `RESULT_HIGHLIGHT_DAYS`). */
+  lastResult: z
+    .object({ roundId: z.string(), number: z.number().int(), closedAt: z.iso.datetime() })
+    .nullable(),
 });
 
 /** Membro ativo na lista de presença. */

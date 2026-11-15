@@ -12,6 +12,7 @@ import { LineupsModule } from './lineups/lineups.module';
 import { MatchModule } from './match/match.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RoundsModule } from './rounds/rounds.module';
+import { VotingModule } from './voting/voting.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RoundsModule } from './rounds/rounds.module';
     LineupsModule,
     MatchModule,
     HistoryModule,
+    VotingModule,
     DevModule.forEnvironment(),
   ],
 })

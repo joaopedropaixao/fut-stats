@@ -18,6 +18,7 @@ import { historyRoutes } from './pages/historico/routes';
 import { profileEditRoutes } from './pages/perfil/routes';
 import { roundsRoutes } from './pages/rounds/routes';
 import { timesRoutes } from './pages/times/routes';
+import { votingRoutes } from './pages/voting/routes';
 
 /** Página de cada aba (pela rota da aba). Cada tela nova entra com uma linha aqui. */
 const TAB_PAGES: Partial<Record<string, RouteObject>> = {
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
           // Cada aba aponta para a página dela; aba sem página ainda fica no placeholder.
           ...TABS.map((tab) => TAB_PAGES[tab.to] ?? placeholderRoute(tab)),
           ...roundsRoutes,
+          ...votingRoutes,
           ...timesRoutes,
           ...historyRoutes,
           ...profileEditRoutes,

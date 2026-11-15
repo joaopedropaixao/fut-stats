@@ -2,3 +2,4 @@ export * from './awards';
 export * from './eligibility';
 export * from './round-score';
 export * from './vote';
+export * from './results';
