@@ -163,6 +163,32 @@ movimento, já aberto com "Abrir o pacote de novo", página com brilho holográf
 - P14 · Fatia própria para o pacote? → Sim (14 nov 2026). O visual segue a folha e o dono ajusta pelo álbum.
 - Reforço 15 nov 2026 (dono testou a votação: "faltou animação e alguma festinha" no Craque; "bem dopamina mesmo!") → três cartas (Craque, Perna de Pau, a sua), faixa bronze/prata/ouro pela nota (cortes 6 e 8), walkout com pistas, ~2 s por carta, uma vez por jogador, brilho holográfico e Compartilhar na sua carta, cards do início com uma cor de destaque cada.
 
+## Volta de design 1 (15 nov 2026, dono testou o PR #69 no navegador)
+Pedidos do dono e o que a equipe escolheu:
+
+| Id | Pedido (palavras do dono) | Escolha | Por quê |
+|---|---|---|---|
+| V1 | "tem que falar os gols e as assistências. Uma frase de impacto também seria interessante." | A carta do Craque (página, quadro revelado e imagem do Compartilhar) mostra **gols** e **assistências** do Craque na partida (`goals`, `assists` do `RoundResult`; gol contra não conta) e uma **frase de impacto** de `impactPhrase(player, { won })`, função pura com teste em `features/pack/` (é texto de apresentação, não regra de negócio). Primeira regra que bater: 3+ gols "HAT-TRICK!"; gol e assistência "DONO DO JOGO"; 2 gols "DECIDIU A PARTIDA"; 2+ assistências "GARÇOM DA NOITE"; goleiro "PAREDÃO NO GOL"; 1 gol "BALANÇOU A REDE"; senão "JOGOU DEMAIS". Time vencedor soma "e ainda levou a vitória". Empate de Craques: uma frase para cada um. Perna de Pau: `flopPhrase` roda entre "HOJE NÃO DEU", "O PÉ TAVA TORTO", "NA PRÓXIMA VAI", escolhida de forma estável pela rodada + jogador (a mesma frase em todo aparelho) | Os dados já vêm do `GET .../voting/result`: **sem mudança de contrato nem de API**, sem dev-back. A frase escolhida pelos números segue o ponto de partida do dono, que ajusta pelo álbum |
+| V2 | "o fundo do card também está muito preto, dá pra preencher, junto com estatísticas e lances" | O palco atrás da carta (quadro revelado e página) ganha **fundo com vida**: holofote de estádio sobre a carta, gradiente descendo para o verde do app e padrão pixel discreto (só CSS, sem imagem). Ao lado ou abaixo da carta (empilhado em telas estreitas), um **painel de números do Craque**: nota, gols, assistências e colocação. Na página, entram também os **lances dele** na partida (gols e assistências, na ordem), vindos da partida (`useMatch`, já existente, só leitura) | Preencher com informação, sem tirar o foco da carta. **Votos de Craque recebidos não entram**: a API não expõe e a votação é anônima por média |
+| V3 | "a animação, quando o jogador que recebeu o Craque ou Perna de Pau [abre], tem que ser mais duradoura"; "o Craque pode ficar mais independente" | O Craque passa a ter **~3 s** (walkout com pistas mais espaçadas). Quando a carta é **sua** (Craque especial "VOCÊ" ou você é o Perna de Pau), o momento segura **~4 s** (mais festa no Craque, mais piada no Perna de Pau). As outras cartas seguem em ~2 s. Toque adianta, "Pular" sempre visível | Liberação do dono. Muda a regra de tempo do C23 (abaixo) |
+| V4 | "o você ali ficou bom, mas ele camufla um pouco no branco do card" | Selo "VOCÊ" com **fundo escuro** (tinta), letras claras, **contorno grosso e sombra dura**, legível em bronze, prata, ouro e na especial | Contraste em qualquer faixa |
+| V5 | 2+1 cartas no desktop | Fica como está | Decidido pelo dono |
+| V6 | Chamada extra `GET voting/result` no início | Fica por ora. **Pendência:** o início deve saber do pacote por um **aviso empurrado** (push/SSE/webhook) em vez de perguntar à API; anotado na fatia `pwa-e-push` do roadmap | Decidido pelo dono |
+| — | Card ouro empilhado sobre o laranja no início | **Não mexer nesta volta** (o dono decide pelo `inicio-depois-390.png`) | Pendente com o dono |
+
+**C23 revisado:** Craque ~3 s; carta sua (Craque "VOCÊ" ou Perna de Pau você) ~4 s; demais ≤ ~2 s; só `transform`/`opacity`.
+
+Cenários desta volta (QA curto: estes, sobreposição e telas mexidas):
+
+| Id | Dado | Então | Teste |
+|---|---|---|---|
+| V1a | Craque com 3 gols / gol + assistência / 2 gols / 2 assistências / goleiro / 1 gol / nada | a carta mostra gols e assistências e a frase da primeira regra que bate; time vencedor soma "e ainda levou a vitória" | unitário (`impactPhrase`, cada regra e a ordem) + Playwright (alguns casos) |
+| V1b | Perna de Pau | uma das três frases, a mesma ao recarregar | unitário (`flopPhrase`, estável) + Playwright |
+| V1c | Compartilhar do Craque | a imagem traz gols, assistências e a frase | Playwright (PNG) |
+| V2 | quadro revelado e página do resultado | palco com holofote, gradiente e padrão; painel de números; na página, os lances do Craque; a carta continua o foco; sem sobreposição em 320–430 e desktop | Playwright (antes/depois) |
+| V3 | Craque comum / Craque "VOCÊ" / Perna de Pau você | ~3 s / ~4 s / ~4 s; demais ~2 s; toque adianta; Pular visível | Playwright (medido) |
+| V4 | selo "VOCÊ" em bronze, prata, ouro e especial | legível, contraste alto | Playwright (prints) |
+
 ## QA
 **2 voltas, VEREDITO: APROVADO** (15 nov 2026).
 
