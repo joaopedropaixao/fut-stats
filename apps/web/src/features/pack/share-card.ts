@@ -184,17 +184,20 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
   ctx.fillRect(3, 36, CARD_W - 6, 3);
   text(ctx, TEAM_LABELS[player.team], 16, 14, { color: white ? '#000' : '#fff' });
   if (card.you) {
-    // O selo VOCÊ: fundo escuro, letras claras, contorno grosso e sombra dura (legível em qualquer faixa)
+    // O selo VOCÊ: fundo escuro, letras claras, contorno grosso e sombra dura (legível em qualquer faixa). Inteiro,
+    // com a sombra, dentro da tira do time e com a mesma margem do nome (13 de cada lado da tira, que vai de 3 a 189)
     const sw = 64;
-    const sx = CARD_W - 9 - sw;
+    const sh = 27;
+    const sx = CARD_W - 3 - 13 - 3 - sw;
+    const sy = 4;
     ctx.fillStyle = '#000';
-    ctx.fillRect(sx + 3, 10, sw, 28);
+    ctx.fillRect(sx + 3, sy + 3, sw, sh);
     ctx.fillStyle = resolveColor('var(--color-text)');
-    ctx.fillRect(sx, 7, sw, 28);
+    ctx.fillRect(sx, sy, sw, sh);
     ctx.fillStyle = '#000';
-    ctx.fillRect(sx + 3, 10, sw - 6, 22);
-    // o texto desce um pouco: o acento do Ê precisa de folga em cima, dentro do selo
-    text(ctx, 'Você', sx + sw / 2, 17, {
+    ctx.fillRect(sx + 3, sy + 3, sw - 6, sh - 6);
+    // o texto fica no meio do miolo: o acento do Ê tem folga em cima e embaixo do miolo sobra a mesma
+    text(ctx, 'Você', sx + sw / 2, sy + 9, {
       color: resolveColor('var(--color-text)'),
       align: 'center',
     });
