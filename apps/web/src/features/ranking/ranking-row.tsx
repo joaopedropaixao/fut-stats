@@ -108,9 +108,12 @@ export function RankingRow({ player, tab, index, mine }: RankingRowProps) {
         {keeper && (
           <span className="flex flex-col gap-1 px-3 pb-3 text-text-muted">
             {goalkeeperLines(player.stats.goalkeeper).map((line) => (
-              <PixelText key={line} wrap>
-                {line}
-              </PixelText>
+              <span key={line.label} className="flex items-start gap-2">
+                {line.value !== null && (
+                  <PixelDigits value={line.value} scale={2} label={line.value} className="mt-0.5" />
+                )}
+                <PixelText wrap>{line.label}</PixelText>
+              </span>
             ))}
           </span>
         )}

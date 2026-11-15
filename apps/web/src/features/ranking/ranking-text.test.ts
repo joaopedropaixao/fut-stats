@@ -106,17 +106,20 @@ describe('goalkeeperLines (C27)', () => {
   it('gols por jogo e jogos sem sofrer gol, com concordância', () => {
     expect(
       goalkeeperLines({ games: 3, conceded: 5, cleanSheets: 3, concededPerGame: 1.67 }),
-    ).toEqual(['1,7 gols sofridos por jogo', '3 jogos sem sofrer gol']);
+    ).toEqual([
+      { value: '1,7', label: 'gols sofridos por jogo' },
+      { value: '3', label: 'jogos sem sofrer gol' },
+    ]);
     expect(goalkeeperLines({ games: 2, conceded: 2, cleanSheets: 1, concededPerGame: 1 })).toEqual([
-      '1,0 gols sofridos por jogo',
-      '1 jogo sem sofrer gol',
+      { value: '1,0', label: 'gols sofridos por jogo' },
+      { value: '1', label: 'jogo sem sofrer gol' },
     ]);
   });
   it('sem jogo no gol', () => {
-    expect(goalkeeperLines(null)).toEqual(['Ainda sem jogo no gol']);
+    expect(goalkeeperLines(null)).toEqual([{ value: null, label: 'Ainda sem jogo no gol' }]);
     expect(
       goalkeeperLines({ games: 0, conceded: 0, cleanSheets: 0, concededPerGame: null }),
-    ).toEqual(['Ainda sem jogo no gol']);
+    ).toEqual([{ value: null, label: 'Ainda sem jogo no gol' }]);
   });
 });
 

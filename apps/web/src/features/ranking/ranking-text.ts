@@ -63,15 +63,17 @@ export function streakView(streak: Streak | null): { mark: '▲' | '▼' | '='; 
   return { mark, text: `${streak.count} ${many}` };
 }
 
-/** As duas frases do goleiro na lista: "1,7 gols sofridos por jogo" e "3 jogos sem sofrer gol". */
-export function goalkeeperLines(goalkeeper: GoalkeeperStats | null): string[] {
+/** As duas linhas do goleiro: o número (vira dígito pixel) e o resto da frase, que pode quebrar em tela estreita. */
+export function goalkeeperLines(
+  goalkeeper: GoalkeeperStats | null,
+): { value: string | null; label: string }[] {
   if (!goalkeeper || goalkeeper.games === 0 || goalkeeper.concededPerGame === null) {
-    return ['Ainda sem jogo no gol'];
+    return [{ value: null, label: 'Ainda sem jogo no gol' }];
   }
   const clean = goalkeeper.cleanSheets;
   return [
-    `${formatAverage(goalkeeper.concededPerGame)} gols sofridos por jogo`,
-    `${clean} ${clean === 1 ? 'jogo' : 'jogos'} sem sofrer gol`,
+    { value: formatAverage(goalkeeper.concededPerGame), label: 'gols sofridos por jogo' },
+    { value: String(clean), label: `${clean === 1 ? 'jogo' : 'jogos'} sem sofrer gol` },
   ];
 }
 
