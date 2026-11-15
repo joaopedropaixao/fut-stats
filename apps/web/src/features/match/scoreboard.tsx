@@ -105,7 +105,11 @@ export function Scoreboard({
           </span>
         </div>
       )}
-      <div className="flex flex-col gap-3 px-5 pt-6 pb-5" style={DIAGONAL}>
+      <div
+        // Com "Venceu" sobre o nome, o texto do lado branco precisa de todo o espaço até o corte (320 px)
+        className={cn('flex flex-col gap-3 pt-6 pb-5', winner ? 'px-4' : 'px-5')}
+        style={DIAGONAL}
+      >
         <div ref={row} className="flex items-end justify-between">
           {score ? (
             <>
@@ -134,18 +138,18 @@ export function Scoreboard({
             </>
           )}
         </div>
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-end justify-between gap-2">
           <div className="flex flex-col items-start gap-1.5 text-team-black">
+            {winner && <WinnerMark team="WHITE" winner={winner} />}
             <PixelText className="px-2 py-0.5 shadow-[inset_0_0_0_2px_#000]">
               {TEAM_LABELS.WHITE}
             </PixelText>
-            {winner && <WinnerMark team="WHITE" winner={winner} />}
           </div>
           <div className="flex flex-col items-end gap-1.5 text-team-white">
+            {winner && <WinnerMark team="BLACK" winner={winner} />}
             <PixelText className="px-2 py-0.5 shadow-[inset_0_0_0_2px_#fff]">
               {TEAM_LABELS.BLACK}
             </PixelText>
-            {winner && <WinnerMark team="BLACK" winner={winner} />}
           </div>
         </div>
       </div>
@@ -159,7 +163,7 @@ export function Scoreboard({
   );
 }
 
-/** "✓ Venceu" sob o time que ganhou; no empate, "= Empate" sob os dois. Quem perdeu não ganha marca. */
+/** "✓ Venceu" sobre o nome do time que ganhou (acima, onde o corte diagonal deixa mais espaço); no empate, "= Empate" nos dois. Quem perdeu não ganha marca. */
 function WinnerMark({ team, winner }: { team: Team; winner: MatchWinner }) {
   if (winner !== 'DRAW' && winner !== team) return null;
   return (
@@ -170,7 +174,7 @@ function WinnerMark({ team, winner }: { team: Team; winner: MatchWinner }) {
           <span className="h-0.5 bg-current" />
         </span>
       ) : (
-        <Icon name="check" size={16} strokeWidth={3.5} />
+        <Icon name="check" size={14} strokeWidth={3.5} />
       )}
       <PixelText>{winner === 'DRAW' ? 'Empate' : 'Venceu'}</PixelText>
     </span>

@@ -9,7 +9,7 @@ import { PlayerSprite } from '../../components/ui/pixel-sprite';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
 import { YouTag } from '../lineup/you-tag';
-import { detailResultText, listResultText } from './history-text';
+import { detailResultParts, detailResultText, listResultText } from './history-text';
 import { ResultMark } from './result-mark';
 import { RESULT_TONE } from './result-tone';
 
@@ -28,6 +28,7 @@ type ResultBannerProps = {
 export function ResultBanner({ me, score, avatar }: ResultBannerProps) {
   const { kind } = listResultText(me);
   const text = detailResultText(me, score);
+  const { headline, line } = detailResultParts(me, score);
   const white = me?.team === 'WHITE';
   return (
     <section
@@ -52,10 +53,15 @@ export function ResultBanner({ me, score, avatar }: ResultBannerProps) {
         </span>
       )}
       <div className="flex min-w-0 flex-col gap-2">
-        <span className={cn('inline-flex items-start gap-2', RESULT_TONE[kind])}>
-          <ResultMark kind={kind} className="mt-0.5" />
-          <PixelText wrap>{text}</PixelText>
-        </span>
+        <div className="flex flex-col gap-1.5">
+          <span className={cn('inline-flex items-center gap-2', RESULT_TONE[kind])}>
+            <ResultMark kind={kind} />
+            <PixelText wrap>{headline}</PixelText>
+          </span>
+          <PixelText wrap className="text-text">
+            {line}
+          </PixelText>
+        </div>
         {me && (
           <div className="flex flex-wrap items-center gap-2">
             <Badge label={TEAM_LABELS[me.team]} variant={white ? 'white' : 'black'} />

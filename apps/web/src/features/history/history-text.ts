@@ -26,14 +26,23 @@ export function listResultText(me: Me): { kind: ResultKind; text: string } {
   return { kind: 'DRAW', text: 'Empate' };
 }
 
-/** A frase da faixa do detalhe: o placar começa pelo time de quem vê ("Você venceu 3 a 2 no Branco"). */
-export function detailResultText(me: Me, score: MatchScore): string {
-  if (!me) return 'Você não jogou esta partida';
+/**
+ * A frase da faixa do detalhe, em duas linhas: o veredito e o placar começando pelo time de quem vê
+ * ("Você venceu" / "3 a 2 no Branco").
+ */
+export function detailResultParts(me: Me, score: MatchScore): { headline: string; line: string } {
+  if (!me) return { headline: 'Você não jogou', line: 'esta partida' };
   const other = me.team === 'WHITE' ? 'BLACK' : 'WHITE';
   const pair = `${score[me.team]} a ${score[other]} no ${TEAM_LABELS[me.team]}`;
-  if (me.result === 'WIN') return `Você venceu ${pair}`;
-  if (me.result === 'LOSS') return `Você perdeu ${pair}`;
-  return `Empate em ${pair}`;
+  if (me.result === 'WIN') return { headline: 'Você venceu', line: pair };
+  if (me.result === 'LOSS') return { headline: 'Você perdeu', line: pair };
+  return { headline: 'Empate', line: `em ${pair}` };
+}
+
+/** A mesma frase numa linha só ("Você venceu 3 a 2 no Branco"), para o leitor de tela. */
+export function detailResultText(me: Me, score: MatchScore): string {
+  const { headline, line } = detailResultParts(me, score);
+  return `${headline} ${line}`;
 }
 
 const WEEKDAYS = [
