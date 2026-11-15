@@ -90,7 +90,10 @@ export function MatchCard({ item, avatar, index }: MatchCardProps) {
           className="flex flex-col gap-2 px-4 py-3 shadow-[inset_0_3px_0_0_var(--color-border-strong)]"
         >
           {item.mvps.map((mvp) => (
-            <li key={mvp.membershipId} className="flex min-h-10 items-center gap-3">
+            <li
+              key={mvp.membershipId}
+              className="flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1.5"
+            >
               <MemberAvatar nickname={mvp.nickname} avatar={mvp.avatar} size={40} />
               <Badge variant="craque" label="Craque" />
               <PixelText wrap className="min-w-0 text-gold">

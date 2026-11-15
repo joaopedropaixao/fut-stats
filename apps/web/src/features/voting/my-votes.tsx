@@ -61,7 +61,7 @@ export function MyVotes({ view, remaining, onEdit }: MyVotesProps) {
         value={
           <>
             <PixelText>{String(vote.ratings.length)}</PixelText>
-            <PixelText>notas enviadas</PixelText>
+            <PixelText wrap>notas enviadas</PixelText>
           </>
         }
         editLabel="Mudar as notas"
