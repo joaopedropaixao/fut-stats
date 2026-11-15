@@ -6,6 +6,8 @@ type SiblingProps = {
   player: ResultPlayer;
   tier: CardTier;
   you?: boolean;
+  /** A frase do Perna de Pau (estável pela rodada e pelo jogador); sem ela, "Hoje não deu". */
+  phrase?: string | null;
   delay?: number;
   hidden?: boolean;
   className?: string;
@@ -13,13 +15,14 @@ type SiblingProps = {
 };
 
 /**
- * A carta do Perna de Pau no molde das cartas: cai virada e rachada, com "HOJE NÃO DEU". Tom de zoeira, nunca de
+ * A carta do Perna de Pau no molde das cartas: cai virada e rachada, com a piada dele ("HOJE NÃO DEU"). Tom de zoeira, nunca de
  * humilhação: a faixa vem pela nota (normalmente bronze) e a madeira fica no selo, não na moldura.
  */
 export function FlopPackCard({
   player,
   tier,
   you,
+  phrase,
   delay,
   hidden,
   className,
@@ -31,7 +34,7 @@ export function FlopPackCard({
       tier={tier}
       score={player.score}
       kind="Perna de pau"
-      note="Hoje não deu"
+      note={phrase ?? 'Hoje não deu'}
       you={you}
       cracked
       tilt="rotate-[5deg]"

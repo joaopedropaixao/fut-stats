@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/cn';
 import { CraqueCard } from '../voting/craque-card';
 import { buildDeck, type PackCard } from './deck';
+import { CraqueNumbers, PhraseBanner } from './craque-extras';
 import { buildFrames, clueTimes, cluesAt, frameDuration, type Frame } from './frames';
 import { FlopPackCard, MinePackCard } from './pack-cards';
 import { frameAnnouncement } from './pack-text';
@@ -30,8 +31,8 @@ function prefersReducedMotion(): boolean {
 /**
  * O pacote do Craque (folha: Momento/Pacote): o pacote fechado espera o toque; depois treme, rasga e solta a luz;
  * saem as cartas, uma por quadro (o Craque faz o walkout em degraus, depois o Perna de Pau, depois a sua), e as
- * cartas finais ficam lado a lado com Compartilhar. Até ~2 s por carta, o toque adianta, "Pular" sempre leva ao
- * fim. Com "reduzir movimento" o pacote toca e as cartas finais entram com um fade. A animação é decorativa
+ * cartas finais ficam lado a lado com Compartilhar. O Craque fica ~3 s, a carta sua ~4 s e as outras ~2 s; o toque
+ * adianta, "Pular" sempre leva ao fim. Com "reduzir movimento" o pacote toca e as cartas finais entram com um fade. A animação é decorativa
  * (aria-hidden); cada carta é anunciada em texto e o foco vai para o título das cartas finais.
  */
 export default function PackOpening({ result, onFinish, onDone }: PackOpeningProps) {
@@ -49,10 +50,11 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
   // Em que quadro o rosto do Craque já apareceu (para o leitor de tela anunciar só então)
   const [faceAt, setFaceAt] = useState(-1);
 
-  // O quadro começa no topo da tela: o "Pular" e a carta ficam acima da barra de baixo, mesmo em tela baixa
+  // O quadro começa no topo da tela: o "Pular", a carta e a frase ficam acima da barra de baixo, mesmo em tela
+  // baixa (a carta do Craque, com os números, é mais alta que o pacote fechado)
   useEffect(() => {
     root.current?.scrollIntoView({ block: 'start' });
-  }, []);
+  }, [index]);
 
   // Cada quadro segue sozinho depois do seu tempo; fechado e final esperam
   useEffect(() => {
@@ -61,6 +63,9 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
     const timer = setTimeout(() => setIndex((i) => Math.min(i + 1, last)), ms);
     return () => clearTimeout(timer);
   }, [frame, last]);
+
+  // O Craque (e os dois juntos) fazem o palco com holofote; o resto fica no escuro do pacote
+  const onStage = frame.kind === 'duo' || (frame.kind === 'card' && frame.card.kind === 'craque');
 
   const atEnd = index === last;
   useEffect(() => {
@@ -93,13 +98,18 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
       ) : (
         <div
           className={cn(
-            'moment-frame animate-moment-in relative flex min-h-[440px] items-center justify-center overflow-hidden bg-track px-3 pt-20 pb-6',
+            'moment-frame animate-moment-in relative flex min-h-[440px] items-center justify-center overflow-hidden px-3 pt-[72px] pb-6',
+            onStage ? 'craque-stage' : 'bg-track',
             frame.kind !== 'closed' && 'cursor-pointer',
           )}
-          style={{
-            backgroundImage:
-              'radial-gradient(220px 200px at 50% 45%, rgb(232 169 58 / 28%) 0, transparent 200px)',
-          }}
+          style={
+            onStage
+              ? undefined
+              : {
+                  backgroundImage:
+                    'radial-gradient(220px 200px at 50% 45%, rgb(232 169 58 / 28%) 0, transparent 200px)',
+                }
+          }
           onClick={frame.kind === 'closed' ? undefined : advance}
         >
           <Stage
@@ -152,12 +162,16 @@ function Stage({
         <Walkout card={frame.card} number={number} onFace={onFace} />
       ) : frame.card.kind === 'flop' ? (
         <div aria-hidden className="animate-pack-drop">
-          <FlopPackCard
-            player={frame.card.player}
-            tier={frame.card.tier}
-            you={frame.card.you}
-            hidden
-          />
+          {/* Sendo você, a carta segura ~4 s: depois de cair, balança de leve, para a piada durar */}
+          <div className={frame.card.you ? 'animate-flop-sway' : undefined}>
+            <FlopPackCard
+              player={frame.card.player}
+              tier={frame.card.tier}
+              you={frame.card.you}
+              phrase={frame.card.phrase}
+              hidden
+            />
+          </div>
         </div>
       ) : (
         <div aria-hidden className="animate-pack-flip">
@@ -187,6 +201,7 @@ function Stage({
                   tier={c.tier}
                   roundNumber={number}
                   special={c.you}
+                  stats
                   hidden
                 />
               </div>
@@ -296,36 +311,49 @@ function Walkout({ card, number, onFace }: { card: PackCard; number: number; onF
   }, [clues.face]);
 
   return (
-    <div aria-hidden className="relative flex items-center justify-center">
-      {clues.face && (
-        <>
-          <div className="animate-pack-burst absolute -z-0 opacity-80">
-            <BurstSprite scale={special ? 16 : 14} />
-          </div>
-          <Sparkles special={special} />
-        </>
-      )}
-      <CraqueCard
-        player={card.player}
-        tier={card.tier}
-        roundNumber={number}
-        special={special}
-        clues={clues}
-        hidden
-        className="relative z-10"
-      >
+    <div aria-hidden className="flex flex-col items-center gap-5">
+      <div className="relative flex items-center justify-center">
         {clues.face && (
           <>
-            <span className="animate-pack-flash absolute inset-0 bg-team-white" />
-            {special && (
-              <span
-                style={{ '--moment-delay': '300ms' } as CSSProperties}
-                className="animate-pack-flash absolute inset-0 bg-team-white"
-              />
-            )}
+            <div className="animate-pack-burst absolute -z-0 opacity-80">
+              <BurstSprite scale={special ? 16 : 14} />
+            </div>
+            <Sparkles special={special} />
           </>
         )}
-      </CraqueCard>
+        <CraqueCard
+          player={card.player}
+          tier={card.tier}
+          roundNumber={number}
+          special={special}
+          stats
+          clues={clues}
+          hidden
+          className="relative z-10"
+        >
+          {clues.face && (
+            <>
+              <span className="animate-pack-flash absolute inset-0 bg-team-white" />
+              {special && (
+                <span
+                  style={{ '--moment-delay': '300ms' } as CSSProperties}
+                  className="animate-pack-flash absolute inset-0 bg-team-white"
+                />
+              )}
+            </>
+          )}
+        </CraqueCard>
+      </div>
+      {/* Depois do rosto: a frase e os números (o espaço fica guardado antes, para o quadro não pular) */}
+      <div
+        className={cn(
+          'relative z-10 flex w-full flex-col items-center gap-4',
+          !clues.face && 'invisible',
+        )}
+      >
+        {card.phrase !== null && <PhraseBanner phrase={card.phrase} className="w-full max-w-xs" />}
+        <CraqueNumbers player={card.player} />
+      </div>
     </div>
   );
 }
@@ -471,11 +499,20 @@ function FinalCard({ card, number, delay }: { card: PackCard; number: number; de
       className="animate-final-in flex w-48 max-w-full flex-col items-center gap-4"
     >
       {card.kind === 'craque' ? (
-        <CraqueCard player={card.player} tier={card.tier} roundNumber={number} special={card.you} />
+        <CraqueCard
+          player={card.player}
+          tier={card.tier}
+          roundNumber={number}
+          special={card.you}
+          stats
+        />
       ) : card.kind === 'flop' ? (
-        <FlopPackCard player={card.player} tier={card.tier} you={card.you} />
+        <FlopPackCard player={card.player} tier={card.tier} you={card.you} phrase={card.phrase} />
       ) : (
         <MinePackCard player={card.player} tier={card.tier} rank={card.rank} />
+      )}
+      {card.kind === 'craque' && card.phrase !== null && (
+        <PhraseBanner phrase={card.phrase} className="w-full" />
       )}
       {card.kind !== 'flop' && <ShareButton card={card} roundNumber={number} block />}
     </div>

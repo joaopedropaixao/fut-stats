@@ -53,37 +53,104 @@ export async function renderCardPng(card: PackCard, roundNumber: number): Promis
   if (!ctx) throw new Error('canvas indisponível');
   ctx.imageSmoothingEnabled = false;
 
-  // Fundo: o gramado à noite com o holofote
-  const bg = ctx.createLinearGradient(0, 0, 0, SHARE_HEIGHT);
-  bg.addColorStop(0, resolveColor('var(--color-surface-raised)'));
-  bg.addColorStop(1, resolveColor('var(--color-bg)'));
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, SHARE_WIDTH, SHARE_HEIGHT);
-  const glow = ctx.createRadialGradient(540, 560, 40, 540, 560, 620);
-  glow.addColorStop(0, 'rgba(232,169,58,0.35)');
-  glow.addColorStop(1, 'rgba(232,169,58,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, SHARE_WIDTH, SHARE_HEIGHT);
+  drawStage(ctx);
 
-  // A carta, centrada e ampliada 4x (inteiro: o pixel art não pode ficar fracionado)
+  // A carta, centrada e ampliada 4x (inteiro: o pixel art não pode ficar fracionado). Com frase (o Craque), a marca
+  // vai para o alto e a frase assina a carta embaixo; sem frase, o rodapé fica como era.
   const scale = 4;
   const ox = Math.round((SHARE_WIDTH - CARD_W * scale) / 2);
-  const oy = 74;
+  const withPhrase = card.phrase !== null;
+  const oy = withPhrase ? 48 : 74;
   ctx.save();
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
   drawCard(ctx, card, roundNumber);
   ctx.restore();
 
-  // Rodapé
-  text(ctx, 'Fut Stats', SHARE_WIDTH / 2, 1268, {
-    size: 40,
-    color: resolveColor('var(--color-text)'),
-    align: 'center',
-  });
+  if (withPhrase) {
+    text(ctx, 'Fut Stats', SHARE_WIDTH / 2, 10, {
+      size: 28,
+      color: resolveColor('var(--color-text)'),
+      align: 'center',
+    });
+    drawPhrase(ctx, card.phrase!, oy + CARD_H * scale + 34);
+  } else {
+    text(ctx, 'Fut Stats', SHARE_WIDTH / 2, 1268, {
+      size: 40,
+      color: resolveColor('var(--color-text)'),
+      align: 'center',
+    });
+  }
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('sem imagem'))), 'image/png'),
+  );
+}
+
+/** O palco do Compartilhar: gramado à noite, cone do holofote sobre a carta e o padrão pixel discreto. */
+function drawStage(ctx: CanvasRenderingContext2D) {
+  const bg = ctx.createLinearGradient(0, 0, 0, SHARE_HEIGHT);
+  bg.addColorStop(0, '#0a2113');
+  bg.addColorStop(0.6, resolveColor('var(--color-surface-raised)'));
+  bg.addColorStop(1, resolveColor('var(--color-surface-3)'));
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, SHARE_WIDTH, SHARE_HEIGHT);
+  // o cone de luz, do alto até a carta
+  const cone = ctx.createLinearGradient(0, 0, 0, 900);
+  cone.addColorStop(0, 'rgba(255,244,200,0.22)');
+  cone.addColorStop(1, 'rgba(255,244,200,0)');
+  ctx.fillStyle = cone;
+  ctx.beginPath();
+  ctx.moveTo(SHARE_WIDTH * 0.4, 0);
+  ctx.lineTo(SHARE_WIDTH * 0.6, 0);
+  ctx.lineTo(SHARE_WIDTH, 900);
+  ctx.lineTo(0, 900);
+  ctx.closePath();
+  ctx.fill();
+  const glow = ctx.createRadialGradient(540, 560, 40, 540, 560, 620);
+  glow.addColorStop(0, 'rgba(255,238,176,0.34)');
+  glow.addColorStop(0.6, 'rgba(232,169,58,0.14)');
+  glow.addColorStop(1, 'rgba(232,169,58,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, SHARE_WIDTH, SHARE_HEIGHT);
+  // o tabuleiro de quadradinhos de 16 px, quase invisível
+  ctx.fillStyle = 'rgba(255,255,255,0.035)';
+  for (let y = 0; y < SHARE_HEIGHT; y += 16) {
+    for (let x = (y / 16) % 2 === 0 ? 0 : 16; x < SHARE_WIDTH; x += 32) ctx.fillRect(x, y, 16, 16);
+  }
+}
+
+/** A frase de impacto: faixa escura com contorno de ouro e sombra dura, letras claras, em até duas linhas. */
+function drawPhrase(ctx: CanvasRenderingContext2D, phrase: string, y: number) {
+  const x = 60;
+  const w = SHARE_WIDTH - 120;
+  const size = 32;
+  ctx.font = `700 ${size}px Silkscreen, monospace`;
+  const upper = phrase.toUpperCase();
+  const lines: string[] = [];
+  let current = '';
+  for (const word of upper.split(' ')) {
+    const next = current ? `${current} ${word}` : word;
+    if (current && ctx.measureText(next).width > w - 48) {
+      lines.push(current);
+      current = word;
+    } else current = next;
+  }
+  lines.push(current);
+  const h = 28 + lines.length * (size + 8);
+  const shadow = 8;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x + shadow, y + shadow, w, h);
+  ctx.fillStyle = resolveColor('var(--color-gold)');
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x + 8, y + 8, w - 16, h - 16);
+  lines.forEach((line, i) =>
+    text(ctx, line, SHARE_WIDTH / 2, y + 18 + i * (size + 8), {
+      size,
+      color: resolveColor('var(--color-text)'),
+      align: 'center',
+    }),
   );
 }
 
@@ -113,9 +180,19 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
   ctx.fillRect(3, 36, CARD_W - 6, 3);
   text(ctx, TEAM_LABELS[player.team], 16, 14, { color: white ? '#000' : '#fff' });
   if (card.you) {
+    // O selo VOCÊ: fundo escuro, letras claras, contorno grosso e sombra dura (legível em qualquer faixa)
+    const sw = 64;
+    const sx = CARD_W - 9 - sw;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(sx + 3, 12, sw, 24);
     ctx.fillStyle = resolveColor('var(--color-text)');
-    ctx.fillRect(CARD_W - 64, 10, 52, 20);
-    text(ctx, 'Você', CARD_W - 38, 12, { color: '#000', align: 'center' });
+    ctx.fillRect(sx, 9, sw, 24);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(sx + 3, 12, sw - 6, 18);
+    text(ctx, 'Você', sx + sw / 2, 13, {
+      color: resolveColor('var(--color-text)'),
+      align: 'center',
+    });
   }
 
   // Nota em dígitos pixel (escala 4)
@@ -137,10 +214,11 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
   ctx.restore();
   text(ctx, TIER_LABELS[card.tier], CARD_W - 12, 74, { color: tier.ink, align: 'right' });
 
-  // O bonequinho grande (16 x 24 na escala 3)
+  // O bonequinho grande (16 x 24 na escala 3); com números (o Craque), as etiquetas ficam à esquerda dele
   const map = bodyLargeMap(player.avatar);
   const palette = bodyLargePalette(player.avatar, white ? 'white' : 'black');
-  const bx = Math.round((CARD_W - 16 * 3) / 2);
+  const hasStats = card.kind === 'craque';
+  const bx = hasStats ? CARD_W - 12 - 16 * 3 : Math.round((CARD_W - 16 * 3) / 2);
   const by = 118;
   map.forEach((line, y) =>
     [...line].forEach((c, x) => {
@@ -150,6 +228,17 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
       ctx.fillRect(bx + x * 3, by + y * 3, 3, 3);
     }),
   );
+  if (hasStats) {
+    const { goals, assists } = player;
+    [`${goals} ${goals === 1 ? 'gol' : 'gols'}`, `${assists} assist.`].forEach((label, i) => {
+      const cy = 124 + i * 30;
+      ctx.font = '700 14px Silkscreen, monospace';
+      const cw = Math.ceil(ctx.measureText(label.toUpperCase()).width) + 14;
+      ctx.fillStyle = tier.ink;
+      ctx.fillRect(12, cy, cw, 24);
+      text(ctx, label, 19, cy + 5, { size: 14, color: '#fff' });
+    });
+  }
 
   // Nomes: o apelido inteiro (encolhe na largura se precisar), o tipo da carta e a nota
   const kind =

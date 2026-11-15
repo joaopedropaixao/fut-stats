@@ -15,8 +15,12 @@ import { Scoreboard } from '../../features/match/scoreboard';
 import { RouteButton } from '../../features/rounds/route-button';
 import { Button } from '../../components/ui/button';
 import { buildDeck, type PackCard } from '../../features/pack/deck';
+import { CraqueMoves, CraqueNumbers, PhraseBanner } from '../../features/pack/craque-extras';
+import { flopPhrase } from '../../features/pack/impact-phrase';
+import { useMatch } from '../../features/match/queries';
 import { ShareButton } from '../../features/pack/share-button';
 import { ApiError } from '../../lib/api';
+import { cn } from '../../lib/cn';
 import { CraqueCard } from '../../features/voting/craque-card';
 import { FlopCard } from '../../features/voting/flop-card';
 import { MyScoreCard } from '../../features/voting/my-score-card';
@@ -139,6 +143,58 @@ function Holo() {
   );
 }
 
+/**
+ * O palco do Craque na página: holofote, gradiente e padrão pixel; a carta (com gols, assistências e a frase) em
+ * foco, e embaixo os números dele e os lances dele na partida (`useMatch`, só leitura). Empate: as cartas lado a
+ * lado e um painel por Craque.
+ */
+function CraqueStage({ result, cards }: { result: RoundResult; cards: PackCard[] }) {
+  const { group } = useCurrentGroup();
+  const match = useMatch(group?.id ?? '', group ? result.roundId : undefined);
+  const tie = cards.length > 1;
+  return (
+    <div className="moment-frame craque-stage animate-moment-in flex flex-col items-center gap-8 px-4 py-8">
+      <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-8">
+        {cards.map((card, i) => (
+          <div
+            key={card.player.membershipId}
+            className={cn(
+              'flex max-w-full flex-col items-center gap-5',
+              tie ? 'w-48' : 'w-48 min-[360px]:w-full min-[360px]:max-w-xs',
+            )}
+          >
+            <CraqueCard
+              player={card.player}
+              tier={card.tier}
+              roundNumber={result.number}
+              special={card.you}
+              stats
+              delay={i * 160}
+              enter
+            >
+              <Holo />
+            </CraqueCard>
+            {card.phrase !== null && <PhraseBanner phrase={card.phrase} className="w-full" />}
+            <ShareButton card={card} roundNumber={result.number} block />
+          </div>
+        ))}
+      </div>
+      {cards.map((card) => (
+        <div key={card.player.membershipId} className="flex w-full flex-col items-center gap-5">
+          {tie && (
+            <PixelText
+              wrap
+              className="text-center text-gold"
+            >{`Números de ${card.player.nickname}`}</PixelText>
+          )}
+          <CraqueNumbers player={card.player} />
+          {match.data && <CraqueMoves events={match.data.events} player={card.player} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Loaded({ result }: { result: RoundResult }) {
   const { roundId } = result;
   const myId = result.me.membershipId;
@@ -174,6 +230,7 @@ function Loaded({ result }: { result: RoundResult }) {
           tier: cardTier(mine.score),
           you: true,
           rank: mine.rank,
+          phrase: null,
         }
       : null;
   const nobodyVoted = result.votes.voted === 0;
@@ -222,40 +279,18 @@ function Loaded({ result }: { result: RoundResult }) {
                   {result.mvps.length > 1 ? 'Craques da rodada' : 'Craque da rodada'}
                 </PixelText>
               </h2>
-              <div
-                className="moment-frame animate-moment-in flex flex-wrap items-start justify-center gap-x-5 gap-y-6 bg-track px-4 py-8"
-                style={{
-                  backgroundImage:
-                    'radial-gradient(220px 180px at 50% 50%, rgb(232 169 58 / 30%) 0, transparent 180px)',
-                }}
-              >
-                {deck
-                  .filter((c) => c.kind === 'craque')
-                  .map((card, i) => (
-                    <div
-                      key={card.player.membershipId}
-                      className="flex w-48 max-w-full flex-col items-center gap-5"
-                    >
-                      <CraqueCard
-                        player={card.player}
-                        tier={card.tier}
-                        roundNumber={result.number}
-                        special={card.you}
-                        delay={i * 160}
-                        enter
-                      >
-                        <Holo />
-                      </CraqueCard>
-                      <ShareButton card={card} roundNumber={result.number} block />
-                    </div>
-                  ))}
-              </div>
+              <CraqueStage result={result} cards={deck.filter((c) => c.kind === 'craque')} />
             </section>
           )}
           {result.flops.length > 0 && (
             <section aria-label="Perna de pau" className="flex flex-col gap-3">
               {result.flops.map((player, i) => (
-                <FlopCard key={player.membershipId} player={player} delay={200 + i * 160} />
+                <FlopCard
+                  key={player.membershipId}
+                  player={player}
+                  phrase={flopPhrase(result.roundId, player.membershipId)}
+                  delay={200 + i * 160}
+                />
               ))}
             </section>
           )}

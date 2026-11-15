@@ -1,4 +1,5 @@
 import { cardTier, type CardTier, type ResultPlayer, type RoundResult } from '@fut-stats/shared';
+import { flopPhrase, impactPhrase } from './impact-phrase';
 
 export type PackCardKind = 'craque' | 'flop' | 'mine';
 
@@ -12,10 +13,22 @@ export type PackCard = {
   you: boolean;
   /** Posição na rodada pela nota (só a sua carta mostra). */
   rank: number | null;
+  /**
+   * A frase da carta: a de impacto do Craque (pelos gols e assistências e pela vitória) e a piada do Perna de Pau
+   * (estável pela rodada e pelo jogador). A sua carta não tem frase.
+   */
+  phrase: string | null;
 };
 
-function card(kind: PackCardKind, player: ResultPlayer, myId: string): PackCard | null {
+function phraseFor(kind: PackCardKind, player: ResultPlayer, result: RoundResult): string | null {
+  if (kind === 'craque') return impactPhrase(player, { won: result.winner === player.team });
+  if (kind === 'flop') return flopPhrase(result.roundId, player.membershipId);
+  return null;
+}
+
+function card(kind: PackCardKind, player: ResultPlayer, result: RoundResult): PackCard | null {
   if (player.score === null) return null;
+  const myId = result.me.membershipId;
   return {
     kind,
     player,
@@ -23,6 +36,7 @@ function card(kind: PackCardKind, player: ResultPlayer, myId: string): PackCard 
     tier: cardTier(player.score),
     you: player.membershipId === myId,
     rank: player.rank,
+    phrase: phraseFor(kind, player, result),
   };
 }
 
@@ -33,13 +47,13 @@ function card(kind: PackCardKind, player: ResultPlayer, myId: string): PackCard 
  */
 export function buildDeck(result: RoundResult): PackCard[] {
   const myId = result.me.membershipId;
-  const craques = result.mvps.flatMap((p) => card('craque', p, myId) ?? []);
+  const craques = result.mvps.flatMap((p) => card('craque', p, result) ?? []);
   if (craques.length === 0) return [];
-  const flops = result.flops.flatMap((p) => card('flop', p, myId) ?? []);
+  const flops = result.flops.flatMap((p) => card('flop', p, result) ?? []);
   const deck = [...craques, ...flops];
   const mine = result.me.played ? result.players.find((p) => p.membershipId === myId) : undefined;
   if (mine && !deck.some((c) => c.you)) {
-    const mineCard = card('mine', mine, myId);
+    const mineCard = card('mine', mine, result);
     if (mineCard) deck.push(mineCard);
   }
   return deck;

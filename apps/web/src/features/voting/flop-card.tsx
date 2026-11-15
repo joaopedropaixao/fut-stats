@@ -11,7 +11,16 @@ import { TIER_LABELS } from '../pack/tier';
  * O Perna de Pau em madeira (`--color-flop`), com selo e ícone e sem brilho: o tom é de zoeira ("Hoje não deu"),
  * nunca de humilhação. Grande momento como os outros: contorno grosso, sombra dura e entrada em degraus.
  */
-export function FlopCard({ player, delay = 0 }: { player: ResultPlayer; delay?: number }) {
+export function FlopCard({
+  player,
+  phrase,
+  delay = 0,
+}: {
+  player: ResultPlayer;
+  /** A piada dele, estável pela rodada e pelo jogador (`flopPhrase`). */
+  phrase: string;
+  delay?: number;
+}) {
   return (
     <article
       aria-label={`Perna de pau: ${player.nickname}`}
@@ -33,7 +42,7 @@ export function FlopCard({ player, delay = 0 }: { player: ResultPlayer; delay?: 
         <PixelText wrap>{player.nickname}</PixelText>
         <PixelText className="text-text-muted">{TEAM_LABELS[player.team]}</PixelText>
         <PixelText wrap className="text-flop">
-          Hoje não deu
+          {phrase}
         </PixelText>
       </div>
       {player.score !== null && (

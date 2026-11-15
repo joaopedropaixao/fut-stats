@@ -46,16 +46,56 @@ describe('quadros do pacote', () => {
     ]);
   });
 
-  it('C23: o fechado e o final esperam; o resto segue sozinho em torno de 2 s por carta', () => {
+  it('C23: o fechado e o final esperam; o Craque segue sozinho em ~3 s e as outras cartas em ~2 s', () => {
     const deck = buildDeck(
       result({ mvps: [ronaldinho], flops: [zague], players: [ronaldinho, eu, zague] }),
     );
     const durations = buildFrames(deck).map(frameDuration);
     expect(durations[0]).toBeNull();
     expect(durations.at(-1)).toBeNull();
-    for (const ms of durations.slice(1, -1)) expect(ms).toBeLessThanOrEqual(2500);
+    // fechado, suspense, rasgo, Craque, Perna de Pau, sua carta, final
+    expect(durations[3]).toBe(3000);
+    expect(durations[4]).toBe(2000);
+    expect(durations[5]).toBe(2000);
     // do toque até a última carta parar, o walkout do Craque termina dentro do quadro
     expect(WALKOUT_AT.face + 600).toBeLessThanOrEqual(durations[3]!);
+  });
+
+  it('V3: o Craque "VOCÊ" segura ~4 s e a festa tem tempo depois do rosto', () => {
+    const craqueEu = player('me', 'Dedé', 8.4, 1);
+    const deck = buildDeck(
+      result({ mvps: [craqueEu], flops: [zague], players: [craqueEu, zague] }),
+    );
+    const durations = buildFrames(deck).map(frameDuration);
+    expect(durations[3]).toBe(4000);
+    expect(durations[4]).toBe(2000);
+    expect(durations[3]! - WALKOUT_AT.face).toBeGreaterThanOrEqual(1800);
+  });
+
+  it('V3: o Perna de Pau sendo você segura ~4 s; a sua carta e o Perna de Pau dos outros ficam em ~2 s', () => {
+    const flopEu = player('me', 'Dedé', 4.0, 9);
+    const deck = buildDeck(
+      result({ mvps: [ronaldinho], flops: [flopEu], players: [ronaldinho, flopEu] }),
+    );
+    const durations = buildFrames(deck).map(frameDuration);
+    expect(durations[3]).toBe(3000);
+    expect(durations[4]).toBe(4000);
+    // sem a sua carta repetida: Craque, Perna de Pau (você) e o final
+    expect(durations).toHaveLength(6);
+  });
+
+  it('V3: sem carta sua entre os especiais, nenhum quadro passa de ~3 s', () => {
+    const outro = player('c', 'Zé', 9.1, 1);
+    const deck = buildDeck(
+      result({
+        mvps: [ronaldinho, outro],
+        flops: [zague],
+        players: [ronaldinho, outro, eu, zague],
+      }),
+    );
+    for (const ms of buildFrames(deck).map(frameDuration)) {
+      if (ms !== null) expect(ms).toBeLessThanOrEqual(3000);
+    }
   });
 });
 

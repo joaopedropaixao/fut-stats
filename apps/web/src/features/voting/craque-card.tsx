@@ -13,6 +13,8 @@ type CraqueCardProps = {
   clues?: CardClues;
   /** O Craque sou eu: carta especial, o grande momento dobrado, com o selo VOCÊ. */
   special?: boolean;
+  /** Mostra os gols e as assistências do Craque na carta. */
+  stats?: boolean;
   /** Entra com a animação de grande momento (na página). */
   enter?: boolean;
   hidden?: boolean;
@@ -32,6 +34,7 @@ export function CraqueCard({
   delay = 0,
   clues,
   special,
+  stats,
   enter,
   hidden,
   className,
@@ -47,6 +50,7 @@ export function CraqueCard({
       clues={clues}
       you={special}
       special={special}
+      stats={stats ? { goals: player.goals, assists: player.assists } : undefined}
       delay={delay}
       enter={enter}
       hidden={hidden}

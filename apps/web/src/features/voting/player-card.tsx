@@ -5,7 +5,6 @@ import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
 import { formatRating } from '../../lib/rating-format';
-import { YouTag } from '../lineup/you-tag';
 import { TIER_LABELS } from '../pack/tier';
 
 /** As pistas do walkout: o que da carta já apareceu. Sem pistas, a carta está pronta (tudo à mostra). */
@@ -16,6 +15,9 @@ export type CardClues = {
   rating: number | null;
   face: boolean;
 };
+
+/** Os números do jogador na partida, na carta (gols e assistências; gol contra não entra). */
+export type CardStats = { goals: number; assists: number };
 
 export type PlayerCardProps = {
   player: ResultPlayer;
@@ -31,6 +33,8 @@ export type PlayerCardProps = {
   you?: boolean;
   /** O grande momento dobrado (o Craque sendo você): moldura dupla. */
   special?: boolean;
+  /** Gols e assistências na partida: duas etiquetas ao lado do bonequinho (a carta do Craque). */
+  stats?: CardStats;
   /** Fenda pixel e tom de zoeira (Perna de Pau). */
   cracked?: boolean;
   /** Inclinação: cada carta tem a sua. */
@@ -45,6 +49,27 @@ export type PlayerCardProps = {
   /** Camadas por cima (flash, brilho holográfico). */
   children?: ReactNode;
 };
+
+/**
+ * O selo "VOCÊ" da carta: fundo escuro, letras claras, contorno grosso e sombra dura, para não camuflar no branco
+ * do time nem nas faixas bronze, prata e ouro. Texto e forma cheia, nunca só cor.
+ */
+function YouStamp() {
+  return (
+    <span className="inline-flex h-6 items-center border-[3px] border-text bg-team-black px-1 text-text shadow-[3px_3px_0_0_#000]">
+      <PixelText>Você</PixelText>
+    </span>
+  );
+}
+
+/** "2 gols", "1 gol", "1 assist.": a etiqueta escura de um número da carta. */
+function StatChip({ label }: { label: string }) {
+  return (
+    <span className="inline-flex h-6 items-center self-start bg-(--card-ink) px-2 text-team-white">
+      <PixelText>{label}</PixelText>
+    </span>
+  );
+}
 
 /** A estrela cheia do canto da carta, na tinta da faixa. */
 function SolidStar() {
@@ -82,6 +107,7 @@ export function PlayerCard({
   you,
   special,
   cracked,
+  stats,
   tilt = '-rotate-[4deg]',
   delay = 0,
   enter,
@@ -115,7 +141,8 @@ export function PlayerCard({
       {/* Tira do time: acende primeiro, na cor do time */}
       <div
         className={cn(
-          '-mx-3 flex h-9 items-center justify-between px-4',
+          '-mx-3 flex h-9 items-center justify-between',
+          you ? 'px-3' : 'px-4',
           special && 'mt-2',
           !special && 'mt-[3px]',
           showTeam
@@ -130,7 +157,7 @@ export function PlayerCard({
         </PixelText>
         {you && (
           <span className={showFace ? undefined : 'invisible'}>
-            <YouTag />
+            <YouStamp />
           </span>
         )}
       </div>
@@ -160,13 +187,23 @@ export function PlayerCard({
           {POSITION_LABELS[player.position]}
         </PixelText>
       </div>
-      <div aria-hidden className="relative flex justify-center">
-        <PixelBodyLarge
-          team={white ? 'white' : 'black'}
-          avatar={player.avatar}
-          scale={3}
-          className={showFace ? undefined : 'opacity-35 [filter:brightness(0)]'}
-        />
+      <div
+        className={cn('relative flex items-center', stats ? 'justify-between' : 'justify-center')}
+      >
+        {stats && (
+          <div className={cn('flex flex-col gap-1.5', !showFace && 'invisible')}>
+            <StatChip label={`${stats.goals} ${stats.goals === 1 ? 'gol' : 'gols'}`} />
+            <StatChip label={`${stats.assists} assist.`} />
+          </div>
+        )}
+        <span aria-hidden className="flex">
+          <PixelBodyLarge
+            team={white ? 'white' : 'black'}
+            avatar={player.avatar}
+            scale={3}
+            className={showFace ? undefined : 'opacity-35 [filter:brightness(0)]'}
+          />
+        </span>
       </div>
       <div className={cn('flex flex-col gap-0.5', !showFace && 'invisible')}>
         <PixelText wrap className="text-(--card-ink)">

@@ -17,6 +17,7 @@ const card = (
   tier,
   you,
   rank,
+  phrase: null,
 });
 
 describe('textos do pacote', () => {
@@ -29,6 +30,21 @@ describe('textos do pacote', () => {
     );
     expect(cardAnnouncement(card('mine', 'Dedé', 7.4, 'silver', true, 3), 12)).toBe(
       'Sua carta: nota 7,4, prata, 3º na rodada',
+    );
+  });
+
+  it('V1: o anúncio do Craque diz gols, assistências e a frase; o do Perna de Pau, a piada', () => {
+    const craque = card('craque', 'Ronaldinho', 9.1, 'gold');
+    craque.player.goals = 1;
+    craque.player.assists = 2;
+    craque.phrase = 'Dono do jogo';
+    expect(cardAnnouncement(craque, 12)).toBe(
+      'Craque da rodada 12: Ronaldinho, nota 9,1, ouro, 1 gol, 2 assistências. Dono do jogo',
+    );
+    const flop = card('flop', 'Zagueirão', 4.2, 'bronze');
+    flop.phrase = 'Na próxima vai';
+    expect(cardAnnouncement(flop, 12)).toBe(
+      'Perna de pau: Zagueirão, nota 4,2, bronze. Na próxima vai',
     );
   });
 

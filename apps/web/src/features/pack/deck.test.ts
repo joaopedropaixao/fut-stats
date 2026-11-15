@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildDeck, hasPack } from './deck';
 import { player, result } from './fixtures';
+import { FLOP_PHRASES } from './impact-phrase';
 
 const ronaldinho = player('a', 'Ronaldinho', 9.1, 1);
 const zague = player('b', 'Zagueirão', 4.2, 9);
@@ -17,6 +18,19 @@ describe('cartas do pacote', () => {
       ['mine', 'Dedé', 'silver'],
     ]);
     expect(deck[2]!.rank).toBe(3);
+  });
+
+  it('V1: o Craque leva a frase de impacto (vitória soma) e o Perna de Pau a piada estável; a sua carta não tem frase', () => {
+    const craque = { ...ronaldinho, goals: 3 };
+    const base = result({ mvps: [craque], flops: [zague], players: [craque, eu, zague] });
+    const deck = buildDeck(base);
+    expect(deck[0]!.phrase).toBe('Hat-trick e ainda levou a vitória');
+    expect(FLOP_PHRASES).toContain(deck[1]!.phrase);
+    expect(deck[2]!.phrase).toBeNull();
+    // a mesma rodada e o mesmo jogador dão a mesma piada, e quem perdeu não soma a vitória
+    expect(buildDeck(base)[1]!.phrase).toBe(deck[1]!.phrase);
+    expect(buildDeck({ ...base, winner: 'BLACK' })[0]!.phrase).toBe('Hat-trick!');
+    expect(buildDeck({ ...base, winner: 'DRAW' })[0]!.phrase).toBe('Hat-trick!');
   });
 
   it('C9: quem não jogou vê só Craque e Perna de Pau', () => {

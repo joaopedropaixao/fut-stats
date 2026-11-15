@@ -11,13 +11,18 @@ export type Frame =
   | { kind: 'duo'; cards: PackCard[] }
   | { kind: 'final' };
 
-/** Duração de cada quadro (ms), do toque até passar para o próximo sozinho. Cada carta fica em torno de 2 s. */
+/**
+ * Duração de cada quadro (ms), do toque até passar para o próximo sozinho. O Craque fica ~3 s; a carta sua (o
+ * Craque "VOCÊ" ou você sendo o Perna de Pau) segura ~4 s, a festa ou a piada; as outras, ~2 s.
+ */
 export const FRAME_MS = {
   shake: 700,
   tear: 600,
-  craque: 2500,
+  craque: 3000,
+  craqueYou: 4000,
   duo: 1600,
   flop: 2000,
+  flopYou: 4000,
   mine: 2000,
 } as const;
 
@@ -47,18 +52,22 @@ export function frameDuration(frame: Frame): number | null {
       return FRAME_MS.tear;
     case 'duo':
       return FRAME_MS.duo;
-    case 'card':
-      return frame.card.kind === 'craque' ? FRAME_MS.craque : FRAME_MS[frame.card.kind];
+    case 'card': {
+      const { kind, you } = frame.card;
+      if (kind === 'craque') return you ? FRAME_MS.craqueYou : FRAME_MS.craque;
+      if (kind === 'flop') return you ? FRAME_MS.flopYou : FRAME_MS.flop;
+      return FRAME_MS.mine;
+    }
   }
 }
 
 /** O walkout do Craque, em degraus: a cor do time, a posição, a nota subindo e só então o rosto. */
 export const WALKOUT_AT = {
-  team: 100,
-  position: 450,
-  rating: 800,
-  ratingStep: 110,
-  face: 1450,
+  team: 150,
+  position: 700,
+  rating: 1150,
+  ratingStep: 140,
+  face: 2000,
 } as const;
 
 export type Clues = {
