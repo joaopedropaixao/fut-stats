@@ -78,7 +78,7 @@ export function CraqueNumbers({ player, className }: { player: ResultPlayer; cla
       </Tile>
       <Tile label="Posição" step={1}>
         {player.rank !== null ? (
-          <PixelText size={24}>{`${player.rank}º`}</PixelText>
+          <PixelText size={24}>{`#${player.rank}`}</PixelText>
         ) : (
           <PixelText size={24}>-</PixelText>
         )}
