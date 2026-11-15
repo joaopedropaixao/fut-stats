@@ -190,6 +190,10 @@ Cenários desta volta (QA curto: estes, sobreposição e telas mexidas):
 | V4 | selo "VOCÊ" em bronze, prata, ouro e especial | legível, contraste alto | Playwright (prints) |
 | V7 | início com a votação aberta e o resultado saiu | votação neutra, ouro só no card do pacote, amarelo só na tecla | Playwright (antes/depois, 320 e 390) |
 
+**Ajuste depois do QA da volta:** o "#" e o "º" saem como bloco no Silkscreen, então a posição aparece como "POSIÇÃO 3" (o leitor de tela continua lendo "3º na rodada"). O selo "VOCÊ" da imagem do Compartilhar foi medido com `measureText`: o acento tem folga e o selo cabe inteiro na tira do time.
+
+**QA da volta de design (15 nov 2026): APROVADO.** V1 a V7 OK. Tempos medidos: Craque 3,0 s, carta sua 4,0 s, demais 2,0 s. Sobreposição limpa em 320, 375, 390, 430 e 1280; console sem erros. Pronto na raiz verde depois do rebase com `ranking` (#67), JS inicial 147,2 de 150 kB.
+
 ## QA
 **2 voltas, VEREDITO: APROVADO** (15 nov 2026).
 
