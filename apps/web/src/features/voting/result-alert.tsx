@@ -18,18 +18,8 @@ type ResultAlertProps = {
  */
 export function ResultAlert({ roundId, number, membershipId }: ResultAlertProps) {
   const to = `/rodadas/${roundId}/resultado`;
-  if (hasOpenedResult(roundId, membershipId)) {
-    return (
-      <Link
-        to={to}
-        className="flex min-h-14 items-center gap-3 px-4 py-2 shadow-card active:bg-highlight"
-      >
-        <Icon name="pack" size={22} className="text-gold" />
-        <PixelText wrap className="min-w-0 flex-1">{`Resultado da rodada ${number}`}</PixelText>
-        <Icon name="chevronRight" size={18} />
-      </Link>
-    );
-  }
+  if (hasOpenedResult(roundId, membershipId))
+    return <ResultLine roundId={roundId} number={number} />;
   return (
     <section
       aria-label="O resultado saiu"
@@ -55,5 +45,22 @@ export function ResultAlert({ roundId, number, membershipId }: ResultAlertProps)
         />
       </div>
     </section>
+  );
+}
+
+/**
+ * O resultado já aberto neste aparelho: uma linha simples. Só texto, sem ícone nem seta, para caber numa linha
+ * só de 320 a 430 px ("Resultado" na esquerda, "Rodada 8" na direita, sem o número cair para baixo).
+ */
+export function ResultLine({ roundId, number }: { roundId: string; number: number }) {
+  return (
+    <Link
+      to={`/rodadas/${roundId}/resultado`}
+      aria-label={`Resultado da rodada ${number}`}
+      className="flex min-h-14 items-center justify-between gap-2 px-4 py-2 shadow-card active:bg-highlight"
+    >
+      <PixelText>Resultado</PixelText>
+      <PixelText className="text-gold">{`Rodada ${number}`}</PixelText>
+    </Link>
   );
 }
