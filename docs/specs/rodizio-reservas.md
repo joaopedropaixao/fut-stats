@@ -103,7 +103,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C33 | time escolhido não tem reserva | olhar | "PRETO: SEM RESERVAS. NINGUÉM SAI." no lugar dos blocos | Playwright |
 | C34 | qualquer membro | "Ver tabela" | gaveta com todos os turnos do time escolhido: horário de jogo ("0:00 – 8:34") e quem fica fora; o turno de agora marcado com "AGORA"; a minha linha com "VOCÊ" | Playwright |
 | C35 | admin, rodízio rodando | "⋯" do card → "Reiniciar" / "Parar rodízio" | Reiniciar abre a gaveta de ligar; Parar abre a gaveta "Parar o rodízio?" e, confirmado, o card some e volta a tecla "Ligar rodízio" | Playwright |
-| C36 | interruptores **Som** e **Tela ligada** no card | ligar | Som: um bipe curto a cada troca (desligado por padrão). Tela ligada: pede o Wake Lock; onde o navegador não tem, o interruptor não aparece. Os dois ficam lembrados no aparelho | Playwright (existência e estado) |
+| C36 | interruptores **Som** e **Tela ligada** no card | ligar | Som: um apito curto sintetizado a cada virada de turno (desligado por padrão). Tela ligada: pede o Wake Lock; onde o navegador não tem, o interruptor não aparece. Os dois ficam lembrados no aparelho | Playwright (existência e estado) |
 | C37 | acabou o tempo | olhar | "FIM DO TEMPO" com o tempo total; para o admin, o texto "Finalize o jogo com o placar" | Playwright (relógio simulado) |
 | C38 | outro membro com a tela aberta | o admin liga ou para o rodízio | aparece ou some em até 15 s (o polling que já existe em jogo) | Playwright |
 | C39 | relógio do celular 2 min errado | abrir | a contagem bate com a de outro aparelho (usa `serverTime` para corrigir) | unitário (`clock-offset`) + Playwright |
@@ -193,8 +193,9 @@ Regras de visual do documento de autonomia valem como critério.
   (contagem, prepara, troca) é uma função pura com teste (`rotation-phase.ts`).
 - **Gavetas** (`Sheet`): ligar, parar e a tabela. 180 ms para abrir, ~100 ms para fechar; a de confirmar fecha na
   hora e a chamada segue.
-- **Som e tela ligada:** preferência em `localStorage` (com `try/catch`, como `vs-seen.ts`). Bipe por WebAudio (sem
-  arquivo). Wake Lock pedido de novo ao voltar para a aba.
+- **Som e tela ligada:** preferência em `localStorage` (com `try/catch`, como `vs-seen.ts`). Apito curto de troca
+  sintetizado por WebAudio (sem arquivo) ao virar o turno, somente se Som estiver ligado. Wake Lock pedido de novo
+  ao voltar para a aba.
 - **Início** (`game-card.tsx`): a linha do rodízio quando `rotation` existe.
 - Nada de regra no front: tabela e estado vêm de `matchRotationPlan` e `rotationStatus` (domain, via shared); o que
   pode vem de `permissions.rotate`. Sem dependência nova.
@@ -208,7 +209,7 @@ Regras de visual do documento de autonomia valem como critério.
 - Cada um fica fora um turno — é a divisão igual mais simples de explicar no banco de reservas.
 - Ordem sorteada com semente da rodada — ninguém é "sempre o primeiro a sair", e a tabela não muda ao recarregar.
 - Sem pausa: parou o jogo por muito tempo, o admin reinicia — evita estado de pausa no banco e na conta.
-- Aviso só com a tela aberta (vibração, bipe opcional, tela ligada) — navegador não acorda celular bloqueado sem
+- Aviso só com a tela aberta (vibração, apito opcional, tela ligada) — navegador não acorda celular bloqueado sem
   push agendado, que precisaria de um agendador no servidor.
 - Duração ajustável na gaveta — nem toda pelada tem 60 minutos; o padrão continua 60.
 
