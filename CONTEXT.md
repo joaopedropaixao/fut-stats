@@ -257,6 +257,8 @@ Mora em `src/round-score/card-tier.ts` e é reexportada pelo `shared` (o web nã
 `CardTier = 'bronze' | 'silver' | 'gold'` e `CardTierCuts = { silver, gold }` (padrão `{ silver: 6, gold: 8 }`).
 **Configurável:** os cortes entram por `cuts`, sem mexer na função.
 **Onde é usada:** moldura e fundo das cartas do pacote do Craque (Craque, Perna de Pau e a carta de quem jogou).
+A figurinha do jogador (`/jogadores/:id` e Perfil) também usa a faixa, pela **média do ranking geral**
+(`stats.average`), só para quem está ranqueado (`rank` ≠ `null`); com "Poucos jogos" ou sem média, fica neutra.
 **Não faz:** não tem texto nem cor (UI no web); não trata `null`: quem não tem nota (`roundScore` = `null`) não tem
 faixa e o chamador nem chama. Não valida a faixa da nota (0 a 10 é do `isValidRating`).
 
