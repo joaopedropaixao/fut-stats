@@ -5,7 +5,7 @@ import {
   type Post,
 } from '@fut-stats/shared';
 import { useEffect, useState, type FormEvent } from 'react';
-import { Navigate, useBlocker, useNavigate, useParams } from 'react-router';
+import { Navigate, useBlocker, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { PixelText } from '../../components/ui/pixel-text';
 import { Sheet } from '../../components/ui/sheet';
@@ -29,9 +29,8 @@ export function NewPostPage() {
 }
 
 /** /resenhas/:postId/editar: qualquer admin edita qualquer resenha. */
-export function EditPostPage() {
+export function EditPostPage({ postId }: { postId: string }) {
   const { group } = useCurrentGroup();
-  const { postId } = useParams();
   const post = usePost(group?.id ?? '', group ? postId : undefined);
   if (!group) return null;
   if (group.role !== 'ADMIN') return <Navigate to="/" replace />;

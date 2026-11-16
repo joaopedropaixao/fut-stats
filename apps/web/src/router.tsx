@@ -2,7 +2,8 @@
 // entra por `lazy: async () => ({ Component: (await import('./pasta/x-area')).NomeDaPagina })`, onde `x-area.ts`
 // reexporta as páginas da mesma área. Todas as rotas de uma área importam o mesmo arquivo, então saem num pedaço
 // só (um pedido de rede por área, não por tela); área de uma tela só importa o arquivo da própria tela.
-// Pedaço novo: acrescente a linha em `app/preload.ts`.
+// Área com mais de uma rota guarda o `import()` numa função (`loadFeedArea`): cada ponto de `import()` leva no
+// JS inicial a lista de dependências do pedaço. O preload (`app/preload.ts`) chama o `lazy` de cada rota; não há lista.
 // Quem carrega: a primeira carga mostra `hydrateFallbackElement`; na troca de tela o AppShell mantém a anterior
 // e, passando de 300 ms, mostra o esqueleto; pedaço que sumiu cai no `RouteError`.
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
@@ -15,7 +16,7 @@ import { PlaceholderPage } from './pages/placeholder';
 import { profileRoute, startRoutes } from './pages/entrar-e-grupo/routes';
 import { rosterRoutes } from './pages/elenco/routes';
 import { historyRoutes } from './pages/historico/routes';
-import { feedRoutes } from './pages/feed/routes';
+import { feedRoutes, loadFeedArea } from './pages/feed/routes';
 import { profileEditRoutes } from './pages/perfil/routes';
 import { rankingRoutes } from './pages/ranking/routes';
 import { roundsRoutes } from './pages/rounds/routes';
@@ -26,7 +27,7 @@ import { votingRoutes } from './pages/voting/routes';
 const TAB_PAGES: Partial<Record<string, RouteObject>> = {
   '/': {
     index: true,
-    lazy: async () => ({ Component: (await import('./pages/feed/feed-area')).FeedPage }),
+    lazy: async () => ({ Component: (await loadFeedArea()).FeedPage }),
   },
   '/times': {
     path: '/times',
