@@ -107,4 +107,22 @@ Sem mudança. `cardTier` já está no `domain` e é reexportado pelo `shared`.
 - Escopo dos três itens → decidido no kickoff (15 nov 2026), a partir dos testes do dono.
 
 ## QA
-<Preenchido no fim.>
+1 volta, **VEREDITO: APROVADO** (15 nov 2026). Mais um ajuste do TPL antes do QA: a faixa usa a média arredondada a
+1 casa, como a tela mostra (`roundAverage` em `features/ranking/ranking-text.ts`, também usado pelo `formatAverage`).
+
+| Id | Resultado | Evidência |
+|---|---|---|
+| C1 | ✅ | JS inicial 148,2 → **118,4 kB**; `bundle-budget.json` e CI sem mudança; o `index.html` importa só `index`, `button` e `pixel-glyphs` (0,5 kB); zod/`shared`/`domain` no pedaço `contracts` (30,8 kB, sob demanda) |
+| C2 | ✅ | telas principais logado (dev e build de produção) sem erro de console; `use-session.test.ts` |
+| C3 | ✅ | sem sessão vai a `/entrar`; `/me` fora do contrato mostra "Não deu para abrir o app"; `use-session.test.ts`, `api.test.ts` |
+| C4 | ✅ | Felipinho (seed): "DEU O PASSE E AINDA LEVOU A VITÓRIA" / "DEU O PASSE" na carta (320/390) e no canvas do Compartilhar |
+| C5 | ✅ | goleiro com 1 assistência continua "Paredão no gol" (`impact-phrase.test.ts`) |
+| C6 | ✅ | 0 gol e 0 assistência continua "Jogou demais" |
+| C7 | ✅ | Jota 8,8 OURO, Marcelinho 7,9 e Rique 7,4 PRATA, Tavinho 5,9 BRONZE, Perfil do Carlão 7,2 PRATA; bordas 6,0/8,0/5,95/7,96 em `player-card.test.tsx` |
+| C8 | ✅ | Serginho ("Poucos jogos") neutro, sem faixa nem palavra |
+| C9 | ✅ | medalha do pódio fora da moldura (Marcelinho 3º: bronze + moldura prata); sobreposição zero em 6 telas × 320/375/390/430/1280; sem tecla amarela com ouro no mesmo card |
+| C10 | ✅ | card do topo do Ranking idêntico ao antes (mesmo md5) |
+
+Fora da fatia (registro): o aviso "No `HydrateFallback` element" no primeiro carregamento já existe na `develop`; o
+pedaço `contracts` passa a ser o "maior pedaço de rota" do `check-build.mjs` (30,8 de 40 kB).
+

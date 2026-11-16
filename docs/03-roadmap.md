@@ -48,12 +48,12 @@ abaixo).
 | 13 | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Onda 6, junto do lançamento** (decisão do dono, 15 nov 2026). SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
 | 14 | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado. Pendência do `pacote-do-craque` (15 nov 2026): o início passa a saber do pacote novo por aviso empurrado (push/SSE) em vez do `GET .../voting/result` que o card do início faz hoje |
 | 15 | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 15 em 15 minutos para a votação fechar na hora). Depois, a release e **lançar para a pelada** |
-| 16 | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
+| 16 ✅ | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
 
 ### Próximas prioridades (15 nov 2026)
-Entregues até aqui: as fatias 0 a 8, 10 e 11 (Fases 1, 2 e 3 completas). O que falta, em ordem:
+Entregues até aqui: as fatias 0 a 8, 10, 11 e 16 (Fases 1, 2 e 3 completas). O que falta, em ordem:
 
-1. **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
+1. ✅ **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
    antes do `feed` porque ele é a próxima tela grande.
 2. **`auditoria-da-rodada`** (Back) e **`feed`** (Par), em paralelo. As duas mexem no `schema.prisma`
    (`RoundLog` e `Post`/`PostReaction`/`PostComment`): a auditoria entra primeiro e o `feed` refaz a migration por
