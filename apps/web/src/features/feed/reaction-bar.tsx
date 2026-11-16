@@ -14,7 +14,7 @@ import { ReactionIcon } from './reaction-icon';
 /**
  * As 5 reações de uma resenha: ícone pixel, nome curto e contador de cada uma, em 5 colunas (≥ 44 px em 320 px). O
  * nome fica sempre visível embaixo do ícone (o desenho sozinho não basta para todas) e também vai no `title`.
- * A minha fica com contorno grosso e ✓; tocar em outra troca, tocar na mesma tira. O contador "bate" quando muda.
+ * A minha fica com contorno grosso e ✓ (ao lado do contador, nunca sobre o ícone); tocar em outra troca, tocar na mesma tira. O contador "bate" quando muda.
  */
 export function ReactionBar({
   post,
@@ -38,7 +38,7 @@ export function ReactionBar({
             title={POST_REACTION_LABELS[reaction]}
             onClick={() => onReact(mine ? null : reaction)}
             className={cn(
-              'relative flex min-h-20 min-w-0 flex-col items-center justify-center gap-1 bg-surface py-1.5 active:translate-x-0.5 active:translate-y-0.5',
+              'flex min-h-20 min-w-0 flex-col items-center justify-center gap-1 bg-surface py-1.5 active:translate-x-0.5 active:translate-y-0.5',
               mine
                 ? 'text-text shadow-[inset_0_0_0_3px_var(--color-text)]'
                 : 'text-text-muted shadow-card',
@@ -51,17 +51,21 @@ export function ReactionBar({
             >
               {reactionShortName(reaction)}
             </span>
-            <Bump value={count} scale={1.5}>
-              <PixelDigits value={count} scale={2} decorative />
-            </Bump>
-            {mine && (
-              <span
-                aria-hidden
-                className="absolute top-0.5 right-0.5 inline-flex size-4 items-center justify-center bg-text text-bg"
-              >
-                <Icon name="check" size={12} strokeWidth={4} />
-              </span>
-            )}
+            {/* O ✓ da minha reação fica ao lado do contador, em linha: nunca por cima do ícone (o OSS! é largo) */}
+            <span className="flex max-w-full flex-wrap items-center justify-center gap-1">
+              <Bump value={count} scale={1.5}>
+                <PixelDigits value={count} scale={2} decorative />
+              </Bump>
+              {mine && (
+                <span
+                  aria-hidden
+                  data-mine-check
+                  className="inline-flex size-4 shrink-0 items-center justify-center bg-text text-bg"
+                >
+                  <Icon name="check" size={12} strokeWidth={4} />
+                </span>
+              )}
+            </span>
           </button>
         );
       })}

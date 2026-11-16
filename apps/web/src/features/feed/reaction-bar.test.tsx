@@ -27,4 +27,23 @@ describe('barra de reações (C36)', () => {
     expect(html).toContain('aria-label="Pipocou, 1 reação"');
     expect(html).toContain('aria-pressed="true"');
   });
+
+  it('o ✓ da minha reação fica em linha ao lado do contador, nunca solto por cima do ícone (OSS! é largo)', () => {
+    for (const mine of ['BALL', 'OSS'] as const) {
+      const out = renderToString(
+        <ReactionBar post={{ ...post, myReaction: mine } as unknown as Post} onReact={() => {}} />,
+      );
+      // nenhum elemento posicionado por cima do botão: o antigo selo era `absolute top-0.5 right-0.5`
+      expect(out).not.toContain('absolute');
+      expect(out).not.toContain('top-0.5');
+      // exatamente um ✓, dentro da linha do contador (depois dos dígitos, antes de fechar o botão)
+      expect(out.match(/data-mine-check/g)).toHaveLength(1);
+      const button = out.slice(out.indexOf(`<button`), out.length).split('</button>');
+      const mineButton = button.find((b) => b.includes('data-mine-check'))!;
+      expect(mineButton.indexOf('<svg')).toBeLessThan(mineButton.indexOf('data-mine-check'));
+      expect(mineButton.indexOf('items-center justify-center gap-1')).toBeLessThan(
+        mineButton.indexOf('data-mine-check'),
+      );
+    }
+  });
 });
