@@ -62,6 +62,15 @@ describe('apiGet', () => {
     expect(err).toBeInstanceOf(ApiContractError);
     expect((err as ApiContractError).issues.length).toBeGreaterThan(0);
   });
+
+  it('aceita o schema como promessa (import sob demanda) e continua validando', async () => {
+    mockFetch(200, me);
+    await expect(apiGet('/me', Promise.resolve(meResponseSchema))).resolves.toEqual(me);
+
+    mockFetch(200, { user: { id: 'u1' }, groups: [] });
+    const err = await apiGet('/me', Promise.resolve(meResponseSchema)).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ApiContractError);
+  });
 });
 
 describe('apiPost', () => {
