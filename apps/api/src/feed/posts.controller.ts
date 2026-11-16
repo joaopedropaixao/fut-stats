@@ -42,6 +42,16 @@ export class PostsController {
     return this.posts.list(membership, query);
   }
 
+  /** Uma resenha só (a tela de editar aberta direto pela URL). */
+  @GroupMember()
+  @Get(':postId')
+  get(
+    @CurrentMembership() membership: GroupMembership,
+    @Param('postId') postId: string,
+  ): Promise<PostView> {
+    return this.posts.get(membership, postId);
+  }
+
   @GroupRole('ADMIN')
   @Post()
   create(

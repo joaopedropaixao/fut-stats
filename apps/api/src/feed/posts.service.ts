@@ -120,6 +120,10 @@ export class PostsService {
     };
   }
 
+  async get(membership: GroupMembership, postId: string): Promise<Post> {
+    return this.view(membership, postId);
+  }
+
   async create(membership: GroupMembership, input: PostInput): Promise<Post> {
     // Rota só de admin (guard); a regra do domain fica como segunda trava.
     this.requireManager(membership);

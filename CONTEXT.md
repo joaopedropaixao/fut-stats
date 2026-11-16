@@ -830,7 +830,7 @@ mesma tira. Banco: chave `(postId, membershipId)`, então dois pedidos juntos d�
 ordem de envio. Permissões: `canManagePost(actor)` (admin) e `canDeleteComment(actor, authorId)`.
 
 **Contrato:** `packages/shared/src/feed.ts`; rotas sob `/api/groups/:groupId`: `GET /feed/alerts`, `GET|POST /posts`
-(paginado por cursor, 10 por página, da mais nova para a mais antiga), `PATCH|DELETE /posts/:postId`,
+(paginado por cursor, 10 por página, da mais nova para a mais antiga), `GET|PATCH|DELETE /posts/:postId`,
 `PUT|DELETE /posts/:postId/reaction`, `GET|POST /posts/:postId/comments`, `DELETE /posts/:postId/comments/:commentId`.
 Usuário de outro grupo ou membro inativo: 404 em tudo. Seed: 3 resenhas de exemplo (uma sem título, uma longa com
 quebra de linha) com reações e comentários.

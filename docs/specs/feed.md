@@ -141,6 +141,7 @@ com `packages/domain/src/feed`.
 |---|---|---|---|---|---|
 | `GET` | `/feed/alerts` | membro | — | `FeedAlert[]` | 404 |
 | `GET` | `/posts` | membro | query `PostsQuery` | `PostList` | 400; 404 |
+| `GET` | `/posts/:postId` | membro | — | `Post` | 404 |
 | `POST` | `/posts` | admin | `PostInput` | `Post` (201) | 400; 403; 404 |
 | `PATCH` | `/posts/:postId` | admin | `PostInput` | `Post` | 400; 403; 404 |
 | `DELETE` | `/posts/:postId` | admin | — | 204 | 403; 404 |
@@ -149,6 +150,14 @@ com `packages/domain/src/feed`.
 | `GET` | `/posts/:postId/comments` | membro | — | `Comment[]` | 404 |
 | `POST` | `/posts/:postId/comments` | membro | `CommentInput` | `Comment` (201) | 400; 404 |
 | `DELETE` | `/posts/:postId/comments/:commentId` | autor ou admin | — | 204 | 403 `NOT_OWN_COMMENT`; 404 |
+
+`GET /posts/:postId` serve a tela de editar aberta direto pela URL; dá 404 para resenha de outro grupo, inexistente,
+não membro ou membro inativo (mesmas regras de C23 e C24).
+
+**Limites e tipos saem do shared.** `packages/shared/src/feed.ts` reexporta do domain `POST_TITLE_MAX_LENGTH`,
+`POST_BODY_MAX_LENGTH`, `COMMENT_MAX_LENGTH`, `FEED_ALERT_TYPES` e `POST_REACTIONS` (valores) e os tipos
+`FeedAlertType` e `PostReaction`. O front importa de `@fut-stats/shared` (contadores, ordem dos botões) e não copia
+número.
 
 ```ts
 // packages/shared/src/feed.ts

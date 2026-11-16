@@ -176,6 +176,69 @@ describe('feed: resenhas, reações e comentários', () => {
     });
   });
 
+  describe('uma resenha', () => {
+    it('GET por id: membro lê uma resenha pelo id, com reações, a minha e o contador', async () => {
+      const c = await setup();
+      const post = await seedPost(c, { title: 'Título', body: 'Linha 1\nLinha 2' });
+      await putReaction(c, c.caio, post.id, { reaction: 'CLAP' }).expect(200);
+      await addComment(c, c.davi, post.id, 'Boa').expect(201);
+
+      const res = await request(server())
+        .get(`${base(c)}/${post.id}`)
+        .set('Cookie', c.caio.cookie)
+        .expect(200);
+
+      expect(postSchema.safeParse(res.body).success).toBe(true);
+      expect(res.body).toMatchObject({
+        id: post.id,
+        title: 'Título',
+        body: 'Linha 1\nLinha 2',
+        author: { nickname: 'Ana', role: 'ADMIN' },
+        reactions: { CLAP: 1 },
+        myReaction: 'CLAP',
+        commentCount: 1,
+        canManage: false,
+      });
+      const asAdmin = await request(server())
+        .get(`${base(c)}/${post.id}`)
+        .set('Cookie', c.beto.cookie)
+        .expect(200);
+      expect(asAdmin.body).toMatchObject({ myReaction: null, canManage: true });
+    });
+
+    it('GET por id: resenha de outro grupo e id inexistente dão 404', async () => {
+      const c = await setup();
+      const outro = await setup();
+      const foreign = await seedPost(outro);
+      for (const id of [foreign.id, 'inexistente']) {
+        await request(server())
+          .get(`${base(c)}/${id}`)
+          .set('Cookie', c.ana.cookie)
+          .expect(404);
+      }
+    });
+
+    it('GET por id: não membro, outro grupo e membro inativo dão 404; sem sessão, 401', async () => {
+      const c = await setup();
+      const post = await seedPost(c);
+      const stranger = await createUser(t);
+      const outro = await createGroup(t);
+      const outsider = await createUser(t);
+      await addMember(t, outsider.id, outro.id, { role: 'ADMIN' });
+      const inactive = await createUser(t);
+      await addMember(t, inactive.id, c.group.id, { active: false, role: 'ADMIN' });
+      for (const userId of [stranger.id, outsider.id, inactive.id]) {
+        await request(server())
+          .get(`${base(c)}/${post.id}`)
+          .set('Cookie', loginAs(t, userId))
+          .expect(404);
+      }
+      await request(server())
+        .get(`${base(c)}/${post.id}`)
+        .expect(401);
+    });
+  });
+
   describe('editar e apagar', () => {
     it('C12: outro admin edita; `editedAt` preenche e o autor continua o original', async () => {
       const c = await setup();
