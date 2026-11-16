@@ -4,7 +4,7 @@ import {
   REACTION_SPRITES,
   spritePaths,
 } from '../../components/ui/pixel-sprite-maps';
-import type { PostReaction } from './types';
+import type { PostReaction } from '@fut-stats/shared';
 
 /** Um ícone pixel de reação (12 x 12); decorativo: o nome vem do botão. Escala inteira: 2 → 24 px. */
 export function ReactionIcon({ reaction, scale = 2 }: { reaction: PostReaction; scale?: number }) {

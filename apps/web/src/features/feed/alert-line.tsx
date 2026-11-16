@@ -1,10 +1,9 @@
-import type { FeedAlert } from '@fut-stats/shared';
+import type { FeedAlert, FeedAlertType } from '@fut-stats/shared';
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
 import { Icon, type IconName } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
 import { alertAriaLabel, alertText } from './alert-text';
-import type { FeedAlertType } from './types';
 
 /** Cor do contorno e do ícone de cada tipo: resultado ouro (recompensa), presença verde, o resto creme. */
 const TONES: Record<FeedAlertType, { ring: string; icon: string }> = {

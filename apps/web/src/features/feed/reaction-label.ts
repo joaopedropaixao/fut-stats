@@ -1,5 +1,4 @@
-import { POST_REACTION_LABELS } from '@fut-stats/shared';
-import type { PostReaction } from './types';
+import { POST_REACTION_LABELS, type PostReaction } from '@fut-stats/shared';
 
 /** O nome do botão de reação para o leitor de tela: "Fogo, 3 reações, a sua". */
 export function reactionAriaLabel(reaction: PostReaction, count: number, mine: boolean): string {

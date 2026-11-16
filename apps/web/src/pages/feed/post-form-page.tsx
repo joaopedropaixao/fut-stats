@@ -1,4 +1,9 @@
-import { postInputSchema, type Post } from '@fut-stats/shared';
+import {
+  POST_BODY_MAX_LENGTH,
+  POST_TITLE_MAX_LENGTH,
+  postInputSchema,
+  type Post,
+} from '@fut-stats/shared';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useBlocker, useNavigate, useParams } from 'react-router';
 import { Button } from '../../components/ui/button';
@@ -10,7 +15,6 @@ import { TextField } from '../../components/ui/text-field';
 import { useNotice } from '../../components/ui/use-notice';
 import { useCreatePost, usePost, useUpdatePost } from '../../features/feed/queries';
 import { countCharacters } from '../../features/feed/text-count';
-import { POST_BODY_MAX, POST_TITLE_MAX } from '../../features/feed/text-limits';
 import { flashState } from '../../features/group/flash';
 import { useCurrentGroup } from '../../features/group/use-current-group';
 import { RouteButton } from '../../features/rounds/route-button';
@@ -156,7 +160,7 @@ function PostForm({ groupId, post }: { groupId: string; post?: Post }) {
           placeholder="Que jogão"
           hint="Opcional."
           error={errors.title}
-          counter={{ current: titleCount, max: POST_TITLE_MAX }}
+          counter={{ current: titleCount, max: POST_TITLE_MAX_LENGTH }}
           onChange={(e) => {
             setTitle(e.target.value);
             setErrors((prev) => ({ ...prev, title: undefined }));
@@ -168,7 +172,7 @@ function PostForm({ groupId, post }: { groupId: string; post?: Post }) {
           value={body}
           placeholder="Conte como foi a pelada"
           error={errors.body}
-          counter={{ current: bodyCount, max: POST_BODY_MAX }}
+          counter={{ current: bodyCount, max: POST_BODY_MAX_LENGTH }}
           onChange={(e) => {
             setBody(e.target.value);
             setErrors((prev) => ({ ...prev, body: undefined }));

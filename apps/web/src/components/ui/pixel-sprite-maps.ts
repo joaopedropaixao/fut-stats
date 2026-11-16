@@ -3,14 +3,11 @@
  * `spritePaths` junta os pixels vizinhos da mesma cor num retângulo só (como o `rle_paths` da folha).
  */
 
-import type { PlayerAvatar, Post } from '@fut-stats/shared';
+import type { PlayerAvatar, PostReaction } from '@fut-stats/shared';
 import { DEFAULT_AVATAR, type AvatarHair } from '../../lib/avatar';
 
 /** Mapa de pixels: uma letra por cor, `.` é vazio. */
 export type SpriteMap = readonly string[];
-
-/** As 5 reações de uma resenha (as chaves das contagens que a API manda). */
-type PostReaction = keyof Post['reactions'];
 
 export const SPRITE_PLAYER_WIDTH = 8;
 export const SPRITE_PLAYER_HEIGHT = 12;

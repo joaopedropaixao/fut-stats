@@ -1,4 +1,9 @@
-import { commentInputSchema, NOT_OWN_COMMENT_LABEL, type Comment } from '@fut-stats/shared';
+import {
+  commentInputSchema,
+  COMMENT_MAX_LENGTH,
+  NOT_OWN_COMMENT_LABEL,
+  type Comment,
+} from '@fut-stats/shared';
 import { useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/button';
 import { Icon } from '../../components/ui/icons';
@@ -12,7 +17,6 @@ import { MemberAvatar } from '../rounds/member-avatar';
 import { postWhen } from './post-when';
 import { useAddComment, useComments, useDeleteComment } from './queries';
 import { countCharacters } from './text-count';
-import { COMMENT_MAX } from './text-limits';
 
 type CommentSectionProps = {
   groupId: string;
@@ -137,7 +141,7 @@ function CommentForm({ groupId, postId, notify }: CommentSectionProps) {
   const change = (value: string) => {
     setText(value);
     // Passou do limite: o erro aparece na hora; o resto só ao enviar
-    setError(countCharacters(value.trim()) > COMMENT_MAX ? firstError(value) : undefined);
+    setError(countCharacters(value.trim()) > COMMENT_MAX_LENGTH ? firstError(value) : undefined);
   };
 
   const submit = (e: FormEvent) => {
@@ -171,7 +175,7 @@ function CommentForm({ groupId, postId, notify }: CommentSectionProps) {
         rows={3}
         value={text}
         error={error}
-        counter={{ current: count, max: COMMENT_MAX }}
+        counter={{ current: count, max: COMMENT_MAX_LENGTH }}
         onChange={(e) => change(e.target.value)}
       />
       <Button

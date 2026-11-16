@@ -1,13 +1,10 @@
-import { postReactionSchema, type Post } from '@fut-stats/shared';
+import { POST_REACTIONS, type Post, type PostReaction } from '@fut-stats/shared';
 import { Bump } from '../../components/ui/bump';
 import { Icon } from '../../components/ui/icons';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { cn } from '../../lib/cn';
 import { reactionAriaLabel } from './reaction-label';
 import { ReactionIcon } from './reaction-icon';
-import type { PostReaction } from './types';
-
-const REACTIONS = postReactionSchema.options;
 
 /**
  * As 5 reações de uma resenha: ícone pixel e contador de cada uma, em 5 colunas (≥ 44 px em 320 px). A minha fica
@@ -23,7 +20,7 @@ export function ReactionBar({
 }) {
   return (
     <div role="group" aria-label="Reações" className="grid grid-cols-5 gap-1">
-      {REACTIONS.map((reaction) => {
+      {POST_REACTIONS.map((reaction) => {
         const count = post.reactions[reaction] ?? 0;
         const mine = post.myReaction === reaction;
         return (

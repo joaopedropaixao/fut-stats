@@ -9,6 +9,7 @@ import {
   type Post,
   type PostInput,
   type PostList,
+  type PostReaction,
 } from '@fut-stats/shared';
 import {
   useInfiniteQuery,
@@ -18,9 +19,16 @@ import {
   type InfiniteData,
   type QueryClient,
 } from '@tanstack/react-query';
-import { apiDelete, apiDeleteJson, apiGet, apiPatch, apiPost, apiPut } from '../../lib/api';
+import {
+  ApiError,
+  apiDelete,
+  apiDeleteJson,
+  apiGet,
+  apiPatch,
+  apiPost,
+  apiPut,
+} from '../../lib/api';
 import { alertsKey } from '../rounds/queries';
-import type { PostReaction } from './types';
 
 const feedPath = (groupId: string) => `/groups/${groupId}`;
 
@@ -36,6 +44,9 @@ export function useAlerts(groupId: string) {
 export const postsKey = (groupId: string) => ['posts', groupId] as const;
 const commentsKey = (groupId: string, postId: string) =>
   [...postsKey(groupId), postId, 'comments'] as const;
+
+const onePostKey = (groupId: string, postId: string) =>
+  [...postsKey(groupId), postId, 'one'] as const;
 
 type PostPages = InfiniteData<PostList, string | null>;
 
@@ -99,7 +110,11 @@ export function useUpdatePost(groupId: string, postId: string) {
   return useMutation({
     mutationFn: (input: PostInput) =>
       apiPatch(`${feedPath(groupId)}/posts/${postId}`, postSchema, input),
-    onSuccess: (post) => patchPost(queryClient, groupId, postId, () => post),
+    onSuccess: (post) => {
+      patchPost(queryClient, groupId, postId, () => post);
+      // A próxima edição abre com o texto salvo, não com o de antes
+      queryClient.setQueryData(onePostKey(groupId, postId), post);
+    },
   });
 }
 
@@ -196,28 +211,23 @@ export function useDeleteComment(groupId: string, postId: string) {
   });
 }
 
-/** Uma resenha só, para a tela de editar: vem do cache da lista quando já está lá; senão, de uma consulta própria. */
+/**
+ * Uma resenha só, para a tela de editar: `GET /posts/:postId`. A que já está no cache da lista entra como dado
+ * inicial (a tela abre na hora e a API confere). Resenha que não existe (404) vira `null`.
+ */
 export function usePost(groupId: string, postId: string | undefined) {
   const queryClient = useQueryClient();
   return useQuery({
-    queryKey: [...postsKey(groupId), postId ?? '', 'one'] as const,
-    queryFn: async ({ signal }) => {
-      const cached = postId ? findPost(queryClient, groupId, postId) : undefined;
-      if (cached) return cached;
-      // A API não tem GET de uma resenha: procura nas páginas, da mais nova para a mais antiga
-      let cursor: string | null = null;
-      for (;;) {
-        const query = new URLSearchParams({ limit: '30' });
-        if (cursor) query.set('cursor', cursor);
-        const page: PostList = await apiGet(`${feedPath(groupId)}/posts?${query}`, postListSchema, {
-          signal,
-        });
-        const found = page.items.find((post) => post.id === postId);
-        if (found) return found;
-        if (!page.nextCursor) return null;
-        cursor = page.nextCursor;
+    queryKey: onePostKey(groupId, postId ?? ''),
+    queryFn: async ({ signal }): Promise<Post | null> => {
+      try {
+        return await apiGet(`${feedPath(groupId)}/posts/${postId}`, postSchema, { signal });
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
       }
     },
+    initialData: () => (postId ? findPost(queryClient, groupId, postId) : undefined),
     enabled: postId !== undefined,
   });
 }
