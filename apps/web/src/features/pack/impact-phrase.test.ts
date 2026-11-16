@@ -43,9 +43,32 @@ describe('impactPhrase', () => {
     expect(impactPhrase({ ...line, goals: 1 }, lost)).toBe('Balançou a rede');
   });
 
-  it('V1a: sem gol nem assistência, jogou demais', () => {
+  it('C4: 1 assistência (sem gol), de linha, é "Deu o passe"', () => {
+    expect(impactPhrase({ ...line, assists: 1 }, lost)).toBe('Deu o passe');
+    expect(impactPhrase({ ...line, position: 'WINGER', assists: 1 }, lost)).toBe('Deu o passe');
+  });
+
+  it('C4: 1 assistência com a vitória soma "e ainda levou a vitória"', () => {
+    expect(impactPhrase({ ...line, assists: 1 }, won)).toBe('Deu o passe e ainda levou a vitória');
+  });
+
+  it('C4: 1 assistência vem depois das regras mais fortes e antes de 1 gol', () => {
+    // 2 assistências e gol com assistência continuam nas frases de antes
+    expect(impactPhrase({ ...line, assists: 2 }, lost)).toBe('Garçom da noite');
+    expect(impactPhrase({ ...line, goals: 1, assists: 1 }, lost)).toBe('Dono do jogo');
+    // 1 gol (sem assistência) continua "Balançou a rede"
+    expect(impactPhrase({ ...line, goals: 1 }, lost)).toBe('Balançou a rede');
+  });
+
+  it('C5: goleiro com 1 assistência continua paredão no gol (goleiro vem antes)', () => {
+    expect(impactPhrase({ ...line, position: 'GOALKEEPER', assists: 1 }, won)).toBe(
+      'Paredão no gol e ainda levou a vitória',
+    );
+  });
+
+  it('C6: sem gol nem assistência, jogou demais', () => {
     expect(impactPhrase(line, lost)).toBe('Jogou demais');
-    expect(impactPhrase({ ...line, assists: 1 }, lost)).toBe('Jogou demais');
+    expect(impactPhrase(line, won)).toBe('Jogou demais e ainda levou a vitória');
   });
 
   it('V1a: time vencedor soma "e ainda levou a vitória", em qualquer regra', () => {
