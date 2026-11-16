@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { AlertBand, AlertFrame, AlertTitle } from '../../components/ui/alert-frame';
+import { ALERT_TONES } from '../../components/ui/alert-tone';
 import { Badge } from '../../components/ui/badge';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
@@ -16,10 +17,10 @@ type VotingCardProps = {
 };
 
 /**
- * Aviso grande da votação: grande momento azul (identidade `--color-vote` na moldura, na faixa do cabeçalho e no
- * ícone da urna; contorno de 3px, sombra dura, entrada em degraus), com o tipo escrito ("VOTAÇÃO ABERTA"), a
+ * Aviso grande da votação: grande momento prata (identidade `--color-silver` na moldura, na faixa listrada do cabeçalho e
+ * no ícone da urna; contorno de 3px, sombra dura, entrada em degraus), com o tipo escrito ("VOTAÇÃO ABERTA"), a
  * rodada, o prazo, o medidor e **sempre a tecla amarela**, conforme o que a pessoa pode fazer: "Dar minhas notas"
- * (joguei e não votei), "Ver meus votos" (já votei) ou "Ver votação" (não joguei). O azul nunca vai na tecla.
+ * (joguei e não votei), "Ver meus votos" (já votei) ou "Ver votação" (não joguei). O prata nunca vai na tecla.
  * Carrega sozinho; sem dado (carregando ou erro) o início segue sem o card.
  */
 export function VotingCard({ groupId, roundId }: VotingCardProps) {
@@ -54,8 +55,8 @@ function Loaded({
         style={{ '--moment-delay': '120ms' } as CSSProperties}
       >
         <div className="animate-row-in flex flex-col gap-4">
-          <PixelText className="text-vote">{`Rodada ${view.number}`}</PixelText>
-          <Meter voted={view.progress.voted} total={view.progress.total} tone="vote" />
+          <PixelText className={ALERT_TONES.VOTING.ink}>{`Rodada ${view.number}`}</PixelText>
+          <Meter voted={view.progress.voted} total={view.progress.total} tone="silver" />
           {!view.me.played ? (
             <p className="text-sm text-text-muted">
               Só quem jogou vota. O resultado sai quando fechar.

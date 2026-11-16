@@ -16,6 +16,8 @@ export type AlertTone = {
   ink: string;
   /** Classe do fundo da faixa do cabeçalho. */
   band: string;
+  /** Textura da faixa do cabeçalho (CSS `background-image`), quando a cor sozinha não separa o tipo de outro. */
+  bandImage?: string;
   /** Fundo da faixa à esquerda da linha (CSS `background`). */
   stripe: string;
 };
@@ -39,11 +41,15 @@ export const ALERT_TONES: Readonly<Record<AlertToneKey, AlertTone>> = {
     band: 'bg-gold/14',
     stripe: 'var(--color-gold)',
   },
+  // Prata com listras de cédula na faixa: a textura e a urna separam do prata do pódio (2º lugar)
   VOTING: {
-    frame: 'var(--color-vote)',
-    ink: 'text-vote',
-    band: 'bg-vote/14',
-    stripe: 'var(--color-vote)',
+    frame: 'var(--color-silver)',
+    ink: 'text-silver',
+    band: 'bg-silver/14',
+    bandImage:
+      'repeating-linear-gradient(135deg, rgb(255 255 255 / 0%) 0 4px, rgb(255 255 255 / 16%) 4px 6px)',
+    stripe:
+      'repeating-linear-gradient(135deg, var(--color-silver) 0 3px, var(--color-silver-shadow) 3px 5px)',
   },
   TEAMS_PUBLISHED: {
     frame: 'var(--color-team-white)',

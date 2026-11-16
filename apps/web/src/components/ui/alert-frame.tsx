@@ -45,7 +45,7 @@ export function AlertBand({
   nowrap?: boolean;
   children: ReactNode;
 }) {
-  const { band, frame } = ALERT_TONES[tone];
+  const { band, bandImage, frame } = ALERT_TONES[tone];
   const teams = tone === 'TEAMS_PUBLISHED';
   return (
     <>
@@ -56,7 +56,9 @@ export function AlertBand({
           band,
           className,
         )}
-        style={teams ? undefined : { boxShadow: `inset 0 -3px 0 0 ${frame}` }}
+        style={
+          teams ? undefined : { boxShadow: `inset 0 -3px 0 0 ${frame}`, backgroundImage: bandImage }
+        }
       >
         {children}
       </div>

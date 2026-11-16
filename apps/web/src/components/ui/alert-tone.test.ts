@@ -8,7 +8,7 @@ describe('cor de identidade dos avisos do Feed', () => {
     expect(ALERT_TONES.IN_PROGRESS.frame).toBe('var(--color-danger)');
     expect(ALERT_TONES.POST_MATCH.frame).toBe('var(--color-warning)');
     expect(ALERT_TONES.RESULT.frame).toBe('var(--color-gold)');
-    expect(ALERT_TONES.VOTING.frame).toBe('var(--color-vote)');
+    expect(ALERT_TONES.VOTING.frame).toBe('var(--color-silver)');
     expect(ALERT_TONES.PRESENCE.frame).toBe('var(--color-success)');
     expect(ALERT_TONES.TEAMS_PUBLISHED.frame).toBe('var(--color-team-white)');
   });
@@ -21,6 +21,13 @@ describe('cor de identidade dos avisos do Feed', () => {
     for (const type of TYPES) {
       const { frame, ink, band, stripe } = ALERT_TONES[type];
       expect([frame, ink, band, stripe].join(' ')).not.toMatch(/accent/);
+    }
+  });
+
+  it('a votação é prata com a faixa listrada, para não parecer o prata do pódio', () => {
+    expect(ALERT_TONES.VOTING.bandImage).toContain('repeating-linear-gradient');
+    for (const type of TYPES.filter((t) => t !== 'VOTING')) {
+      expect(ALERT_TONES[type].bandImage).toBeUndefined();
     }
   });
 

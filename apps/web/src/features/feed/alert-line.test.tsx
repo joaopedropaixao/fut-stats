@@ -40,7 +40,7 @@ describe('linha de aviso (C27, C28, C33)', () => {
     expect(html).toContain('background:var(--color-gold)');
     expect(html).toContain('text-gold');
     expect(html).not.toContain('accent');
-    expect(render(<AlertLine alert={alert('VOTING')} />)).toContain('background:var(--color-vote)');
+    expect(render(<AlertLine alert={alert('VOTING')} />)).toContain('var(--color-silver) 0 3px');
     expect(render(<AlertLine alert={alert('POST_MATCH')} />)).toContain(
       'background:var(--color-warning)',
     );

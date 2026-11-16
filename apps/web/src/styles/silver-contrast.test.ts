@@ -21,11 +21,11 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-describe('azul da votação (--color-vote)', () => {
+describe('prata do aviso de votação (--color-silver)', () => {
   it.each(['--color-bg', '--color-surface-raised', '--color-surface-3', '--color-track'])(
-    'tem contraste AA (≥ 4,5:1) para texto sobre %s',
+    'tem contraste AA (≥ 4,5:1) para o texto "Rodada N" sobre %s',
     (surface) => {
-      expect(contrast(token('--color-vote'), token(surface))).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(token('--color-silver'), token(surface))).toBeGreaterThanOrEqual(4.5);
     },
   );
 });
