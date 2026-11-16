@@ -5,6 +5,7 @@ import {
   type ExecutionContext,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { annotateRequestContext } from '../common/request-context';
 import { PrismaService } from '../prisma/prisma.service';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import type { AuthenticatedRequest } from './request';
@@ -42,6 +43,7 @@ export class SessionGuard implements CanActivate {
     if (!user) throw new UnauthorizedException();
 
     req.user = user;
+    annotateRequestContext({ userId: user.id });
     return true;
   }
 }

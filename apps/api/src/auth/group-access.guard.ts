@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Role } from '../generated/prisma/enums';
+import { annotateRequestContext } from '../common/request-context';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthenticatedRequest } from './request';
 
@@ -45,6 +46,7 @@ export class GroupAccessGuard implements CanActivate {
     if (roles.length > 0 && !roles.includes(membership.role)) throw new ForbiddenException();
 
     req.membership = { id: membership.id, groupId: membership.groupId, role: membership.role };
+    annotateRequestContext({ groupId: membership.groupId });
     return true;
   }
 }
