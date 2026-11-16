@@ -22,6 +22,10 @@ Etapas: Research, Spec: esperando ok, Implement, QA volta N, PR, Esperando o don
 Fetch com git-pessoal.sh. Checkpoints: início, antes de QA, mudança de contrato/schema/CONTEXT,
 aviso do orquestrador e antes do PR. Ler aviso no quadro, tratar e só então limpar com aviso <fatia> -.
 Comparar Base/Depende de/Toca em do spec com origin/develop; revisar se uma dependência entrou.
+Registrar também `team.mjs workflow --team <fatia> --phase RESEARCH|PLAN|IMPLEMENT|VERIFY`.
+Ao esperar aprovação nova do dono, `owner-wait --state start`; approve fecha a espera.
+Modelo/esforço vêm da classificação do kickoff. Reclassificar apenas com nova informação
+relevante, justificando e preservando tentativas existentes; não subir modelo por falha isolada.
 
 ## Research e aprovação
 
@@ -90,6 +94,9 @@ abrir Run filho, preservar o canal do pai conforme preamble; não assumir que Ru
    comprovados. Provas podem referenciar o mesmo ambiente, mas identificam cada HEAD.
 3. Capturar baseline de cada worktree com audit-tree.mjs, fora do worktree auditado, sob controle
    do TPL. Não fornecer ao QA permissão para alterar as baselines. Nenhum DEV escreve durante QA.
+   Antes da primeira rodada, registrar qa-plan conforme `.harness/qa-incremental.md`, cobrindo
+   critérios, tipos de teste e dependências. Enviar qa-status ao QA com lacunas, provas e
+   revisões; ele decide independentemente o que ainda é confiável.
 4. Preparar QA novo: role qa, --round <contador-monotônico>, worktree do TPL; brief com spec,
    worktrees do par, portas, contrato, critérios e falhas da volta anterior. Não enviar histórico
    de conversa dos DEVs nem dizer que o QA só precisa confirmar o que eles afirmaram.
@@ -101,6 +108,9 @@ abrir Run filho, preservar o canal do pai conforme preamble; não assumir que Ru
    enviar só suas falhas, exigir regressão; repetir com QA novo. Após três reprovações funcionais,
    levar ao dono. Falha de infraestrutura é inconclusiva: recuperar a mesma QA e não consumir
    rodada funcional. Novo Task/Dispatch exige novo recibo relacionado; nunca sobrescrever o antigo.
+   Registrar correções com qa-correction usando issue estável. Duas correções falhas do mesmo
+   issue são decisão técnica do TPL; dono decide mudanças de produto e o limite funcional.
+   qa-result aprovado e qa-status next=deliver conduzem à entrega.
 7. Volta de design é separada: repassar os pedidos exatamente ao front; QA novo confere pedidos,
    telas afetadas e sobreposição, refaz álbum. Não conta nas três voltas funcionais.
 

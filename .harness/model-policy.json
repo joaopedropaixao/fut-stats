@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "roles": {
+    "orchestrator": {
+      "ROTINEIRA": ["gpt-6.1-sol", "low"],
+      "MEDIANA": ["gpt-6.1-sol", "low"],
+      "COMPLEXA": ["gpt-6.1-sol", "low"]
+    },
+    "tpl": {
+      "ROTINEIRA": ["gpt-6.1-sol", "medium"],
+      "MEDIANA": ["gpt-6.1-sol", "high"],
+      "COMPLEXA": ["gpt-6-astra", "medium"]
+    },
+    "dev-back": {
+      "ROTINEIRA": ["gpt-6-luna", "low"],
+      "MEDIANA": ["gpt-6.1-sol", "low"],
+      "COMPLEXA": ["gpt-6.1-sol", "medium"]
+    },
+    "dev-front": {
+      "ROTINEIRA": ["gpt-6-luna", "low"],
+      "MEDIANA": ["gpt-6.1-sol", "low"],
+      "COMPLEXA": ["gpt-6.1-sol", "medium"]
+    },
+    "qa": {
+      "ROTINEIRA": ["gpt-6-luna", "low"],
+      "MEDIANA": ["gpt-6.1-sol", "medium"],
+      "COMPLEXA": ["gpt-6.1-sol", "high"]
+    }
+  }
+}

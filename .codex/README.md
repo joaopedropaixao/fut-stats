@@ -20,9 +20,11 @@ Leia .harness/operacao.md para contas, estado, reservas e recuperação; workers
 é por equipe; sem indicação, uma equipe nova usa a ferramenta do coordenador. Não há troca
 automática por limite de uso. Tarefa pausada do Claude exige pedido explícito de retomada.
 
-Modelo econômico solicitado pelo dono: **gpt-6-luna, esforço medium**. .codex/config.toml define
-o padrão de novas sessões e subagentes; os kickoffs fixam esse modelo nos workers Orca.
-Isso não troca o modelo de uma conversa já aberta e não muda o perfil do Claude.
+Modelos vêm de `.harness/model-policy.json`, conforme classificação e papel. O padrão de novas
+sessões coordenadoras em `.codex/config.toml` é derivado da linha Orquestrador (Sol/low); um teste
+confere essa derivação. Workers recebem model/effort explícitos via prepare. Não há default
+genérico de subagente que substitua o roteamento. A escolha explícita do dono para esta conversa
+e sessões já abertas é preservada; o perfil Claude continua independente.
 
 ## Ativar os hooks
 
@@ -66,8 +68,11 @@ original; checks explícitos e evidências continuam obrigatórios antes de repo
   estão documentados em `.harness/operacao.md`. Atestação de setup não é verificação automática
   do processo MCP nem de liveness. Equipes existentes não são migradas implicitamente.
 - Recibos são imutáveis; follow-ups têm IDs próprios e predecessor. Release preserva histórico
-  operacional em `archives`, no estado compartilhado fora do Git. Roteamento e métricas são
-  etapas posteriores: o modelo padrão desta entrega continua Luna/medium.
+  operacional em `archives`, no estado compartilhado fora do Git. QA incremental e métricas
+  estão em `.harness/qa-incremental.md` e `.harness/metricas.md`.
+- Stop já é silencioso para waiting e QA, e DEV fora de delivering não dispara checks. Manter
+  avisos de bloqueio/push pendente: são trabalho útil. Não criar notificações a cada turno;
+  eventos de métricas ficam no journal. Avisos genéricos da interface Orca não são hooks deste repo.
 
 Para uma tarefa individual fora da Trilha, usar worktree/branch próprios e AGENTS.md; não é
 necessário criar uma equipe apenas para usar o Codex. Fatias da Trilha seguem o fluxo completo.

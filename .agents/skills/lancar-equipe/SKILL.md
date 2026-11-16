@@ -27,6 +27,10 @@ sem garantir o perfil pessoal. Sem escolha de ferramenta, usar Codex nesta sess�
 5. Conferir que a base contém este harness e que a sessão poderá revisar os hooks. Se ainda
    faltar merge do harness, não copiar arquivos soltos para fatia de produto nem desativar hooks.
 6. Registrar `sh .claude/scripts/quadro.sh set <fatia> Lançada "<Toca em>"` no worktree.
+7. Classificar a tarefa por impacto, incerteza, risco e consequências arquiteturais, sem contar
+   arquivos como critério único: `team.mjs classify --team <fatia> --complexity
+   ROTINEIRA|MEDIANA|COMPLEXA --reason <justificativa-curta>`. Resolver dúvida técnica com o TPL;
+   não criar uma discussão longa para classificar. Registrar workflow RESEARCH.
 
 ## Kickoff e execução
 
@@ -45,7 +49,9 @@ Perguntas e portões vão ao coordenador via ask; entrega via worker_done com PR
 ```
 
 Executar prepare com role tpl, chamar uma única vez o worker-start fornecido e registrar o
-recibo (Task/Dispatch/Run). Modelo gpt-6-luna, esforço medium. Sem escalada automática.
+recibo (Task/Dispatch/Run). Usar exatamente model/effort do argv gerado pela matriz versionada.
+Não substituir pelo padrão da sessão. Observar o runtime e importar uso quando disponível,
+conforme `.harness/metricas.md`; configuração solicitada não prova modelo efetivamente usado.
 Depois, informar fatia/worktree e **terminar o turno**. Orca acorda você.
 
 ## Ao receber retorno

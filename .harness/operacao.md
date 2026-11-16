@@ -61,7 +61,7 @@ O helper não executa Orca, Git remoto nem modelos. Ele fornece os argumentos e 
 3. O resultado tem key, specFile e argv. Para Codex, executar uma única chamada Orca com esses
    argumentos, respeitando espaços e sem eval. Exemplo de forma: `orca orchestration worker-start
    --spec-file <specFile> --task-title "<papel> <fatia>" --worktree path:<raiz>
-   --agent codex --model gpt-6-luna --effort medium --json`. TPL/líder usam também --keep-open.
+   --agent codex --model <modelo-do-argv> --effort <esforço-do-argv> --json`. TPL/líder usam também --keep-open.
    Para Claude, argv é null: seguir .harness/claude-workers.md, com terminal pessoal explícito.
 4. Guardar a resposta completa fora do Git. Copiar os IDs reais de Task, Dispatch e Run do
    recibo para `node .harness/team.mjs record --team <fatia> --key <key>
@@ -122,6 +122,9 @@ estado local é rastreabilidade e coordenação, não uma barreira de segurança
 Novas reservas Codex recebem `policyVersion: 2`. Reservas existentes sem essa versão e
 equipes Claude mantêm seus gates anteriores; não editar JSON para migrar uma equipe ativa.
 O estado tem `schemaVersion: 2`; versões futuras desconhecidas são recusadas em escrita.
+Novas reservas também recebem `routingVersion: 1`; precisam de `classify` antes de prepare.
+Equipes sem routingVersion mantêm Luna/medium, sem migração implícita. Matriz e telemetria em
+`.harness/metricas.md`; plano/evidências do QA em `.harness/qa-incremental.md`.
 
 Antes de DEVs, registrar o spec aprovado (o brief de launch pode ser outro arquivo):
 

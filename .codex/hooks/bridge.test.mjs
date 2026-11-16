@@ -221,6 +221,7 @@ test('DEV simples não recebe cobrança de push do TPL e mantém proteção do c
   const input = join(directory, 'worker-brief.md');
   writeFileSync(input, 'Fixture de papel.');
   run('reserve', { team: 'native-worker', agent: 'codex', worktree }, directory);
+  run('classify', { team: 'native-worker', complexity: 'ROTINEIRA', reason: 'fixture' }, directory);
   run(
     'approve',
     { team: 'native-worker', mode: 'Front', spec: input, evidence: 'aprovação fixture' },
