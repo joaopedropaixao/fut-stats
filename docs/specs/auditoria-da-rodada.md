@@ -8,10 +8,10 @@
 | **Fatia** | `auditoria-da-rodada` (onda 5) |
 | **Modo** | Back |
 | **Parte de** | `placar-e-lances` (parecer do Head de Engenharia, 30 out 2026) |
-| **Status** | aprovado em 2026-11-14 |
+| **Status** | aprovado em 2026-11-14; extensão do feed decidida pelo dono em 2026-11-16 |
 | **Base** | develop @e97ee8d (revisado no início: entraram #62 a #69 e #72; pontos de gravação conferidos contra o código) |
-| **Depende de** | votacao, rodizio-reservas |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/shared/src/round-log.ts, packages/shared/src/index.ts, apps/api/src/audit, apps/api/src/common, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/rounds/round-lock.service.ts, apps/api/src/setup-app.ts, apps/api/src/main.ts, apps/api/src/app.module.ts |
+| **Depende de** | votacao, rodizio-reservas, **feed** (extensão de 2026-11-16: o PR espera o `feed` entrar) |
+| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/shared/src/round-log.ts, packages/shared/src/index.ts, apps/api/src/audit, apps/api/src/common, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/rounds/round-lock.service.ts, apps/api/src/setup-app.ts, apps/api/src/main.ts, apps/api/src/app.module.ts, packages/domain/src/feed/log.ts, apps/api/src/feed (services), docs/operacao/registro.md |
 
 ## Produto
 
@@ -191,6 +191,56 @@ Sem tela.
 - `requestId` em `AsyncLocalStorage` — chega ao registro e ao log sem passar parâmetro por toda a pilha.
 - Seed não gera registro — ele não passa pelos services; o histórico do seed não tem "quem fez".
 
+## Extensão: feed (dono, 2026-11-16)
+
+O PR #73 (registro da rodada + `requestId`) fica parado até o `feed` entrar na `develop`. Depois, rebase em cima
+dele (a migration desta fatia é refeita por cima da `feed`) e o registro passa a cobrir as escritas do feed.
+
+**Para quê** (palavras do dono): é **interno**. Quando alguém mandar um bug, o dono quer saber quem fez o quê, qual
+passo falhou e quanto demorou. Os usuários não precisam ver isso.
+
+### Regras
+- **Uma tabela só, do grupo.** O model `RoundLog` vira **`AuditLog`**, com `roundId` **opcional** (continua
+  `onDelete: Cascade`: apagar a rodada leva o registro dela) e `postId` **opcional e sem chave estrangeira**
+  (apagar a resenha **não** apaga o registro, senão ninguém descobre quem apagou). Enum `AuditAction` = ações da
+  rodada + ações do feed. A rota e o contrato da rodada (`GET .../rounds/:roundId/log`, `RoundLogEntry`) não mudam.
+- **Ações do feed** (`FEED_LOG_ACTIONS`, em `packages/domain/src/feed/log.ts`):
+
+| Ação | Quando | `before` | `after` |
+|---|---|---|---|
+| `POST_CREATED` | admin publica resenha | `null` | `{ postId, title, body }` |
+| `POST_EDITED` | admin edita resenha | `{ postId, title, body }` | `{ postId, title, body }` |
+| `POST_DELETED` | admin apaga resenha | `{ postId, authorId, title, body, reactionCount, commentCount }` | `null` |
+| `COMMENT_CREATED` | membro comenta | `null` | `{ postId, commentId, length }` (o texto já está no comentário) |
+| `COMMENT_DELETED` | autor ou admin apaga | `{ postId, commentId, authorId, text }` | `null` |
+| `REACTION_SET` | membro coloca ou troca | `{ postId, reaction }` (`reaction` nulo se não tinha) | `{ postId, reaction }` |
+| `REACTION_REMOVED` | membro tira | `{ postId, reaction }` | `null` |
+
+- **Texto apagado ou editado fica guardado** no `before` (decisão do dono, opção 1): responde "o que foi apagado e
+  por quem". Só quem opera lê.
+- Mesmas garantias da rodada: mesma transação, pedido recusado não deixa linha, só inserção, `actorId` = quem pediu,
+  `requestId` do contexto. `PUT` de reação igual à atual não muda nada e não deixa linha.
+- **Sem rota de leitura do feed.** O registro do feed é para o dono, não para o admin do grupo: lê direto no banco,
+  pelo `requestId` ou pelo usuário. `docs/operacao/registro.md` traz as consultas prontas (por `requestId`, por
+  `userId` num intervalo, por resenha).
+- **Log de pedido mais útil para bug:** a linha de pedido com status ≥ 400 passa a levar `errorCode` (o `code` do
+  corpo do erro, ex. `NOT_OWN_COMMENT`, `INVALID_TRANSITION`; `null` se não tiver). Junto com `userId`, `path`,
+  `status` e `durationMs`, mostra qual passo falhou e quanto demorou. Continua sem corpo, cookie, email ou nome.
+
+### Cenários da extensão
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C23 | `FEED_LOG_ACTIONS` e `ROUND_LOG_ACTIONS` | conferir | juntos, iguais ao enum `AuditAction` do banco | unitário (`domain-enums.spec.ts`) |
+| C24 | admin | publica, edita e apaga uma resenha | 3 linhas (`POST_CREATED`, `POST_EDITED` com texto antigo e novo, `POST_DELETED` com o texto e as contagens), `roundId` nulo, `postId` preenchido; as linhas **continuam** depois de apagar a resenha | integração |
+| C25 | jogador | comenta e apaga o próprio; admin apaga o comentário de outro | `COMMENT_CREATED` (sem o texto), `COMMENT_DELETED` ×2 com o texto e o autor, ator certo em cada | integração |
+| C26 | membro | `PUT` reação `FIRE`, `PUT` `FIRE` de novo, `PUT` `BALL`, `DELETE` | 3 linhas: `REACTION_SET` (null→FIRE), `REACTION_SET` (FIRE→BALL), `REACTION_REMOVED`; nenhuma pelo `PUT` repetido | integração |
+| C27 | pedidos recusados do feed: jogador cria/edita/apaga resenha (403), apaga comentário de outro (403), texto inválido (400), resenha de outro grupo (404) | — | nenhuma linha nova | integração |
+| C28 | dois `PUT` de reação simultâneos do mesmo membro (C16 do `feed`) | `Promise.all` | o estado final bate com a última linha; nunca duas linhas para uma mudança só | integração |
+| C29 | admin apaga uma rodada `SCHEDULED` que tem linhas; o grupo tem linhas do feed | apagar | as linhas da rodada somem; as do feed ficam | integração |
+| C30 | pedido que dá 403 `NOT_OWN_COMMENT`; pedido que dá 400 de validação | olhar o log de pedido | a linha traz `errorCode` (`NOT_OWN_COMMENT`; o código de validação) e `status`; pedido 2xx sai com `errorCode: null` ou sem a chave | integração |
+| C31 | cobertura | percorrer as rotas `POST\|PUT\|PATCH\|DELETE` do controller do feed | toda rota de escrita está na lista de auditadas (200/201/204 → uma linha) ou de excluídas | integração (`audit-coverage.spec.ts`) |
+
 ## Fora do escopo
 - Tela do registro para o admin.
 - Registrar presença, rascunho de times, criação e edição de rodada, rodízio e perfil.
@@ -200,6 +250,9 @@ Sem tela.
 ## Perguntas respondidas pelo dono
 - Auditoria e `requestId`? → Aprovados no parecer do Head de Engenharia (30 out 2026).
 - P14 · Auditoria depois de `votacao` (onda 4)? → Sim (14 nov 2026).
+- Auditar o feed? → Sim, as escritas (opção 2), num registro do grupo; esperar o `feed` entrar (16 nov 2026).
+- Guardar o texto apagado/editado? → Sim (opção 1). É uso interno do dono para investigar bug, não para os usuários
+  (16 nov 2026).
 
 ## QA
 **Veredito: APROVADO na volta 1** (2026-11-16, @6ba5ab1 sobre develop e97ee8d). `pnpm turbo run lint typecheck
