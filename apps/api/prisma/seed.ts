@@ -9,7 +9,8 @@
 //   encerrada          votação fechada hoje, com o resultado (Craque, Perna de Pau e notas) gravado
 // As rodadas passadas já vêm com votos e resultado gravado, fechadas de jeitos diferentes (todos votaram, prazo, admin).
 // Rodar: pnpm --filter @fut-stats/api db:seed -- --cenario=em-jogo   (sem --cenario: agendada)
-// Pode rodar de novo: atualiza os membros e recria só as rodadas desse grupo. A lógica fica em src/seed.
+// Também cria 3 resenhas de exemplo no Feed (uma sem título, uma longa com quebra de linha), com reações e comentários.
+// Pode rodar de novo: atualiza os membros e recria só as rodadas e as resenhas desse grupo. A lógica fica em src/seed.
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { parseSeedScenario, seed } from '../src/seed/seed';
@@ -23,8 +24,8 @@ async function main(): Promise<void> {
   try {
     const summary = await seed(prisma, { scenario });
     console.log(
-      `Seed ok (cenário ${summary.scenario}): grupo "${summary.groupName}" com ${summary.members} membros ` +
-        `e ${summary.rounds} rodadas.`,
+      `Seed ok (cenário ${summary.scenario}): grupo "${summary.groupName}" com ${summary.members} membros, ` +
+        `${summary.rounds} rodadas e ${summary.posts} resenhas.`,
     );
   } finally {
     await prisma.$disconnect();

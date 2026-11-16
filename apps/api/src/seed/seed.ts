@@ -9,7 +9,9 @@ import {
   seededRandom,
   TEAMS,
   validateAttendanceChange,
+  validateCommentText,
   validateMatchEvent,
+  validatePostInput,
   validateRoundTransition,
   validateScoreEntry,
   votingDeadline,
@@ -43,6 +45,7 @@ import {
   PAST_ROUNDS,
   SEED_GROUP,
   SEED_LOCATION,
+  SEED_POSTS,
   SEED_RANDOM,
   type AttendancePlan,
   type PastRoundPlan,
@@ -94,6 +97,7 @@ export interface SeedSummary {
   scenario: SeedScenario;
   members: number;
   rounds: number;
+  posts: number;
 }
 
 const MINUTE_MS = 60 * 1000;
@@ -259,13 +263,72 @@ export async function seed(
     { timeout: 60_000 },
   );
 
+  const posts = await seedPosts(prisma, group.id, members, now);
+
   return {
     groupId: group.id,
     groupName: group.name,
     scenario,
     members: members.length,
     rounds: rounds.length,
+    posts,
   };
+}
+
+/** Resenhas de exemplo do Feed, com reações e comentários. Recria só as do grupo do seed; devolve quantas criou. */
+async function seedPosts(
+  prisma: PrismaClient,
+  groupId: string,
+  members: readonly SeedMemberRow[],
+  now: Date,
+): Promise<number> {
+  const idOf = (nickname: string): string => {
+    const member = members.find((m) => m.nickname === nickname);
+    if (!member) throw new Error(`Seed inválido: resenha com "${nickname}", que não é membro.`);
+    return member.id;
+  };
+
+  const planned = SEED_POSTS.map((post) => {
+    check(validatePostInput({ title: post.title, body: post.body }), `resenha de ${post.author}`);
+    for (const comment of post.comments) {
+      const error = validateCommentText(comment.text);
+      check(error ? [error] : [], `comentário de ${comment.author}`);
+    }
+    if (!members.find((m) => m.nickname === post.author && m.role === 'ADMIN')) {
+      throw new Error(`Seed inválido: ${post.author} precisa ser admin para escrever resenha.`);
+    }
+    const createdAt = new Date(now.getTime() - post.hoursAgo * HOUR_MS);
+    return {
+      data: {
+        groupId,
+        authorId: idOf(post.author),
+        title: post.title,
+        body: post.body,
+        createdAt,
+        reactions: {
+          create: post.reactions.map(([nickname, reaction]) => ({
+            membershipId: idOf(nickname),
+            reaction,
+            createdAt,
+          })),
+        },
+        comments: {
+          create: post.comments.map((comment) => ({
+            membershipId: idOf(comment.author),
+            text: comment.text,
+            createdAt: new Date(createdAt.getTime() + comment.minutesLater * MINUTE_MS),
+          })),
+        },
+      },
+    };
+  });
+
+  await prisma.$transaction(async (tx) => {
+    // Reações e comentários saem junto (cascata).
+    await tx.post.deleteMany({ where: { groupId } });
+    for (const { data } of planned) await tx.post.create({ data });
+  });
+  return planned.length;
 }
 
 function emailFor(nickname: string): string {
