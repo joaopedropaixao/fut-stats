@@ -15,7 +15,7 @@ function lockedReason(round: RoundDetail): string {
 type Stamp = { icon: IconName; title: string; text: string; tone: string };
 
 /** O carimbo da resposta: muda de cor, ícone e frase com o que a pessoa respondeu. */
-function stampFor(round: RoundDetail, locked: boolean): Stamp {
+function stampFor(round: RoundDetail, locked: boolean, calm: boolean): Stamp {
   const going = round.confirmedCount;
   const canChange = locked ? '' : ' Dá pra mudar até os times saírem.';
   if (round.myAttendance === true) {
@@ -41,7 +41,10 @@ function stampFor(round: RoundDetail, locked: boolean): Stamp {
       going === 0
         ? 'Ninguém confirmou ainda. Seja o primeiro.'
         : `${going === 1 ? '1 já confirmou' : `${going} já confirmaram`}. Vai ou não vai?`,
-    tone: 'bg-warning/10 text-warning shadow-[inset_0_0_0_2px_var(--color-warning)]',
+    // No card do Feed a cor do papel é o verde: sem resposta o carimbo fica creme, não laranja
+    tone: calm
+      ? 'bg-surface-3 text-text shadow-[inset_0_0_0_2px_var(--color-border-strong)]'
+      : 'bg-warning/10 text-warning shadow-[inset_0_0_0_2px_var(--color-warning)]',
   };
 }
 
@@ -49,12 +52,15 @@ function stampFor(round: RoundDetail, locked: boolean): Stamp {
 export function MyPresence({
   round,
   onChange,
+  calm = false,
 }: {
   round: RoundDetail;
   onChange: (confirmed: boolean) => void;
+  /** Sem resposta, o carimbo não usa o laranja de atenção (o card do Feed já tem a cor do papel). */
+  calm?: boolean;
 }) {
   const locked = !round.permissions.setOwnAttendance;
-  const stamp = stampFor(round, locked);
+  const stamp = stampFor(round, locked, calm);
   const order = round.attendance.confirmed.findIndex(
     (m) => m.membershipId === round.myMembershipId,
   );

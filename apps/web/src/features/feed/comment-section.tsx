@@ -88,7 +88,7 @@ function CommentRow({
     <li className="animate-row-in flex items-start gap-3 py-2 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none">
       <MemberAvatar nickname={comment.author.nickname} avatar={comment.author.avatar} size={32} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="flex flex-wrap items-baseline gap-x-2">
+        <span className="flex flex-col gap-1">
           <PixelText wrap>{comment.author.nickname}</PixelText>
           <PixelText className="text-text-muted">{postWhen(comment.createdAt)}</PixelText>
         </span>

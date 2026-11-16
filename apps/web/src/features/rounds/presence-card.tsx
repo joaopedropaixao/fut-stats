@@ -51,7 +51,7 @@ export function PresenceCard({ groupId, round }: { groupId: string; round: Round
             />
           </div>
           <div className="animate-row-in [--moment-delay:180ms]">
-            <MyPresence round={round} onChange={set} />
+            <MyPresence round={round} onChange={set} calm />
           </div>
           <div className="animate-row-in flex flex-col gap-4 shadow-[inset_0_2px_0_0_var(--color-border)] pt-4 [--moment-delay:240ms]">
             <PresenceTally round={round} />
