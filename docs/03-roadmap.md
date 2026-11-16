@@ -44,7 +44,7 @@ abaixo).
 | 9 | `auditoria-da-rodada` | Back | `placar-e-lances` | **Onda 5.** Tabela `RoundLog` (quem, o quê, quando, antes/depois) gravada na mesma transação de toda escrita de placar, etapa e lance, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
 | 10 ✅ | `ranking` | Par | `votacao` | **Onda 4.** Ranking geral, por posição e de goleiros; perfil do jogador com estatísticas; a nota do seletor passa a acompanhar as rodadas |
 | 11 ✅ | `pacote-do-craque` | Front | `votacao` | **Onda 4.** Grande momento: o resultado chega como pacote, que rasga e revela as cartas do Craque (com walkout), do Perna de Pau e a sua (bronze/prata/ouro pela nota), com Compartilhar (fatia nova, 14 nov 2026; reforço 15 nov) |
-| 12 | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
+| 12 ✅ | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
 | 13 | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Onda 6, junto do lançamento** (decisão do dono, 15 nov 2026). SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
 | 14 | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado. Pendência do `pacote-do-craque` (15 nov 2026): o início passa a saber do pacote novo por aviso empurrado (push/SSE) em vez do `GET .../voting/result` que o card do início faz hoje |
 | 15 | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 15 em 15 minutos para a votação fechar na hora). Depois, a release e **lançar para a pelada** |
@@ -122,8 +122,8 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [x] Ranking geral e por posição + perfil com stats
 
 ## Fase 4: Feed e lançamento do MVP 🚀
-- [ ] Feed de notícias/resenhas (admin cria), reações e comentários
-- [ ] Cards de alerta (times publicados, votação aberta) (votação aberta e resultado já no início, pela `votacao` e o `pacote-do-craque`; o resto vem no `feed`)
+- [x] Feed de notícias/resenhas (admin cria), reações e comentários
+- [x] Cards de alerta (times publicados, votação aberta) (votação aberta e resultado já no início, pela `votacao` e o `pacote-do-craque`; o resto vem no `feed`)
 - [ ] PWA instalável + Web Push
 - [ ] Produção (`main`), Sentry, backup do banco
 - [ ] **Lançar para a pelada**, coletar feedback em 2–3 rodadas

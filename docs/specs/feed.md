@@ -12,7 +12,7 @@
 | **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @e97ee8d (checkpoint de início em 2026-11-15; antes @1021769) |
 | **Depende de** | votacao, pacote-do-craque, perfil-jogador |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/feed, packages/domain/src/index.ts, packages/shared/src/feed.ts, packages/shared/src/index.ts, apps/api/src/feed, apps/api/src/app.module.ts, apps/api/src/seed, apps/web/src/pages/feed, apps/web/src/features/feed, apps/web/src/pages/rounds/home.tsx, apps/web/src/features/voting, apps/web/src/features/match/game-card.tsx, apps/web/src/features/rounds, apps/web/src/components/ui/pixel-sprite-maps.ts, apps/web/src/app/preload.ts, apps/web/src/router.tsx |
+| **Toca em** | apps/api/prisma/schema.prisma, apps/api/prisma/migrations/*_feed, apps/api/prisma/seed.ts, packages/domain/src/feed, packages/domain/src/group, packages/domain/src/index.ts, packages/shared/src/feed.ts, packages/shared/src/index.ts, apps/api/src/feed, apps/api/src/app.module.ts, apps/api/src/seed, apps/web/src/pages/feed, apps/web/src/features/feed, apps/web/src/pages/rounds/home.tsx (removido), apps/web/src/pages/{rounds,voting,elenco}/routes, apps/web/src/features/voting, apps/web/src/features/match, apps/web/src/features/lineup, apps/web/src/features/rounds, apps/web/src/components/ui/{pixel-sprite-maps,text-field,text-area,row-menu}, apps/web/src/app/preload.ts, apps/web/src/router.tsx |
 
 ## Produto
 
@@ -322,4 +322,29 @@ acusar, recria a migration do feed por cima). O feed não escreve em placar, eta
 - P6 · Resenha com imagem na v1? → Não: só texto; imagem fica para a v1.1 (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**Veredito: APROVADO na volta 2** (16 nov 2026). Volta 1 (relançada do zero na retomada) reprovou por 2 critérios de
+front; os 51 cenários já funcionavam.
+
+| Volta | Falha | Correção |
+|---|---|---|
+| 1 | JS inicial 118,6 kB > 118,4 kB da base (3 rotas lazy novas, cada uma com lista de deps no pedaço inicial) | `loadFeedArea` único, `resenhas/*` resolvida dentro do pedaço do Feed (`postScreen`), preload percorre `router.routes`: 118,4 kB (118.437 bytes gzip) |
+| 1 | Ouro (rótulo e traço) colado à tecla amarela no `ResultAlert` | rótulo e traço neutros; ouro só no pacote |
+| 1 (obs.) | Sem aviso grande, o admin perdia "Nenhuma rodada marcada"/"Criar rodada" | decisão do TPL: sem aviso grande (nada, ou só resultados abertos) vale o estado de C32, com as linhas abaixo |
+
+Tabela final (volta 2 sobre a volta 1):
+
+| Id | Resultado |
+|---|---|
+| C1–C26 (domínio, API, seed) | OK — testes com o id no nome; domain 491, shared 4, api 513 verdes |
+| C27, C28 | OK — um card grande, ouro só no pacote; aberto, a votação sobe com "Dar minhas notas" |
+| C29–C31, C33 | OK |
+| C32 | OK — admin com "Criar rodada", jogador sem tecla, linhas abaixo |
+| C34 | OK — no máximo 1 tecla amarela em todos os estados |
+| C35–C50 | OK |
+| C51 | OK — checagem automática verde em 320/375/390/430/1280 |
+| Visual do dono (15/11) | OK |
+| Peso inicial | OK — 118,4 kB, sem import de valor do shared no caminho inicial |
+| Pronto na raiz | OK — lint, typecheck, test (web 569), build |
+
+Observações para o dono: no C32 admin, a linha RESULTADO (borda ouro) fica logo abaixo da tecla amarela "Criar
+rodada" (elementos separados); o JS inicial está no limite do arredondamento (sem folga para o próximo pedaço).

@@ -797,7 +797,7 @@ fora); não guarda o bonequinho no `User`; não desenha nada (o desenho do rosto
 **Evite:** tratar `avatar` como opcional na resposta; sortear bonequinho no servidor; cor de cabelo obrigatória para
 careca na tela; hex de pele ou cabelo solto na tela (são tokens).
 
-### Feed: avisos e resenhas: `feedAlerts` / `validatePostInput` / `validateCommentText` 🚧
+### Feed: avisos e resenhas: `feedAlerts` / `validatePostInput` / `validateCommentText` ✅
 **O que é:** a tela inicial do app (`packages/domain/src/feed`): em cima, os **avisos** do que está acontecendo (um
 grande por vez, os outros em linha); embaixo, as **resenhas** que os admins escrevem, com reações e comentários de
 todo mundo. Decidido pelo dono (22 out 2026: um aviso grande por vez, ordem resultado > votação > presença; 14 nov
@@ -811,6 +811,10 @@ todo mundo. Decidido pelo dono (22 out 2026: um aviso grande por vez, ordem resu
 vivo vem antes de tudo; a folha fixa só "resultado > votação > presença". `now` vem de fora. A API devolve cada aviso
 com o número e o horário da rodada e o `me` de quem pede (`attendance`, `team`, `played`, `voted`; cada campo só no
 tipo em que faz sentido). A rota só lê: quem fecha votação vencida é a lista de rodadas, não o feed.
+
+Na tela, o `RESULT` cujo pacote já foi aberto **neste aparelho** (`hasOpenedResult`) desce para linha e o próximo
+da lista vira o aviso grande. Sem aviso grande (nenhum aviso, ou só resultados já abertos), o Feed mostra "Nenhuma
+rodada marcada" (admin com a tecla "Criar rodada") e as linhas ficam abaixo. No máximo uma tecla amarela na tela.
 
 **Resenha:** só **admin** escreve, edita e apaga (qualquer admin, de qualquer resenha). Título opcional até 60
 caracteres (`POST_TITLE_MAX_LENGTH`); texto obrigatório até 1000 (`POST_BODY_MAX_LENGTH`), com quebra de linha. Só texto.
