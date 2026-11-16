@@ -1,34 +1,24 @@
 import type { CSSProperties } from 'react';
-import { Link } from 'react-router';
 import { PixelText } from '../../components/ui/pixel-text';
 import { RouteButton } from '../rounds/route-button';
 import { PackMini } from './pack-mini';
 import { hasPack } from '../pack/deck';
 import { useResult } from './queries';
-import { hasOpenedResult } from './result-opened';
 
 type ResultAlertProps = {
   groupId: string;
   roundId: string;
   number: number;
-  /** Quem vê: o "já abri" é por jogador. */
-  membershipId: string;
 };
 
 /**
- * Início depois do fechamento: "O RESULTADO SAIU", o card da recompensa. A cor de destaque é só o ouro (contorno,
- * faixa e o pacote); o título é creme e a única tecla amarela é a de ação, separada do ouro. O pacote fechado
- * em miniatura treme de leve em degraus (parado com "reduzir movimento"). Depois de aberto (por rodada e por
- * jogador), vira a linha do resultado, que leva ao mesmo lugar.
+ * Aviso grande do resultado: "O RESULTADO SAIU", o card da recompensa. O ouro é só do pacote, do rótulo da rodada e
+ * da faixa de baixo do título (o contorno e o título são neutros), e a única tecla amarela é a de ação: ouro e
+ * amarelo não competem no mesmo card. O pacote fechado em miniatura treme de leve em degraus (parado com "reduzir
+ * movimento"). Depois de aberto (por rodada e por jogador) o Feed troca este card pela linha do resultado.
+ * Rodada sem votos não tem pacote: a tecla diz "Ver resultado" e o pacote some.
  */
-export function ResultAlert({ groupId, roundId, number, membershipId }: ResultAlertProps) {
-  if (hasOpenedResult(roundId, membershipId))
-    return <ResultLine roundId={roundId} number={number} />;
-  return <ResultNews groupId={groupId} roundId={roundId} number={number} />;
-}
-
-/** O card em destaque. Rodada sem votos não tem pacote: a tecla diz "Ver resultado" e o pacote some. */
-function ResultNews({ groupId, roundId, number }: Omit<ResultAlertProps, 'membershipId'>) {
+export function ResultAlert({ groupId, roundId, number }: ResultAlertProps) {
   const to = `/rodadas/${roundId}/resultado`;
   const result = useResult(groupId, roundId);
   // Enquanto não sabe (ou sem votos), o card não promete pacote
@@ -37,9 +27,9 @@ function ResultNews({ groupId, roundId, number }: Omit<ResultAlertProps, 'member
     <section
       aria-label="O resultado saiu"
       className="moment-frame animate-moment-in flex flex-col bg-surface-raised"
-      style={{ borderColor: 'var(--color-gold)', boxShadow: '5px 5px 0 var(--color-shadow)' }}
+      style={{ boxShadow: '5px 5px 0 var(--color-shadow)' }}
     >
-      <div className="flex items-center gap-3 bg-gold/12 px-4 py-4 shadow-[inset_0_-3px_0_0_var(--color-gold)]">
+      <div className="flex items-center gap-3 bg-surface-3 px-4 py-4 shadow-[inset_0_-3px_0_0_var(--color-gold)]">
         {pack && (
           <span className="animate-pack-wobble inline-flex">
             <PackMini scale={5} />
@@ -73,22 +63,5 @@ function ResultNews({ groupId, roundId, number }: Omit<ResultAlertProps, 'member
         />
       </div>
     </section>
-  );
-}
-
-/**
- * O resultado já aberto neste aparelho: uma linha de grande momento (contorno grosso e sombra dura), só texto, sem
- * ícone nem seta, para caber numa linha só de 320 a 430 px ("Resultado" na esquerda, "Rodada 8" em ouro na direita).
- */
-export function ResultLine({ roundId, number }: { roundId: string; number: number }) {
-  return (
-    <Link
-      to={`/rodadas/${roundId}/resultado`}
-      aria-label={`Resultado da rodada ${number}`}
-      className="moment-frame animate-moment-in flex min-h-14 items-center justify-between gap-2 bg-surface-raised px-4 py-2 active:translate-x-1 active:translate-y-1 active:shadow-none"
-    >
-      <PixelText>Resultado</PixelText>
-      <PixelText className="text-gold">{`Rodada ${number}`}</PixelText>
-    </Link>
   );
 }

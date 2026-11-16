@@ -5,7 +5,7 @@ import type { DataRouter } from 'react-router';
  * Depois da primeira tela pronta, vão para o cache do navegador em segundo plano: trocar de aba não espera a rede.
  */
 const AREAS = [
-  () => import('../pages/rounds/home'),
+  () => import('../pages/feed/feed-area'),
   () => import('../pages/times/times-area'),
   () => import('../pages/rounds/rounds-area'),
   () => import('../pages/match/match-page'),

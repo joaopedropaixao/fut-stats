@@ -7,16 +7,19 @@ export function RoundWhen({
   scheduledAt,
   location,
   as,
+  numberClassName = 'text-gold',
 }: {
   number: number;
   scheduledAt: string;
   location: string | null;
   /** O título da tela usa `h1`. */
   as?: 'h1' | 'p';
+  /** Cor do "RODADA 12" (ouro nas telas de rodada; card que não é de recompensa passa outra). */
+  numberClassName?: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <PixelText className="text-gold">{`Rodada ${number}`}</PixelText>
+      <PixelText className={numberClassName}>{`Rodada ${number}`}</PixelText>
       <PixelText as={as} size={as === 'h1' ? 24 : 16} wrap className="outline-none">
         {formatRoundWhen(scheduledAt)}
       </PixelText>

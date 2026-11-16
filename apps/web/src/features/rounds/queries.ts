@@ -5,14 +5,27 @@ import {
   type RoundDetail,
   type UpdateRoundInput,
 } from '@fut-stats/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from '../../lib/api';
 import { applyAttendance } from './apply-attendance';
 
 const roundsPath = (groupId: string) => `/groups/${groupId}/rounds`;
 
 export const roundsKey = (groupId: string) => ['rounds', groupId] as const;
+/** Os avisos do Feed ficam sob a lista de rodadas e são refeitos junto com ela (`refreshRounds`). */
+export const alertsKey = (groupId: string) => [...roundsKey(groupId), 'alerts'] as const;
 export const roundKey = (groupId: string, roundId: string) => ['rounds', groupId, roundId] as const;
+
+/**
+ * Refaz a lista de rodadas e os avisos do Feed. Toda mudança que mexe na lista (etapa, presença, rodada criada ou
+ * apagada) chama esta função: o `exact` da lista não alcança a chave dos avisos, que fica um nível abaixo.
+ */
+export function refreshRounds(queryClient: QueryClient, groupId: string) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true }),
+    queryClient.invalidateQueries({ queryKey: alertsKey(groupId), exact: true }),
+  ]);
+}
 
 /** Próximas e passadas do grupo. */
 export function useRounds(groupId: string) {
@@ -38,7 +51,7 @@ export function useCreateRound(groupId: string) {
     mutationFn: (input: CreateRoundInput) => apiPost(roundsPath(groupId), roundDetailSchema, input),
     onSuccess: (round) => {
       queryClient.setQueryData(roundKey(groupId, round.id), round);
-      return queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true });
+      return refreshRounds(queryClient, groupId);
     },
   });
 }
@@ -50,7 +63,7 @@ export function useUpdateRound(groupId: string, roundId: string) {
       apiPatch(`${roundsPath(groupId)}/${roundId}`, roundDetailSchema, input),
     onSuccess: (round) => {
       queryClient.setQueryData(roundKey(groupId, roundId), round);
-      return queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true });
+      return refreshRounds(queryClient, groupId);
     },
   });
 }
@@ -61,7 +74,7 @@ export function useDeleteRound(groupId: string, roundId: string) {
     mutationFn: () => apiDelete(`${roundsPath(groupId)}/${roundId}`),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: roundKey(groupId, roundId) });
-      return queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true });
+      return refreshRounds(queryClient, groupId);
     },
   });
 }
@@ -103,7 +116,7 @@ export function useSetAttendance(groupId: string, roundId: string) {
       if (othersInFlight()) return;
       // Sozinho, a resposta (ou o estado de antes do erro) já está na tela; o resto só confere com a API
       void queryClient.invalidateQueries({ queryKey: key });
-      return queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true });
+      return refreshRounds(queryClient, groupId);
     },
   });
 }

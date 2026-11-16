@@ -15,6 +15,7 @@ import { PlaceholderPage } from './pages/placeholder';
 import { profileRoute, startRoutes } from './pages/entrar-e-grupo/routes';
 import { rosterRoutes } from './pages/elenco/routes';
 import { historyRoutes } from './pages/historico/routes';
+import { feedRoutes } from './pages/feed/routes';
 import { profileEditRoutes } from './pages/perfil/routes';
 import { rankingRoutes } from './pages/ranking/routes';
 import { roundsRoutes } from './pages/rounds/routes';
@@ -25,7 +26,7 @@ import { votingRoutes } from './pages/voting/routes';
 const TAB_PAGES: Partial<Record<string, RouteObject>> = {
   '/': {
     index: true,
-    lazy: async () => ({ Component: (await import('./pages/rounds/home')).HomePage }),
+    lazy: async () => ({ Component: (await import('./pages/feed/feed-area')).FeedPage }),
   },
   '/times': {
     path: '/times',
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
         children: [
           // Cada aba aponta para a página dela; aba sem página ainda fica no placeholder.
           ...TABS.map((tab) => TAB_PAGES[tab.to] ?? placeholderRoute(tab)),
+          ...feedRoutes,
           ...roundsRoutes,
           ...votingRoutes,
           ...timesRoutes,
