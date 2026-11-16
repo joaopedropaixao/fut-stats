@@ -1,8 +1,8 @@
 import type { RoundDetail } from '@fut-stats/shared';
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
-import { AvatarMore } from '../../components/ui/avatar';
 import { Icon } from '../../components/ui/icons';
+import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { MemberAvatar } from './member-avatar';
 import { MyPresence } from './my-presence';
@@ -80,12 +80,16 @@ export function PresenceCard({ groupId, round }: { groupId: string; round: Round
                         />
                       </span>
                     ))}
-                    {more > 0 && (
-                      <span className="rounded-full shadow-[0_0_0_2px_var(--color-surface)]">
-                        <AvatarMore count={more} />
-                      </span>
-                    )}
                   </span>
+                  {more > 0 && (
+                    <span
+                      role="img"
+                      aria-label={`mais ${more}`}
+                      className="ml-2 inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-surface-3 px-2 shadow-card"
+                    >
+                      <PixelDigits value={`+${more}`} scale={2} decorative />
+                    </span>
+                  )}
                 </span>
               )}
               <Icon name="chevronRight" size={20} className="text-text-muted" />

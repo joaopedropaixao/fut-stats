@@ -107,7 +107,7 @@ export function PostCard({ groupId, post, index, notify }: PostCardProps) {
           <PixelDigits
             value={post.commentCount}
             scale={2}
-            label={`${post.commentCount} comentários`}
+            label={`${post.commentCount} ${post.commentCount === 1 ? 'comentário' : 'comentários'}`}
           />
         </span>
         <Icon name="chevronRight" size={20} className={open ? 'rotate-90' : undefined} />

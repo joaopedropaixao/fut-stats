@@ -80,3 +80,16 @@ export function alertAriaLabel(text: AlertText): string {
   const [round, ...rest] = text.situation.split(' · ');
   return [text.title, round!.toLowerCase(), ...rest].join(', ');
 }
+
+/**
+ * Separa o aviso grande das linhas. A API manda a lista na ordem de prioridade; o "já abri o pacote" é por aparelho
+ * (`isOpened`): o resultado aberto vira linha e o aviso seguinte sobe para o card grande. Sem aviso que sirva de
+ * card (só o resultado aberto), tudo fica em linha.
+ */
+export function splitAlerts(
+  alerts: readonly FeedAlert[],
+  isOpened: (alert: FeedAlert) => boolean,
+): { big: FeedAlert | undefined; lines: FeedAlert[] } {
+  const big = alerts.find((alert) => !(alert.type === 'RESULT' && isOpened(alert)));
+  return { big, lines: alerts.filter((alert) => alert !== big) };
+}

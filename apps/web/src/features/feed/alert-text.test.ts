@@ -1,6 +1,6 @@
 import type { FeedAlert } from '@fut-stats/shared';
 import { describe, expect, it } from 'vitest';
-import { alertAriaLabel, alertText } from './alert-text';
+import { alertAriaLabel, alertText, splitAlerts } from './alert-text';
 
 const alert = (type: FeedAlert['type'], me: FeedAlert['me'] = {}): FeedAlert => ({
   type,
@@ -87,5 +87,37 @@ describe('texto da linha de aviso (C27, C28, C33)', () => {
       'Votação aberta, rodada 12, falta o seu voto',
     );
     expect(alertAriaLabel(alertText(alert('RESULT'), true))).toBe('Resultado, rodada 12');
+  });
+});
+
+describe('aviso grande e linhas (C27, C28)', () => {
+  const result = alert('RESULT');
+  const voting = alert('VOTING', { played: true, voted: false });
+  const presence = alert('PRESENCE', { attendance: null });
+
+  it('o primeiro da lista é o card grande e os outros ficam em linha, na mesma ordem', () => {
+    const { big, lines } = splitAlerts([result, voting, presence], () => false);
+    expect(big).toBe(result);
+    expect(lines).toEqual([voting, presence]);
+  });
+
+  it('com o pacote aberto neste aparelho, o resultado vira linha e a votação sobe para card grande', () => {
+    const { big, lines } = splitAlerts([result, voting, presence], (a) => a.type === 'RESULT');
+    expect(big).toBe(voting);
+    expect(lines).toEqual([result, presence]);
+  });
+
+  it('só o resultado e já aberto: nenhum card grande, uma linha', () => {
+    const { big, lines } = splitAlerts([result], () => true);
+    expect(big).toBeUndefined();
+    expect(lines).toEqual([result]);
+  });
+
+  it('o "aberto" só vale para o resultado: votação nunca é rebaixada', () => {
+    expect(splitAlerts([voting, presence], () => true).big).toBe(voting);
+  });
+
+  it('sem avisos: nada', () => {
+    expect(splitAlerts([], () => false)).toEqual({ big: undefined, lines: [] });
   });
 });

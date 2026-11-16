@@ -4,6 +4,7 @@ import { PixelText } from '../../components/ui/pixel-text';
 import { EmptyState, ErrorState, SkeletonList } from '../../components/ui/states';
 import { AlertCard } from '../../features/feed/alert-card';
 import { AlertLine } from '../../features/feed/alert-line';
+import { splitAlerts } from '../../features/feed/alert-text';
 import { PostCard } from '../../features/feed/post-card';
 import { useAlerts, usePosts } from '../../features/feed/queries';
 import { useFlashNotice } from '../../features/group/flash';
@@ -78,8 +79,7 @@ function Alerts({ groupId, isAdmin, me }: { groupId: string; isAdmin: boolean; m
 
   const opened = (a: FeedAlert) =>
     a.type === 'RESULT' && hasOpenedResult(a.roundId, me.membershipId);
-  const big = alerts.data.find((a) => !opened(a));
-  const lines = alerts.data.filter((a) => a !== big);
+  const { big, lines } = splitAlerts(alerts.data, opened);
 
   return (
     <div className="flex flex-col gap-4">

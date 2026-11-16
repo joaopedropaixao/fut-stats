@@ -30,6 +30,7 @@ export function GameCard({ view }: { view: MatchView }) {
     <section
       aria-label={view.status === 'POST_MATCH' ? 'Hora da Resenha' : 'Jogo em andamento'}
       className="moment-frame animate-moment-in flex flex-col bg-surface-raised"
+      style={{ boxShadow: '5px 5px 0 var(--color-shadow)' }}
     >
       <Scoreboard status={view.status} score={view.score} compact bare />
       <div
@@ -37,7 +38,9 @@ export function GameCard({ view }: { view: MatchView }) {
         style={{ '--moment-delay': '120ms' } as CSSProperties}
       >
         <div className="animate-row-in flex flex-col gap-2">
-          <PixelText wrap>{message}</PixelText>
+          <PixelText as="h2" size={24} wrap className="text-text [text-shadow:2px_2px_0_#000]">
+            {message}
+          </PixelText>
           {view.status === 'IN_PROGRESS' && view.rotation && view.me.team && (
             <RotationHomeLine view={view} />
           )}
