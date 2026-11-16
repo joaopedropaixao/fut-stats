@@ -14,7 +14,8 @@ import {
   type RoundTeams,
   type Team,
 } from '@fut-stats/domain';
-import { createGroup } from '../test/auth';
+import request from 'supertest';
+import { createGroup, loginAs } from '../test/auth';
 import { createTestApp, resetDatabase, type TestApp } from '../test/test-app';
 import { SEED_GROUP } from './seed-data';
 import { parseSeedScenario, seed, SEED_SCENARIOS, type SeedScenario } from './seed';
@@ -569,6 +570,31 @@ describe('seed de desenvolvimento', () => {
       expect(await t.prisma.postReaction.count()).toBe(
         posts.reduce((sum, p) => sum + p.reactions.length, 0),
       );
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  it(
+    'C14: o seed grava direto, sem registro da rodada: nenhuma linha em RoundLog e o log das rodadas responde []',
+    async () => {
+      await seed(t.prisma, { scenario: 'votacao', now: NOW });
+      // Rodar de novo recria as rodadas e continua sem linha de registro.
+      await seed(t.prisma, { scenario: 'votacao', now: NOW });
+
+      expect(await t.prisma.roundLog.count()).toBe(0);
+
+      const admin = await t.prisma.membership.findFirstOrThrow({
+        where: { group: { slug: SEED_GROUP.slug }, role: 'ADMIN' },
+      });
+      const rounds = await loadRounds();
+      expect(rounds.length).toBeGreaterThan(1);
+      for (const round of [rounds[0]!, rounds.at(-1)!]) {
+        const response = await request(t.app.getHttpServer())
+          .get(`/api/groups/${admin.groupId}/rounds/${round.id}/log`)
+          .set('Cookie', loginAs(t, admin.userId));
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([]);
+      }
     },
     SEED_TIMEOUT_MS,
   );

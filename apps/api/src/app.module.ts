@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env';
 import { envFilePaths } from './config/env-files';
@@ -35,6 +36,7 @@ import { VotingModule } from './voting/voting.module';
     VotingModule,
     RankingModule,
     FeedModule,
+    AuditModule,
     DevModule.forEnvironment(),
   ],
 })
