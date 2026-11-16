@@ -810,7 +810,7 @@ todo mundo. Decidido pelo dono (22 out 2026: um aviso grande por vez, ordem resu
 `IN_PROGRESS`, `POST_MATCH`, `TEAMS_PUBLISHED` e `PRESENCE` olham a rodada da vez (`pickCurrentRound`). O jogo ao
 vivo vem antes de tudo; a folha fixa só "resultado > votação > presença". `now` vem de fora. A API devolve cada aviso
 com o número e o horário da rodada e o `me` de quem pede (`attendance`, `team`, `played`, `voted`; cada campo só no
-tipo em que faz sentido). Ao responder, a API fecha antes a votação com o prazo vencido (como a lista de rodadas).
+tipo em que faz sentido). A rota só lê: quem fecha votação vencida é a lista de rodadas, não o feed.
 
 **Resenha:** só **admin** escreve, edita e apaga (qualquer admin, de qualquer resenha). Título opcional até 60
 caracteres (`POST_TITLE_MAX_LENGTH`); texto obrigatório até 1000 (`POST_BODY_MAX_LENGTH`), com quebra de linha. Só texto.

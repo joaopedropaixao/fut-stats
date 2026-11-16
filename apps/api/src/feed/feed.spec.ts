@@ -161,43 +161,20 @@ describe('feed: avisos', () => {
     expect(res.body).toEqual([]);
   });
 
-  it('C8: votação com o prazo vencido não vira aviso de votação: fecha antes de responder e vira resultado', async () => {
-    const { group, member, cookie } = await setup();
+  it('C8: o feed só lê: votação com o prazo vencido segue como está no banco (quem fecha é a lista de rodadas)', async () => {
+    const { group, cookie } = await setup();
     const round = await createRound(group.id, 'VOTING', new Date(Date.now() - 4 * DAY_MS));
     await t.prisma.round.update({
       where: { id: round.id },
-      data: { votingOpenedAt: new Date(Date.now() - 25 * HOUR_MS), whiteGoals: 0, blackGoals: 0 },
+      data: { votingOpenedAt: new Date(Date.now() - 25 * HOUR_MS) },
     });
-    const squad = [
-      { id: member.id, team: 'WHITE', position: 'GOALKEEPER', isReserve: false },
-      { team: 'WHITE', position: 'DEFENDER', isReserve: false },
-      { team: 'WHITE', position: 'FORWARD', isReserve: false },
-      { team: 'WHITE', position: 'MIDFIELDER', isReserve: true },
-      { team: 'BLACK', position: 'GOALKEEPER', isReserve: false },
-      { team: 'BLACK', position: 'DEFENDER', isReserve: false },
-      { team: 'BLACK', position: 'FORWARD', isReserve: false },
-      { team: 'BLACK', position: 'MIDFIELDER', isReserve: true },
-    ] as const;
-    for (const slot of squad) {
-      const membershipId =
-        'id' in slot ? slot.id : (await addMember(t, (await createUser(t)).id, group.id)).id;
-      await t.prisma.teamPlayer.create({
-        data: {
-          roundId: round.id,
-          membershipId,
-          team: slot.team,
-          position: slot.position,
-          isReserve: slot.isReserve,
-        },
-      });
-    }
 
     const res = await get(group.id, cookie).expect(200);
 
-    expect(res.body.map((a: { type: string }) => a.type)).toEqual(['RESULT']);
-    expect(res.body[0].roundId).toBe(round.id);
-    expect(await t.prisma.round.findUnique({ where: { id: round.id } })).toMatchObject({
-      status: 'CLOSED',
+    expect(res.body.map((a: { type: string }) => a.type)).toEqual(['VOTING']);
+    expect(await t.prisma.round.findUniqueOrThrow({ where: { id: round.id } })).toMatchObject({
+      status: 'VOTING',
+      closedAt: null,
     });
   });
 

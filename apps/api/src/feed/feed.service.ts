@@ -3,25 +3,19 @@ import { feedAlerts, RESULT_HIGHLIGHT_DAYS } from '@fut-stats/domain';
 import type { FeedAlert } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
 import { PrismaService } from '../prisma/prisma.service';
-import { VotingService } from '../voting/voting.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class FeedService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly voting: VotingService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Os avisos do grupo para quem pede, na ordem de prioridade. Nada fica gravado: sai do estado das rodadas
    * (o domain escolhe os avisos) e o `me` de cada um vem de consultas só de quem pede, nas rodadas dos avisos.
+   * Só lê: quem fecha votação vencida é a lista de rodadas (e o relógio da API), não o feed.
    */
   async alerts(membership: GroupMembership, now = new Date()): Promise<FeedAlert[]> {
-    // Votação com o prazo vencido e ninguém fechou ainda: fecha antes de responder (a API gratuita dorme).
-    await this.voting.closeDueVotings(now, membership.groupId);
-
     const rounds = await this.prisma.round.findMany({
       where: {
         groupId: membership.groupId,
