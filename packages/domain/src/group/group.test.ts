@@ -9,6 +9,7 @@ import {
   toSlug,
   validateGroupName,
   validateJoinGroup,
+  validateMultilineText,
   validateNickname,
 } from './group';
 import { isValidRating } from '../core';
@@ -206,5 +207,19 @@ describe('DEFAULT_INITIAL_RATING', () => {
   it('é 6 e é uma nota válida', () => {
     expect(DEFAULT_INITIAL_RATING).toBe(6);
     expect(isValidRating(DEFAULT_INITIAL_RATING)).toBe(true);
+  });
+});
+
+describe('validateMultilineText', () => {
+  it('aceita quebra de linha e conta como um caractere', () => {
+    expect(validateMultilineText('a\nb', 3)).toBeNull();
+    expect(validateMultilineText('a\r\nb', 3)).toBeNull();
+    expect(validateMultilineText('a\nbc', 3)).toBe('TOO_LONG');
+  });
+
+  it('só quebra de linha é vazio; controle solto é inválido', () => {
+    expect(validateMultilineText('\n\n', 5)).toBe('EMPTY');
+    expect(validateMultilineText('a\rb', 5)).toBe('INVALID_CHARACTERS');
+    expect(validateMultilineText('a\tb', 5)).toBe('INVALID_CHARACTERS');
   });
 });
