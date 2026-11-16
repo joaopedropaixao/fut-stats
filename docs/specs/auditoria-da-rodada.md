@@ -202,4 +202,18 @@ Sem tela.
 - P14 · Auditoria depois de `votacao` (onda 4)? → Sim (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**Veredito: APROVADO na volta 1** (2026-11-16, @6ba5ab1 sobre develop e97ee8d). `pnpm turbo run lint typecheck
+test build --force`: 17/17 tarefas (API 508 testes em 26 suítes, domain 465, web 530, shared 2).
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1 | ✅ | `packages/domain/src/round/log.test.ts`, `apps/api/src/prisma/domain-enums.spec.ts` |
+| C2–C10, C13, C20 | ✅ | `apps/api/src/audit/audit.spec.ts` (C6 com `Promise.all` ×10; C8 ×4: último voto, relógio, leitura após o prazo, voto atrasado; C9 com trigger no banco forçando a falha) |
+| C11, C12 | ✅ | `audit.spec.ts` (403 titular e reserva; 404 outro grupo, não membro, inativo, rodada inexistente; 401 sem sessão) |
+| C14 | ✅ | `apps/api/src/seed/seed.spec.ts` |
+| C15–C19, C21, C22 | ✅ | `apps/api/src/common/request-context.spec.ts` |
+| Cobertura de rotas | ✅ | `apps/api/src/audit/audit-coverage.spec.ts` (toda rota de escrita de match/lineups/voting auditada ou excluída de propósito) |
+| Fluxo real | ✅ | [`auditoria-da-rodada-evidencia.md`](auditoria-da-rodada-evidencia.md): 13 linhas, uma por escrita aceita; nenhuma por recusa, voto, presença ou rascunho |
+
+Observações sem bloqueio: no 403 de papel o log de pedido sai com `groupId: null` (o guard recusa antes de anotar o
+grupo; o `userId` aparece); C9 usa trigger em vez de `membershipId` inexistente (mesma prova, mais direta).
