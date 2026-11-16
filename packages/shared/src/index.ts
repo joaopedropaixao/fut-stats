@@ -5,6 +5,7 @@ export * from './health';
 export * from './lineup';
 export * from './match';
 export * from './round';
+export * from './round-log';
 export * from './dev';
 export * from './history';
 export * from './voting';

@@ -53,6 +53,19 @@ enum VotingEndReason {
 /// Tipo de lance registrado na rodada. Igual a `MatchEventType` do domain.
 /// OWN_GOAL = gol contra: fica com quem fez e conta no placar do adversário.
 /// Gols sofridos não são lance: saem do placar (gols do time adversário).
+/// Ações do registro da rodada. Igual a `ROUND_LOG_ACTIONS` do domain.
+enum RoundLogAction {
+  TEAMS_PUBLISHED
+  TEAMS_UNPUBLISHED
+  MATCH_STARTED
+  SCORE_SET
+  MATCH_FINISHED
+  VOTING_OPENED
+  VOTING_CLOSED
+  EVENT_LAUNCHED
+  EVENT_REMOVED
+}
+
 enum MatchEventType {
   GOAL
   ASSIST
@@ -123,6 +136,7 @@ model Group {
   memberships Membership[]
   rounds      Round[]
   posts       Post[]
+  roundLogs   RoundLog[]
 }
 
 /// Um usuário dentro de um grupo: papel e dados de jogador daquele grupo.
@@ -163,6 +177,7 @@ model Membership {
   posts           Post[]
   postReactions   PostReaction[]
   postComments    PostComment[]
+  roundLogs       RoundLog[]
 
   @@unique([userId, groupId])
   @@index([groupId])
@@ -199,6 +214,7 @@ model Round {
   teamPlayers TeamPlayer[]
   matchEvents MatchEvent[]
   votes       Vote[]
+  logs        RoundLog[]
 
   @@unique([groupId, number])
   @@index([groupId, scheduledAt])
@@ -347,4 +363,28 @@ model PostComment {
   membership Membership @relation(fields: [membershipId], references: [id])
 
   @@index([postId, createdAt])
+}
+
+/// Registro da rodada: quem mudou placar, etapa e lance, o quê e quando. Só inserção, na mesma transação da
+/// mudança. Voto e rodízio ficam de fora. Apagar a rodada apaga o registro dela.
+model RoundLog {
+  id        String         @id @default(cuid())
+  groupId   String
+  roundId   String
+  /// Quem fez; nulo = automático (fechamento da votação sem pedido do admin).
+  actorId   String?
+  action    RoundLogAction
+  /// Retrato pequeno de antes e de depois, por ação (ver o spec auditoria-da-rodada).
+  before    Json?
+  after     Json?
+  /// `x-request-id` do pedido que gerou a linha; nulo quando não há pedido (relógio da votação).
+  requestId String?
+  createdAt DateTime       @default(now())
+
+  group Group       @relation(fields: [groupId], references: [id])
+  round Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  actor Membership? @relation(fields: [actorId], references: [id])
+
+  @@index([roundId, createdAt])
+  @@index([groupId, createdAt])
 }
