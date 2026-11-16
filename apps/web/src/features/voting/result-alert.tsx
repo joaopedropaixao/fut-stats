@@ -12,9 +12,9 @@ type ResultAlertProps = {
 };
 
 /**
- * Aviso grande do resultado: "O RESULTADO SAIU", o card da recompensa. O ouro é só do pacote, do rótulo da rodada e
- * da faixa de baixo do título (o contorno e o título são neutros), e a única tecla amarela é a de ação: ouro e
- * amarelo não competem no mesmo card. O pacote fechado em miniatura treme de leve em degraus (parado com "reduzir
+ * Aviso grande do resultado: "O RESULTADO SAIU", o card da recompensa. O ouro é só do pacote em miniatura (a
+ * recompensa); o rótulo da rodada, o traço do título e o contorno são neutros, e a única tecla amarela é a de ação:
+ * ouro e amarelo não competem no mesmo card. O pacote fechado em miniatura treme de leve em degraus (parado com "reduzir
  * movimento"). Depois de aberto (por rodada e por jogador) o Feed troca este card pela linha do resultado.
  * Rodada sem votos não tem pacote: a tecla diz "Ver resultado" e o pacote some.
  */
@@ -29,14 +29,14 @@ export function ResultAlert({ groupId, roundId, number }: ResultAlertProps) {
       className="moment-frame animate-moment-in flex flex-col bg-surface-raised"
       style={{ boxShadow: '5px 5px 0 var(--color-shadow)' }}
     >
-      <div className="flex items-center gap-3 bg-surface-3 px-4 py-4 shadow-[inset_0_-3px_0_0_var(--color-gold)]">
+      <div className="flex items-center gap-3 bg-surface-3 px-4 py-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
         {pack && (
           <span className="animate-pack-wobble inline-flex">
             <PackMini scale={5} />
           </span>
         )}
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <PixelText className="text-gold">{`Rodada ${number}`}</PixelText>
+          <PixelText className="text-text-muted">{`Rodada ${number}`}</PixelText>
           <PixelText
             as="h2"
             size={24}
