@@ -170,7 +170,10 @@ export function spritePaths(
   return byColor;
 }
 
-/** Os ícones das reações das resenhas (12x12). Uma letra por cor; `.` é vazio; `K` é o contorno escuro. */
+/**
+ * Os ícones das reações das resenhas. Altura de 12; a largura é a da linha (12, e 20 no OSS!, que é uma figurinha de
+ * texto). Uma letra por cor; `.` é vazio; `K` é o contorno escuro.
+ */
 export const REACTION_SPRITE_SIZE = 12;
 
 export const REACTION_SPRITES = {
@@ -189,93 +192,94 @@ export const REACTION_SPRITES = {
     '..KWWKKWWK..',
     '...KKKKKK...',
   ],
-  // provisório: ícone novo na volta de design (hoje o desenho do antigo fogo)
+  // Bagre: peixe de lado com três bigodes (barbilhões) à esquerda e a cauda dividida à direita
   CATFISH: [
-    '.....R......',
-    '....RR......',
-    '....RRR..R..',
-    '...RRRR.RR..',
-    '..RRRYRRRR..',
-    '..RRYYYRRRR.',
-    '.RRRYYYYRRR.',
-    '.RRYYYYYYRR.',
-    '.RRYYWWYYRR.',
-    '..RRYWWYRR..',
-    '...RRYYRR...',
-    '....RRRR....',
+    '............',
+    '............',
+    '.....D......',
+    '....DDD.....',
+    '..BBBBBBB..D',
+    'LLBBBBBBBBDD',
+    '..BWKBBBBBD.',
+    'LLBBBBBBBBD.',
+    '..LLLLLLLLDD',
+    'LLLLLLLLLLD.',
+    '............',
+    '............',
   ],
-  // provisório: ícone novo na volta de design (hoje o desenho da antiga risada)
+  // OSS!: figurinha de texto. Letras pretas grossas e tortas, contorno branco de 1 px e a faixa vermelha cortando a
+  // base dos dois S (a ponta da faixa preta do jiu-jitsu)
   OSS: [
-    '....YYYY....',
-    '..YYYYYYYY..',
-    '.YYYYYYYYYY.',
-    '.YKKYYYYKKY.',
-    'YYYYYYYYYYYY',
-    'YKKKKKKKKKKY',
-    'YKWWWWWWWWKY',
-    '.KWRRRRRRWK.',
-    '.YKKRRRRKKY.',
-    '.YYYKKKKYYY.',
-    '..YYYYYYYY..',
-    '....YYYY....',
+    '..FFF.........FFFF..',
+    '.FKKKF..FFFF.FKKKKF.',
+    'FKKKKKFFKKKKFKKKKKF.',
+    'FKKFKKFKKKKKFKKFFFF.',
+    'FKKFKKFKKFFFFKKKKKF.',
+    'FKKFKKFKKKKFFFKKKKF.',
+    'FKKFKKFFKKKKFFFFKKF.',
+    'FKKFKKFFFFKKFFFFKKF.',
+    'FKKKKKRRRRRRRRRRRRRF',
+    '.FKKKFRRRRRRRRRRRRRF',
+    '..FFF.FKKKKFFFFFFFF.',
+    '.......FFFF.........',
   ],
-  // provisório: ícone novo na volta de design (hoje o desenho das antigas palmas)
+  // Apito: apito de juiz de lado, com o bocal à esquerda, a câmara redonda com o furo e o cordão vermelho
   WHISTLE: [
-    '..Y..YY..Y..',
-    '...Y.YY.Y...',
-    '.SSSS..SSSS.',
-    '.SKSS..SSKS.',
-    '.SKSS..SSKS.',
-    '.SSSSKKSSSS.',
-    '.SSSSKKSSSS.',
-    '..SSSSSSSS..',
-    '..SSSSSSSS..',
-    '...SSSSSS...',
-    '...SSSSSS...',
-    '....SSSS....',
+    '............',
+    '.......RRR..',
+    '......R...R.',
+    '....KKKKKK..',
+    '...KBBBBBBK.',
+    'KKKKLLBBBBBK',
+    'KBBBLBBKKBBK',
+    'KBBBBBBKKBBK',
+    'KKKKBBBBBBBK',
+    '....KBBBBBK.',
+    '.....KKKKK..',
+    '............',
   ],
-  // provisório: ícone novo na volta de design (hoje o desenho da antiga perna de pau)
+  // Pipocou: saquinho de pipoca listrado de vermelho e creme, com a pipoca estourando em cima
   POPCORN: [
-    '...SSSS.....',
-    '...SSSS.....',
-    '...WWWW.....',
-    '...WWWW.....',
-    '...WWWWWWW..',
-    '...KKKKKKK..',
-    '....BB......',
-    '....BB......',
-    '....BB......',
-    '....BB......',
-    '....BB......',
-    '....KK......',
+    '...WW.WW....',
+    '..WWWWWWWW..',
+    '.WWPWWWPWWW.',
+    '.WWWWWWWWWW.',
+    '.PPPPPPPPPP.',
+    '.RRWWRRWWRR.',
+    '.RRWWRRWWRR.',
+    '.RRWWRRWWRR.',
+    '..RWWRRWWR..',
+    '..RWWRRWWR..',
+    '..RWWRRWWR..',
+    '...KKKKKK...',
   ],
 } as const satisfies Record<PostReaction, SpriteMap>;
 
-/** As cores de cada ícone de reação (tokens do DS; o amarelo de ação fica de fora, o ouro claro faz o rosto). */
+/** As cores de cada ícone de reação (tokens do DS; o amarelo de ação não entra em nenhum). */
 export const REACTION_PALETTES = {
   BALL: { K: '#111111', W: 'var(--color-text)' },
-  // provisório: paleta nova junto com o ícone novo na volta de design
   CATFISH: {
-    R: 'var(--color-warning)',
-    Y: 'var(--color-gold-light)',
+    D: 'var(--color-silver-shadow)',
+    B: 'var(--color-silver)',
+    L: 'var(--color-silver-light)',
     W: 'var(--color-text)',
+    K: '#111111',
   },
   OSS: {
     K: '#111111',
-    Y: 'var(--color-gold-light)',
-    W: 'var(--color-text)',
+    F: 'var(--color-team-white)',
     R: 'var(--color-danger)',
   },
   WHISTLE: {
     K: '#111111',
-    S: 'var(--color-skin-3)',
-    D: 'var(--color-skin-4)',
-    Y: 'var(--color-gold-light)',
+    B: 'var(--color-silver)',
+    L: 'var(--color-silver-light)',
+    R: 'var(--color-danger)',
   },
   POPCORN: {
-    B: 'var(--color-flop)',
-    W: 'var(--color-text)',
     K: '#111111',
-    S: 'var(--color-skin-3)',
+    W: 'var(--color-text)',
+    P: 'var(--color-text-muted)',
+    R: 'var(--color-danger)',
   },
 } as const satisfies Record<PostReaction, Record<string, string>>;
