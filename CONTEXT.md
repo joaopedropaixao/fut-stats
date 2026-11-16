@@ -797,6 +797,50 @@ fora); não guarda o bonequinho no `User`; não desenha nada (o desenho do rosto
 **Evite:** tratar `avatar` como opcional na resposta; sortear bonequinho no servidor; cor de cabelo obrigatória para
 careca na tela; hex de pele ou cabelo solto na tela (são tokens).
 
+### Feed: avisos e resenhas: `feedAlerts` / `validatePostInput` / `validateCommentText` 🚧
+**O que é:** a tela inicial do app (`packages/domain/src/feed`): em cima, os **avisos** do que está acontecendo (um
+grande por vez, os outros em linha); embaixo, as **resenhas** que os admins escrevem, com reações e comentários de
+todo mundo. Decidido pelo dono (22 out 2026: um aviso grande por vez, ordem resultado > votação > presença; 14 nov
+2026, P6: resenha só de texto na v1).
+
+**Avisos, `feedAlerts(rounds, now)`:** saem do estado das rodadas, **não ficam gravados**. Cada aviso é
+`{ type, roundId }`, no máximo um por tipo, na ordem de prioridade de `FEED_ALERT_TYPES` (o primeiro é o aviso grande):
+`IN_PROGRESS` (jogo rolando), `POST_MATCH` (hora da Resenha), `RESULT` (resultado saiu, até 7 dias:
+`pickLatestResult`), `VOTING` (`pickVotingRound`), `TEAMS_PUBLISHED`, `PRESENCE` (presença aberta). Os tipos
+`IN_PROGRESS`, `POST_MATCH`, `TEAMS_PUBLISHED` e `PRESENCE` olham a rodada da vez (`pickCurrentRound`). O jogo ao
+vivo vem antes de tudo; a folha fixa só "resultado > votação > presença". `now` vem de fora. A API devolve cada aviso
+com o número e o horário da rodada e o `me` de quem pede (`attendance`, `team`, `played`, `voted`; cada campo só no
+tipo em que faz sentido). Ao responder, a API fecha antes a votação com o prazo vencido (como a lista de rodadas).
+
+**Resenha:** só **admin** escreve, edita e apaga (qualquer admin, de qualquer resenha). Título opcional até 60
+caracteres (`POST_TITLE_MAX_LENGTH`); texto obrigatório até 1000 (`POST_BODY_MAX_LENGTH`), com quebra de linha. Só texto.
+`validatePostInput({ title, body }): PostInputError[]` (`TITLE_TOO_LONG`, `BODY_EMPTY`, `BODY_TOO_LONG`,
+`INVALID_CHARACTERS`; lista vazia = válida). Conta o caractere visível (grafema), como o apelido, e a quebra de linha
+(`\n` ou `\r\n`) vale e conta como um; controle solto (`\r`, tab, `\0`) e invisível não. Entrada já sem espaço nas
+pontas e em NFC (o schema do shared faz). Título vazio vira `null`. Apagar a resenha apaga reações e comentários;
+o autor que ficou inativo continua aparecendo como autor.
+
+**Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`: `BALL`, `FIRE`, `LAUGH`, `CLAP`,
+`FLOP`; enum `PostReactionType` do Prisma igual, `domain-enums.spec.ts` garante). Tocar em outra troca; tocar na
+mesma tira. Banco: chave `(postId, membershipId)`, então dois pedidos juntos dão uma linha só.
+
+**Comentário:** qualquer membro, até 280 caracteres (`COMMENT_MAX_LENGTH`), sem edição.
+`validateCommentText(text): TextFieldError | null` (mesma regra de caractere da resenha). Apaga o autor ou um admin
+(`canDeleteComment`); outro jogador recebe 403 `NOT_OWN_COMMENT`. A lista devolve no máximo os 200 mais recentes, em
+ordem de envio. Permissões: `canManagePost(actor)` (admin) e `canDeleteComment(actor, authorId)`.
+
+**Contrato:** `packages/shared/src/feed.ts`; rotas sob `/api/groups/:groupId`: `GET /feed/alerts`, `GET|POST /posts`
+(paginado por cursor, 10 por página, da mais nova para a mais antiga), `PATCH|DELETE /posts/:postId`,
+`PUT|DELETE /posts/:postId/reaction`, `GET|POST /posts/:postId/comments`, `DELETE /posts/:postId/comments/:commentId`.
+Usuário de outro grupo ou membro inativo: 404 em tudo. Seed: 3 resenhas de exemplo (uma sem título, uma longa com
+quebra de linha) com reações e comentários.
+
+**Não faz:** imagem ou vídeo; link clicável e menção; responder, editar ou reagir a comentário; resenha gerada sozinha
+do resultado; moderação além do admin apagar (grupo de confiança); tempo real em reação e comentário; push.
+
+**Evite:** gravar aviso no banco (tem que sair do estado das rodadas); repetir a ordem de prioridade na tela; deixar o
+front decidir quem pode editar ou apagar (`canManage` e `canDelete` vêm da API); contar caractere por `length`.
+
 ---
 
 ## Conceitos ainda não implementados 📋

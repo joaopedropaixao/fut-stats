@@ -269,7 +269,7 @@ describe('feed: resenhas, reações e comentários', () => {
       const seen: string[] = [];
       let cursor: string | null = null;
       do {
-        const res = await listPosts(
+        const res: request.Response = await listPosts(
           c,
           c.caio,
           `?limit=2${cursor ? `&cursor=${cursor}` : ''}`,

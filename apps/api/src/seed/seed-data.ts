@@ -6,6 +6,7 @@ import {
   AVATAR_SKINS,
   type MatchScore,
   type PlayerAvatar,
+  type PostReaction,
 } from '@fut-stats/domain';
 import type { Position, Role } from '../generated/prisma/enums';
 
@@ -299,3 +300,75 @@ export const RESENHA_OWN_GOALS_FOR: Partial<Record<'WHITE' | 'BLACK', number>> =
  * (a tela de votar aparece para eles e o admin ainda vê quem falta).
  */
 export const DEV_WITHOUT_VOTE: ReadonlySet<string> = new Set(['Carlão', 'Rafa']);
+
+/** Resenha de exemplo do Feed: o autor é admin; `hoursAgo` conta de "agora" do seed; reações e comentários por apelido. */
+export interface SeedPost {
+  author: string;
+  title: string | null;
+  body: string;
+  hoursAgo: number;
+  reactions: readonly (readonly [nickname: string, reaction: PostReaction])[];
+  /** `minutesLater` depois da resenha. */
+  comments: readonly { author: string; text: string; minutesLater: number }[];
+}
+
+/**
+ * Três resenhas para o Feed não nascer vazio: a mais nova é longa e com quebra de linha, a do meio não tem título
+ * e a mais velha é curta. Sem dia da semana escrito à mão (o dia da pelada é do grupo).
+ */
+export const SEED_POSTS: readonly SeedPost[] = [
+  {
+    author: 'Carlão',
+    title: 'Quem mandou bem na última rodada',
+    body: [
+      'Gente, que jogo foi esse. O Branco virou no segundo tempo e o Preto quase empatou nos acréscimos, com o Muralha fechando o gol de um jeito que eu não via há tempos.',
+      '',
+      'Destaques:',
+      '- Defesa do Branco sem tomar susto depois do intervalo',
+      '- Meio-campo do Preto acordou tarde, mas acordou',
+      '- Os dois goleiros merecem palmas',
+      '',
+      'Quem não confirmou presença perdeu um joguinho de verdade. Na próxima rodada a ideia é a mesma: chegar cedo, trazer o colete e aquecer antes de a bola rolar. Quem puder, leve a bomba de ar, porque a bola do society está murchando de novo.',
+      '',
+      'Abre a votação assim que os times saírem. Capricha nas notas, vale pelo grupo todo.',
+    ].join('\n'),
+    hoursAgo: 6,
+    reactions: [
+      ['Rafa', 'FIRE'],
+      ['Bruninho', 'CLAP'],
+      ['Diegão', 'FIRE'],
+      ['Dudu', 'BALL'],
+      ['Muralha', 'CLAP'],
+      ['Paredão', 'LAUGH'],
+    ],
+    comments: [
+      {
+        author: 'Muralha',
+        text: 'Valeu, Carlão! Bola murcha não me assusta, mas a bomba eu levo.',
+        minutesLater: 25,
+      },
+      { author: 'Bruninho', text: 'Segundo tempo foi coisa de cinema.', minutesLater: 70 },
+      { author: 'Rafa', text: 'Vou trazer a bomba e o colete extra.', minutesLater: 140 },
+    ],
+  },
+  {
+    author: 'Rafa',
+    title: null,
+    body: 'Lembrete rápido: quem for faltar avisa na presença antes de os times saírem. Fechar o time na última hora é o que mais estraga a rodada.',
+    hoursAgo: 52,
+    reactions: [
+      ['Carlão', 'CLAP'],
+      ['Dedé', 'BALL'],
+      ['Igão', 'FLOP'],
+    ],
+    comments: [{ author: 'Igão', text: 'Fui eu, né? Pode falar.', minutesLater: 40 }],
+  },
+  {
+    author: 'Carlão',
+    title: 'Bem-vindos ao Feed',
+    body: 'A partir de agora as resenhas ficam aqui. Reaja, comente e apareça nos grandes momentos.',
+    hoursAgo: 120,
+    reactions: [['Rafa', 'FIRE']],
+    comments: [],
+  },
+];

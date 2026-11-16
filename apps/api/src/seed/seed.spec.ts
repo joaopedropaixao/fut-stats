@@ -3,8 +3,11 @@ import {
   AVATAR_HAIRS,
   AVATAR_SKINS,
   isPlayerAvatar,
+  POST_BODY_MAX_LENGTH,
   roundResults,
   tallyMatchEvents,
+  validateCommentText,
+  validatePostInput,
   validateRoundTeams,
   votingDeadline,
   type Position,
@@ -515,6 +518,57 @@ describe('seed de desenvolvimento', () => {
       expect(new Set(all.map((a) => a.skin))).toEqual(new Set(AVATAR_SKINS));
       expect(new Set(all.map((a) => a.hair))).toEqual(new Set(AVATAR_HAIRS));
       expect(new Set(all.map((a) => a.hairColor))).toEqual(new Set(AVATAR_HAIR_COLORS));
+    },
+    SEED_TIMEOUT_MS,
+  );
+
+  it(
+    'C26: 3 resenhas de exemplo (uma sem título, uma longa com quebra de linha), com reações e comentários',
+    async () => {
+      await seed(t.prisma, { now: NOW });
+      const load = () =>
+        t.prisma.post.findMany({
+          where: { group: { slug: SEED_GROUP.slug } },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            author: true,
+            reactions: true,
+            comments: { orderBy: { createdAt: 'asc' } },
+          },
+        });
+      const posts = await load();
+
+      expect(posts).toHaveLength(3);
+      for (const post of posts) {
+        expect(post.author.role).toBe('ADMIN');
+        expect(validatePostInput({ title: post.title, body: post.body })).toEqual([]);
+        // quem reage reage uma vez só
+        const reactors = post.reactions.map((r) => r.membershipId);
+        expect(new Set(reactors).size).toBe(reactors.length);
+        for (const comment of post.comments) expect(validateCommentText(comment.text)).toBeNull();
+        expect(post.createdAt.getTime()).toBeLessThan(NOW.getTime());
+      }
+      expect(posts.filter((p) => p.title === null)).toHaveLength(1);
+      const long = posts.filter((p) => p.body.includes('\n') && p.body.length > 300);
+      expect(long).toHaveLength(1);
+      expect(long[0]!.body.length).toBeLessThanOrEqual(POST_BODY_MAX_LENGTH);
+      expect(posts.filter((p) => p.reactions.length > 0)).toHaveLength(3);
+      expect(posts.filter((p) => p.comments.length > 0).length).toBeGreaterThanOrEqual(2);
+      // comentários depois da resenha
+      for (const post of posts) {
+        for (const comment of post.comments) {
+          expect(comment.createdAt.getTime()).toBeGreaterThan(post.createdAt.getTime());
+        }
+      }
+
+      // rodar de novo recria as resenhas do grupo, sem duplicar
+      await seed(t.prisma, { now: NOW });
+      const again = await load();
+      expect(again).toHaveLength(3);
+      expect(again.map((p) => p.body)).toEqual(posts.map((p) => p.body));
+      expect(await t.prisma.postReaction.count()).toBe(
+        posts.reduce((sum, p) => sum + p.reactions.length, 0),
+      );
     },
     SEED_TIMEOUT_MS,
   );
