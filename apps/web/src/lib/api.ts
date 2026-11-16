@@ -58,16 +58,19 @@ async function send(method: Method, path: string, body?: unknown, signal?: Abort
 }
 
 /** Daqui para dentro o front confia nos tipos; se a API mudar o contrato, o erro aparece aqui. */
-async function parse<S extends z.ZodType>(res: Response, path: string, schema: S) {
-  const parsed = schema.safeParse(await res.json().catch(() => undefined));
+async function parse<S extends z.ZodType>(res: Response, path: string, schema: S | PromiseLike<S>) {
+  const parsed = (await schema).safeParse(await res.json().catch(() => undefined));
   if (!parsed.success) throw new ApiContractError(path, parsed.error.issues);
   return parsed.data;
 }
 
-/** GET em /api{path}, validando a resposta com o schema Zod do @fut-stats/shared. */
+/**
+ * GET em /api{path}, validando a resposta com o schema Zod do @fut-stats/shared. O schema pode vir como promessa
+ * (`import()` sob demanda): o pedido sai na hora e a validação espera o schema chegar, em paralelo com a rede.
+ */
 export async function apiGet<S extends z.ZodType>(
   path: string,
-  schema: S,
+  schema: S | PromiseLike<S>,
   { signal }: RequestOptions = {},
 ): Promise<z.output<S>> {
   return parse(await send('GET', path, undefined, signal), path, schema);

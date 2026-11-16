@@ -7,7 +7,8 @@ const WON_SUFFIX = 'e ainda levou a vitória';
 
 /**
  * A frase de impacto do Craque pelos números dele na partida. A primeira regra que bater vence:
- * 3+ gols, gol e assistência, 2 gols, 2+ assistências, goleiro, 1 gol, senão "Jogou demais".
+ * 3+ gols, gol e assistência, 2 gols, 2+ assistências, goleiro, 1 assistência ("Deu o passe"), 1 gol, senão
+ * "Jogou demais".
  * Time vencedor (`won`) soma "e ainda levou a vitória". Gol contra não entra (a API já não conta).
  */
 export function impactPhrase(player: Stats, { won }: { won: boolean }): string {
@@ -23,9 +24,11 @@ export function impactPhrase(player: Stats, { won }: { won: boolean }): string {
             ? 'Garçom da noite'
             : player.position === 'GOALKEEPER'
               ? 'Paredão no gol'
-              : goals === 1
-                ? 'Balançou a rede'
-                : 'Jogou demais';
+              : assists === 1
+                ? 'Deu o passe'
+                : goals === 1
+                  ? 'Balançou a rede'
+                  : 'Jogou demais';
   return won ? `${base.replace(/!$/, '')} ${WON_SUFFIX}` : base;
 }
 

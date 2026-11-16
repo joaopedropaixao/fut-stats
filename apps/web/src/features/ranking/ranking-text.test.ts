@@ -2,6 +2,7 @@ import type { RankingPlayer } from '@fut-stats/shared';
 import { describe, expect, it } from 'vitest';
 import {
   formatAverage,
+  roundAverage,
   breakable,
   goalkeeperLines,
   minimumText,
@@ -57,6 +58,18 @@ describe('formatAverage', () => {
     expect(formatAverage(1.67)).toBe('1,7');
     expect(formatAverage(10)).toBe('10,0');
     expect(formatAverage(0)).toBe('0,0');
+  });
+});
+
+describe('roundAverage', () => {
+  it('uma casa, meio para cima, e o formatAverage usa o mesmo número', () => {
+    expect(roundAverage(7.96)).toBe(8);
+    expect(roundAverage(7.94)).toBe(7.9);
+    expect(roundAverage(5.95)).toBe(6);
+    expect(roundAverage(8.45)).toBe(8.5);
+    for (const v of [7.96, 7.94, 5.95, 8.45, 10, 0]) {
+      expect(formatAverage(v)).toBe(roundAverage(v).toFixed(1).replace('.', ','));
+    }
   });
 });
 

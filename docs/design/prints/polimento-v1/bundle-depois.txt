@@ -1,0 +1,36 @@
+# Orçamento do bundle: depois (feature/polimento-v1)
+
+## Tabela do check-build.mjs
+Medida                                               Tamanho (gzip)  Limite
+---------------------------------------------------  --------------  ------  -
+JS inicial                                                 118.4 kB  150 kB  ✓
+Maior pedaço de rota (assets/contracts-BHa_CCl9.js)         30.8 kB   40 kB  ✓
+CSS                                                         12.6 kB   25 kB  ✓
+JS total                                                   250.3 kB  400 kB  ✓
+
+
+## JS inicial por pacote (sourcemap, gzip aproximado)
+arquivo assets/index-BJiuZvrh.js  257.6 kB  gzip 81.0 kB
+arquivo assets/button-DMr1H3Sw.js  110.5 kB  gzip 37.0 kB
+arquivo assets/pixel-glyphs-DJIpwN8_.js  1.6 kB  gzip 0.5 kB
+
+JS inicial total: 118.5 kB gzip (3 arquivos)
+
+Top por pacote/pasta (gzip aproximado, kB):
+    60.9  react-dom
+    33.9  react-router
+    13.8  @tanstack/query-core
+     2.5  apps/web/src/components/ui
+     1.8  react
+     1.4  @tanstack/react-query
+     1.0  scheduler
+     0.5  apps/web/src/lib/api.ts
+     0.4  apps/web/src/router.tsx
+     0.4  apps/web/src/app/shell.tsx
+     0.3  apps/web/src/app/chunk-reload.ts
+     0.2  apps/web/src/features/session
+     0.2  apps/web/src/features/group
+     0.2  apps/web/src/app/preload.ts
+     0.2  apps/web/src/main.tsx
+
+O pedaço contracts (zod + shared + domain, 31 kB gzip) saiu do index.html e baixa sob demanda.

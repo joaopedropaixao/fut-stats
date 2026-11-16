@@ -24,7 +24,18 @@ export default defineConfig(({ mode }) => {
   return {
     envDir: ENV_DIR,
     // O manifesto diz o que cada entrada importa (estático x dinâmico): scripts/check-build.mjs mede o JS inicial com ele
-    build: { manifest: true },
+    build: {
+      manifest: true,
+      rolldownOptions: {
+        output: {
+          // zod + shared + domain (~30 kB gzip) ficam num pedaço só, de fora do inicial: sem o grupo, o rolldown
+          // junta nele módulos do shell (como o pixel-glyphs) e o index.html volta a importá-lo
+          codeSplitting: {
+            groups: [{ name: 'contracts', test: /zod|packages[\\/](shared|domain)/ }],
+          },
+        },
+      },
+    },
     plugins: [
       react(),
       tailwindcss(),
