@@ -5,11 +5,11 @@
 
 | | |
 |---|---|
-| **Fatia** | `auditoria-da-rodada` (onda 4) |
+| **Fatia** | `auditoria-da-rodada` (onda 5) |
 | **Modo** | Back |
 | **Parte de** | `placar-e-lances` (parecer do Head de Engenharia, 30 out 2026) |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @e97ee8d (revisado no início: entraram #62 a #69 e #72; pontos de gravação conferidos contra o código) |
 | **Depende de** | votacao, rodizio-reservas |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/shared/src/round-log.ts, packages/shared/src/index.ts, apps/api/src/audit, apps/api/src/common, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/rounds/round-lock.service.ts, apps/api/src/setup-app.ts, apps/api/src/main.ts, apps/api/src/app.module.ts |
 
@@ -162,10 +162,19 @@ Na API:
   - `match.service`: `start`, `setScore`, `finish`, `openVoting`, `launchEvent`, `removeEvent`. O `before` sai do
     estado carregado no `tx` (com a rodada travada), não de uma leitura anterior.
   - `lineups.service`: `publish` e `unpublish` (método `transition`).
-  - `voting`: o método único de fechar (`close`), com o motivo; `actorId` só quando foi o admin.
-- **Garantia de cobertura:** um teste percorre as rotas de escrita de `match`, `lineup/publish|unpublish` e
+  - `voting`: grava no `closeRound` (`voting.service.ts`), o funil único dos três caminhos de fechamento:
+    `close` do admin, o voto (`submitVote`: o último voto, ou o voto que chega depois do prazo e fecha ali) e
+    `closeDueVotings` (o relógio `VotingCloser` e as leituras `view`/`result` depois do prazo). `closeRound` recebe
+    o `actorId`: a participação do admin quando veio de `POST .../voting/close` (mesmo se o motivo real for
+    `DEADLINE_PASSED`/`ALL_VOTED`), `null` em todos os outros caminhos (o voto continua anônimo: quem votou por
+    último não aparece). Fechamento pelo relógio não tem pedido, então `requestId` fica nulo.
+  - **Fora, de propósito:** rodízio (`startRotation`/`stopRotation` em `match.service`), rascunho (`lineups.save`),
+    criar/editar rodada (`rounds.service`). O teste de cobertura lista essas rotas como excluídas, para rota nova
+    de escrita não passar despercebida.
+- **Garantia de cobertura:** um teste percorre as rotas de escrita de `match` (fora o rodízio), `lineup/publish|unpublish` e
   `voting/close` e falha se alguma responder 200 sem criar linha (lista de rotas no próprio teste; rota nova de
-  escrita de rodada entra ali).
+  escrita de rodada entra ali). Ele também confere que as rotas `POST|PUT|DELETE` dos controllers de `match`,
+  `lineups` e `voting` estão todas na lista de auditadas ou na de excluídas (rodízio, rascunho, voto).
 - Sem dependência nova (`node:async_hooks`, `node:crypto`).
 
 ### Tela
