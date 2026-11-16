@@ -8,7 +8,7 @@ import { Bump } from '../../components/ui/bump';
 import { Icon } from '../../components/ui/icons';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { cn } from '../../lib/cn';
-import { reactionAriaLabel } from './reaction-label';
+import { reactionAriaLabel, reactionShortName } from './reaction-label';
 import { ReactionIcon } from './reaction-icon';
 
 /**
@@ -49,7 +49,7 @@ export function ReactionBar({
               aria-hidden
               className="max-w-full text-caption leading-none font-medium tracking-tight"
             >
-              {POST_REACTION_LABELS[reaction]}
+              {reactionShortName(reaction)}
             </span>
             <Bump value={count} scale={1.5}>
               <PixelDigits value={count} scale={2} decorative />

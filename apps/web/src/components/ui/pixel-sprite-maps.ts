@@ -207,35 +207,36 @@ export const REACTION_SPRITES = {
     '............',
     '............',
   ],
-  // OSS!: figurinha de texto. Letras pretas grossas e tortas, contorno branco de 1 px e a faixa vermelha cortando a
-  // base dos dois S (a ponta da faixa preta do jiu-jitsu)
+  // OSS!: figurinha de texto. Letras pretas grossas e retas, na mesma linha de base, cada uma com o contorno branco
+  // de 1 px, e a faixa vermelha cortando a base dos dois S (a ponta da faixa preta do jiu-jitsu)
   OSS: [
-    '..FFF.........FFFF..',
-    '.FKKKF..FFFF.FKKKKF.',
-    'FKKKKKFFKKKKFKKKKKF.',
-    'FKKFKKFKKKKKFKKFFFF.',
-    'FKKFKKFKKFFFFKKKKKF.',
-    'FKKFKKFKKKKFFFKKKKF.',
-    'FKKFKKFFKKKKFFFFKKF.',
-    'FKKFKKFFFFKKFFFFKKF.',
-    'FKKKKKRRRRRRRRRRRRRF',
-    '.FKKKFRRRRRRRRRRRRRF',
-    '..FFF.FKKKKFFFFFFFF.',
-    '.......FFFF.........',
+    '..FFF....FFFF...FFFF.',
+    '.FKKKF..FKKKKF.FKKKKF',
+    'FKKKKKFFKKKKKFFKKKKKF',
+    'FKKFKKFFKKFFF.FKKFFF.',
+    'FKKFKKFFKKKKF.FKKKKF.',
+    'FKKFKKF.FKKKKF.FKKKKF',
+    'FKKFKKF.FFFKKFFFFFKKF',
+    'FKKFKKFFRRRRRRRRRRRRF',
+    'FKKKKKFFRRRRRRRRRRRRF',
+    '.FKKKF.FKKKKFFFKKKKF.',
+    '..FFF...FFFF...FFFF..',
+    '.....................',
   ],
-  // provisório: ícone do cartão amarelo na volta de design (hoje o desenho do apito). Apito de juiz de lado, com o bocal à esquerda, a câmara redonda com o furo e o cordão vermelho
+  // Cartão amarelo: cartão vertical de contorno escuro, com o brilho à esquerda e a sombra à direita. É o único
+  // ícone que leva o amarelo (autorizado pelo dono: é ícone, não tecla)
   YELLOW_CARD: [
     '............',
-    '.......RRR..',
-    '......R...R.',
-    '....KKKKKK..',
-    '...KBBBBBBK.',
-    'KKKKLLBBBBBK',
-    'KBBBLBBKKBBK',
-    'KBBBBBBKKBBK',
-    'KKKKBBBBBBBK',
-    '....KBBBBBK.',
-    '.....KKKKK..',
+    '...KKKKKK...',
+    '..KLLYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '...KKKKKK...',
     '............',
   ],
   // Pipocou: saquinho de pipoca listrado de vermelho e creme, com a pipoca estourando em cima
@@ -255,7 +256,7 @@ export const REACTION_SPRITES = {
   ],
 } as const satisfies Record<PostReaction, SpriteMap>;
 
-/** As cores de cada ícone de reação (tokens do DS; o amarelo de ação não entra em nenhum). */
+/** As cores de cada ícone de reação (tokens do DS). O amarelo só entra no cartão amarelo, por decisão do dono. */
 export const REACTION_PALETTES = {
   BALL: { K: '#111111', W: 'var(--color-text)' },
   CATFISH: {
@@ -272,9 +273,9 @@ export const REACTION_PALETTES = {
   },
   YELLOW_CARD: {
     K: '#111111',
-    B: 'var(--color-silver)',
-    L: 'var(--color-silver-light)',
-    R: 'var(--color-danger)',
+    Y: 'var(--color-accent)',
+    L: 'var(--color-gold-light)',
+    N: 'var(--color-accent-pressed)',
   },
   POPCORN: {
     K: '#111111',

@@ -16,7 +16,7 @@ describe('barra de reações (C36)', () => {
     let last = -1;
     for (const name of names) {
       expect(html).toContain(`title="${name}"`);
-      const at = html.indexOf(`>${name}</span>`);
+      const at = html.indexOf(`>${name === 'Cartão amarelo' ? 'Cartão' : name}</span>`);
       expect(at).toBeGreaterThan(last);
       last = at;
     }
