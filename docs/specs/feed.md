@@ -10,9 +10,9 @@
 | **Modo** | Par |
 | **Parte de** | — |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @e97ee8d (checkpoint de início em 2026-11-15; antes @1021769) |
 | **Depende de** | votacao, pacote-do-craque, perfil-jogador |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/feed, packages/domain/src/index.ts, packages/shared/src/feed.ts, packages/shared/src/index.ts, apps/api/src/feed, apps/api/src/app.module.ts, apps/api/src/seed, apps/web/src/pages/feed, apps/web/src/features/feed, apps/web/src/pages/rounds/home.tsx, apps/web/src/features/voting, apps/web/src/features/match/game-card.tsx, apps/web/src/router.tsx |
+| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/feed, packages/domain/src/index.ts, packages/shared/src/feed.ts, packages/shared/src/index.ts, apps/api/src/feed, apps/api/src/app.module.ts, apps/api/src/seed, apps/web/src/pages/feed, apps/web/src/features/feed, apps/web/src/pages/rounds/home.tsx, apps/web/src/features/voting, apps/web/src/features/match/game-card.tsx, apps/web/src/features/rounds, apps/web/src/components/ui/pixel-sprite-maps.ts, apps/web/src/app/preload.ts, apps/web/src/router.tsx |
 
 ## Produto
 
@@ -91,10 +91,17 @@ Cada cenário tem um id. Os testes levam o id no nome.
 
 **Tela: avisos** (`/`, 390 px)
 
+> Checkpoint 2026-11-15: o início de hoje já tem `ResultAlert` ("O RESULTADO SAIU", pacote em miniatura e
+> "Abrir pacote"; sem votos, "Ver resultado" e sem pacote; depois de aberto vira `ResultLine`), `VotingCard`
+> (neutro por decisão do dono, com `yieldKey` para ceder a tecla amarela) e `GameCard`. O "já abri o pacote" é
+> **por aparelho** (`hasOpenedResult`, guardado no navegador): a API sempre manda o `RESULT` dentro dos 7 dias, e
+> o front rebaixa o `RESULT` aberto para linha, promovendo o próximo da lista a aviso grande. Os cards existentes
+> são reaproveitados como aviso grande (sem duplicar), ganhando o que faltar do padrão de grande momento.
+
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| C27 | resultado novo + votação aberta + presença aberta | abrir o Feed | **um** card grande (o do resultado, com "Abrir pacote") e duas **linhas de aviso** abaixo: "VOTAÇÃO ABERTA · FALTA O SEU VOTO" e "PRESENÇA ABERTA · RESPONDA". Cada linha tem ícone, o tipo escrito, cor do tipo e seta; alvo ≥ 44 px | Playwright |
-| C28 | abri o pacote | voltar ao Feed | o resultado vira linha ("RESULTADO DA RODADA 12") e a votação sobe para card grande | Playwright |
+| C27 | resultado novo (pacote fechado) + votação aberta + presença aberta | abrir o Feed | **um** card grande (o `ResultAlert` de hoje, com o pacote em miniatura e "Abrir pacote"; rodada sem votos: "Ver resultado", sem pacote) e duas **linhas de aviso** abaixo: "VOTAÇÃO ABERTA · FALTA O SEU VOTO" e "PRESENÇA ABERTA · RESPONDA". Cada linha tem ícone, o tipo escrito, cor do tipo e seta; alvo ≥ 44 px | Playwright |
+| C28 | abri o pacote (neste aparelho) | voltar ao Feed | o resultado vira linha ("RESULTADO · RODADA 12") e a votação sobe para card grande (o `VotingCard`, agora com a tecla amarela "Dar minhas notas" se joguei e não votei) | Playwright |
 | C29 | só presença aberta | abrir | card grande da presença (o de hoje: data, local, CONFIRMAR / AUSÊNCIA, contagem), com uma fileira de rostos de quem vai ("+9" no fim) que leva ao detalhe da rodada | Playwright |
 | C30 | times publicados e estou escalado | abrir | card grande **"TIMES PUBLICADOS"** com "VOCÊ JOGA NO PRETO" (faixa com o meu bonequinho) e a tecla "Ver os times"; não escalado: "Você não está escalado" | Playwright |
 | C31 | jogo rolando; Resenha | abrir | o card do jogo de hoje ("Em jogo" / "Hora da Resenha") como aviso grande; votação de outra rodada, se houver, em linha | Playwright |
@@ -248,8 +255,16 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
   - **Linha de aviso** (`features/feed/alert-line.tsx`): 56 px, ícone do tipo + título em pixel + situação curta
     + seta; contorno de 2 px na cor do tipo. O texto de cada situação sai de uma função pura com teste
     (`alert-text.ts`).
-  - Cores por papel do DS: resultado em ouro, votação em laranja (atenção), presença em verde, jogo em creme com
-    o ponto "ao vivo". Sempre com ícone e o tipo por escrito.
+  - Cores por papel do DS: resultado em ouro (recompensa), votação neutra (como o `VotingCard`, decisão do dono no
+    pacote-do-craque), presença em verde, jogo em creme com o ponto "ao vivo". Sempre com ícone e o tipo por escrito.
+  - **Feedback do dono (15/11):** os cards do início ficaram "bem simples as letras e em cores diferentes". Cada
+    card é grande momento (contorno grosso, sombra dura, entrada animada, tipografia com hierarquia: rótulo pequeno,
+    título grande em pixel com sombra, texto corrido). **Ouro é recompensa; o amarelo fica só na tecla de ação;
+    nunca os dois competindo no mesmo card.** Um aviso grande por vez. Rostos sempre com o bonequinho
+    (`MemberAvatar`).
+  - Peso inicial: o Feed é um pedaço `lazy` (`pages/feed/feed-area.ts`, que substitui `pages/rounds/home` no
+    `app/preload.ts`); import de valor de `@fut-stats/shared` só dentro dele, nunca em `app/`, `components/ui` ou
+    `features/session` (JS inicial de 118,4 kB, polimento-v1).
   - A lista "Quem vai" sai do início e fica no detalhe da rodada; o card da presença ganha a fileira de rostos.
   - A consulta dos avisos usa uma chave **sob a da lista de rodadas** (`[...roundsKey(groupId), 'alerts']`): tudo
     que já invalida a lista de rodadas (mudança de etapa, e o tempo real de `jogo-ao-vivo`) atualiza os avisos sem
@@ -279,6 +294,12 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
 - Comentários abrem no card — conversa curta não pede outra tela.
 - "Quem vai" sai do início — o Feed precisa de espaço para avisos e resenhas; a lista completa continua a um toque.
 - Qualquer admin edita e apaga qualquer resenha — os admins são a "redação" do grupo.
+
+### Cruzamento com `auditoria-da-rodada` (onda 5)
+As duas mexem em `schema.prisma`, `apps/api/src/app.module.ts` e `packages/shared/src/index.ts`. A auditoria entra
+primeiro (model `RoundLog`, dona do schema nesta onda). O feed faz a sua migration normalmente; quando a auditoria
+entrar, rebase, junta o `schema.prisma` mantendo os dois e confere que `prisma migrate dev` não acusa drift (se
+acusar, recria a migration do feed por cima). O feed não escreve em placar, etapa ou lance.
 
 ## Fora do escopo
 - Imagem e vídeo na resenha (decisão do dono, P6); link clicável e menção no texto.
