@@ -62,27 +62,26 @@ function Alerts({ groupId, isAdmin, me }: { groupId: string; isAdmin: boolean; m
     );
   if (!alerts.data) return <SkeletonList rows={3} label="Carregando os avisos" />;
 
-  if (alerts.data.length === 0)
-    return (
-      <div className="flex flex-col gap-4">
-        <EmptyState
-          title="Nenhuma rodada marcada"
-          message={
-            isAdmin
-              ? 'Marque o dia e o local para o grupo confirmar presença.'
-              : 'Quando o admin marcar a próxima, ela aparece aqui.'
-          }
-        />
-        {isAdmin && <RouteButton to="/rodadas/nova" label="Criar rodada" icon="plus" block />}
-      </div>
-    );
-
   const opened = (a: FeedAlert) =>
     a.type === 'RESULT' && hasOpenedResult(a.roundId, me.membershipId);
-  const { big, lines } = splitAlerts(alerts.data, opened);
+  const { big, lines, empty } = splitAlerts(alerts.data, opened);
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Sem aviso grande (nada, ou só resultados já abertos): o vazio, com as linhas que sobraram abaixo */}
+      {empty && (
+        <>
+          <EmptyState
+            title="Nenhuma rodada marcada"
+            message={
+              isAdmin
+                ? 'Marque o dia e o local para o grupo confirmar presença.'
+                : 'Quando o admin marcar a próxima, ela aparece aqui.'
+            }
+          />
+          {isAdmin && <RouteButton to="/rodadas/nova" label="Criar rodada" icon="plus" block />}
+        </>
+      )}
       {big && <AlertCard key={big.type} groupId={groupId} alert={big} me={me} />}
       {lines.length > 0 && (
         <ul aria-label="Outros avisos" className="flex flex-col gap-3">

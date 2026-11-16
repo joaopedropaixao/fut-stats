@@ -107,10 +107,16 @@ describe('aviso grande e linhas (C27, C28)', () => {
     expect(lines).toEqual([result, presence]);
   });
 
-  it('só o resultado e já aberto: nenhum card grande, uma linha', () => {
-    const { big, lines } = splitAlerts([result], () => true);
+  it('só o resultado e já aberto: nenhum card grande, uma linha, e o Feed mostra o estado vazio (C32)', () => {
+    const { big, lines, empty } = splitAlerts([result], () => true);
     expect(big).toBeUndefined();
     expect(lines).toEqual([result]);
+    expect(empty).toBe(true);
+  });
+
+  it('com card grande, o estado vazio não aparece', () => {
+    expect(splitAlerts([result, voting], () => false).empty).toBe(false);
+    expect(splitAlerts([result, voting], (a) => a.type === 'RESULT').empty).toBe(false);
   });
 
   it('o "aberto" só vale para o resultado: votação nunca é rebaixada', () => {
@@ -118,6 +124,6 @@ describe('aviso grande e linhas (C27, C28)', () => {
   });
 
   it('sem avisos: nada', () => {
-    expect(splitAlerts([], () => false)).toEqual({ big: undefined, lines: [] });
+    expect(splitAlerts([], () => false)).toEqual({ big: undefined, lines: [], empty: true });
   });
 });

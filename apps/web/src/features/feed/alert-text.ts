@@ -84,12 +84,13 @@ export function alertAriaLabel(text: AlertText): string {
 /**
  * Separa o aviso grande das linhas. A API manda a lista na ordem de prioridade; o "já abri o pacote" é por aparelho
  * (`isOpened`): o resultado aberto vira linha e o aviso seguinte sobe para o card grande. Sem aviso que sirva de
- * card (só o resultado aberto), tudo fica em linha.
+ * card (nada, ou só resultados já abertos), `empty` é verdadeiro: o Feed mostra "Nenhuma rodada marcada" e as
+ * linhas que sobraram ficam abaixo.
  */
 export function splitAlerts(
   alerts: readonly FeedAlert[],
   isOpened: (alert: FeedAlert) => boolean,
-): { big: FeedAlert | undefined; lines: FeedAlert[] } {
+): { big: FeedAlert | undefined; lines: FeedAlert[]; empty: boolean } {
   const big = alerts.find((alert) => !(alert.type === 'RESULT' && isOpened(alert)));
-  return { big, lines: alerts.filter((alert) => alert !== big) };
+  return { big, lines: alerts.filter((alert) => alert !== big), empty: big === undefined };
 }
