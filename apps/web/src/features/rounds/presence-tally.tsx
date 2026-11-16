@@ -10,6 +10,7 @@ import { cn } from '../../lib/cn';
 export function PresenceTally({ round }: { round: RoundDetail }) {
   const { confirmed, declined, pending } = round.attendance;
   const going = confirmed.length;
+  const title = going === 1 ? '1 confirmado' : `${going} confirmados`;
   const segments = [
     ...confirmed.map(() => 'bg-success'),
     ...declined.map(() => 'bg-danger/45'),
@@ -18,9 +19,15 @@ export function PresenceTally({ round }: { round: RoundDetail }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <PixelText as="p" size={24}>
-        {going === 1 ? '1 confirmado' : `${going} confirmados`}
-      </PixelText>
+      {/* Em 320 px o título em 24 não cabe numa linha: troca para o 16 (display none some do leitor de tela também) */}
+      <p>
+        <span className="block max-[359px]:hidden">
+          <PixelText size={24}>{title}</PixelText>
+        </span>
+        <span className="hidden max-[359px]:block">
+          <PixelText size={16}>{title}</PixelText>
+        </span>
+      </p>
       {segments.length > 0 && (
         <div aria-hidden className="flex h-2.5 gap-0.5">
           {segments.map((color, i) => (
