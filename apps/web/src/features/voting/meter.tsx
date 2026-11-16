@@ -6,8 +6,8 @@ type MeterProps = {
   total: number;
   /** Mostra "Faltam N" embaixo (a tela de votar; o card do início é mais enxuto). */
   showMissing?: boolean;
-  /** A cor da barra: verde (padrão) ou a cor do card de quem a usa. */
-  tone?: 'success' | 'warning';
+  /** A cor da barra: verde (padrão) ou a cor do card de quem a usa (laranja ou o azul da votação). */
+  tone?: 'success' | 'warning' | 'vote';
   className?: string;
 };
 
@@ -29,7 +29,7 @@ export function Meter({ voted, total, showMissing, tone = 'success', className }
         <div
           className={cn(
             'absolute inset-y-0 left-0',
-            tone === 'warning' ? 'bg-warning' : 'bg-success',
+            { success: 'bg-success', warning: 'bg-warning', vote: 'bg-vote' }[tone],
           )}
           style={{ width: `${pct}%` }}
         />

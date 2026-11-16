@@ -34,6 +34,24 @@ describe('linha de aviso (C27, C28, C33)', () => {
     expect(render(<AlertLine alert={alert('PRESENCE')} />)).not.toContain('animate-live-blink');
   });
 
+  it('contorno neutro, faixa à esquerda e ícone na cor do tipo, sem amarelo', () => {
+    const html = render(<AlertLine alert={alert('RESULT')} />);
+    expect(html).toContain('inset 0 0 0 2px var(--color-border-strong)');
+    expect(html).toContain('background:var(--color-gold)');
+    expect(html).toContain('text-gold');
+    expect(html).not.toContain('accent');
+    expect(render(<AlertLine alert={alert('VOTING')} />)).toContain('background:var(--color-vote)');
+    expect(render(<AlertLine alert={alert('POST_MATCH')} />)).toContain(
+      'background:var(--color-warning)',
+    );
+  });
+
+  it('o jogo ao vivo é vermelho; os times saíram em branco e preto com o corte', () => {
+    expect(render(<AlertLine alert={alert('IN_PROGRESS')} />)).toContain('bg-danger');
+    const teams = render(<AlertLine alert={alert('TEAMS_PUBLISHED')} />);
+    expect(teams).toContain('linear-gradient(160deg');
+  });
+
   it('cada linha entra com atraso próprio (escalonado pela posição)', () => {
     expect(render(<AlertLine alert={alert('PRESENCE')} index={2} />)).toContain(
       '--moment-delay:160ms',

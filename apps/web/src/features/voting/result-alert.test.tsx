@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { ResultAlert } from './result-alert';
 
-describe('aviso grande do resultado (C27, regra do ouro e do amarelo)', () => {
+describe('aviso grande do resultado (C27, ouro de identidade e tecla amarela)', () => {
   const html = renderToString(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter>
@@ -13,11 +13,17 @@ describe('aviso grande do resultado (C27, regra do ouro e do amarelo)', () => {
     </QueryClientProvider>,
   );
 
-  it('o rótulo da rodada e o traço do título são neutros: o ouro não compete com a tecla amarela', () => {
+  it('a identidade é o ouro: moldura, faixa do cabeçalho e rótulo da rodada', () => {
     expect(html).toContain('Rodada 8');
-    expect(html).not.toContain('text-gold');
-    expect(html).not.toContain('--color-gold');
-    expect(html).toContain('--color-border-strong');
+    expect(html).toContain('border-color:var(--color-gold)');
+    expect(html).toContain('bg-gold/14');
+    expect(html).toContain('text-gold');
+  });
+
+  it('a tecla é a amarela e o ouro não vai nela', () => {
+    expect(html).toContain('Ver resultado');
+    expect(html).toContain('bg-accent');
+    expect(html.match(/<a [^>]*bg-accent[^>]*>/)?.[0]).not.toContain('gold');
   });
 
   it('mantém o padrão de grande momento: contorno grosso, sombra dura e entrada animada', () => {

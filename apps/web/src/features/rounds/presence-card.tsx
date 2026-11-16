@@ -1,6 +1,7 @@
 import type { RoundDetail } from '@fut-stats/shared';
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
+import { AlertBand, AlertFrame, AlertTitle } from '../../components/ui/alert-frame';
 import { Icon } from '../../components/ui/icons';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
@@ -14,9 +15,9 @@ import { usePresence } from './use-presence';
 const FACES = 5;
 
 /**
- * Presença aberta, o card grande: grande momento verde (contorno de 3px, sombra dura, entrada em degraus) com
- * a data e o local, CONFIRMAR / AUSÊNCIA, a contagem e a fileira de rostos de quem vai, que leva ao detalhe da
- * rodada. Verde é o papel da presença; nenhuma tecla amarela aqui (as respostas são verde e vermelho).
+ * Presença aberta, o card grande: grande momento verde (moldura, faixa do cabeçalho e ícone em `--color-success`,
+ * sombra dura, entrada em degraus) com a data e o local, Confirmar / Ausência (o Confirmar é a tecla amarela), a
+ * contagem e a fileira de rostos de quem vai, que leva ao detalhe da rodada.
  */
 export function PresenceCard({ groupId, round }: { groupId: string; round: RoundDetail }) {
   const presence = usePresence(groupId, round);
@@ -27,17 +28,12 @@ export function PresenceCard({ groupId, round }: { groupId: string; round: Round
 
   return (
     <>
-      <section
-        aria-label="Presença aberta"
-        className="moment-frame animate-moment-in flex flex-col bg-surface-raised"
-        style={{ borderColor: 'var(--color-success)', boxShadow: '5px 5px 0 var(--color-shadow)' }}
-      >
-        <div className="flex items-center gap-3 bg-success/12 px-4 py-4 shadow-[inset_0_-3px_0_0_var(--color-success)]">
-          <Icon name="check" size={28} strokeWidth={3} className="text-[#86efac]" />
-          <PixelText as="h2" size={24} wrap className="text-text [text-shadow:2px_2px_0_#000]">
+      <AlertFrame tone="PRESENCE" label="Presença aberta">
+        <AlertBand tone="PRESENCE">
+          <AlertTitle tone="PRESENCE" icon="check">
             Presença aberta
-          </PixelText>
-        </div>
+          </AlertTitle>
+        </AlertBand>
         <div
           className="flex flex-col gap-5 p-4"
           style={{ '--moment-delay': '120ms' } as CSSProperties}
@@ -51,7 +47,7 @@ export function PresenceCard({ groupId, round }: { groupId: string; round: Round
             />
           </div>
           <div className="animate-row-in [--moment-delay:180ms]">
-            <MyPresence round={round} onChange={set} calm />
+            <MyPresence round={round} onChange={set} calm keyed />
           </div>
           <div className="animate-row-in flex flex-col gap-4 shadow-[inset_0_2px_0_0_var(--color-border)] pt-4 [--moment-delay:240ms]">
             <PresenceTally round={round} />
@@ -96,7 +92,7 @@ export function PresenceCard({ groupId, round }: { groupId: string; round: Round
             </Link>
           </div>
         </div>
-      </section>
+      </AlertFrame>
       {presence.notice}
     </>
   );

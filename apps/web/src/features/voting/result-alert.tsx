@@ -1,4 +1,6 @@
 import type { CSSProperties } from 'react';
+import { AlertBand, AlertFrame } from '../../components/ui/alert-frame';
+import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
 import { RouteButton } from '../rounds/route-button';
 import { PackMini } from './pack-mini';
@@ -12,11 +14,11 @@ type ResultAlertProps = {
 };
 
 /**
- * Aviso grande do resultado: "O RESULTADO SAIU", o card da recompensa. O ouro é só do pacote em miniatura (a
- * recompensa); o rótulo da rodada, o traço do título e o contorno são neutros, e a única tecla amarela é a de ação:
- * ouro e amarelo não competem no mesmo card. O pacote fechado em miniatura treme de leve em degraus (parado com "reduzir
- * movimento"). Depois de aberto (por rodada e por jogador) o Feed troca este card pela linha do resultado.
- * Rodada sem votos não tem pacote: a tecla diz "Ver resultado" e o pacote some.
+ * Aviso grande do resultado: "O RESULTADO SAIU", o card da recompensa. A identidade é o ouro (moldura, faixa do
+ * cabeçalho, ícone e rótulo da rodada); a única tecla amarela é a de ação, que nunca leva o ouro. O pacote fechado
+ * em miniatura treme de leve em degraus (parado com "reduzir movimento"). Depois de aberto (por rodada e por
+ * jogador) o Feed troca este card pela linha do resultado.
+ * Rodada sem votos não tem pacote: a tecla diz "Ver resultado" e o ícone do pacote fica no lugar da miniatura.
  */
 export function ResultAlert({ groupId, roundId, number }: ResultAlertProps) {
   const to = `/rodadas/${roundId}/resultado`;
@@ -24,19 +26,17 @@ export function ResultAlert({ groupId, roundId, number }: ResultAlertProps) {
   // Enquanto não sabe (ou sem votos), o card não promete pacote
   const pack = result.data ? hasPack(result.data) : false;
   return (
-    <section
-      aria-label="O resultado saiu"
-      className="moment-frame animate-moment-in flex flex-col bg-surface-raised"
-      style={{ boxShadow: '5px 5px 0 var(--color-shadow)' }}
-    >
-      <div className="flex items-center gap-3 bg-surface-3 px-4 py-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
-        {pack && (
+    <AlertFrame tone="RESULT" label="O resultado saiu">
+      <AlertBand tone="RESULT" nowrap>
+        {pack ? (
           <span className="animate-pack-wobble inline-flex">
             <PackMini scale={5} />
           </span>
+        ) : (
+          <Icon name="pack" size={28} className="shrink-0 text-gold" />
         )}
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <PixelText className="text-text-muted">{`Rodada ${number}`}</PixelText>
+          <PixelText className="text-gold">{`Rodada ${number}`}</PixelText>
           <PixelText
             as="h2"
             size={24}
@@ -46,7 +46,7 @@ export function ResultAlert({ groupId, roundId, number }: ResultAlertProps) {
             O resultado saiu
           </PixelText>
         </div>
-      </div>
+      </AlertBand>
       <div
         className="flex flex-col gap-4 p-4"
         style={{ '--moment-delay': '120ms' } as CSSProperties}
@@ -62,6 +62,6 @@ export function ResultAlert({ groupId, roundId, number }: ResultAlertProps) {
           className="animate-row-in [--moment-delay:220ms]"
         />
       </div>
-    </section>
+    </AlertFrame>
   );
 }

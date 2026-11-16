@@ -1,5 +1,6 @@
 import { POSITION_LABELS, type FeedAlert, type Lineup, type PlayerAvatar } from '@fut-stats/shared';
 import type { CSSProperties } from 'react';
+import { AlertBand, AlertFrame, AlertTitle } from '../../components/ui/alert-frame';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
 import { formatRoundWhen } from '../../lib/round-format';
@@ -22,8 +23,9 @@ function myPosition(lineup: Lineup | undefined, membershipId: string): string | 
 type Me = { membershipId: string; avatar: PlayerAvatar };
 
 /**
- * Aviso grande dos times: grande momento neutro (contorno de 3px, sombra dura, entrada em degraus) com a faixa do
- * meu bonequinho ("Você joga no Preto") ou "Você não está escalado", e a tecla amarela "Ver os times" (a aba Times).
+ * Aviso grande dos times: grande momento em branco e preto (moldura branca com sombra preta, faixa preta e o corte
+ * diagonal do placar embaixo dela), com a faixa do meu bonequinho ("Você joga no Preto") ou "Você não está
+ * escalado", e a tecla amarela "Ver os times" (a aba Times). A identidade nunca vai na tecla.
  */
 export function TeamsPublishedCard({
   groupId,
@@ -37,17 +39,12 @@ export function TeamsPublishedCard({
   const lineup = useLineup(groupId, alert.roundId);
   const team = alert.me.team ?? null;
   return (
-    <section
-      aria-label="Times publicados"
-      className="moment-frame animate-moment-in flex flex-col bg-surface-raised"
-      style={{ boxShadow: '5px 5px 0 var(--color-shadow)' }}
-    >
-      <div className="flex items-center gap-3 bg-surface-3 px-4 py-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
-        <Icon name="teams" size={28} className="text-text" />
-        <PixelText as="h2" size={24} wrap className="text-text [text-shadow:2px_2px_0_#000]">
+    <AlertFrame tone="TEAMS_PUBLISHED" label="Times publicados">
+      <AlertBand tone="TEAMS_PUBLISHED">
+        <AlertTitle tone="TEAMS_PUBLISHED" icon="teams">
           Times publicados
-        </PixelText>
-      </div>
+        </AlertTitle>
+      </AlertBand>
       <div
         className="flex flex-col gap-4 p-4"
         style={{ '--moment-delay': '120ms' } as CSSProperties}
@@ -80,6 +77,6 @@ export function TeamsPublishedCard({
           className="animate-row-in [--moment-delay:260ms]"
         />
       </div>
-    </section>
+    </AlertFrame>
   );
 }
