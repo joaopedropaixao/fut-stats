@@ -87,12 +87,12 @@ enum AvatarHairColor {
   GRAY
 }
 
-/// Reação a uma resenha do Feed. Igual a `PostReaction` do domain (bola, bagre, OSS!, apito, pipocou).
+/// Reação a uma resenha do Feed. Igual a `PostReaction` do domain (bola, bagre, OSS!, cartão amarelo, pipocou).
 enum PostReactionType {
   BALL
   CATFISH
   OSS
-  WHISTLE
+  YELLOW_CARD
   POPCORN
 }
 

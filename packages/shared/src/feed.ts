@@ -64,7 +64,7 @@ export const POST_REACTION_LABELS: Readonly<Record<PostReaction, string>> = {
   BALL: 'Bola',
   CATFISH: 'Bagre',
   OSS: 'OSS!',
-  WHISTLE: 'Apito',
+  YELLOW_CARD: 'Cartão amarelo',
   POPCORN: 'Pipocou',
 };
 

@@ -14,7 +14,7 @@ describe('feed: limites e listas do domain reexportados', () => {
     expect(POST_TITLE_MAX_LENGTH).toBe(60);
     expect(POST_BODY_MAX_LENGTH).toBe(1000);
     expect(COMMENT_MAX_LENGTH).toBe(280);
-    expect([...POST_REACTIONS]).toEqual(['BALL', 'CATFISH', 'OSS', 'WHISTLE', 'POPCORN']);
+    expect([...POST_REACTIONS]).toEqual(['BALL', 'CATFISH', 'OSS', 'YELLOW_CARD', 'POPCORN']);
     expect(FEED_ALERT_TYPES[0]).toBe('IN_PROGRESS');
   });
 

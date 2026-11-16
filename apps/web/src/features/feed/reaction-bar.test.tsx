@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ReactionBar } from './reaction-bar';
 
 const post = {
-  reactions: { BALL: 0, CATFISH: 3, OSS: 0, WHISTLE: 0, POPCORN: 1 },
+  reactions: { BALL: 0, CATFISH: 3, OSS: 0, YELLOW_CARD: 0, POPCORN: 1 },
   myReaction: 'CATFISH',
 } as unknown as Post;
 
@@ -12,7 +12,7 @@ describe('barra de reações (C36)', () => {
   const html = renderToString(<ReactionBar post={post} onReact={() => {}} />);
 
   it('mostra as 5 reações na ordem, com o nome curto visível e no title', () => {
-    const names = ['Bola', 'Bagre', 'OSS!', 'Apito', 'Pipocou'];
+    const names = ['Bola', 'Bagre', 'OSS!', 'Cartão amarelo', 'Pipocou'];
     let last = -1;
     for (const name of names) {
       expect(html).toContain(`title="${name}"`);

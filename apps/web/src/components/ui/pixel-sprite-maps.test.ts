@@ -144,7 +144,7 @@ describe('ícones das reações (12 de altura)', () => {
   const names = Object.keys(REACTION_SPRITES) as (keyof typeof REACTION_SPRITES)[];
 
   it('são as 5 reações da lista fechada', () => {
-    expect(names.sort()).toEqual(['BALL', 'CATFISH', 'OSS', 'POPCORN', 'WHISTLE']);
+    expect(names.sort()).toEqual(['BALL', 'CATFISH', 'OSS', 'POPCORN', 'YELLOW_CARD']);
   });
 
   it.each(names)('%s tem 12 linhas de largura fixa e só letras da própria paleta', (name) => {

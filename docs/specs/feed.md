@@ -42,7 +42,7 @@ escrevem, com reações e comentários de todo mundo. É o que dá vida ao app e
 - **Resenha:** só admin escreve (visão do produto). Título opcional com até 60 caracteres; texto obrigatório com
   até 1000, com quebra de linha. **Só texto na v1** (imagem pede um serviço de arquivos novo).
 - **Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`): bola ("golaço, curti o lance"), bagre
-  (a zoeira de "joga mal hoje"), OSS! (respeito e raça), apito ("falta, essa foi feia") e pipocou ("amarelou, fugiu
+  (a zoeira de "joga mal hoje"), OSS! (respeito e raça), cartão amarelo ("essa foi feia") e pipocou ("amarelou, fugiu
   da dividida"). Tocar em outra troca; tocar na mesma tira.
 - **Comentário:** qualquer membro, até 280 caracteres, sem edição. Apaga o autor ou um admin.
 - Textos passam pela mesma regra de caractere inválido do apelido (`hasInvalidCharacters`), liberando a quebra de
@@ -115,7 +115,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | C35 | grupo com resenhas | rolar o Feed | seção "RESENHAS"; cada resenha é um card de grande momento (contorno de 3 px, sombra dura, entrada em degraus nos 3 primeiros): rosto e apelido do autor, selo ADMIN, quando ("HOJE, 21H" / "SÁB, 17 OUT"), título em pixel, texto corrido em Chakra Petch com as quebras de linha, "editada" quando foi | Playwright |
-| C36 | resenha | tocar numa reação | o contador sobe com o dígito "batendo"; a minha fica com contorno grosso e ✓; tocar em outra troca; tocar na mesma tira. Cada botão tem ícone pixel (desenho próprio; o OSS! é mais largo), o nome curto sempre visível embaixo do ícone (Bola, Bagre, OSS!, Apito, Pipocou; também no `title`), o número e nome para leitor de tela ("Bagre, 3 reações, a sua"); em 320 px os nomes cabem sem estourar o botão de ≥ 44 px | Playwright |
+| C36 | resenha | tocar numa reação | o contador sobe com o dígito "batendo"; a minha fica com contorno grosso e ✓; tocar em outra troca; tocar na mesma tira. Cada botão tem ícone pixel (desenho próprio; o OSS! é mais largo), o nome curto sempre visível embaixo do ícone (Bola, Bagre, OSS!, Cartão amarelo, Pipocou; também no `title`), o número e nome para leitor de tela ("Bagre, 3 reações, a sua"); em 320 px os nomes cabem sem estourar o botão de ≥ 44 px | Playwright |
 | C37 | resenha com 3 comentários | tocar em "COMENTÁRIOS · 3" | abre embaixo do card: rosto, apelido, quando e texto de cada um; campo "Escreva um comentário" com contador e "Enviar" | Playwright |
 | C38 | comentando | enviar | o comentário entra no fim, o campo limpa e o contador do card sobe; vazio não envia; 281 caracteres mostra o erro do shared | Playwright |
 | C39 | meu comentário (ou qualquer um, como admin) | lixeira (44 × 44) → gaveta "Apagar comentário?" | some da lista com aviso | Playwright |
@@ -181,8 +181,8 @@ export const feedAlertSchema = z.object({
   }),
 });
 
-export const postReactionSchema = z.enum(POST_REACTIONS);       // 'BALL' | 'CATFISH' | 'OSS' | 'WHISTLE' | 'POPCORN'
-export const POST_REACTION_LABELS: Record<PostReaction, string>; // Bola, Bagre, OSS!, Apito, Pipocou
+export const postReactionSchema = z.enum(POST_REACTIONS);       // 'BALL' | 'CATFISH' | 'OSS' | 'YELLOW_CARD' | 'POPCORN'
+export const POST_REACTION_LABELS: Record<PostReaction, string>; // Bola, Bagre, OSS!, Cartão amarelo, Pipocou
 export const POST_INPUT_ERROR_LABELS: Record<PostInputError, string>;
 export const COMMENT_ERROR_LABELS: Record<TextFieldError, string>;
 export const NOT_OWN_COMMENT_LABEL = 'Você só apaga o seu próprio comentário';
@@ -273,7 +273,8 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
   - **Feedback do dono (15/11):** os cards do início ficaram "bem simples as letras e em cores diferentes". Cada
     card é grande momento (contorno grosso, sombra dura, entrada animada, tipografia com hierarquia: rótulo pequeno,
     título grande em pixel com sombra, texto corrido). **Ouro é recompensa; o amarelo fica só na tecla de ação;
-    nunca os dois competindo no mesmo card.** Um aviso grande por vez. Rostos sempre com o bonequinho
+    nunca os dois competindo no mesmo card.** (Exceção autorizada pelo dono: o ícone da reação cartão amarelo é
+    amarelo; é ícone, não tecla.) Um aviso grande por vez. Rostos sempre com o bonequinho
     (`MemberAvatar`).
   - Peso inicial: o Feed é um pedaço `lazy` (`pages/feed/feed-area.ts`, que substitui `pages/rounds/home` no
     `app/preload.ts`); import de valor de `@fut-stats/shared` só dentro dele, nunca em `app/`, `components/ui` ou

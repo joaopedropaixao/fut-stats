@@ -335,10 +335,10 @@ export const SEED_POSTS: readonly SeedPost[] = [
     hoursAgo: 6,
     reactions: [
       ['Rafa', 'CATFISH'],
-      ['Bruninho', 'WHISTLE'],
+      ['Bruninho', 'YELLOW_CARD'],
       ['Diegão', 'CATFISH'],
       ['Dudu', 'BALL'],
-      ['Muralha', 'WHISTLE'],
+      ['Muralha', 'YELLOW_CARD'],
       ['Paredão', 'OSS'],
     ],
     comments: [
@@ -357,7 +357,7 @@ export const SEED_POSTS: readonly SeedPost[] = [
     body: 'Lembrete rápido: quem for faltar avisa na presença antes de os times saírem. Fechar o time na última hora é o que mais estraga a rodada.',
     hoursAgo: 52,
     reactions: [
-      ['Carlão', 'WHISTLE'],
+      ['Carlão', 'YELLOW_CARD'],
       ['Dedé', 'BALL'],
       ['Igão', 'POPCORN'],
     ],

@@ -17,8 +17,8 @@ export const POST_INPUT_ERRORS = [
 
 export type PostInputError = (typeof POST_INPUT_ERRORS)[number];
 
-/** As 5 reações de uma resenha (uma por pessoa): bola, bagre, OSS!, apito e pipocou. */
-export const POST_REACTIONS = ['BALL', 'CATFISH', 'OSS', 'WHISTLE', 'POPCORN'] as const;
+/** As 5 reações de uma resenha (uma por pessoa): bola, bagre, OSS!, cartão amarelo e pipocou. */
+export const POST_REACTIONS = ['BALL', 'CATFISH', 'OSS', 'YELLOW_CARD', 'POPCORN'] as const;
 
 export type PostReaction = (typeof POST_REACTIONS)[number];
 

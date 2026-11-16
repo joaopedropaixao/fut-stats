@@ -108,7 +108,7 @@ describe('feed: resenhas, reações e comentários', () => {
           avatar: { skin: 'TAN', hair: 'SHORT', hairColor: 'BLACK' },
         },
         editedAt: null,
-        reactions: { BALL: 0, CATFISH: 0, OSS: 0, WHISTLE: 0, POPCORN: 0 },
+        reactions: { BALL: 0, CATFISH: 0, OSS: 0, YELLOW_CARD: 0, POPCORN: 0 },
         myReaction: null,
         commentCount: 0,
         canManage: true,
@@ -180,7 +180,7 @@ describe('feed: resenhas, reações e comentários', () => {
     it('GET por id: membro lê uma resenha pelo id, com reações, a minha e o contador', async () => {
       const c = await setup();
       const post = await seedPost(c, { title: 'Título', body: 'Linha 1\nLinha 2' });
-      await putReaction(c, c.caio, post.id, { reaction: 'WHISTLE' }).expect(200);
+      await putReaction(c, c.caio, post.id, { reaction: 'YELLOW_CARD' }).expect(200);
       await addComment(c, c.davi, post.id, 'Boa').expect(201);
 
       const res = await request(server())
@@ -194,8 +194,8 @@ describe('feed: resenhas, reações e comentários', () => {
         title: 'Título',
         body: 'Linha 1\nLinha 2',
         author: { nickname: 'Ana', role: 'ADMIN' },
-        reactions: { WHISTLE: 1 },
-        myReaction: 'WHISTLE',
+        reactions: { YELLOW_CARD: 1 },
+        myReaction: 'YELLOW_CARD',
         commentCount: 1,
         canManage: false,
       });
@@ -364,13 +364,13 @@ describe('feed: resenhas, reações e comentários', () => {
       const post = await seedPost(c);
       await putReaction(c, c.caio, post.id, { reaction: 'CATFISH' }).expect(200);
       await putReaction(c, c.davi, post.id, { reaction: 'CATFISH' }).expect(200);
-      await putReaction(c, c.ana, post.id, { reaction: 'WHISTLE' }).expect(200);
+      await putReaction(c, c.ana, post.id, { reaction: 'YELLOW_CARD' }).expect(200);
       await addComment(c, c.caio, post.id, 'Um').expect(201);
       await addComment(c, c.davi, post.id, 'Dois').expect(201);
 
       const asPlayer = await listPosts(c, c.caio).expect(200);
       expect(asPlayer.body.items[0]).toMatchObject({
-        reactions: { BALL: 0, CATFISH: 2, OSS: 0, WHISTLE: 1, POPCORN: 0 },
+        reactions: { BALL: 0, CATFISH: 2, OSS: 0, YELLOW_CARD: 1, POPCORN: 0 },
         myReaction: 'CATFISH',
         commentCount: 2,
         canManage: false,
@@ -401,7 +401,13 @@ describe('feed: resenhas, reações e comentários', () => {
       expect(catfish.body.myReaction).toBe('CATFISH');
 
       const ball = await putReaction(c, c.caio, post.id, { reaction: 'BALL' }).expect(200);
-      expect(ball.body.reactions).toEqual({ BALL: 1, CATFISH: 0, OSS: 0, WHISTLE: 0, POPCORN: 0 });
+      expect(ball.body.reactions).toEqual({
+        BALL: 1,
+        CATFISH: 0,
+        OSS: 0,
+        YELLOW_CARD: 0,
+        POPCORN: 0,
+      });
       expect(ball.body.myReaction).toBe('BALL');
 
       const removed = await request(server())
@@ -412,7 +418,7 @@ describe('feed: resenhas, reações e comentários', () => {
         BALL: 0,
         CATFISH: 0,
         OSS: 0,
-        WHISTLE: 0,
+        YELLOW_CARD: 0,
         POPCORN: 0,
       });
       expect(removed.body.myReaction).toBeNull();
@@ -448,7 +454,7 @@ describe('feed: resenhas, reações e comentários', () => {
         await t.prisma.postReaction.deleteMany();
         const results = await Promise.all([
           putReaction(c, c.caio, post.id, { reaction: 'CATFISH' }),
-          putReaction(c, c.caio, post.id, { reaction: 'WHISTLE' }),
+          putReaction(c, c.caio, post.id, { reaction: 'YELLOW_CARD' }),
           putReaction(c, c.caio, post.id, { reaction: 'CATFISH' }),
         ]);
         expect(results.map((r) => r.status)).toEqual([200, 200, 200]);

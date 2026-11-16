@@ -825,9 +825,10 @@ pontas e em NFC (o schema do shared faz). Título vazio vira `null`. Apagar a re
 o autor que ficou inativo continua aparecendo como autor.
 
 **Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`, nesta ordem: `BALL` Bola "golaço, curti o
-lance"; `CATFISH` Bagre, a zoeira de "joga mal hoje"; `OSS` OSS!, respeito e raça; `WHISTLE` Apito, "falta, essa
-foi feia"; `POPCORN` Pipocou, "amarelou, fugiu da dividida"; enum `PostReactionType` do Prisma igual, `domain-enums.spec.ts` garante). Tocar em outra troca; tocar na
-mesma tira. Banco: chave `(postId, membershipId)`, então dois pedidos juntos dão uma linha só.
+lance"; `CATFISH` Bagre, a zoeira de "joga mal hoje"; `OSS` OSS!, respeito e raça; `YELLOW_CARD` Cartão amarelo, "essa foi feia"; `POPCORN` Pipocou, "amarelou, fugiu da dividida"; enum `PostReactionType` do Prisma igual, `domain-enums.spec.ts` garante). Tocar em outra troca; tocar na
+mesma tira. Banco: chave `(postId, membershipId)`, então dois pedidos juntos dão uma linha só. Exceção autorizada
+pelo dono à regra "o amarelo é só da tecla de ação": o ícone do cartão amarelo (`YELLOW_CARD`) é amarelo, porque é
+ícone, não tecla.
 
 **Comentário:** qualquer membro, até 280 caracteres (`COMMENT_MAX_LENGTH`), sem edição.
 `validateCommentText(text): TextFieldError | null` (mesma regra de caractere da resenha). Apaga o autor ou um admin

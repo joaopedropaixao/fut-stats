@@ -223,8 +223,8 @@ export const REACTION_SPRITES = {
     '..FFF.FKKKKFFFFFFFF.',
     '.......FFFF.........',
   ],
-  // Apito: apito de juiz de lado, com o bocal à esquerda, a câmara redonda com o furo e o cordão vermelho
-  WHISTLE: [
+  // provisório: ícone do cartão amarelo na volta de design (hoje o desenho do apito). Apito de juiz de lado, com o bocal à esquerda, a câmara redonda com o furo e o cordão vermelho
+  YELLOW_CARD: [
     '............',
     '.......RRR..',
     '......R...R.',
@@ -270,7 +270,7 @@ export const REACTION_PALETTES = {
     F: 'var(--color-team-white)',
     R: 'var(--color-danger)',
   },
-  WHISTLE: {
+  YELLOW_CARD: {
     K: '#111111',
     B: 'var(--color-silver)',
     L: 'var(--color-silver-light)',
