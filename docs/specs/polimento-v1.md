@@ -5,7 +5,7 @@
 | **Fatia** | `polimento-v1` (#16 da Trilha) |
 | **Modo** | Front |
 | **Parte de** | — (ajustes dos testes do dono em 15 nov 2026) |
-| **Status** | rascunho |
+| **Status** | aprovado em 2026-11-15 |
 | **Base** | develop @5304341 |
 | **Depende de** | — |
 | **Toca em** | `apps/web/vite.config.ts`, `apps/web/src/features/session`, `apps/web/src/lib/api.ts`, `apps/web/src/features/pack/impact-phrase.ts`, `apps/web/src/features/group/player-card.tsx`, `apps/web/src/index.css` |
