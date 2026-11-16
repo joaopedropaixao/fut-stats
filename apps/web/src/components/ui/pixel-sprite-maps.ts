@@ -3,7 +3,7 @@
  * `spritePaths` junta os pixels vizinhos da mesma cor num retângulo só (como o `rle_paths` da folha).
  */
 
-import type { PlayerAvatar } from '@fut-stats/shared';
+import type { PlayerAvatar, PostReaction } from '@fut-stats/shared';
 import { DEFAULT_AVATAR, type AvatarHair } from '../../lib/avatar';
 
 /** Mapa de pixels: uma letra por cor, `.` é vazio. */
@@ -169,3 +169,107 @@ export function spritePaths(
   });
   return byColor;
 }
+
+/** Os ícones das reações das resenhas (12x12). Uma letra por cor; `.` é vazio; `K` é o contorno escuro. */
+export const REACTION_SPRITE_SIZE = 12;
+
+export const REACTION_SPRITES = {
+  // Bola: gomos escuros no branco, com contorno
+  BALL: [
+    '...KKKKKK...',
+    '..KWWKKWWK..',
+    '.KWWKKKKWWK.',
+    'KWWWWKKWWWWK',
+    'KWKWWWWWWKWK',
+    'KKKKWWWWKKKK',
+    'KKKKWWWWKKKK',
+    'KWKWWWWWWKWK',
+    'KWWWWKKWWWWK',
+    '.KWWKKKKWWK.',
+    '..KWWKKWWK..',
+    '...KKKKKK...',
+  ],
+  // Fogo: chama laranja com miolo claro
+  FIRE: [
+    '.....R......',
+    '....RR......',
+    '....RRR..R..',
+    '...RRRR.RR..',
+    '..RRRYRRRR..',
+    '..RRYYYRRRR.',
+    '.RRRYYYYRRR.',
+    '.RRYYYYYYRR.',
+    '.RRYYWWYYRR.',
+    '..RRYWWYRR..',
+    '...RRYYRR...',
+    '....RRRR....',
+  ],
+  // Risada: rosto com os olhos fechados e a boca aberta
+  LAUGH: [
+    '....YYYY....',
+    '..YYYYYYYY..',
+    '.YYYYYYYYYY.',
+    '.YKKYYYYKKY.',
+    'YYYYYYYYYYYY',
+    'YKKKKKKKKKKY',
+    'YKWWWWWWWWKY',
+    '.KWRRRRRRWK.',
+    '.YKKRRRRKKY.',
+    '.YYYKKKKYYY.',
+    '..YYYYYYYY..',
+    '....YYYY....',
+  ],
+  // Palmas: as duas mãos de frente uma para a outra, os dedos separados, e as faíscas de cima
+  CLAP: [
+    '..Y..YY..Y..',
+    '...Y.YY.Y...',
+    '.SSSS..SSSS.',
+    '.SKSS..SSKS.',
+    '.SKSS..SSKS.',
+    '.SSSSKKSSSS.',
+    '.SSSSKKSSSS.',
+    '..SSSSSSSS..',
+    '..SSSSSSSS..',
+    '...SSSSSS...',
+    '...SSSSSS...',
+    '....SSSS....',
+  ],
+  // Perna de pau: a perna dentro da bota, em cima de uma vara de madeira
+  FLOP: [
+    '...SSSS.....',
+    '...SSSS.....',
+    '...WWWW.....',
+    '...WWWW.....',
+    '...WWWWWWW..',
+    '...KKKKKKK..',
+    '....BB......',
+    '....BB......',
+    '....BB......',
+    '....BB......',
+    '....BB......',
+    '....KK......',
+  ],
+} as const satisfies Record<PostReaction, SpriteMap>;
+
+/** As cores de cada ícone de reação (tokens do DS; o amarelo de ação fica de fora, o ouro claro faz o rosto). */
+export const REACTION_PALETTES = {
+  BALL: { K: '#111111', W: 'var(--color-text)' },
+  FIRE: {
+    R: 'var(--color-warning)',
+    Y: 'var(--color-gold-light)',
+    W: 'var(--color-text)',
+  },
+  LAUGH: {
+    K: '#111111',
+    Y: 'var(--color-gold-light)',
+    W: 'var(--color-text)',
+    R: 'var(--color-danger)',
+  },
+  CLAP: {
+    K: '#111111',
+    S: 'var(--color-skin-3)',
+    D: 'var(--color-skin-4)',
+    Y: 'var(--color-gold-light)',
+  },
+  FLOP: { B: 'var(--color-flop)', W: 'var(--color-text)', K: '#111111', S: 'var(--color-skin-3)' },
+} as const satisfies Record<PostReaction, Record<string, string>>;

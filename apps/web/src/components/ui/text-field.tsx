@@ -10,10 +10,61 @@ type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & {
   hint?: string;
   /** Mensagem de erro: troca o contorno e aparece no lugar da explicação. */
   error?: string;
+  /** Contador de caracteres ("12/60") no canto de baixo; fica vermelho quando passa do máximo. */
+  counter?: FieldCounterValue;
 };
 
+export type FieldCounterValue = { current: number; max: number };
+
+/** O "12/60" do canto: o leitor de tela só ouve quando passa do máximo (o erro já fala). */
+export function FieldCounter({ current, max }: FieldCounterValue) {
+  return (
+    <span
+      className={cn(
+        'shrink-0 text-caption tabular-nums',
+        current > max ? 'text-[#fca5a5]' : 'text-text-muted',
+      )}
+      aria-hidden
+    >
+      {`${current}/${max}`}
+    </span>
+  );
+}
+
+/** A nota de baixo do campo (explicação ou erro) e o contador, lado a lado. */
+export function FieldNote({
+  id,
+  error,
+  hint,
+  counter,
+}: {
+  id: string;
+  error?: string;
+  hint?: string;
+  counter?: FieldCounterValue;
+}) {
+  const note = error ?? hint;
+  if (!note && !counter) return null;
+  return (
+    <div className="flex items-start justify-between gap-3">
+      {note ? (
+        <p
+          id={id}
+          role={error ? 'alert' : undefined}
+          className={cn('text-caption', error ? 'text-[#fca5a5]' : 'text-text-muted')}
+        >
+          {note}
+        </p>
+      ) : (
+        <span />
+      )}
+      {counter && <FieldCounter {...counter} />}
+    </div>
+  );
+}
+
 /** Campo de texto: o que a pessoa digita fica em Inter. */
-export function TextField({ label, hint, error, className, ...rest }: TextFieldProps) {
+export function TextField({ label, hint, error, counter, className, ...rest }: TextFieldProps) {
   const id = useId();
   const noteId = `${id}-nota`;
   const note = error ?? hint;
@@ -46,15 +97,7 @@ export function TextField({ label, hint, error, className, ...rest }: TextFieldP
           />
         )}
       </div>
-      {note && (
-        <p
-          id={noteId}
-          role={error ? 'alert' : undefined}
-          className={cn('text-caption', error ? 'text-[#fca5a5]' : 'text-text-muted')}
-        >
-          {note}
-        </p>
-      )}
+      <FieldNote id={noteId} error={error} hint={hint} counter={counter} />
     </div>
   );
 }

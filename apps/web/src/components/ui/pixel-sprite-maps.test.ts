@@ -9,6 +9,9 @@ import {
   PLAYER_SPRITE,
   playerPalette,
   playerSpriteMap,
+  REACTION_PALETTES,
+  REACTION_SPRITES,
+  REACTION_SPRITE_SIZE,
   shirtColors,
   spritePaths,
 } from './pixel-sprite-maps';
@@ -134,5 +137,22 @@ describe('contorno do cabelo preto na pele mais escura', () => {
 
   it('sem precisar do contorno, o mapa fica como está', () => {
     expect(playerSpriteMap(DEFAULT_AVATAR)).toEqual(bodySprite(DEFAULT_AVATAR.hair));
+  });
+});
+
+describe('ícones das reações (12 x 12)', () => {
+  const names = Object.keys(REACTION_SPRITES) as (keyof typeof REACTION_SPRITES)[];
+
+  it('são as 5 reações da lista fechada', () => {
+    expect(names.sort()).toEqual(['BALL', 'CLAP', 'FIRE', 'FLOP', 'LAUGH']);
+  });
+
+  it.each(names)('%s tem 12 linhas de 12 colunas e só letras da própria paleta', (name) => {
+    const map = REACTION_SPRITES[name];
+    expect(map).toHaveLength(REACTION_SPRITE_SIZE);
+    expect(map.every((row) => row.length === REACTION_SPRITE_SIZE)).toBe(true);
+    const palette = REACTION_PALETTES[name] as Record<string, string>;
+    const letters = new Set(map.join('').replaceAll('.', ''));
+    for (const letter of letters) expect(palette[letter], `${name}: ${letter}`).toBeDefined();
   });
 });

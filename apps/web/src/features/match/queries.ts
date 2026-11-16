@@ -9,7 +9,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiDeleteJson, apiGet, apiPost, apiPut } from '../../lib/api';
 import { historyKey } from '../history/history-key';
-import { roundKey, roundsKey } from '../rounds/queries';
+import { refreshRounds, roundKey } from '../rounds/queries';
 import { matchRefreshInterval } from './refresh-interval';
 
 const matchPath = (groupId: string, roundId: string) =>
@@ -39,7 +39,7 @@ export function useMatchActions(groupId: string, roundId: string) {
   const setViewAndRefreshRound = (view: MatchView) => {
     setView(view);
     void queryClient.invalidateQueries({ queryKey: roundKey(groupId, roundId), exact: true });
-    void queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true });
+    void refreshRounds(queryClient, groupId);
     // A partida entra no Histórico ao finalizar: a lista refaz ao abrir
     void queryClient.invalidateQueries({ queryKey: historyKey(groupId), exact: true });
   };

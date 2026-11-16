@@ -21,12 +21,14 @@ export function MenuItem({
       role="menuitem"
       onClick={onClick}
       className={cn(
-        'flex h-13 items-center gap-3 px-4 shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none',
+        'flex min-h-13 items-center gap-3 px-4 py-2 text-left shadow-[inset_0_2px_0_0_var(--color-border)] first:shadow-none',
         className,
       )}
     >
       <Icon name={icon} size={20} strokeWidth={2.2} />
-      <PixelText>{label}</PixelText>
+      <PixelText wrap className="min-w-0">
+        {label}
+      </PixelText>
     </button>
   );
 }
