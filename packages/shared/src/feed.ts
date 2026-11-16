@@ -12,6 +12,16 @@ import { z } from 'zod';
 import { roleSchema } from './auth';
 import { avatarSchema, teamSchema } from './domain';
 
+// Limites e listas do domain que as telas usam (contadores, ordem dos botões): o front importa daqui, sem copiar número.
+export {
+  COMMENT_MAX_LENGTH,
+  FEED_ALERT_TYPES,
+  POST_BODY_MAX_LENGTH,
+  POST_REACTIONS,
+  POST_TITLE_MAX_LENGTH,
+} from '@fut-stats/domain';
+export type { FeedAlertType, PostReaction };
+
 // --- Avisos ---
 
 export const feedAlertTypeSchema = z.enum(FEED_ALERT_TYPES);
