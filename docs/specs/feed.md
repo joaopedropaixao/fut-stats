@@ -93,7 +93,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 
 > Checkpoint 2026-11-15: o início de hoje já tem `ResultAlert` ("O RESULTADO SAIU", pacote em miniatura e
 > "Abrir pacote"; sem votos, "Ver resultado" e sem pacote; depois de aberto vira `ResultLine`), `VotingCard`
-> (neutro por decisão do dono, com `yieldKey` para ceder a tecla amarela) e `GameCard`. O "já abri o pacote" é
+> (que foi neutro por decisão do dono e voltou a ter cor na volta de design de 16/11) e `GameCard`. O "já abri o pacote" é
 > **por aparelho** (`hasOpenedResult`, guardado no navegador): a API sempre manda o `RESULT` dentro dos 7 dias, e
 > o front rebaixa o `RESULT` aberto para linha, promovendo o próximo da lista a aviso grande. Os cards existentes
 > são reaproveitados como aviso grande (sem duplicar), ganhando o que faltar do padrão de grande momento.
@@ -262,10 +262,13 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
     (`GameCard`, card de votação e de resultado de `votacao`/`pacote-do-craque`, card da presença do início de
     hoje). Novo: o card de times publicados, no padrão `moment-frame` com a `you-banner`.
   - **Linha de aviso** (`features/feed/alert-line.tsx`): 56 px, ícone do tipo + título em pixel + situação curta
-    + seta; contorno de 2 px na cor do tipo. O texto de cada situação sai de uma função pura com teste
-    (`alert-text.ts`).
-  - Cores por papel do DS: resultado em ouro (recompensa), votação neutra (como o `VotingCard`, decisão do dono no
-    pacote-do-craque), presença em verde, jogo em creme com o ponto "ao vivo". Sempre com ícone e o tipo por escrito.
+    + seta; contorno neutro de 2 px e faixa à esquerda na cor do tipo (volta de design 1). O texto de cada
+    situação sai de uma função pura com teste (`alert-text.ts`).
+  - **Cores de identidade (volta de design 1, 16/11, decisão do dono; vale no lugar da votação neutra):** jogo
+    vermelho com o selo AO VIVO piscando em degraus, Resenha laranja, resultado ouro, votação azul
+    (`--color-vote`), times em branco e preto com o corte diagonal, presença verde. A cor vai na moldura, na faixa
+    do cabeçalho e no ícone (na linha, faixa à esquerda e ícone); **o aviso grande sempre tem a tecla amarela e a
+    cor de identidade nunca vai nela**. Sempre com ícone e o tipo por escrito. Detalhe em `docs/design/DESIGN.md`.
   - **Feedback do dono (15/11):** os cards do início ficaram "bem simples as letras e em cores diferentes". Cada
     card é grande momento (contorno grosso, sombra dura, entrada animada, tipografia com hierarquia: rótulo pequeno,
     título grande em pixel com sombra, texto corrido). **Ouro é recompensa; o amarelo fica só na tecla de ação;
