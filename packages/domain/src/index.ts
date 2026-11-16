@@ -7,3 +7,4 @@ export * from './cartola';
 export * from './round';
 export * from './group';
 export * from './ranking';
+export * from './feed';
