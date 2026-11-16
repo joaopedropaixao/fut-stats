@@ -1,11 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { rejectControlCharsInPath } from './common/reject-control-chars';
 import { requestContextMiddleware } from './common/request-context';
 import { requestLogMiddleware } from './common/request-log';
-import type { Env } from './config/env';
 
 /** Configuração comum da app, usada no main.ts e nos testes. */
 export function setupApp(app: INestApplication): void {
@@ -21,9 +19,5 @@ export function setupApp(app: INestApplication): void {
   // Erro inesperado vira 500 com `requestId` no corpo e a pilha só no log.
   app.useGlobalFilters(new AllExceptionsFilter(app.getHttpAdapter()));
   // Testes não poluem a saída com o log de pedido (quem quer ver o log captura o `Logger`).
-  if (
-    app.get<ConfigService<Env, true>>(ConfigService).get('NODE_ENV', { infer: true }) === 'test'
-  ) {
-    app.useLogger(false);
-  }
+  if (process.env.NODE_ENV === 'test') app.useLogger(false);
 }
