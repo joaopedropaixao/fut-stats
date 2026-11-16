@@ -1,9 +1,11 @@
-import { POSITION_LABELS, type Member } from '@fut-stats/shared';
+import { cardTier, POSITION_LABELS, type Member } from '@fut-stats/shared';
 import { Badge } from '../../components/ui/badge';
 import { PixelBodyLarge } from '../../components/ui/pixel-body-large';
 import { PixelText } from '../../components/ui/pixel-text';
 import { Turf } from '../../components/ui/turf';
+import { TIER_LABELS } from '../pack/tier';
 import { PixelDigits } from '../../components/ui/pixel-digits';
+import { cn } from '../../lib/cn';
 import { Medal } from '../ranking/medal';
 import { Ordinal } from '../ranking/ordinal';
 import { PODIUM_TEXT, podiumLabel, podiumTier } from '../ranking/podium';
@@ -45,6 +47,14 @@ export function PlayerCard({
   ranking,
   heading = 'h2',
 }: PlayerCardProps) {
+  // A moldura (faixa da nota) é só de quem está no ranking: com "Poucos jogos" a média é de 1 ou 2 notas
+  const tier =
+    ranking && ranking.rank !== null && ranking.average !== null
+      ? cardTier(ranking.average)
+      : undefined;
+  // Dentro da moldura a tinta vem da faixa (`--card-ink`); sem ela, as cores de sempre
+  const ink = tier ? 'text-(--card-ink)' : undefined;
+  const ink2 = tier ? 'text-(--card-ink-2)' : 'text-text-muted';
   return (
     <section
       aria-label={`Figurinha de ${nickname}`}
@@ -64,13 +74,18 @@ export function PlayerCard({
           </span>
         )}
       </Turf>
-      <div className="flex flex-col gap-2 p-4">
-        <PixelText as={heading} size={24} wrap className="outline-none">
+      <div data-tier={tier} className={cn('flex flex-col gap-2 p-4', tier && 'card-frame')}>
+        <PixelText as={heading} size={24} wrap className={cn(ink, 'outline-none')}>
           {nickname}
         </PixelText>
-        <PixelText className="text-text-muted">{POSITION_LABELS[position]}</PixelText>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <PixelText className={ink2}>{POSITION_LABELS[position]}</PixelText>
+          {tier && <PixelText className={ink2}>{TIER_LABELS[tier]}</PixelText>}
+        </div>
         {secondaryPositions.length > 0 && (
-          <p className="text-sm text-text-muted">{`Também joga de ${listPositions(secondaryPositions)}`}</p>
+          <p
+            className={cn('text-sm', ink2)}
+          >{`Também joga de ${listPositions(secondaryPositions)}`}</p>
         )}
       </div>
       {ranking && <RankingStrip rank={ranking.rank} average={ranking.average} />}
