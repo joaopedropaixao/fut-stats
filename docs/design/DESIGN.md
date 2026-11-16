@@ -23,7 +23,8 @@ Preto é a identidade. A nostalgia de jogo 2D aparece em três camadas:
 | Ação | `--color-accent` (amarelo) | Só tecla de ação, **uma por tela**, sem brilho. Exceções aprovadas: a palavra **VS** (`--color-game`), o **Desfazer** dentro do aviso, o selo **ADMIN** e o bloco **"?"** do seletor de times, em dourado da família `--color-gold` (com `--color-gold-light` e `--color-gold-shadow`), pois a moeda é recompensa (decisão do dono, 30 out 2026). |
 | Recompensa | `--color-gold` (+ `--color-gold-light`, `--color-gold-shadow`) | Craque, 1º lugar do ranking, aviso de resultado, bloco "?" e moeda do seletor. |
 | Pódio | `--color-silver` e `--color-bronze` (+ `-light`, `-shadow`) | 2º e 3º lugar do ranking: medalha pixel e moldura do card do topo (o 1º usa o ouro). A medalha é o sinal (coroa no 1º, medalha no 2º e no 3º, com o número ao lado e o nome para leitor de tela); a cor sozinha não basta. Nunca o amarelo de ação. |
-| Atenção | `--color-warning` | Prazo e aviso de votação. |
+| Atenção | `--color-warning` | Prazo e aviso da Hora da Resenha. |
+| Votação | `--color-vote` (azul `#6cb2ff`) | Identidade do aviso de votação aberta: borda, faixa do cabeçalho, ícone, linha. Contraste medido: 7,2:1 sobre `--color-bg`, 5,3:1 sobre `--color-surface-raised`, 4,7:1 sobre `--color-surface-3` (AA para texto). Nunca é tecla de ação. |
 | Convite / vitória | `--color-success` | Presença confirmada, aviso de presença, vitória. |
 | Perigo / derrota | `--color-danger` | Ausência, remover, derrota. |
 | Zoeira | `--color-flop` (madeira) | Perna de Pau. |
@@ -63,6 +64,21 @@ A seção "Daltonismo" da folha tem a simulação.
 - **Card de grande momento** (placar do jogo, resultado YOU WIN / YOU LOSE / EMPATE, "Em jogo" e "Hora da Resenha" do
   início): contorno de 3px (`--color-border-strong`) e sombra dura `4px 4px 0` (`moment-frame` no `index.css`), com
   entrada em degraus de 320 ms. Nunca card chapado (decisão do dono, 25 out 2026).
+- **Avisos do Feed** (decisão do dono, 16 nov 2026): cada tipo tem a sua **cor de identidade**, na moldura de 3px, na
+  faixa do cabeçalho e no ícone do aviso grande, e numa faixa à esquerda e no ícone da linha. A tecla do aviso grande
+  é **sempre a amarela** (`--color-accent`); a identidade nunca vai na tecla e o amarelo nunca vai na moldura. A
+  linha de aviso tem contorno neutro e faixa colorida à esquerda, sem amarelo. Cor nunca é o único sinal: o ícone e o
+  título dizem o tipo.
+
+  | Aviso | Identidade | Tecla do aviso grande |
+  |---|---|---|
+  | Jogo rolando | vermelho (`--color-danger`) + selo AO VIVO piscando em degraus (parado com reduzir movimento) | Ir para o jogo |
+  | Hora da Resenha | laranja (`--color-warning`) | Lançar meus lances / Ir para a Resenha / Ver o jogo |
+  | O resultado saiu | ouro (`--color-gold`) | Abrir pacote / Ver resultado |
+  | Votação aberta | azul (`--color-vote`) | Dar minhas notas / Ver meus votos / Ver votação |
+  | Os times saíram | branco e preto, com o corte diagonal do placar | Ver os times |
+  | Presença aberta | verde (`--color-success`) | Confirmar (o par é Confirmar / Ausência) |
+
 - O que flutua (aviso, barra de abas, gaveta, menu): contorno + sombra sólida `4px 4px 0` preta (`--shadow-float`).
   No tema Noite a sombra vira cinza-escuro (`--color-shadow-night`), porque o preto some no fundo quase preto
   (decisão do dono, 23 out 2026).
