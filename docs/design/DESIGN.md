@@ -20,11 +20,11 @@ Preto é a identidade. A nostalgia de jogo 2D aparece em três camadas:
 |---|---|---|
 | Fundo padrão "Gramado" | `--color-bg` e superfícies | Verde. O tema **"Noite"** (escuro) é opção nas configurações e troca só os tokens de fundo. |
 | Texto | `--color-text` (creme) | Branco puro só no time Branco. |
-| Ação | `--color-accent` (amarelo) | Só tecla de ação, **uma por tela**, sem brilho. Exceções aprovadas: a palavra **VS** (`--color-game`), o **Desfazer** dentro do aviso, o selo **ADMIN** e o bloco **"?"** do seletor de times, em dourado da família `--color-gold` (com `--color-gold-light` e `--color-gold-shadow`), pois a moeda é recompensa (decisão do dono, 30 out 2026). |
+| Ação | `--color-accent` (amarelo) | Só tecla de ação, **uma por tela**, sem brilho. Exceções aprovadas: o **ícone do cartão amarelo** da reação do Feed (ícone, não tecla; decisão do dono, 16 nov 2026); na página da votação, a tecla de quem vota e o **"Encerrar votação"** do admin, juntas e com o bloco do admin separado (rótulo ADMIN e divisor); a palavra **VS** (`--color-game`), o **Desfazer** dentro do aviso, o selo **ADMIN** e o bloco **"?"** do seletor de times, em dourado da família `--color-gold` (com `--color-gold-light` e `--color-gold-shadow`), pois a moeda é recompensa (decisão do dono, 30 out 2026). |
 | Recompensa | `--color-gold` (+ `--color-gold-light`, `--color-gold-shadow`) | Craque, 1º lugar do ranking, aviso de resultado, bloco "?" e moeda do seletor. |
 | Pódio | `--color-silver` e `--color-bronze` (+ `-light`, `-shadow`) | 2º e 3º lugar do ranking: medalha pixel e moldura do card do topo (o 1º usa o ouro). A medalha é o sinal (coroa no 1º, medalha no 2º e no 3º, com o número ao lado e o nome para leitor de tela); a cor sozinha não basta. Nunca o amarelo de ação. |
 | Atenção | `--color-warning` | Prazo e aviso da Hora da Resenha. |
-| Votação | `--color-vote` (azul `#6cb2ff`) | Identidade do aviso de votação aberta: borda, faixa do cabeçalho, ícone, linha. Contraste medido: 7,2:1 sobre `--color-bg`, 5,3:1 sobre `--color-surface-raised`, 4,7:1 sobre `--color-surface-3` (AA para texto). Nunca é tecla de ação. |
+| Votação | `--color-silver` (+ textura de listras na faixa) | Identidade do aviso de votação aberta: moldura, faixa do cabeçalho com listras de cédula, ícone da urna e faixa da linha. A textura e a urna separam do prata do pódio (2º lugar). Nunca é tecla de ação. |
 | Convite / vitória | `--color-success` | Presença confirmada, aviso de presença, vitória. |
 | Perigo / derrota | `--color-danger` | Ausência, remover, derrota. |
 | Zoeira | `--color-flop` (madeira) | Perna de Pau. |
@@ -75,9 +75,15 @@ A seção "Daltonismo" da folha tem a simulação.
   | Jogo rolando | vermelho (`--color-danger`) + selo AO VIVO piscando em degraus (parado com reduzir movimento) | Ir para o jogo |
   | Hora da Resenha | laranja (`--color-warning`) | Lançar meus lances / Ir para a Resenha / Ver o jogo |
   | O resultado saiu | ouro (`--color-gold`) | Abrir pacote / Ver resultado |
-  | Votação aberta | azul (`--color-vote`) | Dar minhas notas / Ver meus votos / Ver votação |
+  | Votação aberta | prata (`--color-silver`), com a urna e a faixa listrada | Dar minhas notas / Ver meus votos / Ver votação |
   | Os times saíram | branco e preto, com o corte diagonal do placar | Ver os times |
   | Presença aberta | verde (`--color-success`) | Confirmar (o par é Confirmar / Ausência) |
+
+  **Votação, decisão do dono (16 nov 2026):** o azul (`--color-vote`) foi retirado por destoar do app. Duas opções da
+  família do app foram montadas em `docs/design/prints/feed/design-2/opcoes/`: (a) **prata** com a urna e a faixa
+  listrada, que é a aplicada, e (b) o verde-luz do refletor (`#d6fabe`), que ficou de fora. O prata ganhou pela
+  leitura de "cédula" e por ter caráter; a faixa listrada e a urna evitam que se confunda com a medalha de prata do
+  pódio. Contraste do prata sobre as superfícies verdes ≥ 4,5:1 (testado).
 
 - O que flutua (aviso, barra de abas, gaveta, menu): contorno + sombra sólida `4px 4px 0` preta (`--shadow-float`).
   No tema Noite a sombra vira cinza-escuro (`--color-shadow-night`), porque o preto some no fundo quase preto

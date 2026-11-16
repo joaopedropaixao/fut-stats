@@ -108,7 +108,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C31 | jogo rolando; Resenha | abrir | o card do jogo de hoje ("Em jogo" / "Hora da Resenha") como aviso grande; votação de outra rodada, se houver, em linha | Playwright |
 | C32 | nenhuma rodada ativa | abrir | sem avisos: "Nenhuma rodada marcada" (admin: tecla "Criar rodada") e as resenhas logo abaixo | Playwright |
 | C33 | linha de aviso | tocar | leva à tela do tipo: votar, resultado, times, jogo ou detalhe da rodada | Playwright |
-| C34 | a tela inteira | contar teclas amarelas | no máximo uma (a do aviso grande). "Nova resenha" e "Todas as rodadas" são de contorno | Playwright |
+| C34 | a tela inteira | contar teclas amarelas | no máximo uma (a do aviso grande). "Nova resenha" e "Todas as rodadas" são de contorno. **Exceção (dono, 16/11):** na página da votação, a ação de quem vota e o "Encerrar votação" do admin podem ser amarelas juntas, com o bloco do admin separado (rótulo ADMIN e divisor); fora disso, a regra vale | Playwright |
 
 **Tela: resenhas**
 
@@ -266,10 +266,16 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
     + seta; contorno neutro de 2 px e faixa à esquerda na cor do tipo (volta de design 1). O texto de cada
     situação sai de uma função pura com teste (`alert-text.ts`).
   - **Cores de identidade (volta de design 1, 16/11, decisão do dono; vale no lugar da votação neutra):** jogo
-    vermelho com o selo AO VIVO piscando em degraus, Resenha laranja, resultado ouro, votação azul
-    (`--color-vote`), times em branco e preto com o corte diagonal, presença verde. A cor vai na moldura, na faixa
+    vermelho com o selo AO VIVO piscando em degraus, Resenha laranja, resultado ouro, votação prata
+    (`--color-silver`, com a urna e a faixa listrada), times em branco e preto com o corte diagonal, presença verde. A cor vai na moldura, na faixa
     do cabeçalho e no ícone (na linha, faixa à esquerda e ícone); **o aviso grande sempre tem a tecla amarela e a
     cor de identidade nunca vai nela**. Sempre com ícone e o tipo por escrito. Detalhe em `docs/design/DESIGN.md`.
+  - **Volta de design 3 (16/11, decisão do dono):** o azul da votação foi retirado (`--color-vote` não existe mais) por
+    ficar disruptivo; vale o **prata** (`--color-silver`) com a urna e uma faixa de cabeçalho listrada, para não
+    parecer o prata do pódio. Opção B que ficou de fora: o verde-luz do refletor (`#d6fabe`), em
+    `docs/design/prints/feed/design-2/opcoes/`. A 4ª reação é o **cartão amarelo**, único ícone com o amarelo
+    (ícone, não tecla); o OSS! ganhou letras retas na mesma linha de base. O "Encerrar votação" do admin é a tecla
+    amarela (a gaveta de confirmação continua), e a exceção ao C34 está na linha do C34.
   - **Feedback do dono (15/11):** os cards do início ficaram "bem simples as letras e em cores diferentes". Cada
     card é grande momento (contorno grosso, sombra dura, entrada animada, tipografia com hierarquia: rótulo pequeno,
     título grande em pixel com sombra, texto corrido). **Ouro é recompensa; o amarelo fica só na tecla de ação;
