@@ -64,11 +64,16 @@ describe('PlayerCard (moldura da faixa: C7 a C9)', () => {
   it.each([
     [6.0, 'silver'],
     [8.0, 'gold'],
-    [5.99, 'bronze'],
-    [7.99, 'silver'],
-  ] as const)('C7: a borda %s cai na faixa %s (a de cima)', (average, tier) => {
-    expect(frame(render({ rank: 5, average }))).toContain(`data-tier="${tier}"`);
-  });
+    [5.94, 'bronze'],
+    [5.95, 'silver'],
+    [7.94, 'silver'],
+    [7.96, 'gold'],
+  ] as const)(
+    'C7: a faixa vale para a média como aparece (1 casa): %s cai em %s',
+    (average, tier) => {
+      expect(frame(render({ rank: 5, average }))).toContain(`data-tier="${tier}"`);
+    },
+  );
 
   it('C8: poucos jogos (rank nulo) fica neutra, sem faixa nem palavra', () => {
     const html = render({ rank: null, average: 9.1 });

@@ -9,7 +9,7 @@ import { cn } from '../../lib/cn';
 import { Medal } from '../ranking/medal';
 import { Ordinal } from '../ranking/ordinal';
 import { PODIUM_TEXT, podiumLabel, podiumTier } from '../ranking/podium';
-import { formatAverage } from '../ranking/ranking-text';
+import { formatAverage, roundAverage } from '../ranking/ranking-text';
 import { YouTag } from '../lineup/you-tag';
 
 type PlayerCardProps = {
@@ -47,10 +47,11 @@ export function PlayerCard({
   ranking,
   heading = 'h2',
 }: PlayerCardProps) {
-  // A moldura (faixa da nota) é só de quem está no ranking: com "Poucos jogos" a média é de 1 ou 2 notas
+  // A moldura (faixa da nota) é só de quem está no ranking: com "Poucos jogos" a média é de 1 ou 2 notas.
+  // A faixa vale para a média como aparece na tela (1 casa): 7,96 mostra "8,0" e é ouro.
   const tier =
     ranking && ranking.rank !== null && ranking.average !== null
-      ? cardTier(ranking.average)
+      ? cardTier(roundAverage(ranking.average))
       : undefined;
   // Dentro da moldura a tinta vem da faixa (`--card-ink`); sem ela, as cores de sempre
   const ink = tier ? 'text-(--card-ink)' : undefined;

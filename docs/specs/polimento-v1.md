@@ -23,7 +23,7 @@ Todo membro do grupo. Nada muda de permissão: é tudo tela e build.
 ### Regras de domínio
 - Faixa pela nota: `cardTier` (< 6 bronze, 6 a 7,9 prata, ≥ 8 ouro), sem regra nova
   ([CONTEXT.md › Faixa da carta](../../CONTEXT.md#faixa-da-carta-cardtier-)). Na figurinha, a entrada é a **média**
-  do jogador no ranking geral (`stats.average`).
+  do jogador no ranking geral (`stats.average`) arredondada a 1 casa, como aparece na tela.
 - A frase de impacto é texto de apresentação (`features/pack/impact-phrase.ts`), não regra de negócio.
 
 ### Cenários
@@ -69,8 +69,10 @@ Sem mudança. `cardTier` já está no `domain` e é reexportado pelo `shared`.
   fica: 3+ gols, gol e assistência, 2 gols, 2+ assistências, goleiro, **1 assistência**, 1 gol, senão "Jogou
   demais". Conferir que a frase longa com vitória cabe na carta e no canvas do Compartilhar (`share-card.ts`).
 - **C7–C9, moldura.** Em `features/group/player-card.tsx`: o bloco do apelido e da posição (o `p-4` abaixo do
-  gramado) recebe `card-frame` com `data-tier={cardTier(average)}` quando `ranking.rank !== null` e
-  `ranking.average !== null`, com a palavra da faixa (`TIER_LABELS` de `features/pack/tier.ts`) escrita em pixel na
+  gramado) recebe `card-frame` com `data-tier={cardTier(roundAverage(average))}` quando `ranking.rank !== null` e
+  `ranking.average !== null`. A faixa vale para a média **como a tela mostra** (1 casa, mesma regra do
+  `formatAverage`, via o helper numérico `roundAverage` de `features/ranking/ranking-text.ts`): 7,96 mostra "8,0" e
+  é ouro; 5,95 mostra "6,0" e é prata; 7,94 é prata. Com a palavra da faixa (`TIER_LABELS` de `features/pack/tier.ts`) escrita em pixel na
   cor `--card-ink-2`, como na carta. Apelido e posição passam a usar `--card-ink`/`--card-ink-2` nesse bloco. O
   gramado (com o bonequinho, "VOCÊ" e "ADMIN") e a faixa de Ranking/Média com a medalha ficam como estão.
   `cardTier` vem do `@fut-stats/shared` (essa tela já carrega o `shared`, então não pesa no inicial).

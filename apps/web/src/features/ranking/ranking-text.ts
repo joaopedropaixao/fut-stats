@@ -13,10 +13,14 @@ export const RANKING_TAB_LABELS: Record<RankingTab, string> = {
   goleiros: 'Goleiros',
 };
 
-/** Uma casa com vírgula, meio para cima, a partir do número da API (que já vem com 2 casas): 8.45 → "8,5". */
+/** A média com uma casa, meio para cima, a partir do número da API (que já vem com 2 casas): 8.45 → 8.5. */
+export function roundAverage(value: number): number {
+  return Math.round(Math.round(value * 100) / 10) / 10;
+}
+
+/** Uma casa com vírgula, como a média aparece na tela: 8.45 → "8,5". */
 export function formatAverage(value: number): string {
-  const tenths = Math.round(Math.round(value * 100) / 10);
-  return (tenths / 10).toFixed(1).replace('.', ',');
+  return roundAverage(value).toFixed(1).replace('.', ',');
 }
 
 /** "12 jogos" / "1 jogo". */
