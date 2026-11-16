@@ -824,8 +824,9 @@ caracteres (`POST_TITLE_MAX_LENGTH`); texto obrigatório até 1000 (`POST_BODY_M
 pontas e em NFC (o schema do shared faz). Título vazio vira `null`. Apagar a resenha apaga reações e comentários;
 o autor que ficou inativo continua aparecendo como autor.
 
-**Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`: `BALL`, `FIRE`, `LAUGH`, `CLAP`,
-`FLOP`; enum `PostReactionType` do Prisma igual, `domain-enums.spec.ts` garante). Tocar em outra troca; tocar na
+**Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`, nesta ordem: `BALL` Bola "golaço, curti o
+lance"; `CATFISH` Bagre, a zoeira de "joga mal hoje"; `OSS` OSS!, respeito e raça; `WHISTLE` Apito, "falta, essa
+foi feia"; `POPCORN` Pipocou, "amarelou, fugiu da dividida"; enum `PostReactionType` do Prisma igual, `domain-enums.spec.ts` garante). Tocar em outra troca; tocar na
 mesma tira. Banco: chave `(postId, membershipId)`, então dois pedidos juntos dão uma linha só.
 
 **Comentário:** qualquer membro, até 280 caracteres (`COMMENT_MAX_LENGTH`), sem edição.

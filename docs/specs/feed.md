@@ -41,8 +41,9 @@ escrevem, com reações e comentários de todo mundo. É o que dá vida ao app e
   lista é o aviso grande; os outros aparecem em linha.
 - **Resenha:** só admin escreve (visão do produto). Título opcional com até 60 caracteres; texto obrigatório com
   até 1000, com quebra de linha. **Só texto na v1** (imagem pede um serviço de arquivos novo).
-- **Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`): bola, fogo, risada, palmas
-  e perna de pau. Tocar em outra troca; tocar na mesma tira.
+- **Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`): bola ("golaço, curti o lance"), bagre
+  (a zoeira de "joga mal hoje"), OSS! (respeito e raça), apito ("falta, essa foi feia") e pipocou ("amarelou, fugiu
+  da dividida"). Tocar em outra troca; tocar na mesma tira.
 - **Comentário:** qualquer membro, até 280 caracteres, sem edição. Apaga o autor ou um admin.
 - Textos passam pela mesma regra de caractere inválido do apelido (`hasInvalidCharacters`), liberando a quebra de
   linha; sem espaço nas pontas; em NFC.
@@ -76,7 +77,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C12 | outro admin do grupo | `PATCH .../posts/:postId` com texto novo | 200; `editedAt` preenchido; o autor continua o original | integração |
 | C13 | admin | `DELETE .../posts/:postId` | 204; reações e comentários somem do banco; `GET` dá 404 | integração |
 | C14 | 25 resenhas | `GET .../posts`; depois com `cursor` | 10 da mais nova para a mais antiga e `nextCursor`; as seguintes; a última página com `nextCursor: null`; nenhuma repetida | integração |
-| C15 | membro | `PUT .../posts/:postId/reaction` `{ reaction: 'FIRE' }`; depois `'BALL'`; depois `DELETE .../reaction` | `reactions.FIRE: 1` e `myReaction: 'FIRE'`; troca para `BALL` (FIRE volta a 0); sem reação | integração |
+| C15 | membro | `PUT .../posts/:postId/reaction` `{ reaction: 'CATFISH' }`; depois `'BALL'`; depois `DELETE .../reaction` | `reactions.CATFISH: 1` e `myReaction: 'CATFISH'`; troca para `BALL` (CATFISH volta a 0); sem reação | integração |
 | C16 | dois `PUT` de reação do mesmo membro ao mesmo tempo | `Promise.all` | uma reação só no banco; nunca 500 | integração |
 | C17 | reação fora da lista | `PUT` | 400 | integração |
 | C18 | membro | `POST .../posts/:postId/comments` `{ text }` | 201 `Comment` com autor e `canDelete: true`; o `commentCount` da resenha sobe | integração |
@@ -180,8 +181,8 @@ export const feedAlertSchema = z.object({
   }),
 });
 
-export const postReactionSchema = z.enum(POST_REACTIONS);       // 'BALL' | 'FIRE' | 'LAUGH' | 'CLAP' | 'FLOP'
-export const POST_REACTION_LABELS: Record<PostReaction, string>; // Bola, Fogo, Risada, Palmas, Perna de pau
+export const postReactionSchema = z.enum(POST_REACTIONS);       // 'BALL' | 'CATFISH' | 'OSS' | 'WHISTLE' | 'POPCORN'
+export const POST_REACTION_LABELS: Record<PostReaction, string>; // Bola, Bagre, OSS!, Apito, Pipocou
 export const POST_INPUT_ERROR_LABELS: Record<PostInputError, string>;
 export const COMMENT_ERROR_LABELS: Record<TextFieldError, string>;
 export const NOT_OWN_COMMENT_LABEL = 'Você só apaga o seu próprio comentário';

@@ -62,10 +62,10 @@ export const postReactionSchema = z.enum(POST_REACTIONS);
 /** Nome de cada reação (leitor de tela e legenda). */
 export const POST_REACTION_LABELS: Readonly<Record<PostReaction, string>> = {
   BALL: 'Bola',
-  FIRE: 'Fogo',
-  LAUGH: 'Risada',
-  CLAP: 'Palmas',
-  FLOP: 'Perna de pau',
+  CATFISH: 'Bagre',
+  OSS: 'OSS!',
+  WHISTLE: 'Apito',
+  POPCORN: 'Pipocou',
 };
 
 export const POST_INPUT_ERROR_LABELS: Readonly<Record<PostInputError, string>> = {

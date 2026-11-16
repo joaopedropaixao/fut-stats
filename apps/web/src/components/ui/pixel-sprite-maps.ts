@@ -189,8 +189,8 @@ export const REACTION_SPRITES = {
     '..KWWKKWWK..',
     '...KKKKKK...',
   ],
-  // Fogo: chama laranja com miolo claro
-  FIRE: [
+  // provisório: ícone novo na volta de design (hoje o desenho do antigo fogo)
+  CATFISH: [
     '.....R......',
     '....RR......',
     '....RRR..R..',
@@ -204,8 +204,8 @@ export const REACTION_SPRITES = {
     '...RRYYRR...',
     '....RRRR....',
   ],
-  // Risada: rosto com os olhos fechados e a boca aberta
-  LAUGH: [
+  // provisório: ícone novo na volta de design (hoje o desenho da antiga risada)
+  OSS: [
     '....YYYY....',
     '..YYYYYYYY..',
     '.YYYYYYYYYY.',
@@ -219,8 +219,8 @@ export const REACTION_SPRITES = {
     '..YYYYYYYY..',
     '....YYYY....',
   ],
-  // Palmas: as duas mãos de frente uma para a outra, os dedos separados, e as faíscas de cima
-  CLAP: [
+  // provisório: ícone novo na volta de design (hoje o desenho das antigas palmas)
+  WHISTLE: [
     '..Y..YY..Y..',
     '...Y.YY.Y...',
     '.SSSS..SSSS.',
@@ -234,8 +234,8 @@ export const REACTION_SPRITES = {
     '...SSSSSS...',
     '....SSSS....',
   ],
-  // Perna de pau: a perna dentro da bota, em cima de uma vara de madeira
-  FLOP: [
+  // provisório: ícone novo na volta de design (hoje o desenho da antiga perna de pau)
+  POPCORN: [
     '...SSSS.....',
     '...SSSS.....',
     '...WWWW.....',
@@ -254,22 +254,28 @@ export const REACTION_SPRITES = {
 /** As cores de cada ícone de reação (tokens do DS; o amarelo de ação fica de fora, o ouro claro faz o rosto). */
 export const REACTION_PALETTES = {
   BALL: { K: '#111111', W: 'var(--color-text)' },
-  FIRE: {
+  // provisório: paleta nova junto com o ícone novo na volta de design
+  CATFISH: {
     R: 'var(--color-warning)',
     Y: 'var(--color-gold-light)',
     W: 'var(--color-text)',
   },
-  LAUGH: {
+  OSS: {
     K: '#111111',
     Y: 'var(--color-gold-light)',
     W: 'var(--color-text)',
     R: 'var(--color-danger)',
   },
-  CLAP: {
+  WHISTLE: {
     K: '#111111',
     S: 'var(--color-skin-3)',
     D: 'var(--color-skin-4)',
     Y: 'var(--color-gold-light)',
   },
-  FLOP: { B: 'var(--color-flop)', W: 'var(--color-text)', K: '#111111', S: 'var(--color-skin-3)' },
+  POPCORN: {
+    B: 'var(--color-flop)',
+    W: 'var(--color-text)',
+    K: '#111111',
+    S: 'var(--color-skin-3)',
+  },
 } as const satisfies Record<PostReaction, Record<string, string>>;

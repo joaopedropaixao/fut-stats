@@ -87,13 +87,13 @@ enum AvatarHairColor {
   GRAY
 }
 
-/// Reação a uma resenha do Feed. Igual a `PostReaction` do domain (bola, fogo, risada, palmas, perna de pau).
+/// Reação a uma resenha do Feed. Igual a `PostReaction` do domain (bola, bagre, OSS!, apito, pipocou).
 enum PostReactionType {
   BALL
-  FIRE
-  LAUGH
-  CLAP
-  FLOP
+  CATFISH
+  OSS
+  WHISTLE
+  POPCORN
 }
 
 /// Pessoa que faz login (Google). Não tem dado de pelada: isso fica na Membership de cada grupo.

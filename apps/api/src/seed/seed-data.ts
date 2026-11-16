@@ -334,12 +334,12 @@ export const SEED_POSTS: readonly SeedPost[] = [
     ].join('\n'),
     hoursAgo: 6,
     reactions: [
-      ['Rafa', 'FIRE'],
-      ['Bruninho', 'CLAP'],
-      ['Diegão', 'FIRE'],
+      ['Rafa', 'CATFISH'],
+      ['Bruninho', 'WHISTLE'],
+      ['Diegão', 'CATFISH'],
       ['Dudu', 'BALL'],
-      ['Muralha', 'CLAP'],
-      ['Paredão', 'LAUGH'],
+      ['Muralha', 'WHISTLE'],
+      ['Paredão', 'OSS'],
     ],
     comments: [
       {
@@ -357,9 +357,9 @@ export const SEED_POSTS: readonly SeedPost[] = [
     body: 'Lembrete rápido: quem for faltar avisa na presença antes de os times saírem. Fechar o time na última hora é o que mais estraga a rodada.',
     hoursAgo: 52,
     reactions: [
-      ['Carlão', 'CLAP'],
+      ['Carlão', 'WHISTLE'],
       ['Dedé', 'BALL'],
-      ['Igão', 'FLOP'],
+      ['Igão', 'POPCORN'],
     ],
     comments: [{ author: 'Igão', text: 'Fui eu, né? Pode falar.', minutesLater: 40 }],
   },
@@ -368,7 +368,7 @@ export const SEED_POSTS: readonly SeedPost[] = [
     title: 'Bem-vindos ao Feed',
     body: 'A partir de agora as resenhas ficam aqui. Reaja, comente e apareça nos grandes momentos.',
     hoursAgo: 120,
-    reactions: [['Rafa', 'FIRE']],
+    reactions: [['Rafa', 'CATFISH']],
     comments: [],
   },
 ];

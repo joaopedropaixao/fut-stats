@@ -108,7 +108,7 @@ describe('feed: resenhas, reações e comentários', () => {
           avatar: { skin: 'TAN', hair: 'SHORT', hairColor: 'BLACK' },
         },
         editedAt: null,
-        reactions: { BALL: 0, FIRE: 0, LAUGH: 0, CLAP: 0, FLOP: 0 },
+        reactions: { BALL: 0, CATFISH: 0, OSS: 0, WHISTLE: 0, POPCORN: 0 },
         myReaction: null,
         commentCount: 0,
         canManage: true,
@@ -180,7 +180,7 @@ describe('feed: resenhas, reações e comentários', () => {
     it('GET por id: membro lê uma resenha pelo id, com reações, a minha e o contador', async () => {
       const c = await setup();
       const post = await seedPost(c, { title: 'Título', body: 'Linha 1\nLinha 2' });
-      await putReaction(c, c.caio, post.id, { reaction: 'CLAP' }).expect(200);
+      await putReaction(c, c.caio, post.id, { reaction: 'WHISTLE' }).expect(200);
       await addComment(c, c.davi, post.id, 'Boa').expect(201);
 
       const res = await request(server())
@@ -194,8 +194,8 @@ describe('feed: resenhas, reações e comentários', () => {
         title: 'Título',
         body: 'Linha 1\nLinha 2',
         author: { nickname: 'Ana', role: 'ADMIN' },
-        reactions: { CLAP: 1 },
-        myReaction: 'CLAP',
+        reactions: { WHISTLE: 1 },
+        myReaction: 'WHISTLE',
         commentCount: 1,
         canManage: false,
       });
@@ -285,7 +285,7 @@ describe('feed: resenhas, reações e comentários', () => {
     it('C13: apagar tira a resenha e leva reações e comentários junto', async () => {
       const c = await setup();
       const post = await seedPost(c);
-      await putReaction(c, c.caio, post.id, { reaction: 'FIRE' }).expect(200);
+      await putReaction(c, c.caio, post.id, { reaction: 'CATFISH' }).expect(200);
       await addComment(c, c.davi, post.id, 'Boa!').expect(201);
 
       await request(server())
@@ -362,16 +362,16 @@ describe('feed: resenhas, reações e comentários', () => {
     it('C14: cada resenha traz reações, a minha reação, o número de comentários e `canManage` de quem pede', async () => {
       const c = await setup();
       const post = await seedPost(c);
-      await putReaction(c, c.caio, post.id, { reaction: 'FIRE' }).expect(200);
-      await putReaction(c, c.davi, post.id, { reaction: 'FIRE' }).expect(200);
-      await putReaction(c, c.ana, post.id, { reaction: 'CLAP' }).expect(200);
+      await putReaction(c, c.caio, post.id, { reaction: 'CATFISH' }).expect(200);
+      await putReaction(c, c.davi, post.id, { reaction: 'CATFISH' }).expect(200);
+      await putReaction(c, c.ana, post.id, { reaction: 'WHISTLE' }).expect(200);
       await addComment(c, c.caio, post.id, 'Um').expect(201);
       await addComment(c, c.davi, post.id, 'Dois').expect(201);
 
       const asPlayer = await listPosts(c, c.caio).expect(200);
       expect(asPlayer.body.items[0]).toMatchObject({
-        reactions: { BALL: 0, FIRE: 2, LAUGH: 0, CLAP: 1, FLOP: 0 },
-        myReaction: 'FIRE',
+        reactions: { BALL: 0, CATFISH: 2, OSS: 0, WHISTLE: 1, POPCORN: 0 },
+        myReaction: 'CATFISH',
         commentCount: 2,
         canManage: false,
       });
@@ -395,20 +395,26 @@ describe('feed: resenhas, reações e comentários', () => {
       const c = await setup();
       const post = await seedPost(c);
 
-      const fire = await putReaction(c, c.caio, post.id, { reaction: 'FIRE' }).expect(200);
-      expect(postSchema.safeParse(fire.body).success).toBe(true);
-      expect(fire.body.reactions.FIRE).toBe(1);
-      expect(fire.body.myReaction).toBe('FIRE');
+      const catfish = await putReaction(c, c.caio, post.id, { reaction: 'CATFISH' }).expect(200);
+      expect(postSchema.safeParse(catfish.body).success).toBe(true);
+      expect(catfish.body.reactions.CATFISH).toBe(1);
+      expect(catfish.body.myReaction).toBe('CATFISH');
 
       const ball = await putReaction(c, c.caio, post.id, { reaction: 'BALL' }).expect(200);
-      expect(ball.body.reactions).toEqual({ BALL: 1, FIRE: 0, LAUGH: 0, CLAP: 0, FLOP: 0 });
+      expect(ball.body.reactions).toEqual({ BALL: 1, CATFISH: 0, OSS: 0, WHISTLE: 0, POPCORN: 0 });
       expect(ball.body.myReaction).toBe('BALL');
 
       const removed = await request(server())
         .delete(`${base(c)}/${post.id}/reaction`)
         .set('Cookie', c.caio.cookie)
         .expect(200);
-      expect(removed.body.reactions).toEqual({ BALL: 0, FIRE: 0, LAUGH: 0, CLAP: 0, FLOP: 0 });
+      expect(removed.body.reactions).toEqual({
+        BALL: 0,
+        CATFISH: 0,
+        OSS: 0,
+        WHISTLE: 0,
+        POPCORN: 0,
+      });
       expect(removed.body.myReaction).toBeNull();
       expect(await t.prisma.postReaction.count()).toBe(0);
     });
@@ -416,11 +422,11 @@ describe('feed: resenhas, reações e comentários', () => {
     it('C15: a reação de um não mexe na dos outros; repetir a mesma continua com uma só', async () => {
       const c = await setup();
       const post = await seedPost(c);
-      await putReaction(c, c.caio, post.id, { reaction: 'LAUGH' }).expect(200);
-      await putReaction(c, c.caio, post.id, { reaction: 'LAUGH' }).expect(200);
-      const res = await putReaction(c, c.davi, post.id, { reaction: 'LAUGH' }).expect(200);
-      expect(res.body.reactions.LAUGH).toBe(2);
-      expect(res.body.myReaction).toBe('LAUGH');
+      await putReaction(c, c.caio, post.id, { reaction: 'OSS' }).expect(200);
+      await putReaction(c, c.caio, post.id, { reaction: 'OSS' }).expect(200);
+      const res = await putReaction(c, c.davi, post.id, { reaction: 'OSS' }).expect(200);
+      expect(res.body.reactions.OSS).toBe(2);
+      expect(res.body.myReaction).toBe('OSS');
       expect(await t.prisma.postReaction.count()).toBe(2);
     });
 
@@ -441,9 +447,9 @@ describe('feed: resenhas, reações e comentários', () => {
       for (let round = 0; round < 5; round += 1) {
         await t.prisma.postReaction.deleteMany();
         const results = await Promise.all([
-          putReaction(c, c.caio, post.id, { reaction: 'FIRE' }),
-          putReaction(c, c.caio, post.id, { reaction: 'CLAP' }),
-          putReaction(c, c.caio, post.id, { reaction: 'FIRE' }),
+          putReaction(c, c.caio, post.id, { reaction: 'CATFISH' }),
+          putReaction(c, c.caio, post.id, { reaction: 'WHISTLE' }),
+          putReaction(c, c.caio, post.id, { reaction: 'CATFISH' }),
         ]);
         expect(results.map((r) => r.status)).toEqual([200, 200, 200]);
         expect(await t.prisma.postReaction.count({ where: { postId: post.id } })).toBe(1);
@@ -455,7 +461,7 @@ describe('feed: resenhas, reações e comentários', () => {
       const post = await seedPost(c);
       await putReaction(c, c.caio, post.id, { reaction: 'ANGRY' }).expect(400);
       await putReaction(c, c.caio, post.id, {}).expect(400);
-      await putReaction(c, c.caio, post.id, { reaction: 'fire' }).expect(400);
+      await putReaction(c, c.caio, post.id, { reaction: 'catfish' }).expect(400);
       expect(await t.prisma.postReaction.count()).toBe(0);
     });
   });
@@ -609,7 +615,7 @@ describe('feed: resenhas, reações e comentários', () => {
           request(server())
             .delete(`${base(c)}/${id}`)
             .set('Cookie', c.ana.cookie),
-        () => putReaction(c, c.caio, id, { reaction: 'FIRE' }),
+        () => putReaction(c, c.caio, id, { reaction: 'CATFISH' }),
         () =>
           request(server())
             .delete(`${base(c)}/${id}/reaction`)
@@ -677,7 +683,7 @@ describe('feed: resenhas, reações e comentários', () => {
         await as(request(server()).patch(`${url}/${post.id}`).send({ body: 'x' })).expect(404);
         await as(request(server()).delete(`${url}/${post.id}`)).expect(404);
         await as(
-          request(server()).put(`${url}/${post.id}/reaction`).send({ reaction: 'FIRE' }),
+          request(server()).put(`${url}/${post.id}/reaction`).send({ reaction: 'CATFISH' }),
         ).expect(404);
         await as(request(server()).delete(`${url}/${post.id}/reaction`)).expect(404);
         await as(request(server()).get(`${url}/${post.id}/comments`)).expect(404);
