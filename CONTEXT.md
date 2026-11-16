@@ -544,6 +544,45 @@ devolver voto de outra pessoa (nem para o admin); fechar fora do `RoundLockServi
 "falta votar"; deixar o 409 de prazo vencido desfazer o fechamento (o fechamento é commitado e só depois o erro sai);
 mexer no prazo de uma rodada já aberta esperando que o resultado mude.
 
+### Registro da rodada: `ROUND_LOG_ACTIONS` ✅
+**O que é:** o histórico de quem mudou **placar, etapa e lance** de uma rodada: quem fez, o quê, quando, como estava
+antes e como ficou. Serve para responder "quem mudou o placar?" e "sumiu um gol meu". Só o **vocabulário** mora no
+domain (`src/round/log.ts`, `ROUND_LOG_ACTIONS` / `RoundLogAction`, igual ao enum `RoundLogAction` do banco, conferido
+em `domain-enums.spec.ts`); gravar e ler é da API (`apps/api/src/audit`). O contrato fica em
+`packages/shared/src/round-log.ts` (`RoundLogEntry`, `ROUND_LOG_ACTION_LABELS`).
+
+**O que entra** (9 ações): `TEAMS_PUBLISHED`, `TEAMS_UNPUBLISHED`, `MATCH_STARTED`, `SCORE_SET` (lançar ou corrigir o
+placar), `MATCH_FINISHED`, `VOTING_OPENED`, `VOTING_CLOSED` (pelo admin, pelo prazo ou porque todos votaram),
+`EVENT_LAUNCHED` e `EVENT_REMOVED`.
+
+**O que nunca entra:** o **voto** (é anônimo: nem o conteúdo, nem "fulano votou", nem quem votou por último),
+presença, rascunho dos times, criar e editar a rodada e o rodízio. Rota nova de escrita da rodada precisa entrar na
+lista de auditadas ou na de excluídas de `audit-coverage.spec.ts`, senão o teste falha.
+
+**Regras (decididas no spec `auditoria-da-rodada`, 14 nov 2026):**
+- **Mesma transação da escrita:** a mudança e a linha do registro entram juntas, ou nenhuma das duas (`AuditService.record(tx, ...)`
+  dentro do `RoundLockService`). Pedido recusado (403, 404, 409) não deixa linha. O `before` sai do estado carregado
+  no `tx`, com a rodada travada.
+- **Quem fez:** a participação (`Membership`) de quem pediu. No fechamento da votação, o ator é o admin só quando veio
+  de `POST .../voting/close` (mesmo que o motivo real seja o prazo ou "todos votaram"); nos outros caminhos (último
+  voto, prazo, relógio, leitura depois do prazo) é **`null`**, para o voto continuar anônimo.
+- **Só inserção.** Apagar a rodada (só dá antes do jogo) apaga o registro dela junto (cascade).
+- **Antes e depois** são um retrato pequeno, sem dado pessoal além do id da participação: `{ status }` nas etapas;
+  `{ score }` no placar (`score: null` enquanto ninguém lançou); `{ status, score }` ao finalizar; `{ eventId, type, playerId }`
+  ao lançar lance (`before: null`) e `{ eventId, type, playerId, createdById }` ao apagar (`after: null`);
+  `{ status, reason, voted, total }` ao fechar a votação (só contagem).
+- **Leitura:** `GET /api/groups/:groupId/rounds/:roundId/log`, só admin (jogador 403; outro grupo ou inativo 404), da
+  linha mais antiga para a mais nova, sem tela nesta fatia. O seed grava direto e não gera registro (`[]`).
+- **`requestId`:** todo pedido ganha `x-request-id` (o recebido se bater com `/^[A-Za-z0-9_-]{8,64}$/`, senão um UUID),
+  devolvido na resposta, na linha do registro e no log de pedido (uma linha por pedido com `method`, `path` sem query,
+  `status`, `durationMs`, `userId` e `groupId`; nunca corpo, cookie, email nem nome; `/api/health` fica de fora). Erro
+  500 devolve `{ statusCode, message, requestId }` sem a pilha, que só vai para o log. Fechamento pelo relógio da
+  votação não tem pedido, então o `requestId` da linha é nulo.
+
+**Evite:** gravar a linha fora da transação da mudança; registrar voto ou rodízio; pôr nome, email ou nota no
+`before`/`after`; confiar num `groupId` do cliente (toda leitura filtra pelo grupo da rota); mudar ou apagar linha do
+registro (só insere).
+
 ### Presença: `validateAttendanceChange` 🚧
 **O que é:** quem pode marcar Vou / Não vou numa rodada e até quando (`src/round/attendance.ts`). Regras decididas
 pelo dono em 23 out 2026.
