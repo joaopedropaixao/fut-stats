@@ -292,7 +292,7 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
 shared sem regressão). `unreact` com a resenha apagada no meio responde 404 (C33 reproduz o 500 antigo com `delete`);
 `VOTING_CLOSED` sem ator grava `requestId` nulo pelo último voto, pela visão da votação, por `GET /rounds`, pelo voto
 atrasado e pelos avisos (C8, C32), e o "Encerrar votação" segue com ator e `requestId` (C7); o mesmo placar de novo não
-grava linha (C3); `AuditLog.actorId` passou a `ON DELETE RESTRICT` (migration `20261117190000_audit_log_actor_restrict`,
+grava linha (C3); `AuditLog.actorId` passou a `ON DELETE RESTRICT` (migration `20261117190201_audit_log`, a única do registro,
 sem drift: nenhum caminho do app apaga `Membership`, só `collections/dev-session.ts`, ferramenta de dev, em grupos de
 dev sem rodada). C26, C28 e C33 rodados 5 vezes seguidas, estáveis.
 
