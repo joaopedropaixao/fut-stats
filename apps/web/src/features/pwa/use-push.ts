@@ -5,7 +5,7 @@ import {
   type PushSubscriptionInput,
 } from '@fut-stats/shared';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { apiDeleteNoContent, apiGet, apiPost, apiPutNoContent } from '../../lib/api';
 import { detectIos, readStandalone } from './device';
 import {
@@ -86,6 +86,8 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
   // `undefined`: o navegador ainda não respondeu
   const [subscription, setSubscription] = useState<PushSubscription | null | undefined>(undefined);
   const [failed, setFailed] = useState<UsePush['failed']>(null);
+  // O endereço que o servidor já recebeu nesta visita (ligar já o registra; não reenviar)
+  const registered = useRef<string | null>(null);
   const [testStatus, setTestStatus] = useState<PushTestStatus>('idle');
 
   useEffect(() => {
@@ -103,6 +105,8 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
     sync && subscription !== undefined && subscription !== null && permission === 'granted';
   useEffect(() => {
     if (!synced || !subscription || config.data?.enabled !== true) return;
+    if (registered.current === subscription.endpoint) return;
+    registered.current = subscription.endpoint;
     const parsed = pushSubscriptionInputSchema.safeParse(subscription.toJSON());
     if (parsed.success)
       void apiPutNoContent('/push/subscriptions', parsed.data).catch(() => undefined);
@@ -124,6 +128,7 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
         }));
       try {
         await apiPutNoContent('/push/subscriptions', toInput(created));
+        registered.current = created.endpoint;
       } catch (error) {
         // Sem o registro no servidor a assinatura não serve: desfaz, para a próxima tentativa começar limpa
         if (!existing) await created.unsubscribe().catch(() => undefined);

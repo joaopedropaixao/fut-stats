@@ -103,6 +103,10 @@ export function ProfilePage() {
               />
             )}
           </div>
+          {/* Do aparelho: instalar o app e os avisos (cada um some quando não se aplica) */}
+          <InstallCard />
+          <PushCard delay={120} />
+
           {stats.isError ? (
             <ErrorState
               title="Não deu para carregar as suas estatísticas"
@@ -117,12 +121,6 @@ export function ProfilePage() {
           )}
         </>
       )}
-
-      {/* Do aparelho: instalar o app e os avisos (cada um some quando não se aplica) */}
-      <div className="flex flex-col gap-6">
-        <InstallCard />
-        <PushCard delay={120} />
-      </div>
 
       <div className="flex min-w-0 flex-col">
         <p className="text-sm break-words text-text-muted">{user.name}</p>

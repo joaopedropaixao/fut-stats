@@ -57,20 +57,19 @@ export function PushCard({ delay = 0 }: { delay?: number }) {
         )}
         {(state === 'checking' || state === 'off' || state === 'on' || state === 'blocked') && (
           <>
-            <div className="bg-surface shadow-card">
-              <Switch
-                label="Avisos neste celular"
-                checked={state === 'on'}
-                loading={push.busy || state === 'checking'}
-                disabled={state === 'blocked'}
-                hint={
-                  state === 'blocked'
-                    ? 'Você bloqueou os avisos. Libere nas configurações do navegador.'
-                    : undefined
-                }
-                onCheckedChange={(on) => (on ? push.enable() : push.disable())}
-              />
-            </div>
+            <Switch
+              className="px-0! py-0!"
+              label="Avisos neste celular"
+              checked={state === 'on'}
+              loading={push.busy || state === 'checking'}
+              disabled={state === 'blocked'}
+              hint={
+                state === 'blocked'
+                  ? 'Você bloqueou os avisos. Libere nas configurações do navegador.'
+                  : undefined
+              }
+              onCheckedChange={(on) => (on ? push.enable() : push.disable())}
+            />
             <p className="text-base text-text-muted">Rodada marcada, times, votação e resultado.</p>
             {push.failed && (
               <p role="alert" className="text-sm text-[#fca5a5]">
