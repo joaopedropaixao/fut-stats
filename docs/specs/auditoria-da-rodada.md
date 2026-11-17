@@ -288,6 +288,24 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
   (16 nov 2026).
 
 ## QA
+**Volta 4 (acertos antes do Portão 2): APROVADO** (2026-11-17, @4b3e006 sobre develop em dia). Pronto na raiz
+verde (API 591 testes). Agora há uma migration só, `20261117190201_audit_log`, por cima da `feed`, que ficou
+intacta. Ela já traz `AuditLog_actorId_fkey` com RESTRICT. `migrate status` está em dia e `migrate diff` não
+mostra diferença.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| Migration única | ✅ | `pg_constraint`: actorId e groupId com RESTRICT, roundId com cascade. As duas migrations antigas não aparecem em `_prisma_migrations` |
+| dev-session | ✅ | `dev-leftovers.spec.ts`. Com a ordem antiga a limpeza quebra em `AuditLog_actorId_fkey` (e em `Post_authorId_fkey`). No fluxo real, um grupo só de dev com resenha, reação e comentário some sem erro; grupos com rodada ou com gente de fora ficam |
+| C7, C8, C32 | ✅ | `audit.spec.ts`, `audit-feed.spec.ts` + fluxo real: o admin encerra com ator e `requestId`; prazo e avisos fecham sem ator e com `requestId` nulo, sem duplicar |
+| C26, C28, C33 | ✅ | `audit-feed.spec.ts` (5 execuções seguidas, estável) + fluxo real: 8 PUTs paralelos formam uma cadeia íntegra; unreact em resenha apagada dá 404 |
+| Placar igual | ✅ | C3 + fluxo real: 1x0 enviado três vezes grava um `SCORE_SET` só |
+| Docs: remoção manual | ✅ | A query do passo 1 cobre as 12 FKs para `Membership` e rodou no banco da vaga; o DELETE do passo 3 foi testado com ROLLBACK |
+| Fluxo real | ✅ | Rodada até a votação fechada (9 linhas no `GET .../log`, 403 para jogador e 404 para quem é de fora); feed completo com as linhas mantidas depois de apagar a resenha |
+
+Sem bloqueio: o `collections/dev-session.ts` ainda falha ao criar a "Pelada Inativa" (`groups.create` sem `avatar`).
+O erro já existe na `develop` e não vem desta fatia.
+
 **Volta 3 (code review do PR #73): APROVADO** (2026-11-17). Pronto na raiz verde (API 589 testes, domain, web e
 shared sem regressão). `unreact` com a resenha apagada no meio responde 404 (C33 reproduz o 500 antigo com `delete`);
 `VOTING_CLOSED` sem ator grava `requestId` nulo pelo último voto, pela visão da votação, por `GET /rounds`, pelo voto
