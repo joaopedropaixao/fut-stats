@@ -3,6 +3,7 @@ import {
   NOTIFICATION_TYPES,
   notificationContent,
   pushPayloadSchema,
+  isPushServiceEndpoint,
   pushSubscriptionInputSchema,
   type NotificationData,
 } from './index';
@@ -104,21 +105,56 @@ describe('pushSubscriptionInputSchema', () => {
   const keys = { p256dh: 'abc', auth: 'def' };
   it('aceita o JSON do navegador e recusa http, endpoint grande e corpo sem keys', () => {
     expect(
-      pushSubscriptionInputSchema.safeParse({ endpoint: 'https://push.example.com/x', keys })
+      pushSubscriptionInputSchema.safeParse({ endpoint: 'https://fcm.googleapis.com/fcm/send/x', keys })
         .success,
     ).toBe(true);
     expect(
-      pushSubscriptionInputSchema.safeParse({ endpoint: 'http://push.example.com/x', keys })
+      pushSubscriptionInputSchema.safeParse({ endpoint: 'http://fcm.googleapis.com/fcm/send/x', keys })
         .success,
     ).toBe(false);
     expect(
       pushSubscriptionInputSchema.safeParse({
-        endpoint: `https://push.example.com/${'a'.repeat(2000)}`,
+        endpoint: `https://fcm.googleapis.com/fcm/send/${'a'.repeat(2000)}`,
         keys,
       }).success,
     ).toBe(false);
     expect(
-      pushSubscriptionInputSchema.safeParse({ endpoint: 'https://push.example.com/x' }).success,
+      pushSubscriptionInputSchema.safeParse({ endpoint: 'https://fcm.googleapis.com/fcm/send/x' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('isPushServiceEndpoint', () => {
+  it('aceita os serviços de push do Google, da Mozilla, da Apple e da Microsoft', () => {
+    for (const endpoint of [
+      'https://fcm.googleapis.com/fcm/send/abc',
+      'https://updates.push.services.mozilla.com/wpush/v2/abc',
+      'https://web.push.apple.com/QGx',
+      'https://wns2-by3p.notify.windows.com/w/?token=abc',
+    ])
+      expect(isPushServiceEndpoint(endpoint), endpoint).toBe(true);
+  });
+
+  it('recusa host interno, outro host, porta, usuário e o sufixo sem o ponto (SSRF)', () => {
+    for (const endpoint of [
+      'https://localhost/push',
+      'https://127.0.0.1/push',
+      'https://169.254.169.254/latest/meta-data',
+      'https://api.internal/push',
+      'https://push.example.com/x',
+      'https://fcm.googleapis.com:8443/fcm/send/abc',
+      'https://user:pass@fcm.googleapis.com/fcm/send/abc',
+      'https://evilpush.apple.com/x',
+      'https://fcm.googleapis.com.evil.com/x',
+      'http://fcm.googleapis.com/fcm/send/abc',
+      'não é url',
+    ])
+      expect(isPushServiceEndpoint(endpoint), endpoint).toBe(false);
+    expect(
+      pushSubscriptionInputSchema.safeParse({
+        endpoint: 'https://169.254.169.254/latest/meta-data',
+        keys: { p256dh: 'abc', auth: 'def' },
+      }).success,
     ).toBe(false);
   });
 });

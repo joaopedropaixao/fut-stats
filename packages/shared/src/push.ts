@@ -11,9 +11,40 @@ export const pushConfigSchema = z.object({
   publicKey: z.string().nullable(),
 });
 
+/**
+ * Os serviços de push dos navegadores: o Google (Chrome, Edge novo, Android), a Mozilla (Firefox), a Apple (Safari,
+ * iPhone) e a Microsoft (WNS). Só eles podem ser o `endpoint` de uma assinatura: a API faz o pedido para esse endereço,
+ * e um endereço qualquer viraria uma porta para a rede interna (SSRF).
+ */
+const PUSH_SERVICE_HOSTS = ['fcm.googleapis.com'] as const;
+const PUSH_SERVICE_HOST_SUFFIXES = [
+  '.push.services.mozilla.com',
+  '.push.apple.com',
+  '.notify.windows.com',
+] as const;
+
+/** O endereço é https, na porta padrão, sem usuário e senha, e de um serviço de push conhecido. */
+export function isPushServiceEndpoint(endpoint: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:' || url.port !== '' || url.username || url.password) return false;
+  const host = url.hostname.toLowerCase();
+  return (
+    (PUSH_SERVICE_HOSTS as readonly string[]).includes(host) ||
+    PUSH_SERVICE_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))
+  );
+}
+
 /** O que o navegador devolve em `PushSubscription.toJSON()`. */
 export const pushSubscriptionInputSchema = z.object({
-  endpoint: z.url({ protocol: /^https$/ }).max(2000),
+  endpoint: z
+    .url({ protocol: /^https$/ })
+    .max(2000)
+    .refine(isPushServiceEndpoint, { message: 'Endereço de push desconhecido' }),
   keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(200) }),
 });
 export const pushUnsubscribeSchema = z.object({ endpoint: z.string().min(1).max(2000) });
