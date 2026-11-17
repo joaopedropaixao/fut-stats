@@ -52,8 +52,12 @@ export function hasInvalidCharacters(text: string): boolean {
 
 let graphemeSegmenter: Intl.Segmenter | null | undefined;
 
-// Criado só no primeiro uso: navegador sem Intl.Segmenter não quebra ao importar o pacote.
-function splitCharacters(text: string): string[] {
+/**
+ * O texto em caracteres visíveis (grafemas): acento decomposto e emoji composto valem um. O segmentador é criado
+ * só no primeiro uso: navegador sem Intl.Segmenter não quebra ao importar o pacote. Também é a contagem do
+ * contador das telas (via shared), para a tela e a regra contarem igual.
+ */
+export function splitCharacters(text: string): string[] {
   if (graphemeSegmenter === undefined) {
     graphemeSegmenter =
       typeof Intl.Segmenter === 'function'

@@ -19,6 +19,7 @@ export {
   POST_BODY_MAX_LENGTH,
   POST_REACTIONS,
   POST_TITLE_MAX_LENGTH,
+  splitCharacters,
 } from '@fut-stats/domain';
 export type { FeedAlertType, PostReaction };
 

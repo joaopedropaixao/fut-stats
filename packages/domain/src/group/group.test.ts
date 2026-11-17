@@ -3,6 +3,7 @@ import {
   compareNicknames,
   DEFAULT_INITIAL_RATING,
   hasInvalidCharacters,
+  splitCharacters,
   GROUP_NAME_MAX_LENGTH,
   nextAvailableSlug,
   NICKNAME_MAX_LENGTH,
@@ -221,5 +222,14 @@ describe('validateMultilineText', () => {
     expect(validateMultilineText('\n\n', 5)).toBe('EMPTY');
     expect(validateMultilineText('a\rb', 5)).toBe('INVALID_CHARACTERS');
     expect(validateMultilineText('a\tb', 5)).toBe('INVALID_CHARACTERS');
+  });
+});
+
+describe('splitCharacters', () => {
+  it('separa em caracteres visíveis: acento decomposto e emoji composto valem um', () => {
+    expect(splitCharacters('Fogo')).toEqual(['F', 'o', 'g', 'o']);
+    expect(splitCharacters('e\u0301')).toHaveLength(1);
+    expect(splitCharacters('👨‍👩‍👧👍🏽')).toHaveLength(2);
+    expect(splitCharacters('')).toEqual([]);
   });
 });
