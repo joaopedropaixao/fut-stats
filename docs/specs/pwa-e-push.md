@@ -10,7 +10,7 @@
 | **Modo** | Par |
 | **Parte de** | — (o manifesto, os ícones e o service worker do `vite-plugin-pwa` já estão na `develop`) |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @1c65574 (checkpoint de início em 17 nov 2026: entraram perfil-jogador #62, ajustes-tela-do-jogo #63, historico #64, votacao #66, ranking #67, rodizio-reservas #68, pacote-do-craque #69, polimento-v1 #72, feed #74 e auditoria-da-rodada #73) |
 | **Depende de** | feed, votacao, perfil-jogador |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/notifications, packages/domain/src/index.ts, packages/shared/src/push.ts, packages/shared/src/index.ts, apps/api/src/push, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/match/match.service.ts, apps/api/src/voting, apps/api/src/config/env.ts, apps/api/src/app.module.ts, apps/api/package.json, pnpm-lock.yaml, .env.example, render.yaml, apps/web/vite.config.ts, apps/web/public/push-sw.js, apps/web/src/features/pwa, apps/web/src/features/feed, apps/web/src/pages/perfil, apps/web/src/features/group/use-current-group.ts, apps/web/src/app/shell.tsx |
 
@@ -188,8 +188,17 @@ Na API (`apps/api/src/push`):
   e a interface `PushSender` com a implementação `WebPushSender` (biblioteca `web-push`). Os testes de integração
   trocam o provider `PushSender` por um gravador (não é mock de banco: é a fronteira com o serviço de push de
   fora).
-- `notify` é chamado **depois de gravar**, sem `await` na resposta (erro tratado e registrado): em `rounds.create`,
-  `lineups.publish`, `match.openVoting` e no método único de fechar de `voting`. Carrega o grupo, a rodada e os
+- `notify` é chamado **depois de gravar** (depois que a transação ou a trava da rodada termina), sem `await` na
+  resposta (erro tratado e registrado com o `requestId` do `AsyncLocalStorage` de `common/request-context.ts`):
+  - `rounds.create`: depois do `round.create` (actor = quem criou);
+  - `lineups.transition`: depois do `$transaction`, só quando o destino é `TEAMS_PUBLISHED` (despublicar não avisa);
+  - `match.openVoting`: depois do `withRoundLock`;
+  - `voting`: o `closeRound` roda **dentro** do `tx` (com a linha `VOTING_CLOSED` do `AuditLog`), então o aviso não
+    sai dele: sai depois do `withRoundLock` em cada caminho que fecha, `close` (actor = admin), `submitVote` quando
+    o último voto fechou (actor `null`) e `closeDueVotings` para cada rodada que fechou (actor `null`). Uma vez só
+    por fechamento (C16).
+  Uma linha por gancho, para o rebase com a `jogo-ao-vivo` (que põe o aviso do canal ao vivo nos mesmos pontos)
+  ser trivial. O aviso de push não grava no `AuditLog`. Carrega o grupo, a rodada e os
   destinatários (`notificationRecipients`), busca as assinaturas dos usuários deles e envia com TTL de 12 h.
 - Variáveis novas, **as três ou nenhuma**, em `src/config/env.ts`, `.env.example` e `render.yaml` (`sync: false`):
   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:` do dono). Como gerar: `npx web-push
@@ -218,6 +227,13 @@ Regras de visual do documento de autonomia valem como critério.
   limpa o parâmetro da URL.
 - **Sair:** o logout do Perfil cancela a assinatura antes de chamar `/auth/logout`.
 - Ícones pixel novos (sino, celular com seta) em `pixel-sprite-maps.ts`. Sem dependência nova no web.
+- **Orçamento do JS inicial** (118,4 de 150 kB depois do `polimento-v1`, `apps/web/scripts/check-build.mjs`): o
+  registro do service worker, o `use-push` e o pedido de permissão ficam fora do pedaço inicial (só no Perfil e nas
+  linhas do Feed, que são áreas `lazy`). O `AppShell` (inicial) só lê `?grupo=` e não importa valor de
+  `@fut-stats/shared`.
+- **Linhas do Feed:** o Feed (#74) é a home; as linhas de instalar e de avisos têm o visual da `AlertLine` (que
+  hoje recebe um `FeedAlert`: componente irmão ou `AlertLine` generalizada, decisão do DEV) com o "✕" de dispensar.
+  Nenhuma tecla amarela nelas: o amarelo fica só na tecla de ação do aviso grande.
 
 **Álbum** (`docs/design/prints/pwa-e-push/`): um print por cenário de tela (C22–C34, C39) a 390 px, mais um print
 de uma notificação real no Android e no iPhone (do roteiro em aparelho real, anexado pelo dono ou pelo TPL se
