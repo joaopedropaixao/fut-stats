@@ -25,7 +25,7 @@ type Me = { membershipId: string; avatar: PlayerAvatar };
 /**
  * Aviso grande dos times: grande momento em branco e preto (moldura branca com sombra preta, faixa preta e o corte
  * diagonal do placar embaixo dela), com a faixa do meu bonequinho ("Você joga no Preto") ou "Você não está
- * escalado", e a tecla amarela "Ver os times" (a aba Times). A identidade nunca vai na tecla.
+ * escalado", e a tecla amarela "Ver os times" (a aba Times), só com o texto, sem ícone. A identidade nunca vai na tecla.
  */
 export function TeamsPublishedCard({
   groupId,
@@ -72,7 +72,6 @@ export function TeamsPublishedCard({
         <RouteButton
           to="/times"
           label="Ver os times"
-          icon="teams"
           block
           className="animate-row-in [--moment-delay:260ms]"
         />
