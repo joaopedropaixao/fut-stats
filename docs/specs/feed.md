@@ -372,3 +372,14 @@ Tabela final (volta 2 sobre a volta 1):
 
 Observações para o dono: no C32 admin, a linha RESULTADO (borda ouro) fica logo abaixo da tecla amarela "Criar
 rodada" (elementos separados); o JS inicial está no limite do arredondamento (sem folga para o próximo pedaço).
+
+**Volta de design 5 (17/11), QA aprovado:**
+
+| Pedido | Resultado |
+|---|---|
+| Reações sem nome visível (C36) | OK — só ícone + contador; nome no `title` e no nome acessível ("Bagre, 3 reações, a sua"); reagir, trocar e tirar certos |
+| ✓ ao lado do contador (c1dfcb3) | OK — interseção 0 do ✓ com o ícone e com o contador nas 5 reações, em 320 e 390 |
+| Barra de reações (C51) | OK — 5 numa linha; botões de 48,4×64 (320) a 112,4×64 (1280); sem rolagem nem sobreposição. Atenção: no OSS! em 320 sobram 3,2 px entre o ícone e a borda, para o contorno de 3 px da minha |
+| Presença verde no Feed (C29, C34) | OK — CONFIRMAR verde e AUSÊNCIA vermelha, iguais ao detalhe da rodada nos 3 estados; nenhum amarelo na tela |
+| "Ver os times" sem o VS (C30) | OK — só o texto, 56 px, leva a /times, uma tecla amarela só |
+| Console, pronto na raiz | OK — sem erros; lint, typecheck, test (web 594) e build verdes |
