@@ -3,7 +3,7 @@
 //    vazou para o build e o bundle saiu maior e mais lento.
 // 2. Telas de dev (/dev/entrar, /dev/componentes) dentro do build de produção.
 // 3. Orçamento do bundle (apps/web/bundle-budget.json): JS inicial, pedaço de rota, CSS e JS total.
-import { appendFileSync, readdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import {
@@ -57,8 +57,22 @@ if (devLeaks.length > 0) {
 }
 console.log('dist sem as telas de dev.');
 
-// Orçamento. O service worker, o runtime do Workbox e o registerSW não são código de tela: ficam fora da conta.
-const isApp = (file) => !/^(sw|registerSW|workbox-[^/]*)\.js$/.test(relative(dist, file));
+// Avisos push (pwa-e-push): o service worker gerado importa o push-sw.js, e o arquivo está no dist
+const swSource = readFileSync(join(dist, 'sw.js'), 'utf8');
+if (
+  !/importScripts\(\s*["']push-sw\.js["']\s*\)/.test(swSource) ||
+  !existsSync(join(dist, 'push-sw.js'))
+) {
+  console.error(
+    'O dist/sw.js não importa o push-sw.js (workbox.importScripts em vite.config.ts) ou o arquivo sumiu.',
+  );
+  process.exit(1);
+}
+console.log('dist/sw.js importa o push-sw.js.');
+
+// Orçamento. O service worker (com o push-sw.js que ele importa), o runtime do Workbox e o registerSW não são
+// código de tela: ficam fora da conta.
+const isApp = (file) => !/^(sw|push-sw|registerSW|workbox-[^/]*)\.js$/.test(relative(dist, file));
 const sized = [...jsFiles(dist), ...filesWith(dist, '.css')]
   .filter(isApp)
   .map((file) => ({ path: relative(dist, file), bytes: gzipSync(readFileSync(file)).length }));

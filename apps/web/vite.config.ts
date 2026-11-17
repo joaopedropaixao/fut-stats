@@ -66,7 +66,11 @@ export default defineConfig(({ mode }) => {
           // Os ícones do manifesto o plugin já inclui. Das fontes, só o alfabeto latino entra no pacote
           // offline; os outros recortes baixam se precisar
           globPatterns: ['**/*.{js,css,html,svg}', 'apple-touch-icon-*.png', '**/*-latin-*.woff2'],
-          globIgnores: ['**/*-latin-ext-*.woff2'],
+          globIgnores: ['**/*-latin-ext-*.woff2', 'push-sw.js'],
+          // Os avisos push (público/push-sw.js) entram no service worker gerado por importScripts: a lógica fica
+          // num arquivo que o Vitest testa, e o cache e a atualização continuam os do Workbox. O arquivo não
+          // vai para o pré-cache (o navegador o baixa e o compara com o sw.js a cada verificação de atualização)
+          importScripts: ['push-sw.js'],
           // /api/* nunca cai no index.html do service worker (o login com Google é navegação para a API)
           navigateFallbackDenylist: [/^\/api\//],
         },
