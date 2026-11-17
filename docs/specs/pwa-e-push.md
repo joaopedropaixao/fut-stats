@@ -281,4 +281,30 @@ tiver aparelho); `perfil-320`, `feed-320`, `perfil-desktop`.
   resultado saiu (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**Veredito: APROVADO na volta 1** (17 nov 2026), contra o back e o front juntos (front rebaseado sobre o back, sobre a
+develop 1c65574). `pnpm lint && pnpm typecheck && pnpm test && pnpm build` verdes no worktree (API 664 testes, web 78
+arquivos); JS inicial 119,0 de 150 kB; o `check-build` confere que o `sw.js` importa o `push-sw.js`. O QA conferiu
+os destinatários ao vivo com o `web-push` real entregando num receptor HTTPS local (times, votação aberta e
+resultado chegaram aos escalados, sem o admin que causou; publicar com 409 não enviou nada).
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1–C5 | ok | `packages/domain/src/notifications/recipients.test.ts` |
+| C6, C7 | ok | `apps/api/src/push/push.spec.ts`, `notifications.spec.ts`; ao vivo enabled true/false |
+| C8 | ok | `apps/api/src/config/env.spec.ts` (diz qual variável falta) |
+| C9–C13 | ok | `push.spec.ts`; ao vivo: PUT 204, `http` 400, DELETE de outro usuário não apaga, 401 nas 4 rotas |
+| C14–C19 | ok | `apps/api/src/push/push-actions.spec.ts`, `notifications.spec.ts` (inativo e admin fora; relógio e último voto uma vez só; 410 apaga; erro de rede com `requestId`; 409 não envia) |
+| C20 | ok | `push.spec.ts`; ao vivo `{sent:1}` e `{sent:0}` |
+| C21 | ok | `packages/shared/src/push.test.ts` |
+| C22–C24 | ok | Playwright: card grande momento, "Instalar" chama `prompt()`; gaveta do iPhone; some em `standalone` |
+| C25, C33 | ok | linhas depois dos avisos de rodada, ✕ 44×44, dispensa de 14 dias; seta para o Perfil |
+| C26–C31 | ok | permissão só no toque; PUT/POST/DELETE reais; bloqueado sem pedir de novo; iPhone sem instalar |
+| C32 | ok | sem `PushManager`; servidor desligado: sem card e sem linha |
+| C34 | ok | `DELETE /push/subscriptions` antes de `POST /auth/logout` |
+| C35, C36 | ok | `apps/web/src/features/pwa/push-sw.test.ts` (lê o `public/push-sw.js` real) |
+| C37 | ok | `?grupo=` troca a pelada e limpa a URL; id alheio ignorado |
+| C38 | ok | `check-build` + build servido: SW controla a página, reabre sem rede |
+| C39 | ok | carregando (`aria-busy`), erro, reduzir movimento |
+| C40 | ok | 320/375/390/430/1280 sem rolagem, sobreposição nem corte; interruptor 80×48; console sem erros |
+| C41 | ok | `apps/api/src/feed/feed.spec.ts`; ao vivo `hasPack` true/false, PRESENCE sem o campo |
+| C42 | ok | "Abrir pacote"/"Ver resultado"; nenhum `voting/result` ao abrir o Feed |
