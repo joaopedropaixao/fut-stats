@@ -104,7 +104,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C27 | resultado novo (pacote fechado) + votação aberta + presença aberta | abrir o Feed | **um** card grande (o `ResultAlert` de hoje, com o pacote em miniatura e "Abrir pacote"; rodada sem votos: "Ver resultado", sem pacote) e duas **linhas de aviso** abaixo: "VOTAÇÃO ABERTA · FALTA O SEU VOTO" e "PRESENÇA ABERTA · RESPONDA". Cada linha tem ícone, o tipo escrito, cor do tipo e seta; alvo ≥ 44 px | Playwright |
 | C28 | abri o pacote (neste aparelho) | voltar ao Feed | o resultado vira linha ("RESULTADO · RODADA 12") e a votação sobe para card grande (o `VotingCard`, agora com a tecla amarela "Dar minhas notas" se joguei e não votei) | Playwright |
 | C29 | só presença aberta | abrir | card grande da presença (o de hoje: data, local, CONFIRMAR / AUSÊNCIA, contagem), com uma fileira de rostos de quem vai ("+9" no fim) que leva ao detalhe da rodada. CONFIRMAR / AUSÊNCIA iguais aos do detalhe da rodada (volta de design 5): CONFIRMAR verde, ausência em vermelho, nenhum amarelo em estado nenhum (confirmado, ausência, sem resposta) | Playwright |
-| C30 | times publicados e estou escalado | abrir | card grande **"TIMES PUBLICADOS"** com "VOCÊ JOGA NO PRETO" (faixa com o meu bonequinho) e a tecla "Ver os times"; não escalado: "Você não está escalado" | Playwright |
+| C30 | times publicados e estou escalado | abrir | card grande **"TIMES PUBLICADOS"** com "VOCÊ JOGA NO PRETO" (faixa com o meu bonequinho) e a tecla "Ver os times" só com o texto, sem o VS (volta de design 5, 17/11); não escalado: "Você não está escalado" | Playwright |
 | C31 | jogo rolando; Resenha | abrir | o card do jogo de hoje ("Em jogo" / "Hora da Resenha") como aviso grande; votação de outra rodada, se houver, em linha | Playwright |
 | C32 | nenhuma rodada ativa | abrir | sem avisos: "Nenhuma rodada marcada" (admin: tecla "Criar rodada") e as resenhas logo abaixo | Playwright |
 | C33 | linha de aviso | tocar | leva à tela do tipo: votar, resultado, times, jogo ou detalhe da rodada | Playwright |
@@ -322,6 +322,8 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
 - Cor da votação fechada no prata com a faixa listrada (17/11) — o verde-luz do refletor foi descartado.
 - CONFIRMAR da presença no Feed volta ao verde (17/11) — a tecla amarela ali destoava do detalhe da rodada e ficava
   acesa mesmo com a Ausência escolhida; a presença é a exceção à tecla amarela do aviso grande.
+- A tecla "Ver os times" do aviso de times publicados fica só com o texto, sem o desenho do VS (17/11, decisão do
+  dono).
 - Comentários abrem no card — conversa curta não pede outra tela.
 - "Quem vai" sai do início — o Feed precisa de espaço para avisos e resenhas; a lista completa continua a um toque.
 - Qualquer admin edita e apaga qualquer resenha — os admins são a "redação" do grupo.
