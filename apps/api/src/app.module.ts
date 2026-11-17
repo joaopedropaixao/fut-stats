@@ -43,6 +43,7 @@ import { VotingModule } from './voting/voting.module';
     RoundEventsModule,
     LiveModule,
     PushModule,
+    RoundEventsModule,
     DevModule.forEnvironment(),
   ],
 })
