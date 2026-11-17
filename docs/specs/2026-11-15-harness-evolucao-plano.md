@@ -31,15 +31,15 @@ com falha não bloqueante e retenção explícita. Preservar equipes anteriores 
 
 ## Plano e provas
 
-1. [ ] QA: `.harness/qa.mjs` e testes de cobertura incompleta, reuso, invalidação, identidade,
+1. [x] QA: `.harness/qa.mjs` e testes de cobertura incompleta, reuso, invalidação, identidade,
    contagem de correções e recuperação. Comandos qa-plan, qa-evidence, qa-status, qa-result,
    qa-correction, qa-invalidate. Atualizar diagnóstico clipping/overlap com teste puro.
-2. [ ] Política: JSON e resolvedor, classify e prepare; testar todas as combinações, invariância
+2. [x] Política: JSON e resolvedor, classify e prepare; testar todas as combinações, invariância
    de tentativas anteriores, compatibilidade e modelos observados. Atualizar skills/defaults.
-3. [ ] Métricas: eventos transacionais espelhados após persistência, CLI report e usage;
+3. [x] Métricas: eventos transacionais espelhados após persistência, CLI report e usage;
    testar deduplicação, paralelismo, dados parciais, períodos, intervalos e falhas de escrita.
-4. [ ] Documentação, testes harness/hooks e checks raiz; revisão independente e correções.
-5. [ ] Fetch/rebase pessoal, verificar CI e publicar na branch preservada. Como PR70 já usa
+4. [x] Documentação, testes harness/hooks e checks raiz; revisão independente e correções.
+5. Publicação acompanhada no PR70: fetch/rebase pessoal, CI e branch preservada. Como PR70 já usa
    esta branch, atualizar seu título/corpo ao escopo final, preservando os aprendizados.
 
 ## Verificação de runtime
@@ -54,3 +54,30 @@ equipes artificiais só para declarar ativação. Uso não exposto fica indispon
 Primeiro incremento: commit 463f1af; baseline atual 39 testes do harness passando.
 Sem retomada de Ranking/Pacote ou Auditoria. Mudanças técnicas de validação seguem dentro
 do contrato; nova regra de produto, ação em banco alheio e merge continuam portões do dono.
+
+
+## Resultado local após rebase
+
+Base integrada: `5304341` (develop). Commits de implementação após rebase: `1c5491f` e
+`531cbec`. Revisão independente com Sol/high encontrou falhas de agregação/arquivamento;
+todas ganharam testes de regressão e foram corrigidas. Rechecagem final sem bloqueio material.
+
+- Harness: 62 testes passando, executados localmente após rebase.
+- Hooks compartilhados: todos passando.
+- `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`: todos passando. Turbo reutilizou
+  resultados válidos de pacotes inalterados; web foi revalidada (507 testes) na base nova.
+- Catálogo real Codex 0.169.0 confirmou IDs/esforços. Nenhum worker de produto foi lançado.
+- Matriz final configurada está em `.harness/model-policy.json`; execução efetiva permanece
+  desconhecida até observação oficial da tentativa, sem alegação de ativação por fixture.
+- Uso/custo reais não disponíveis nesta validação. Import é por tentativa/dispatch e cumulativo;
+  dados de sessão agregada são recusados para evitar duplicação. Não há preços comerciais embutidos.
+
+O fluxo continua com aprovação do contrato, implementação, QA independente e PR. Replanejar
+não apaga retrabalho; arquivar congela a validade QA e não restaura aprovação obsoleta.
+Os papéis e comandos estão em `.harness/operacao.md`, `.harness/qa-incremental.md` e
+`.harness/metricas.md`. Consultar `node .harness/team.mjs report --format markdown`.
+
+Limitações operacionais: prontidão/liveness são atestados pelo coordenador; não houve prova
+MCP/Orca ao vivo. Uso precisa de export oficial isolado, sem coleta automática de transcrições.
+A retenção do journal é explícita; arquivo operacional de equipes é preservado para auditoria.
+Não houve mudança de regras de produto, migração de equipe Claude, deploy ou merge.
