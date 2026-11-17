@@ -5,13 +5,13 @@
 
 | | |
 |---|---|
-| **Fatia** | `jogo-ao-vivo` (onda 5) |
+| **Fatia** | `jogo-ao-vivo` (onda 6) |
 | **Modo** | Par |
 | **Parte de** | `auditoria-da-rodada` (os pontos de escrita da rodada já passam por um lugar só) |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @1c65574 (revisado em 2026-11-17: entraram #62–#69, #72, #73, #74) |
 | **Depende de** | auditoria-da-rodada, votacao, rodizio-reservas |
-| **Toca em** | packages/shared/src/live.ts, packages/shared/src/index.ts, apps/api/src/live, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/config/env.ts, .env.example, apps/web/src/features/live, apps/web/src/features/match/queries.ts, apps/web/src/features/match/refresh-interval.ts, apps/web/src/features/voting, apps/web/src/app/shell.tsx |
+| **Toca em** | packages/shared/src/live.ts, packages/shared/src/index.ts, apps/api/src/live, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/config/env.ts, .env.example, apps/web/src/features/live, apps/web/src/features/match/queries.ts, apps/web/src/features/match/refresh-interval.ts, apps/web/src/features/voting/queries.ts, apps/web/src/app/shell.tsx, docs/02-arquitetura.md (apps/web/vite.config.ts só se o proxy segurar o fluxo; avisar a `pwa-e-push`, que também mexe nele) |
 
 ## Produto
 
@@ -68,10 +68,10 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | C13 | B na tela do jogo, Resenha | A lança um gol | aparece em B em até 2 s (antes: até 5 s) | Playwright |
-| C14 | B no início com "Times publicados" | A começa o jogo; depois finaliza com 3x2 | B passa para "Em jogo" e depois para "Hora da Resenha" com o placar, em até 2 s cada, sem recarregar | Playwright |
+| C14 | B no início (Feed) com o card de times publicados | A começa o jogo; depois finaliza com 3x2 | B passa para o aviso "Jogo em andamento" e depois para "Hora da Resenha" com o placar, em até 2 s cada, sem recarregar | Playwright |
 | C15 | B na tela do jogo, em jogo | A liga o rodízio | o card do rodízio aparece em B em até 2 s | Playwright |
 | C16 | B em "Votos enviados" | outro jogador vota | o medidor de B sobe em até 2 s | Playwright |
-| C17 | B votando | A encerra a votação | B vê "A votação fechou" ao tentar enviar e o início mostra "O resultado saiu" em até 2 s | Playwright |
+| C17 | B votando | A encerra a votação | B vê "A votação fechou" ao tentar enviar e o início (Feed) mostra "O resultado saiu" em até 2 s | Playwright |
 | C18 | canal conectado | contar pedidos de B em 60 s parado na Resenha | no máximo 1 pedido de segurança da visão do jogo (antes: 12) | Playwright |
 | C19 | canal derrubado (rota do stream abortada no Playwright) | A lança um gol | aparece em B pelo modo antigo, em até 5 s na Resenha (15 s em jogo e na votação) | Playwright |
 | C20 | canal volta | esperar a nova tentativa | B reconecta, busca tudo uma vez e volta ao tempo real | Playwright |
@@ -124,22 +124,37 @@ Na API:
   `GET` (`@GroupMember()`, confere que a rodada é do grupo antes de abrir o fluxo; `@Sse()` do Nest ou a resposta
   na mão, o que der os cabeçalhos certos). Cancelar a inscrição no `close` da requisição.
 - **Avisar depois de gravar:** cada service chama `events.emit(...)` **depois** que o `withRoundLock` (ou a
-  transação) resolve, nunca dentro. Pontos: `match.service` (start, score, finish, open-voting, lances, rodízio),
-  `lineups.service` (publish, unpublish), `voting` (votar, fechar pelos três caminhos). Erro ao avisar é
-  registrado no log e engolido: nunca derruba a escrita.
-- **Cobertura:** o teste de C3 percorre a mesma lista de rotas de escrita do teste de cobertura de
-  `auditoria-da-rodada` (mais votar e rodízio).
+  transação) resolve, nunca dentro. São os mesmos pontos que já gravam `AuditLog` (`audit.record`/`recordForMember`
+  dentro da transação), mais o rodízio, que não grava registro:
+  - `match.service`: `start`, `finish`, `openVoting` (`match`+`status`); `setScore`, `launchEvent`, `removeEvent`,
+    `startRotation`, `stopRotation` (`match`);
+  - `lineups.service`: `transition` (publicar/despublicar, `status`). O `$transaction` de salvar o rascunho dos times
+    em `SCHEDULED` não avisa (fora de `LIVE_ROUND_STATUSES`, ninguém está ouvindo);
+  - `voting.service`: `submitVote` → `voting`, ou `voting`+`status` quando o último voto fecha (o `closeRound` roda
+    na mesma transação do voto); `close` (admin) e `closeDueVotings` → `voting`+`status`, uma vez por rodada que
+    **de fato** fechou (o `withRoundLock` devolve `true`). O `closeDueVotings` hoje roda em quatro portas: o relógio
+    (`VotingCloser`), `GET feed/alerts`, a lista de rodadas (`rounds.service`) e as leituras da votação
+    (`view`/`result`); avisar dentro dele cobre todas.
+  Erro ao avisar é registrado no log e engolido: nunca derruba a escrita. O `emit` é síncrono e barato; cada ouvinte
+  escreve na própria resposta dentro de `try/catch` (C11).
+- **Cobertura:** o teste de C3 percorre a mesma lista de rotas de escrita de
+  `apps/api/src/audit/audit-coverage.spec.ts` (só as da rodada; o feed fica fora), mais votar e rodízio.
 - **Um processo só:** o emissor vive na memória. Serve enquanto a API roda numa instância (Render gratuito). Com
   mais de uma instância, trocar o emissor por `LISTEN/NOTIFY` do Postgres, sem mudar o contrato (fica anotado no
   `docs/02-arquitetura.md`).
-- `STREAM_HEARTBEAT_MS` em `src/config/env.ts` e no `.env.example`. Sem dependência nova.
+- `STREAM_HEARTBEAT_MS` em `src/config/env.ts` e no `.env.example` (uma linha em cada, perto de
+  `VOTING_CLOSER_INTERVAL_MS`; a `pwa-e-push` também mexe nos dois). Sem dependência nova.
+- **Cruzamento com `pwa-e-push` (vaga 2):** ela é a dona de `schema.prisma` e `pnpm-lock.yaml` nesta onda; esta
+  fatia não mexe em nenhum dos dois. As duas mexem em `app.module.ts`, `shared/src/index.ts`, `env.ts`,
+  `.env.example`, `shell.tsx` e nos services de `match`, `lineups` e `voting`: uma linha por módulo/variável e um
+  `emit` logo depois do `await` da transação, para o rebase ser trivial.
 
 ### Tela
 Sem mudança visual. Regra 7 do documento de autonomia (sem sobreposição) vale para as telas que passam a se
 atualizar sozinhas.
 - **`features/live/use-round-stream.ts`:** abre um `EventSource` para a rodada, valida cada mensagem com
   `roundStreamEventSchema` e invalida as consultas pelo escopo:
-  - `match` → a visão do jogo (`matchKey`);
+  - `match` → a visão do jogo (`matchKey`) e o histórico (`historyKey`, exato), que já é invalidado depois de lance;
   - `voting` → a visão da votação e o resultado;
   - `status` → o detalhe da rodada, os times (`lineup`) e a lista de rodadas **por prefixo** (`roundsKey(groupId)`
     sem `exact`), que leva junto os avisos do Feed.
@@ -148,7 +163,12 @@ atualizar sozinhas.
   60 s, depois tenta de novo.
 - **`features/live/live-rounds.tsx`:** montado no `AppShell`. Lê a lista de rodadas e mantém o canal aberto para
   a rodada da vez e para a rodada em votação (no máximo 2 conexões), só em `LIVE_ROUND_STATUSES` e com a aba
-  visível. Assim toda tela se beneficia sem cada uma abrir o seu.
+  visível. Assim toda tela se beneficia sem cada uma abrir o seu. Desde `feed` (#74) o início é o Feed: os avisos
+  (`alertsKey`, sob `roundsKey`) entram no prefixo do `status`. Cuidado com o JS inicial (118,4 kB de 150, #72):
+  o `shell` está no caminho inicial, então `live-rounds` não traz import de valor de `@fut-stats/shared` (o
+  `roundStreamEventSchema` e o Zod ficam num chunk carregado depois, ou a checagem do evento é escrita à mão no
+  web com o tipo vindo por `import type`; `LIVE_ROUND_STATUSES` pode ser copiado como constante local com teste
+  que confere contra o shared).
 - **Intervalos:** `matchRefreshInterval` e o intervalo da votação recebem o estado do canal: conectado → 60 s
   (rede de segurança); modo antigo → os valores de hoje (15 s / 5 s / 15 s). `refetchOnWindowFocus` continua.
 - Em dev, o proxy do Vite já repassa `/api/` (conferir que não segura o fluxo; se segurar, ajustar o proxy).
