@@ -24,12 +24,20 @@ export type NotificationContext = {
   actorId: string | null;
 };
 
-/** Quem recebe o aviso (membershipIds, sem repetir e sem o ator). Implementação: `dev-back`, testes C1–C5 primeiro. */
+/**
+ * Quem recebe o aviso (membershipIds, sem repetir e sem o ator). Só decide quem: não envia nada nem conhece aparelho.
+ * Sempre só membro ativo: nos tipos de escalação (`TEAMS_PUBLISHED`, `VOTING_OPENED`) vale a interseção entre os
+ * escalados e os ativos (quem foi desativado depois de jogar não recebe); sem `lineupIds`, ninguém.
+ */
 export function notificationRecipients(
   type: NotificationType,
   context: NotificationContext,
 ): string[] {
-  void type;
-  void context;
-  throw new Error('notificationRecipients: não implementado');
+  const { activeMemberIds, lineupIds, actorId } = context;
+  const active = new Set(activeMemberIds);
+  const candidates =
+    type === 'TEAMS_PUBLISHED' || type === 'VOTING_OPENED'
+      ? (lineupIds ?? []).filter((id) => active.has(id))
+      : activeMemberIds;
+  return [...new Set(candidates)].filter((id) => id !== actorId);
 }
