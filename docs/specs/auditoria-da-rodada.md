@@ -8,7 +8,7 @@
 | **Fatia** | `auditoria-da-rodada` (onda 5) |
 | **Modo** | Back |
 | **Parte de** | `placar-e-lances` (parecer do Head de Engenharia, 30 out 2026) |
-| **Status** | aprovado em 2026-11-14; extensão do feed decidida pelo dono em 2026-11-16 e implementada em 2026-11-17 (a validar pelo QA) |
+| **Status** | aprovado em 2026-11-14; extensão do feed decidida pelo dono em 2026-11-16 e implementada em 2026-11-17 (QA aprovado na volta 2) |
 | **Base** | develop @1b9afa5 (rebase da extensão: o `feed` #74 entrou; migration refeita por cima da `20261117174123_feed`). Antes: @e97ee8d, com #62 a #69 e #72 conferidos |
 | **Depende de** | votacao, rodizio-reservas, **feed** (extensão de 2026-11-16: o PR espera o `feed` entrar) |
 | **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/shared/src/round-log.ts, packages/shared/src/index.ts, apps/api/src/audit, apps/api/src/common, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/rounds/round-lock.service.ts, apps/api/src/setup-app.ts, apps/api/src/main.ts, apps/api/src/app.module.ts, packages/domain/src/feed/log.ts, apps/api/src/feed (`posts.service.ts`, `feed.module.ts`), apps/api/prisma/migrations (`audit_log`), apps/api/src/common (`all-exceptions.filter.ts`, `request-context.ts`, `request-log.ts`), apps/api/src/test, docs/operacao/registro.md, CONTEXT.md, docs/03-roadmap.md |
@@ -273,7 +273,29 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
   (16 nov 2026).
 
 ## QA
-**Veredito: APROVADO na volta 1** (2026-11-16, @6ba5ab1 sobre develop e97ee8d). `pnpm turbo run lint typecheck
+**Volta 2 (extensão do feed): APROVADO** (2026-11-17, @ebc58ce sobre develop 1b9afa5). Pronto na raiz verde (API 587
+testes em 29 suítes, domain 498, web 595, shared 4). Migration `20261117175943_audit_log` por cima da
+`20261117174123_feed` (intacta); `migrate status` em dia e `migrate diff` banco → schema sem diferença.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1–C22 (regressão após rebase e rename para `AuditLog`) | ✅ | `audit.spec.ts`, `request-context.spec.ts`, `seed.spec.ts`; contrato da rodada sem diff; fluxo real com 13 linhas na rodada 9 |
+| C23 | ✅ | `packages/domain/src/feed/log.test.ts`, `domain-enums.spec.ts` |
+| C24 | ✅ | `audit-feed.spec.ts` + fluxo real (linhas ficam depois de apagar a resenha) |
+| C25 | ✅ | `audit-feed.spec.ts` + fluxo real (autor e admin apagando; delete repetido 404 sem linha) |
+| C26 | ✅ | `audit-feed.spec.ts` + fluxo real (null→BALL→CATFISH→null; PUT repetido sem linha) |
+| C27 | ✅ | `audit-feed.spec.ts` (inclui falha forçada por trigger) + fluxo real (0 linhas por `requestId` recusado) |
+| C28 | ✅ | `audit-feed.spec.ts` + fluxo real (8 PUTs paralelos, cadeia before/after íntegra) |
+| C29 | ✅ | `audit-feed.spec.ts` |
+| C30 | ✅ | `request-context.spec.ts` + log real (`NOT_OWN_COMMENT`, `VALIDATION_FAILED`, `null` em 404/401) |
+| C31 | ✅ | `audit-coverage.spec.ts` |
+| C32 | ✅ | `audit-feed.spec.ts` + fluxo real (`GET feed/alerts` fecha a votação vencida: 1 `VOTING_CLOSED`, ator nulo, `requestId` do pedido; sem duplicar) |
+| Multi-grupo | ✅ | fluxo real: feed não vaza para o log da rodada; resenha de outro grupo 404 sem linha |
+
+Observações sem bloqueio: `AuditLog.actorId` com `ON DELETE SET NULL` (participação hoje só fica inativa, não é
+apagada); no 403 de papel o log de pedido segue com `groupId: null`.
+
+**Volta 1: (2026-11-16, @6ba5ab1 sobre develop e97ee8d). `pnpm turbo run lint typecheck
 test build --force`: 17/17 tarefas (API 508 testes em 26 suítes, domain 465, web 530, shared 2).
 
 | Cenário | Resultado | Evidência |

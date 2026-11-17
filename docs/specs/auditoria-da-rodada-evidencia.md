@@ -288,3 +288,46 @@ Na linha do 403 o `groupId` sai `null`: o guard de grupo recusa antes de anotar 
   }
 ]
 ```
+
+## Volta 2 (extensão do feed), 2026-11-17, @ebc58ce sobre develop 1b9afa5
+
+Vaga 1 (banco `fut_stats_auditoria_da_rodada`), login de dev na `:3100`, pedidos na mesma build em
+`NODE_ENV=production` (`:3101`, `VOTING_CLOSER_INTERVAL_MS=0`) para ver o log em JSON. Pessoas do seed.
+
+| # | Quem | Pedido | Status | `x-request-id` | Linha |
+|---|---|---|---|---|---|
+| 1 | Carlão (admin) | `POST posts` | 201 | `qa2-resenha-criar-01` | `POST_CREATED` |
+| 2 | Carlão | `PATCH posts/:id` | 200 | `qa2-resenha-editar-02` | `POST_EDITED` (texto antigo e novo) |
+| 3 | Dedé | `POST comments` "Foi sem querer ⚽️ kkk" | 201 | `qa2-comentar-03` | `COMMENT_CREATED` (`length: 21`, sem texto) |
+| 4 | Bruninho | `POST comments` "Impedido!" | 201 | `qa2-comentar-04` | `COMMENT_CREATED` |
+| — | Dedé | `DELETE` comentário do Bruninho | 403 `NOT_OWN_COMMENT` | `qa2-recusa-not-own-403` | nenhuma |
+| — | Dedé | `POST comments` texto vazio | 400 | `qa2-recusa-validacao-400` | nenhuma |
+| — | Dedé | `POST posts` (jogador) | 403 | `qa2-recusa-jogador-resenha-403` | nenhuma |
+| 5 | Dedé | `DELETE` o próprio comentário | 204 | `qa2-apagar-proprio-05` | `COMMENT_DELETED` (texto + autor) |
+| — | Dedé | `DELETE` o mesmo de novo | 404 | `qa2-apagar-repetido-06` | nenhuma |
+| 6 | Carlão | `DELETE` comentário do Bruninho | 204 | `qa2-admin-apaga-07` | `COMMENT_DELETED` |
+| 7 | Dedé | `PUT reaction` BALL | 200 | `qa2-reagir-ball-08` | `REACTION_SET` null→BALL |
+| — | Dedé | `PUT reaction` BALL de novo | 200 | `qa2-reagir-ball-repetido-09` | nenhuma |
+| 8 | Dedé | `PUT reaction` CATFISH | 200 | `qa2-trocar-catfish-10` | `REACTION_SET` BALL→CATFISH |
+| 9 | Dedé | `DELETE reaction` | 200 | `qa2-tirar-11` | `REACTION_REMOVED` |
+| — | Dedé | `DELETE reaction` de novo | 200 | `qa2-tirar-repetido-12` | nenhuma |
+| — | Bru (admin de outro grupo) | `PATCH`/`DELETE`/`PUT reaction`/`POST comments` na resenha via o grupo dele | 404 ×4 | `qa2-cross-*-404` | nenhuma |
+| 10 | Carlão | `DELETE posts/:id` | 204 | `qa2-resenha-apagar-15` | `POST_DELETED` (texto, autor, 1 reação, 1 comentário) |
+| 11 | Dedé, depois Bruninho | `GET feed/alerts` com a votação da rodada 9 vencida | 200 ×2 | `qa2-avisos-dede-01`, `qa2-avisos-bruno-02` | uma `VOTING_CLOSED` (`DEADLINE_PASSED`, ator nulo, `requestId` = `qa2-avisos-dede-01`) |
+
+As linhas da resenha continuam depois de apagada (12 pela consulta "por resenha" de `docs/operacao/registro.md`).
+8 `PUT` de reação simultâneos do mesmo membro: 6 linhas, cada `before` igual ao `after` anterior, último `after` =
+reação gravada. As cinco consultas de `docs/operacao/registro.md` rodaram no banco e devolveram o esperado.
+O `GET .../rounds/:roundId/log` da rodada 9 trouxe as 13 linhas da rodada e nenhuma do feed.
+
+Log de pedido (`:3101`, ids encurtados):
+
+```jsonl
+{"requestId":"qa2-recusa-not-own-403","method":"DELETE","path":"/api/groups/<g>/posts/<p>/comments/<c>","status":403,"durationMs":3.13,"userId":"<dede>","groupId":"<g>","errorCode":"NOT_OWN_COMMENT"}
+{"requestId":"qa2-recusa-validacao-400","method":"POST","path":"/api/groups/<g>/posts/<p>/comments","status":400,"durationMs":1.77,"userId":"<dede>","groupId":"<g>","errorCode":"VALIDATION_FAILED"}
+{"requestId":"qa2-tirar-repetido-12","method":"DELETE","path":"/api/groups/<g>/posts/<p>/reaction","status":200,"durationMs":5.17,"userId":"<dede>","groupId":"<g>"}
+{"requestId":"qa2-sem-sessao-401","method":"GET","path":"/api/me","status":401,"durationMs":0.33,"userId":null,"groupId":null,"errorCode":null}
+```
+
+Migration: `20261117174123_feed` intacta em relação à develop; `20261117175943_audit_log` a última;
+`prisma migrate status` em dia e `migrate diff` do banco para o schema sem diferença.
