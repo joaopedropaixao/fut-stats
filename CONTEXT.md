@@ -544,20 +544,40 @@ devolver voto de outra pessoa (nem para o admin); fechar fora do `RoundLockServi
 "falta votar"; deixar o 409 de prazo vencido desfazer o fechamento (o fechamento é commitado e só depois o erro sai);
 mexer no prazo de uma rodada já aberta esperando que o resultado mude.
 
-### Registro da rodada: `ROUND_LOG_ACTIONS` ✅
-**O que é:** o histórico de quem mudou **placar, etapa e lance** de uma rodada: quem fez, o quê, quando, como estava
-antes e como ficou. Serve para responder "quem mudou o placar?" e "sumiu um gol meu". Só o **vocabulário** mora no
-domain (`src/round/log.ts`, `ROUND_LOG_ACTIONS` / `RoundLogAction`, igual ao enum `RoundLogAction` do banco, conferido
-em `domain-enums.spec.ts`); gravar e ler é da API (`apps/api/src/audit`). O contrato fica em
+### Registro de auditoria: `ROUND_LOG_ACTIONS` + `FEED_LOG_ACTIONS` ✅
+**O que é:** o histórico de quem mudou **placar, etapa e lance** de uma rodada e de quem escreveu no **feed**
+(resenha, comentário, reação): quem fez, o quê, quando, como estava antes e como ficou. Serve para responder "quem
+mudou o placar?", "sumiu um gol meu" e, para o dono, "quem apagou essa resenha e o que dizia?". Só o **vocabulário**
+mora no domain (`src/round/log.ts`: `ROUND_LOG_ACTIONS` / `RoundLogAction`; `src/feed/log.ts`: `FEED_LOG_ACTIONS` /
+`FeedLogAction`; `AUDIT_ACTIONS` junta as duas; juntas, iguais ao enum `AuditAction` do banco, conferido em
+`domain-enums.spec.ts`); gravar e ler é da API (`apps/api/src/audit`). Uma tabela só, **`AuditLog`**, do grupo:
+`roundId` opcional (apagar a rodada leva as linhas dela, cascade) e `postId` opcional **sem chave estrangeira** (apagar
+a resenha não apaga as linhas dela, senão ninguém descobre quem apagou). O contrato da rodada fica em
 `packages/shared/src/round-log.ts` (`RoundLogEntry`, `ROUND_LOG_ACTION_LABELS`).
 
 **O que entra** (9 ações): `TEAMS_PUBLISHED`, `TEAMS_UNPUBLISHED`, `MATCH_STARTED`, `SCORE_SET` (lançar ou corrigir o
 placar), `MATCH_FINISHED`, `VOTING_OPENED`, `VOTING_CLOSED` (pelo admin, pelo prazo ou porque todos votaram),
 `EVENT_LAUNCHED` e `EVENT_REMOVED`.
 
+**Ações do feed** (7, `FEED_LOG_ACTIONS`): `POST_CREATED`, `POST_EDITED`, `POST_DELETED`, `COMMENT_CREATED`,
+`COMMENT_DELETED`, `REACTION_SET` (colocar ou trocar) e `REACTION_REMOVED`. O que fica em `before`/`after`:
+`POST_CREATED` `null` → `{ postId, title, body }`; `POST_EDITED` `{ postId, title, body }` → `{ postId, title, body }`;
+`POST_DELETED` `{ postId, authorId, title, body, reactionCount, commentCount }` → `null`; `COMMENT_CREATED` `null` →
+`{ postId, commentId, length }` (sem o texto, que já está no comentário); `COMMENT_DELETED` `{ postId, commentId,
+authorId, text }` → `null`; `REACTION_SET` `{ postId, reaction }` (`null` se não tinha) → `{ postId, reaction }`;
+`REACTION_REMOVED` `{ postId, reaction }` → `null`. **O texto apagado ou editado fica guardado** (decisão do dono,
+16 nov 2026): é uso interno para investigar bug. `PUT` de reação igual à atual, `DELETE` de reação que não existe e
+apagar comentário que outro já apagou não mudam nada e **não deixam linha**. Dois `PUT` de reação do mesmo membro ao
+mesmo tempo andam um de cada vez (trava por resenha e membro): nunca duas linhas para uma mudança só.
+
+**Sem rota de leitura do feed.** O registro do feed é para o dono, não para o admin do grupo: lê direto no banco por
+`requestId`, por usuário ou por resenha (consultas prontas em `docs/operacao/registro.md`). O `GET .../rounds/:roundId/log`
+só devolve ações da rodada.
+
 **O que nunca entra:** o **voto** (é anônimo: nem o conteúdo, nem "fulano votou", nem quem votou por último),
-presença, rascunho dos times, criar e editar a rodada e o rodízio. Rota nova de escrita da rodada precisa entrar na
-lista de auditadas ou na de excluídas de `audit-coverage.spec.ts`, senão o teste falha.
+presença, rascunho dos times, criar e editar a rodada, o rodízio e **qualquer leitura**. Rota nova de escrita da
+rodada ou do feed precisa entrar na lista de auditadas ou na de excluídas de `audit-coverage.spec.ts`, senão o teste
+falha.
 
 **Regras (decididas no spec `auditoria-da-rodada`, 14 nov 2026):**
 - **Mesma transação da escrita:** a mudança e a linha do registro entram juntas, ou nenhuma das duas (`AuditService.record(tx, ...)`
@@ -565,7 +585,8 @@ lista de auditadas ou na de excluídas de `audit-coverage.spec.ts`, senão o tes
   no `tx`, com a rodada travada.
 - **Quem fez:** a participação (`Membership`) de quem pediu. No fechamento da votação, o ator é o admin só quando veio
   de `POST .../voting/close` (mesmo que o motivo real seja o prazo ou "todos votaram"); nos outros caminhos (último
-  voto, prazo, relógio, leitura depois do prazo) é **`null`**, para o voto continuar anônimo.
+  voto, prazo, relógio, leitura da votação ou **dos avisos do feed** depois do prazo) é **`null`**, para o voto
+  continuar anônimo. Todos passam por `closeRound`, que é quem grava. O relógio não tem pedido: `requestId` nulo.
 - **Só inserção.** Apagar a rodada (só dá antes do jogo) apaga o registro dela junto (cascade).
 - **Antes e depois** são um retrato pequeno, sem dado pessoal além do id da participação: `{ status }` nas etapas;
   `{ score }` no placar (`score: null` enquanto ninguém lançou); `{ status, score }` ao finalizar; `{ eventId, type, playerId }`
@@ -575,12 +596,14 @@ lista de auditadas ou na de excluídas de `audit-coverage.spec.ts`, senão o tes
   linha mais antiga para a mais nova, sem tela nesta fatia. O seed grava direto e não gera registro (`[]`).
 - **`requestId`:** todo pedido ganha `x-request-id` (o recebido se bater com `/^[A-Za-z0-9_-]{8,64}$/`, senão um UUID),
   devolvido na resposta, na linha do registro e no log de pedido (uma linha por pedido com `method`, `path` sem query,
-  `status`, `durationMs`, `userId` e `groupId`; nunca corpo, cookie, email nem nome; `/api/health` fica de fora). Erro
+  `status`, `durationMs`, `userId` e `groupId`; com `status >= 400` também **`errorCode`**: o `code` do corpo do erro
+  (ex. `NOT_OWN_COMMENT`, `INVALID_TRANSITION`), `VALIDATION_FAILED` no 400 de validação do Zod (só no log; o corpo da
+  resposta não muda) ou `null` se o erro não tem código; nunca corpo, cookie, email nem nome; `/api/health` fica de fora). Erro
   500 devolve `{ statusCode, message, requestId }` sem a pilha, que só vai para o log. Fechamento pelo relógio da
   votação não tem pedido, então o `requestId` da linha é nulo.
 
 **Evite:** gravar a linha fora da transação da mudança; registrar voto ou rodízio; pôr nome, email ou nota no
-`before`/`after`; confiar num `groupId` do cliente (toda leitura filtra pelo grupo da rota); mudar ou apagar linha do
+`before`/`after` (texto de resenha e comentário é a exceção decidida, só do feed); confiar num `groupId` do cliente (toda leitura filtra pelo grupo da rota); mudar ou apagar linha do
 registro (só insere).
 
 ### Presença: `validateAttendanceChange` 🚧

@@ -8,10 +8,10 @@
 | **Fatia** | `auditoria-da-rodada` (onda 5) |
 | **Modo** | Back |
 | **Parte de** | `placar-e-lances` (parecer do Head de Engenharia, 30 out 2026) |
-| **Status** | aprovado em 2026-11-14; extensão do feed decidida pelo dono em 2026-11-16 |
-| **Base** | develop @e97ee8d (revisado no início: entraram #62 a #69 e #72; pontos de gravação conferidos contra o código) |
+| **Status** | aprovado em 2026-11-14; extensão do feed decidida pelo dono em 2026-11-16 e implementada em 2026-11-17 (a validar pelo QA) |
+| **Base** | develop @1b9afa5 (rebase da extensão: o `feed` #74 entrou; migration refeita por cima da `20261117174123_feed`). Antes: @e97ee8d, com #62 a #69 e #72 conferidos |
 | **Depende de** | votacao, rodizio-reservas, **feed** (extensão de 2026-11-16: o PR espera o `feed` entrar) |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/shared/src/round-log.ts, packages/shared/src/index.ts, apps/api/src/audit, apps/api/src/common, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/rounds/round-lock.service.ts, apps/api/src/setup-app.ts, apps/api/src/main.ts, apps/api/src/app.module.ts, packages/domain/src/feed/log.ts, apps/api/src/feed (services), docs/operacao/registro.md |
+| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/round, packages/shared/src/round-log.ts, packages/shared/src/index.ts, apps/api/src/audit, apps/api/src/common, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/rounds/round-lock.service.ts, apps/api/src/setup-app.ts, apps/api/src/main.ts, apps/api/src/app.module.ts, packages/domain/src/feed/log.ts, apps/api/src/feed (`posts.service.ts`, `feed.module.ts`), apps/api/prisma/migrations (`audit_log`), apps/api/src/common (`all-exceptions.filter.ts`, `request-context.ts`, `request-log.ts`), apps/api/src/test, docs/operacao/registro.md, CONTEXT.md, docs/03-roadmap.md |
 
 ## Produto
 
@@ -129,7 +129,10 @@ export const roundLogEntrySchema = z.object({
 ```
 
 ### Banco (`schema.prisma`)
-Model novo **`RoundLog`**:
+> Modelo final depois da extensão do feed: ver **Extensão: feed**. O model abaixo nasceu como `RoundLog`; hoje é
+> **`AuditLog`** (`roundId` e `postId` opcionais, enum `AuditAction`), numa migration só, `audit_log`, por cima da `feed`.
+
+Model novo **`RoundLog`** (hoje `AuditLog`):
 - `id String @id @default(cuid())`
 - `groupId String` (→ `Group`)
 - `roundId String` (→ `Round`, `onDelete: Cascade`)
@@ -164,10 +167,13 @@ Na API:
   - `lineups.service`: `publish` e `unpublish` (método `transition`).
   - `voting`: grava no `closeRound` (`voting.service.ts`), o funil único dos três caminhos de fechamento:
     `close` do admin, o voto (`submitVote`: o último voto, ou o voto que chega depois do prazo e fecha ali) e
-    `closeDueVotings` (o relógio `VotingCloser` e as leituras `view`/`result` depois do prazo). `closeRound` recebe
+    `closeDueVotings` (o relógio `VotingCloser`, as leituras `view`/`result` depois do prazo e, desde o `feed`,
+    **`FeedService.alerts()`**, que fecha as votações vencidas do grupo antes de montar os avisos: quarto caminho,
+    coberto pelo C32). `closeRound` recebe
     o `actorId`: a participação do admin quando veio de `POST .../voting/close` (mesmo se o motivo real for
     `DEADLINE_PASSED`/`ALL_VOTED`), `null` em todos os outros caminhos (o voto continua anônimo: quem votou por
-    último não aparece). Fechamento pelo relógio não tem pedido, então `requestId` fica nulo.
+    último não aparece). Fechamento pelo relógio não tem pedido, então `requestId` fica nulo; pelas leituras (votação, resultado, avisos)
+    leva o `requestId` da leitura e `actorId` nulo.
   - **Fora, de propósito:** rodízio (`startRotation`/`stopRotation` em `match.service`), rascunho (`lineups.save`),
     criar/editar rodada (`rounds.service`). O teste de cobertura lista essas rotas como excluídas, para rota nova
     de escrita não passar despercebida.
@@ -204,6 +210,11 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
   `onDelete: Cascade`: apagar a rodada leva o registro dela) e `postId` **opcional e sem chave estrangeira**
   (apagar a resenha **não** apaga o registro, senão ninguém descobre quem apagou). Enum `AuditAction` = ações da
   rodada + ações do feed. A rota e o contrato da rodada (`GET .../rounds/:roundId/log`, `RoundLogEntry`) não mudam.
+- **Modelo final** (migration `audit_log`, por cima de `20261117174123_feed`; a `round_log` nunca foi mergeada e foi
+  apagada): `AuditLog { id, groupId → Group, roundId? → Round (Cascade), postId? (sem FK), actorId? → Membership,
+  action AuditAction, before Json?, after Json?, requestId?, createdAt }`, com índices `(roundId, createdAt)`,
+  `(groupId, createdAt)`, `(postId, createdAt)`, `(actorId, createdAt)` e `(requestId)` (as consultas de
+  `docs/operacao/registro.md`). Domain: `ROUND_LOG_ACTIONS` + `FEED_LOG_ACTIONS` = `AUDIT_ACTIONS` (igual ao enum).
 - **Ações do feed** (`FEED_LOG_ACTIONS`, em `packages/domain/src/feed/log.ts`):
 
 | Ação | Quando | `before` | `after` |
@@ -219,12 +230,18 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
 - **Texto apagado ou editado fica guardado** no `before` (decisão do dono, opção 1): responde "o que foi apagado e
   por quem". Só quem opera lê.
 - Mesmas garantias da rodada: mesma transação, pedido recusado não deixa linha, só inserção, `actorId` = quem pediu,
-  `requestId` do contexto. `PUT` de reação igual à atual não muda nada e não deixa linha.
+  `requestId` do contexto. `PUT` de reação igual à atual não muda nada e não deixa linha; `DELETE` de reação que não existe e apagar comentário
+  que outro já apagou também não. As reações usam os nomes reais do domain (`BALL`, `CATFISH`, `OSS`, `YELLOW_CARD`,
+  `POPCORN`). `length` do comentário conta caracteres (code points), não bytes. O `before` de editar e apagar resenha
+  sai com a resenha travada (`FOR UPDATE`); reação trava por resenha e membro (`pg_advisory_xact_lock`), para dois
+  `PUT` do mesmo membro nunca gravarem duas linhas para uma mudança só.
 - **Sem rota de leitura do feed.** O registro do feed é para o dono, não para o admin do grupo: lê direto no banco,
   pelo `requestId` ou pelo usuário. `docs/operacao/registro.md` traz as consultas prontas (por `requestId`, por
   `userId` num intervalo, por resenha).
 - **Log de pedido mais útil para bug:** a linha de pedido com status ≥ 400 passa a levar `errorCode` (o `code` do
-  corpo do erro, ex. `NOT_OWN_COMMENT`, `INVALID_TRANSITION`; `null` se não tiver). Junto com `userId`, `path`,
+  corpo do erro, ex. `NOT_OWN_COMMENT`, `INVALID_TRANSITION`; `null` se não tiver). O 400 do Zod não tem `code` no
+  corpo; no log ele sai como `VALIDATION_FAILED` (derivado do `issues` do corpo, **sem mudar a resposta**). Pedido
+  2xx sai sem a chave. Junto com `userId`, `path`,
   `status` e `durationMs`, mostra qual passo falhou e quanto demorou. Continua sem corpo, cookie, email ou nome.
 
 ### Cenários da extensão
@@ -234,12 +251,13 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
 | C23 | `FEED_LOG_ACTIONS` e `ROUND_LOG_ACTIONS` | conferir | juntos, iguais ao enum `AuditAction` do banco | unitário (`domain-enums.spec.ts`) |
 | C24 | admin | publica, edita e apaga uma resenha | 3 linhas (`POST_CREATED`, `POST_EDITED` com texto antigo e novo, `POST_DELETED` com o texto e as contagens), `roundId` nulo, `postId` preenchido; as linhas **continuam** depois de apagar a resenha | integração |
 | C25 | jogador | comenta e apaga o próprio; admin apaga o comentário de outro | `COMMENT_CREATED` (sem o texto), `COMMENT_DELETED` ×2 com o texto e o autor, ator certo em cada | integração |
-| C26 | membro | `PUT` reação `FIRE`, `PUT` `FIRE` de novo, `PUT` `BALL`, `DELETE` | 3 linhas: `REACTION_SET` (null→FIRE), `REACTION_SET` (FIRE→BALL), `REACTION_REMOVED`; nenhuma pelo `PUT` repetido | integração |
+| C26 | membro | `PUT` reação `BALL`, `PUT` `BALL` de novo, `PUT` `CATFISH`, `DELETE` (e `DELETE` de novo) | 3 linhas: `REACTION_SET` (null→BALL), `REACTION_SET` (BALL→CATFISH), `REACTION_REMOVED`; nenhuma pelo `PUT` repetido nem pelo segundo `DELETE` | integração |
 | C27 | pedidos recusados do feed: jogador cria/edita/apaga resenha (403), apaga comentário de outro (403), texto inválido (400), resenha de outro grupo (404) | — | nenhuma linha nova | integração |
 | C28 | dois `PUT` de reação simultâneos do mesmo membro (C16 do `feed`) | `Promise.all` | o estado final bate com a última linha; nunca duas linhas para uma mudança só | integração |
 | C29 | admin apaga uma rodada `SCHEDULED` que tem linhas; o grupo tem linhas do feed | apagar | as linhas da rodada somem; as do feed ficam | integração |
-| C30 | pedido que dá 403 `NOT_OWN_COMMENT`; pedido que dá 400 de validação | olhar o log de pedido | a linha traz `errorCode` (`NOT_OWN_COMMENT`; o código de validação) e `status`; pedido 2xx sai com `errorCode: null` ou sem a chave | integração |
+| C30 | pedido que dá 403 `NOT_OWN_COMMENT`; pedido que dá 400 de validação | olhar o log de pedido | a linha traz `errorCode` (`NOT_OWN_COMMENT`; `VALIDATION_FAILED`) e `status`; recusa sem código (404, 401) sai com `errorCode: null`; pedido 2xx sai sem a chave | integração (`request-context.spec.ts`) |
 | C31 | cobertura | percorrer as rotas `POST\|PUT\|PATCH\|DELETE` do controller do feed | toda rota de escrita está na lista de auditadas (200/201/204 → uma linha) ou de excluídas | integração (`audit-coverage.spec.ts`) |
+| C32 | votação `VOTING` com prazo vencido (o 4º caminho de fechamento) | `GET .../feed/alerts`, e de novo por outra pessoa | uma linha `VOTING_CLOSED` (`DEADLINE_PASSED`, `actorId` nulo, `requestId` do pedido de avisos); a segunda leitura não duplica; votação dentro do prazo, ou de outro grupo, não grava | integração (`audit-feed.spec.ts`) |
 
 ## Fora do escopo
 - Tela do registro para o admin.

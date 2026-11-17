@@ -41,7 +41,7 @@ abaixo).
 | 6 ✅ | `rodizio-reservas` | Par | `placar-e-lances` | **Onda 2.** Botão opcional na tela do jogo: cronômetro (60 min por padrão) que divide o tempo entre os jogadores de linha de cada time e avisa quem entra e quem sai (pedido do dono, 25 out 2026) |
 | 7 ✅ | `historico` | Par | PR #31 (fechar) | **Onda 2.** Aba Histórico: partidas finalizadas com placar e o resultado de quem vê; detalhe com o campo e os lances |
 | 8 ✅ | `votacao` | Par | — | **Onda 3.** Tabelas do voto, tela "Dê sua nota", Craque / Perna de Pau, fechar a votação (todos votaram, prazo ou admin), apuração gravada e resultado da rodada |
-| 9 ✅ | `auditoria-da-rodada` | Back | `placar-e-lances` | **Onda 5.** Tabela `RoundLog` (quem, o quê, quando, antes/depois) gravada na mesma transação de toda escrita de placar, etapa e lance, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
+| 9 ✅ | `auditoria-da-rodada` | Back | `placar-e-lances` | **Onda 5.** Tabela `AuditLog` (quem, o quê, quando, antes/depois; começou como `RoundLog`) gravada na mesma transação de toda escrita de placar, etapa e lance e, depois do `feed`, de resenha, comentário e reação, e `requestId` + usuário nos logs da API (Head de Engenharia, 30 out 2026) |
 | 10 ✅ | `ranking` | Par | `votacao` | **Onda 4.** Ranking geral, por posição e de goleiros; perfil do jogador com estatísticas; a nota do seletor passa a acompanhar as rodadas |
 | 11 ✅ | `pacote-do-craque` | Front | `votacao` | **Onda 4.** Grande momento: o resultado chega como pacote, que rasga e revela as cartas do Craque (com walkout), do Perna de Pau e a sua (bronze/prata/ouro pela nota), com Compartilhar (fatia nova, 14 nov 2026; reforço 15 nov) |
 | 12 ✅ | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
@@ -56,8 +56,8 @@ Entregues até aqui: as fatias 0 a 8, 10, 11 e 16 (Fases 1, 2 e 3 completas). O 
 1. ✅ **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
    antes do `feed` porque ele é a próxima tela grande.
 2. **`auditoria-da-rodada`** (Back) e **`feed`** (Par), em paralelo. As duas mexem no `schema.prisma`
-   (`RoundLog` e `Post`/`PostReaction`/`PostComment`): a auditoria entra primeiro e o `feed` refaz a migration por
-   cima no rebase, como votação e rodízio fizeram.
+   (`RoundLog` e `Post`/`PostReaction`/`PostComment`): o `feed` entrou primeiro e a auditoria refez a migration por
+   cima (o model virou `AuditLog` e passou a cobrir as escritas do feed).
 3. **`jogo-ao-vivo`** (Par), **`pwa-e-push`** (Par) e **`producao`** (Back): a fase final, que entra junto do
    lançamento (o jogo ao vivo depende da auditoria). Antes da `producao`, o dono decide o nome e o domínio do app
    (P8).
