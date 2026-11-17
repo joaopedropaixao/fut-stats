@@ -115,7 +115,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | C35 | grupo com resenhas | rolar o Feed | seção "RESENHAS"; cada resenha é um card de grande momento (contorno de 3 px, sombra dura, entrada em degraus nos 3 primeiros): rosto e apelido do autor, selo ADMIN, quando ("HOJE, 21H" / "SÁB, 17 OUT"), título em pixel, texto corrido em Chakra Petch com as quebras de linha, "editada" quando foi | Playwright |
-| C36 | resenha | tocar numa reação | o contador sobe com o dígito "batendo"; a minha fica com contorno grosso e ✓; tocar em outra troca; tocar na mesma tira. Cada botão tem ícone pixel (desenho próprio; o OSS! é mais largo), sem nome visível (volta de design 4, 17/11: só o ícone + o contador, com o ✓ da minha ao lado do contador, nunca sobre o ícone); o nome (Bola, Bagre, OSS!, Cartão amarelo, Pipocou) fica no `title` e no nome para leitor de tela ("Bagre, 3 reações, a sua"); em 320 px os 5 botões cabem numa linha com ≥ 44 px cada | Playwright |
+| C36 | resenha | tocar numa reação | o contador sobe com o dígito "batendo"; a minha fica com contorno grosso e ✓; tocar em outra troca; tocar na mesma tira. Cada botão tem ícone pixel (desenho próprio; o OSS! é mais largo), sem nome visível (volta de design 5, 17/11: só o ícone + o contador, com o ✓ da minha ao lado do contador, nunca sobre o ícone); o nome (Bola, Bagre, OSS!, Cartão amarelo, Pipocou) fica no `title` e no nome para leitor de tela ("Bagre, 3 reações, a sua"); em 320 px os 5 botões cabem numa linha com ≥ 44 px cada | Playwright |
 | C37 | resenha com 3 comentários | tocar em "COMENTÁRIOS · 3" | abre embaixo do card: rosto, apelido, quando e texto de cada um; campo "Escreva um comentário" com contador e "Enviar" | Playwright |
 | C38 | comentando | enviar | o comentário entra no fim, o campo limpa e o contador do card sobe; vazio não envia; 281 caracteres mostra o erro do shared | Playwright |
 | C39 | meu comentário (ou qualquer um, como admin) | lixeira (44 × 44) → gaveta "Apagar comentário?" | some da lista com aviso | Playwright |
@@ -311,7 +311,7 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
 - Uma rota de avisos com o `me` de cada tipo — as linhas não precisam carregar a tela inteira de cada rodada.
 - Uma reação por pessoa, com 5 ícones pixel próprios — simples de entender e com a cara do app; emoji do sistema
   quebra a estética pixel.
-- Reações sem o nome visível embaixo do ícone (volta de design 4, 17/11, decisão do dono: "agora que os emojis
+- Reações sem o nome visível embaixo do ícone (volta de design 5, 17/11, decisão do dono: "agora que os emojis
   ficaram bem claros, pode tirar os nomes deles e deixar só o emoji mesmo") — o botão fica só com o ícone pixel e o
   contador; o nome segue no `title` e no leitor de tela. O ✓ da minha reação fica ao lado do contador (c1dfcb3).
 - Cor da votação fechada no prata com a faixa listrada (17/11) — o verde-luz do refletor foi descartado.
