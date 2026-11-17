@@ -81,3 +81,10 @@ Limitações operacionais: prontidão/liveness são atestados pelo coordenador; 
 MCP/Orca ao vivo. Uso precisa de export oficial isolado, sem coleta automática de transcrições.
 A retenção do journal é explícita; arquivo operacional de equipes é preservado para auditoria.
 Não houve mudança de regras de produto, migração de equipe Claude, deploy ou merge.
+
+### Revalidação em 17 de novembro
+
+Após a retomada, novo fetch/rebase pessoal sobre `e97ee8d` (PR72 integrado), sem conflitos.
+Harness novamente 62/62; hooks compartilhados verdes. A sequência raiz lint → typecheck →
+test → build terminou com código zero, reutilizando o cache compartilhado válido do Turbo.
+Publicação e CI remoto são acompanhados no PR70; merge permanece dependente do dono.
