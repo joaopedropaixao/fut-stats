@@ -362,6 +362,52 @@ describe('sinal único de eventos da rodada: as escritas', () => {
     ]);
   });
 
+  it('E3: editar e apagar a rodada sinalizam ROUND_UPDATED e ROUND_DELETED, com `status` e o admin', async () => {
+    const group = await createGroup(t);
+    const user = await createUser(t);
+    const admin = await addMember(t, user.id, group.id, { role: 'ADMIN' });
+    const cookie = loginAs(t, user.id);
+    const created = await request(t.app.getHttpServer())
+      .post(`/api/groups/${group.id}/rounds`)
+      .set('Cookie', cookie)
+      .send({ scheduledAt: new Date(Date.now() + 24 * HOUR_MS).toISOString() })
+      .expect(201);
+    const roundId = created.body.id as string;
+    heard = [];
+
+    await request(t.app.getHttpServer())
+      .patch(`/api/groups/${group.id}/rounds/${roundId}`)
+      .set('Cookie', cookie)
+      .send({ location: 'Campo novo' })
+      .expect(200);
+    await request(t.app.getHttpServer())
+      .delete(`/api/groups/${group.id}/rounds/${roundId}`)
+      .set('Cookie', cookie)
+      .expect(204);
+
+    const signal = (type: string) => ({
+      groupId: group.id,
+      roundId,
+      type,
+      scopes: ['status'],
+      actorMembershipId: admin.id,
+    });
+    expect(heard).toEqual([signal('ROUND_UPDATED'), signal('ROUND_DELETED')]);
+  });
+
+  it('E3: editar ou apagar recusado (jogador comum, rodada já jogada) não sinaliza', async () => {
+    const c = await setupAuditGroup(t, { status: 'POST_MATCH' });
+    const playerCookie = c.white[0]!.cookie;
+    await api(c, 'delete', '', c.admin).expect(409);
+    await request(t.app.getHttpServer())
+      .patch(base(c))
+      .set('Cookie', c.admin.cookie)
+      .send({ location: 'Outro' })
+      .expect(409);
+    await request(t.app.getHttpServer()).delete(base(c)).set('Cookie', playerCookie).expect(403);
+    expect(heard).toEqual([]);
+  });
+
   it('E3: rodada recusada (jogador comum, data sem fuso) não sinaliza', async () => {
     const group = await createGroup(t);
     const adminUser = await createUser(t);

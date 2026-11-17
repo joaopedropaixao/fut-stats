@@ -7,6 +7,8 @@ export type RoundEventScope = 'match' | 'voting' | 'status';
 /** O que aconteceu. Os nomes iguais aos da `AuditAction` são a mesma ação; `ROUND_CREATED`, `ROTATION_*` e `VOTE_CAST` não vão para o registro. */
 export type RoundEventType =
   | 'ROUND_CREATED'
+  | 'ROUND_UPDATED'
+  | 'ROUND_DELETED'
   | 'TEAMS_PUBLISHED'
   | 'TEAMS_UNPUBLISHED'
   | 'MATCH_STARTED'

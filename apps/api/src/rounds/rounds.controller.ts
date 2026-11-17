@@ -70,7 +70,7 @@ export class RoundsController {
     @CurrentMembership() membership: GroupMembership,
     @Param('roundId') roundId: string,
   ): Promise<void> {
-    return this.rounds.remove(membership.groupId, roundId);
+    return this.rounds.remove(membership, roundId);
   }
 
   /** Vou / Não vou. O jogador marca a própria; o admin, a de qualquer membro (regra no domain). */
