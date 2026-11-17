@@ -15,19 +15,23 @@ export function invalidateScopes(
   roundId: string,
   scopes: readonly RoundStreamScope[],
 ): void {
+  const wanted = new Set(scopes);
   const invalidate = (queryKey: readonly unknown[], exact = true) =>
     void queryClient.invalidateQueries({ queryKey, exact });
+  // O prefixo do `status` já alcança a visão do jogo, a da votação e o resultado (todos sob a rodada): pedir
+  // de novo cada um à parte cancelaria e repetiria a mesma busca
+  const coveredByStatus = wanted.has('status');
 
-  for (const scope of new Set(scopes)) {
-    if (scope === 'match') {
-      invalidate(matchKey(groupId, roundId));
-      invalidate(historyKey(groupId));
-    } else if (scope === 'voting') {
-      invalidate(votingKey(groupId, roundId));
-      invalidate(resultKey(groupId, roundId));
-    } else {
-      // Por prefixo: leva o detalhe da rodada, os times, a lista de rodadas e os avisos do Feed
-      invalidate(roundsKey(groupId), false);
-    }
+  if (wanted.has('match')) {
+    if (!coveredByStatus) invalidate(matchKey(groupId, roundId));
+    invalidate(historyKey(groupId));
+  }
+  if (wanted.has('voting') && !coveredByStatus) {
+    invalidate(votingKey(groupId, roundId));
+    invalidate(resultKey(groupId, roundId));
+  }
+  if (coveredByStatus) {
+    // Por prefixo: leva o detalhe da rodada, os times, a lista de rodadas e os avisos do Feed
+    invalidate(roundsKey(groupId), false);
   }
 }

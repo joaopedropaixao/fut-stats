@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { historyKey } from '../history/history-key';
 import { matchKey } from '../match/queries';
 import { alertsKey, roundKey, roundsKey } from '../rounds/queries';
@@ -50,6 +50,17 @@ describe('invalidateScopes: o que refaz em cada escopo', () => {
     invalidateScopes(client, G, R, ['status']);
     expect(invalidated()).toEqual(
       ['alerts', 'detail', 'lineup', 'list', 'match', 'voting', 'result'].sort(),
+    );
+  });
+
+  it('status junto de match e voting: cada consulta é pedida uma vez só (o prefixo já cobre)', () => {
+    const { client, invalidated } = seeded();
+    const spy = vi.spyOn(client, 'invalidateQueries');
+    invalidateScopes(client, G, R, ['match', 'voting', 'status']);
+    // o prefixo das rodadas e o histórico: nenhuma chave sob a rodada é invalidada duas vezes
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(invalidated()).toEqual(
+      ['alerts', 'detail', 'history', 'lineup', 'list', 'match', 'result', 'voting'].sort(),
     );
   });
 
