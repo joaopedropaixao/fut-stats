@@ -9,7 +9,8 @@ const logger = new Logger('HTTP');
 
 /**
  * Uma linha de log por pedido, quando a resposta termina: `requestId`, `method`, `path` (sem query), `status`,
- * `durationMs`, `userId` e `groupId`. Nunca corpo, cookie, email nem nome. Roda depois do `requestContextMiddleware`
+ * `durationMs`, `userId` e `groupId`; com status >= 400, também `errorCode` (o `code` do corpo do erro, ex.
+ * `NOT_OWN_COMMENT`, ou `null`). Nunca corpo, cookie, email nem nome. Roda depois do `requestContextMiddleware`
  * e é middleware (não interceptor) para também cobrir o que guard, filtro ou rota inexistente recusam.
  */
 export function requestLogMiddleware(req: Request, res: Response, next: NextFunction): void {
@@ -18,14 +19,16 @@ export function requestLogMiddleware(req: Request, res: Response, next: NextFunc
   res.on('finish', () => {
     const path = (req.originalUrl.split('?')[0] ?? '').replace(/(?<=.)\/+$/, '');
     if (SILENT_PATHS.has(path)) return;
+    const status = res.statusCode;
     logger.log({
       requestId: context?.requestId,
       method: req.method,
       path,
-      status: res.statusCode,
+      status,
       durationMs: Math.round(Number(process.hrtime.bigint() - startedAt) / 1e4) / 100,
       userId: context?.userId ?? null,
       groupId: context?.groupId ?? null,
+      ...(status >= 400 ? { errorCode: context?.errorCode ?? null } : {}),
     });
   });
   next();

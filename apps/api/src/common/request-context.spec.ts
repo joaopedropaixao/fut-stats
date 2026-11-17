@@ -176,6 +176,101 @@ describe('requestId e log de pedido', () => {
     });
   });
 
+  describe('C30: errorCode na linha de pedido com status >= 400', () => {
+    /** Admin, jogador e uma resenha com um comentário do jogador (para o outro jogador tentar apagar). */
+    async function feedScenario() {
+      const group = await createGroup(t);
+      const make = async (nickname: string, role: 'ADMIN' | 'PLAYER') => {
+        const user = await createUser(t);
+        const member = await addMember(t, user.id, group.id, { nickname, role });
+        return { user, member, cookie: loginAs(t, user.id) };
+      };
+      const admin = await make('Ana', 'ADMIN');
+      const author = await make('Caio', 'PLAYER');
+      const other = await make('Davi', 'PLAYER');
+      const post = await t.prisma.post.create({
+        data: { groupId: group.id, authorId: admin.member.id, body: 'Resenha' },
+      });
+      const comment = await t.prisma.postComment.create({
+        data: { postId: post.id, membershipId: author.member.id, text: 'Boa!' },
+      });
+      return { group, admin, author, other, post, comment };
+    }
+
+    it('C30: 403 NOT_OWN_COMMENT leva errorCode, status e userId, sem corpo nem texto do comentário', async () => {
+      const lines = captureRequestLogs();
+      const c = await feedScenario();
+
+      await request(server())
+        .delete(`/api/groups/${c.group.id}/posts/${c.post.id}/comments/${c.comment.id}`)
+        .set('Cookie', c.other.cookie)
+        .set(REQUEST_ID_HEADER, 'req-nao-e-seu-30')
+        .expect(403);
+
+      const line = lines().find((l) => l.requestId === 'req-nao-e-seu-30');
+      expect(line).toMatchObject({
+        status: 403,
+        errorCode: 'NOT_OWN_COMMENT',
+        userId: c.other.user.id,
+        groupId: c.group.id,
+      });
+      expect(typeof line!.durationMs).toBe('number');
+      expect(JSON.stringify(line)).not.toContain('Boa!');
+    });
+
+    it('C30: 400 de validação leva o código VALIDATION_FAILED, e o corpo da resposta não muda', async () => {
+      const lines = captureRequestLogs();
+      const c = await feedScenario();
+
+      const response = await request(server())
+        .post(`/api/groups/${c.group.id}/posts/${c.post.id}/comments`)
+        .set('Cookie', c.other.cookie)
+        .set(REQUEST_ID_HEADER, 'req-texto-vazio-30')
+        .send({ text: '' })
+        .expect(400);
+
+      expect(response.body).not.toHaveProperty('code');
+      expect(lines().find((l) => l.requestId === 'req-texto-vazio-30')).toMatchObject({
+        status: 400,
+        errorCode: 'VALIDATION_FAILED',
+      });
+    });
+
+    it('C30: recusa sem código no corpo (404, 401) sai com errorCode nulo', async () => {
+      const lines = captureRequestLogs();
+      const c = await feedScenario();
+
+      await request(server())
+        .get(`/api/groups/${c.group.id}/posts/nao-existe`)
+        .set('Cookie', c.other.cookie)
+        .set(REQUEST_ID_HEADER, 'req-sem-codigo-404')
+        .expect(404);
+      await request(server())
+        .get('/api/me')
+        .set(REQUEST_ID_HEADER, 'req-sem-codigo-401')
+        .expect(401);
+
+      const find = (id: string) => lines().find((l) => l.requestId === id);
+      expect(find('req-sem-codigo-404')).toMatchObject({ status: 404, errorCode: null });
+      expect(find('req-sem-codigo-401')).toMatchObject({ status: 401, errorCode: null });
+    });
+
+    it('C30: pedido 2xx não leva a chave errorCode', async () => {
+      const lines = captureRequestLogs();
+      const c = await feedScenario();
+
+      await request(server())
+        .get(`/api/groups/${c.group.id}/posts/${c.post.id}/comments`)
+        .set('Cookie', c.other.cookie)
+        .set(REQUEST_ID_HEADER, 'req-tudo-certo-30')
+        .expect(200);
+
+      const line = lines().find((l) => l.requestId === 'req-tudo-certo-30');
+      expect(line).toMatchObject({ status: 200 });
+      expect(line).not.toHaveProperty('errorCode');
+    });
+  });
+
   it('C19: erro 500 loga requestId e pilha e responde { statusCode, message, requestId } sem a pilha', async () => {
     const errors = jest.spyOn(Logger.prototype, 'error');
 

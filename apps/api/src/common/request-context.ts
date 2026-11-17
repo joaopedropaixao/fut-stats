@@ -11,6 +11,8 @@ export interface RequestContext {
   /** Preenchidos pelos guards de sessão e de grupo, conforme o pedido avança. */
   userId?: string;
   groupId?: string;
+  /** O `code` do corpo do erro (ex.: `NOT_OWN_COMMENT`), anotado pelo filtro de exceção; vai para o log de pedido. */
+  errorCode?: string;
 }
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
@@ -34,8 +36,10 @@ export function getRequestId(): string | null {
   return storage.getStore()?.requestId ?? null;
 }
 
-/** Completa o contexto do pedido (quem é o usuário e o grupo), chamado pelos guards. */
-export function annotateRequestContext(patch: Pick<RequestContext, 'userId' | 'groupId'>): void {
+/** Completa o contexto do pedido (usuário e grupo pelos guards, `errorCode` pelo filtro de exceção). */
+export function annotateRequestContext(
+  patch: Partial<Pick<RequestContext, 'userId' | 'groupId' | 'errorCode'>>,
+): void {
   const context = storage.getStore();
   if (context) Object.assign(context, patch);
 }
