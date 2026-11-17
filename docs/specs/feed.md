@@ -103,12 +103,12 @@ Cada cenário tem um id. Os testes levam o id no nome.
 |---|---|---|---|---|
 | C27 | resultado novo (pacote fechado) + votação aberta + presença aberta | abrir o Feed | **um** card grande (o `ResultAlert` de hoje, com o pacote em miniatura e "Abrir pacote"; rodada sem votos: "Ver resultado", sem pacote) e duas **linhas de aviso** abaixo: "VOTAÇÃO ABERTA · FALTA O SEU VOTO" e "PRESENÇA ABERTA · RESPONDA". Cada linha tem ícone, o tipo escrito, cor do tipo e seta; alvo ≥ 44 px | Playwright |
 | C28 | abri o pacote (neste aparelho) | voltar ao Feed | o resultado vira linha ("RESULTADO · RODADA 12") e a votação sobe para card grande (o `VotingCard`, agora com a tecla amarela "Dar minhas notas" se joguei e não votei) | Playwright |
-| C29 | só presença aberta | abrir | card grande da presença (o de hoje: data, local, CONFIRMAR / AUSÊNCIA, contagem), com uma fileira de rostos de quem vai ("+9" no fim) que leva ao detalhe da rodada | Playwright |
+| C29 | só presença aberta | abrir | card grande da presença (o de hoje: data, local, CONFIRMAR / AUSÊNCIA, contagem), com uma fileira de rostos de quem vai ("+9" no fim) que leva ao detalhe da rodada. CONFIRMAR / AUSÊNCIA iguais aos do detalhe da rodada (volta de design 5): CONFIRMAR verde, ausência em vermelho, nenhum amarelo em estado nenhum (confirmado, ausência, sem resposta) | Playwright |
 | C30 | times publicados e estou escalado | abrir | card grande **"TIMES PUBLICADOS"** com "VOCÊ JOGA NO PRETO" (faixa com o meu bonequinho) e a tecla "Ver os times"; não escalado: "Você não está escalado" | Playwright |
 | C31 | jogo rolando; Resenha | abrir | o card do jogo de hoje ("Em jogo" / "Hora da Resenha") como aviso grande; votação de outra rodada, se houver, em linha | Playwright |
 | C32 | nenhuma rodada ativa | abrir | sem avisos: "Nenhuma rodada marcada" (admin: tecla "Criar rodada") e as resenhas logo abaixo | Playwright |
 | C33 | linha de aviso | tocar | leva à tela do tipo: votar, resultado, times, jogo ou detalhe da rodada | Playwright |
-| C34 | a tela inteira | contar teclas amarelas | no máximo uma (a do aviso grande). "Nova resenha" e "Todas as rodadas" são de contorno. **Exceção (dono, 16/11):** na página da votação, a ação de quem vota e o "Encerrar votação" do admin podem ser amarelas juntas, com o bloco do admin separado (rótulo ADMIN e divisor); fora disso, a regra vale | Playwright |
+| C34 | a tela inteira | contar teclas amarelas | no máximo uma (a do aviso grande; com a presença como aviso grande, nenhuma: o CONFIRMAR é verde, exceção do dono de 17/11). "Nova resenha" e "Todas as rodadas" são de contorno. **Exceção (dono, 16/11):** na página da votação, a ação de quem vota e o "Encerrar votação" do admin podem ser amarelas juntas, com o bloco do admin separado (rótulo ADMIN e divisor); fora disso, a regra vale | Playwright |
 
 **Tela: resenhas**
 
@@ -269,7 +269,12 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
     vermelho com o selo AO VIVO piscando em degraus, Resenha laranja, resultado ouro, votação prata
     (`--color-silver`, com a urna e a faixa listrada), times em branco e preto com o corte diagonal, presença verde. A cor vai na moldura, na faixa
     do cabeçalho e no ícone (na linha, faixa à esquerda e ícone); **o aviso grande sempre tem a tecla amarela e a
-    cor de identidade nunca vai nela**. Sempre com ícone e o tipo por escrito. Detalhe em `docs/design/DESIGN.md`.
+    cor de identidade nunca vai nela** (exceção: a presença, abaixo). Sempre com ícone e o tipo por escrito. Detalhe em `docs/design/DESIGN.md`.
+  - **Volta de design 5 (17/11, decisão do dono): exceção da presença.** No aviso grande da presença, CONFIRMAR e
+    AUSÊNCIA usam o mesmo visual e os mesmos estados do detalhe da rodada (`PresenceChoice` sem tecla amarela):
+    verde para confirmar, vermelho na ausência, e nada amarelo aceso em estado nenhum. O dono: "Sei que vai contra o
+    amarelo para ação, mas ficou meio estranho, sem contar que quando seleciona o Ausência, o amarelo ainda fica
+    aceso." O aviso de presença é o único aviso grande sem tecla amarela.
   - **Volta de design 3 (16/11, decisão do dono):** o azul da votação foi retirado (`--color-vote` não existe mais) por
     ficar disruptivo; vale o **prata** (`--color-silver`) com a urna e uma faixa de cabeçalho listrada, para não
     parecer o prata do pódio. **Fechado em 17/11:** fica o prata (opção A, a do código); a opção B, o verde-luz do
@@ -315,6 +320,8 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
   ficaram bem claros, pode tirar os nomes deles e deixar só o emoji mesmo") — o botão fica só com o ícone pixel e o
   contador; o nome segue no `title` e no leitor de tela. O ✓ da minha reação fica ao lado do contador (c1dfcb3).
 - Cor da votação fechada no prata com a faixa listrada (17/11) — o verde-luz do refletor foi descartado.
+- CONFIRMAR da presença no Feed volta ao verde (17/11) — a tecla amarela ali destoava do detalhe da rodada e ficava
+  acesa mesmo com a Ausência escolhida; a presença é a exceção à tecla amarela do aviso grande.
 - Comentários abrem no card — conversa curta não pede outra tela.
 - "Quem vai" sai do início — o Feed precisa de espaço para avisos e resenhas; a lista completa continua a um toque.
 - Qualquer admin edita e apaga qualquer resenha — os admins são a "redação" do grupo.

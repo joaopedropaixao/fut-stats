@@ -77,7 +77,7 @@ A seção "Daltonismo" da folha tem a simulação.
   | O resultado saiu | ouro (`--color-gold`) | Abrir pacote / Ver resultado |
   | Votação aberta | prata (`--color-silver`), com a urna e a faixa listrada | Dar minhas notas / Ver meus votos / Ver votação |
   | Os times saíram | branco e preto, com o corte diagonal do placar | Ver os times |
-  | Presença aberta | verde (`--color-success`) | Confirmar (o par é Confirmar / Ausência) |
+  | Presença aberta | verde (`--color-success`) | **Exceção, sem tecla amarela:** CONFIRMAR verde / AUSÊNCIA vermelha, iguais ao detalhe da rodada (decisão do dono, 17 nov 2026) |
 
   **Votação, decisão do dono (16 nov 2026):** o azul (`--color-vote`) foi retirado por destoar do app. Duas opções da
   família do app foram montadas: (a) **prata** com a urna e a faixa listrada, que é a aplicada
