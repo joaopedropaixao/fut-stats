@@ -32,7 +32,7 @@ type PostCardProps = {
  */
 export function PostCard({ groupId, post, index, notify }: PostCardProps) {
   const [open, setOpen] = useState(false);
-  const react = useReact(groupId);
+  const react = useReact(groupId, post.id);
   const entering = index < 3;
 
   return (
@@ -82,7 +82,7 @@ export function PostCard({ groupId, post, index, notify }: PostCardProps) {
           post={post}
           onReact={(reaction) =>
             react.mutate(
-              { postId: post.id, reaction },
+              reaction,
               {
                 onError: (err) =>
                   notify({

@@ -12,6 +12,7 @@ import {
   type PostReaction,
 } from '@fut-stats/shared';
 import {
+  mutationOptions,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -140,27 +141,44 @@ export function reactTo(post: Post, reaction: PostReaction | null): Post {
 }
 
 /**
- * Reagir ou tirar a reação com atualização otimista: o contador muda na hora; se a API recusar, volta ao que
- * estava. A resposta da API (a resenha inteira) substitui a previsão.
+ * Reagir ou tirar a reação de uma resenha com atualização otimista: o contador muda na hora. As chamadas da mesma
+ * resenha vão em fila (`scope`), para a resposta de um toque antigo nunca chegar depois da de um novo. Só a última
+ * da fila mexe no cache: a resposta dela (a resenha inteira) substitui a previsão; se ela falhar, volta ao que
+ * estava antes dela. No fim da fila, a lista é conferida de novo com a API.
  */
-export function useReact(groupId: string) {
+export function useReact(groupId: string, postId: string) {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ postId, reaction }: { postId: string; reaction: PostReaction | null }) =>
+  return useMutation(reactOptions(queryClient, groupId, postId));
+}
+
+/** As opções da mutação de `useReact`, separadas para o teste da fila rodar sem React. */
+export function reactOptions(queryClient: QueryClient, groupId: string, postId: string) {
+  const mutationKey = ['post-reaction', groupId, postId];
+  /** Esta é a única da fila ainda pendente (as que esperam na fila também contam como pendentes). */
+  const last = () => queryClient.isMutating({ mutationKey, exact: true }) === 1;
+  return mutationOptions({
+    mutationKey,
+    scope: { id: mutationKey.join(':') },
+    mutationFn: (reaction: PostReaction | null): Promise<Post> =>
       reaction
         ? apiPut(`${feedPath(groupId)}/posts/${postId}/reaction`, postSchema, { reaction })
         : apiDeleteJson(`${feedPath(groupId)}/posts/${postId}/reaction`, postSchema),
-    onMutate: async ({ postId, reaction }) => {
+    onMutate: async (reaction) => {
       await queryClient.cancelQueries({ queryKey: postsKey(groupId), exact: true });
       const previous = findPost(queryClient, groupId, postId);
       patchPost(queryClient, groupId, postId, (post) => reactTo(post, reaction));
       return { previous };
     },
-    onError: (_err, { postId }, context) => {
+    onError: (_err, _reaction, context) => {
       const previous = context?.previous;
-      if (previous) patchPost(queryClient, groupId, postId, () => previous);
+      if (previous && last()) patchPost(queryClient, groupId, postId, () => previous);
     },
-    onSuccess: (post, { postId }) => patchPost(queryClient, groupId, postId, () => post),
+    onSuccess: (post) => {
+      if (last()) patchPost(queryClient, groupId, postId, () => post);
+    },
+    onSettled: () => {
+      if (last()) void queryClient.invalidateQueries({ queryKey: postsKey(groupId), exact: true });
+    },
   });
 }
 
