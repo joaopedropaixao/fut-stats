@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { SESSION_COOKIE, SessionService } from '../src/auth/session.service';
 import { validateEnv, type Env } from '../src/config/env';
+import { removeLeftoverDevGroups } from '../src/dev/dev-leftovers';
 import { GroupsService } from '../src/groups/groups.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -68,17 +69,8 @@ async function main(): Promise<void> {
     }
     const devIds = Object.values(ids);
 
-    // Só grupos sem rodada: em grupo com rodada, a participação tem presença/escalação apontando para ela.
-    const leftovers = await prisma.group.findMany({
-      where: {
-        memberships: { some: { userId: { in: devIds } }, every: { userId: { in: devIds } } },
-        rounds: { none: {} },
-      },
-      select: { id: true },
-    });
-    const leftoverIds = leftovers.map((g) => g.id);
-    await prisma.membership.deleteMany({ where: { groupId: { in: leftoverIds } } });
-    await prisma.group.deleteMany({ where: { id: { in: leftoverIds } } });
+    // Grupos só de dev e sem rodada; apaga antes o registro e as resenhas deles (chaves Restrict).
+    const leftoverIds = await removeLeftoverDevGroups(prisma, devIds);
 
     const inactiveGroup = await groups.create(ids.owner, {
       name: 'Pelada Inativa',

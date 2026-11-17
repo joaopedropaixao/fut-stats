@@ -544,6 +544,73 @@ devolver voto de outra pessoa (nem para o admin); fechar fora do `RoundLockServi
 "falta votar"; deixar o 409 de prazo vencido desfazer o fechamento (o fechamento é commitado e só depois o erro sai);
 mexer no prazo de uma rodada já aberta esperando que o resultado mude.
 
+### Registro de auditoria: `ROUND_LOG_ACTIONS` + `FEED_LOG_ACTIONS` ✅
+**O que é:** o histórico de quem mudou **placar, etapa e lance** de uma rodada e de quem escreveu no **feed**
+(resenha, comentário, reação): quem fez, o quê, quando, como estava antes e como ficou. Serve para responder "quem
+mudou o placar?", "sumiu um gol meu" e, para o dono, "quem apagou essa resenha e o que dizia?". Só o **vocabulário**
+mora no domain (`src/round/log.ts`: `ROUND_LOG_ACTIONS` / `RoundLogAction`; `src/feed/log.ts`: `FEED_LOG_ACTIONS` /
+`FeedLogAction`; `AUDIT_ACTIONS` junta as duas; juntas, iguais ao enum `AuditAction` do banco, conferido em
+`domain-enums.spec.ts`); gravar e ler é da API (`apps/api/src/audit`). Uma tabela só, **`AuditLog`**, do grupo:
+`roundId` opcional (apagar a rodada leva as linhas dela, cascade) e `postId` opcional **sem chave estrangeira** (apagar
+a resenha não apaga as linhas dela, senão ninguém descobre quem apagou). O contrato da rodada fica em
+`packages/shared/src/round-log.ts` (`RoundLogEntry`, `ROUND_LOG_ACTION_LABELS`).
+
+**O que entra** (9 ações): `TEAMS_PUBLISHED`, `TEAMS_UNPUBLISHED`, `MATCH_STARTED`, `SCORE_SET` (lançar ou corrigir o
+placar), `MATCH_FINISHED`, `VOTING_OPENED`, `VOTING_CLOSED` (pelo admin, pelo prazo ou porque todos votaram),
+`EVENT_LAUNCHED` e `EVENT_REMOVED`.
+
+**Ações do feed** (7, `FEED_LOG_ACTIONS`): `POST_CREATED`, `POST_EDITED`, `POST_DELETED`, `COMMENT_CREATED`,
+`COMMENT_DELETED`, `REACTION_SET` (colocar ou trocar) e `REACTION_REMOVED`. O que fica em `before`/`after`:
+`POST_CREATED` `null` → `{ postId, title, body }`; `POST_EDITED` `{ postId, title, body }` → `{ postId, title, body }`;
+`POST_DELETED` `{ postId, authorId, title, body, reactionCount, commentCount }` → `null`; `COMMENT_CREATED` `null` →
+`{ postId, commentId, length }` (sem o texto, que já está no comentário); `COMMENT_DELETED` `{ postId, commentId,
+authorId, text }` → `null`; `REACTION_SET` `{ postId, reaction }` (`null` se não tinha) → `{ postId, reaction }`;
+`REACTION_REMOVED` `{ postId, reaction }` → `null`. **O texto apagado ou editado fica guardado** (decisão do dono,
+16 nov 2026): é uso interno para investigar bug. `PUT` de reação igual à atual, `DELETE` de reação que não existe e
+apagar comentário que outro já apagou não mudam nada e **não deixam linha**. Dois `PUT` de reação do mesmo membro ao
+mesmo tempo andam um de cada vez (trava por resenha e membro): nunca duas linhas para uma mudança só.
+
+**Sem rota de leitura do feed.** O registro do feed é para o dono, não para o admin do grupo: lê direto no banco por
+`requestId`, por usuário ou por resenha (consultas prontas em `docs/operacao/registro.md`). O `GET .../rounds/:roundId/log`
+só devolve ações da rodada.
+
+**O que nunca entra:** o **voto** (é anônimo: nem o conteúdo, nem "fulano votou", nem quem votou por último),
+presença, rascunho dos times, criar e editar a rodada, o rodízio e **qualquer leitura**. Rota nova de escrita da
+rodada ou do feed precisa entrar na lista de auditadas ou na de excluídas de `audit-coverage.spec.ts`, senão o teste
+falha.
+
+**Regras (decididas no spec `auditoria-da-rodada`, 14 nov 2026):**
+- **Mesma transação da escrita:** a mudança e a linha do registro entram juntas, ou nenhuma das duas (`AuditService.record(tx, ...)`
+  dentro do `RoundLockService`). Pedido recusado (403, 404, 409) não deixa linha. O `before` sai do estado carregado
+  no `tx`, com a rodada travada.
+- **Quem fez:** a participação (`Membership`) de quem pediu. No fechamento da votação, o ator é o admin só quando veio
+  de `POST .../voting/close` (mesmo que o motivo real seja o prazo ou "todos votaram"); nos outros caminhos (último
+  voto, prazo, relógio, leitura da votação ou **dos avisos do feed** depois do prazo) é **`null`**, para o voto
+  continuar anônimo. Todos passam por `closeRound`, que é quem grava. **Linha sem ator não leva `requestId`** (fica
+  nulo): o `requestId` do último voto, cruzado com o log de pedido, diria quem votou por último, e o da leitura diria
+  quem abriu o app. Só o "Encerrar votação" do admin leva ator e `requestId`.
+- **`actorId` nulo é sempre automático, nunca "ator apagado":** a chave para `Membership` é `ON DELETE RESTRICT` (a
+  participação só é desativada, o app nunca a apaga; a remoção manual apaga antes o registro do membro, nunca o
+  passa para nulo).
+- **Só inserção.** Apagar a rodada (só dá antes do jogo) apaga o registro dela junto (cascade).
+- **Antes e depois** são um retrato pequeno, sem dado pessoal além do id da participação: `{ status }` nas etapas;
+  `{ score }` no placar (`score: null` enquanto ninguém lançou; salvar o mesmo placar de novo não grava linha); `{ status, score }` ao finalizar; `{ eventId, type, playerId }`
+  ao lançar lance (`before: null`) e `{ eventId, type, playerId, createdById }` ao apagar (`after: null`);
+  `{ status, reason, voted, total }` ao fechar a votação (só contagem).
+- **Leitura:** `GET /api/groups/:groupId/rounds/:roundId/log`, só admin (jogador 403; outro grupo ou inativo 404), da
+  linha mais antiga para a mais nova, sem tela nesta fatia. O seed grava direto e não gera registro (`[]`).
+- **`requestId`:** todo pedido ganha `x-request-id` (o recebido se bater com `/^[A-Za-z0-9_-]{8,64}$/`, senão um UUID),
+  devolvido na resposta, na linha do registro e no log de pedido (uma linha por pedido com `method`, `path` sem query,
+  `status`, `durationMs`, `userId` e `groupId`; com `status >= 400` também **`errorCode`**: o `code` do corpo do erro
+  (ex. `NOT_OWN_COMMENT`, `INVALID_TRANSITION`), `VALIDATION_FAILED` no 400 de validação do Zod (só no log; o corpo da
+  resposta não muda) ou `null` se o erro não tem código; nunca corpo, cookie, email nem nome; `/api/health` fica de fora). Erro
+  500 devolve `{ statusCode, message, requestId }` sem a pilha, que só vai para o log. Linha sem ator (fechamento da
+  votação pelo último voto, pelo prazo ou pelo relógio) tem `requestId` nulo.
+
+**Evite:** gravar a linha fora da transação da mudança; registrar voto ou rodízio; pôr nome, email ou nota no
+`before`/`after` (texto de resenha e comentário é a exceção decidida, só do feed); confiar num `groupId` do cliente (toda leitura filtra pelo grupo da rota); mudar ou apagar linha do
+registro (só insere).
+
 ### Presença: `validateAttendanceChange` 🚧
 **O que é:** quem pode marcar Vou / Não vou numa rodada e até quando (`src/round/attendance.ts`). Regras decididas
 pelo dono em 23 out 2026.
@@ -747,6 +814,11 @@ presença; contar gol contra como gol.
   único (409 `NICKNAME_TAKEN`, só se o membro termina ativo e o apelido é novo ou ele está sendo reativado). Falhou
   uma checagem: nada é gravado, nem os campos permitidos do mesmo pedido. **Remover = `active: false`**: a participação
   nunca é apagada.
+- **Jogador nunca é apagado** (dono, 17 nov 2026): o grupo tem mensalistas e avulsos que vão de vez em quando; o
+  admin desativa e reativa quem não vai jogar por um tempo, e o app não tem caminho que apague `Membership`. Remover
+  de verdade (testes, ou quem nunca mais vai jogar ou está desativado há muito tempo) é feito à mão no banco, pelo
+  orquestrador, seguindo `docs/operacao/registro.md` (o registro do membro sai antes, por causa do `RESTRICT` de
+  `AuditLog.actorId`). O `collections/dev-session.ts` (só banco local) apaga grupos de dev sem rodada na mesma ordem.
 - `GET`/`POST /api/groups/:groupId/invite` (admin): vê o código / gera um novo. O antigo deixa de valer na hora.
 - `GET /api/invites/:code` (**público**): `{ groupName, memberCount }`. Código inexistente ou trocado → 404.
   Caminho com caractere de controle (ex.: `%00`) → 404 em qualquer rota, antes de guard e banco

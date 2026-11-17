@@ -59,6 +59,28 @@ enum MatchEventType {
   OWN_GOAL
 }
 
+/// Ações do registro de auditoria. Igual a `ROUND_LOG_ACTIONS` + `FEED_LOG_ACTIONS` do domain.
+enum AuditAction {
+  // Rodada
+  TEAMS_PUBLISHED
+  TEAMS_UNPUBLISHED
+  MATCH_STARTED
+  SCORE_SET
+  MATCH_FINISHED
+  VOTING_OPENED
+  VOTING_CLOSED
+  EVENT_LAUNCHED
+  EVENT_REMOVED
+  // Feed
+  POST_CREATED
+  POST_EDITED
+  POST_DELETED
+  COMMENT_CREATED
+  COMMENT_DELETED
+  REACTION_SET
+  REACTION_REMOVED
+}
+
 /// Tom de pele do bonequinho. Igual a `AvatarSkin` do domain (do mais claro ao mais escuro).
 enum AvatarSkin {
   LIGHT
@@ -123,6 +145,7 @@ model Group {
   memberships Membership[]
   rounds      Round[]
   posts       Post[]
+  auditLogs   AuditLog[]
 }
 
 /// Um usuário dentro de um grupo: papel e dados de jogador daquele grupo.
@@ -163,6 +186,7 @@ model Membership {
   posts           Post[]
   postReactions   PostReaction[]
   postComments    PostComment[]
+  auditLogs       AuditLog[]
 
   @@unique([userId, groupId])
   @@index([groupId])
@@ -199,6 +223,7 @@ model Round {
   teamPlayers TeamPlayer[]
   matchEvents MatchEvent[]
   votes       Vote[]
+  auditLogs   AuditLog[]
 
   @@unique([groupId, number])
   @@index([groupId, scheduledAt])
@@ -347,4 +372,37 @@ model PostComment {
   membership Membership @relation(fields: [membershipId], references: [id])
 
   @@index([postId, createdAt])
+}
+
+/// Registro de auditoria do grupo: quem fez o quê e quando (rodada e feed). Só inserção, na mesma transação da
+/// mudança. Voto e rodízio ficam de fora. Interno: o admin lê o da rodada pela API; o do feed, só o dono, no banco.
+/// Apagar a rodada apaga as linhas dela (cascade); apagar a resenha NÃO apaga as dela (`postId` sem chave
+/// estrangeira, senão ninguém descobre quem apagou).
+model AuditLog {
+  id        String      @id @default(cuid())
+  groupId   String
+  /// Linhas da rodada; nulo nas do feed.
+  roundId   String?
+  /// Linhas do feed; nulo nas da rodada. Sem chave estrangeira de propósito.
+  postId    String?
+  /// Quem fez; nulo = automático (fechamento da votação sem pedido do admin). A participação nunca é apagada
+  /// (só desativada), então a chave é Restrict: nulo nunca é "ator apagado".
+  actorId   String?
+  action    AuditAction
+  /// Retrato pequeno de antes e de depois, por ação (ver o spec auditoria-da-rodada).
+  before    Json?
+  after     Json?
+  /// `x-request-id` do pedido que gerou a linha; nulo quando não há ator (fechamento da votação sem o admin).
+  requestId String?
+  createdAt DateTime    @default(now())
+
+  group Group       @relation(fields: [groupId], references: [id])
+  round Round?      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  actor Membership? @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([roundId, createdAt])
+  @@index([groupId, createdAt])
+  @@index([postId, createdAt])
+  @@index([requestId])
+  @@index([actorId, createdAt])
 }

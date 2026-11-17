@@ -35,6 +35,7 @@ import {
   type SetMatchScoreInput,
   DEFAULT_ROTATION_MINUTES,
 } from '@fut-stats/shared';
+import { AuditService, type AuditSnapshot } from '../audit/audit.service';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import type { Position } from '../generated/prisma/enums';
@@ -63,6 +64,11 @@ function toActor(membership: GroupMembership): RoundActor {
 
 /** Client do Prisma dentro da transação da rodada (o `tx` do `$transaction` interativo). */
 type Tx = Prisma.TransactionClient;
+
+/** O placar no registro: `{ WHITE, BLACK }`, ou `null` enquanto ninguém lançou. */
+function scoreSnapshot(score: MatchScore | null): AuditSnapshot | null {
+  return score ? { WHITE: score.WHITE, BLACK: score.BLACK } : null;
+}
 
 function transitionError(code: keyof typeof ROUND_TRANSITION_ERROR_LABELS) {
   return ruleError(code, ROUND_TRANSITION_ERROR_LABELS[code]);
@@ -96,6 +102,7 @@ export class MatchService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly roundLock: RoundLockService,
+    private readonly audit: AuditService,
   ) {}
 
   /** O jogo da rodada: placar, quem jogou, lances, o que quem pede pode fazer e o que trava o próximo passo. */
@@ -186,6 +193,14 @@ export class MatchService {
       if (error) throw transitionError(error);
 
       await this.moveStatus(tx, roundId, 'TEAMS_PUBLISHED', { status: 'IN_PROGRESS' });
+      await this.audit.recordForMember(
+        tx,
+        membership,
+        { roundId },
+        'MATCH_STARTED',
+        { status: state.status },
+        { status: 'IN_PROGRESS' },
+      );
     });
     return this.view(membership, roundId);
   }
@@ -202,11 +217,21 @@ export class MatchService {
       const { state } = await this.load(tx, membership.groupId, roundId);
       const [error] = validateScoreEntry(score, toActor(membership), state);
       if (error) throw ruleError(error, SCORE_ENTRY_ERROR_LABELS[error]);
+      // O mesmo placar de novo não muda nada: nem grava, nem registra.
+      if (state.score?.WHITE === score.WHITE && state.score?.BLACK === score.BLACK) return;
 
       await tx.round.update({
         where: { id: roundId },
         data: { whiteGoals: score.WHITE, blackGoals: score.BLACK },
       });
+      await this.audit.recordForMember(
+        tx,
+        membership,
+        { roundId },
+        'SCORE_SET',
+        { score: scoreSnapshot(state.score) },
+        { score: scoreSnapshot(score) },
+      );
     });
     return this.view(membership, roundId);
   }
@@ -236,6 +261,14 @@ export class MatchService {
         whiteGoals: score.WHITE,
         blackGoals: score.BLACK,
       });
+      await this.audit.recordForMember(
+        tx,
+        membership,
+        { roundId },
+        'MATCH_FINISHED',
+        { status: state.status, score: scoreSnapshot(state.score) },
+        { status: 'POST_MATCH', score: scoreSnapshot(score) },
+      );
     });
     return this.view(membership, roundId);
   }
@@ -288,6 +321,14 @@ export class MatchService {
         status: 'VOTING',
         votingOpenedAt: new Date(),
       });
+      await this.audit.recordForMember(
+        tx,
+        membership,
+        { roundId },
+        'VOTING_OPENED',
+        { status: state.status },
+        { status: 'VOTING' },
+      );
     });
     return this.view(membership, roundId);
   }
@@ -309,13 +350,19 @@ export class MatchService {
       const error = errors.find((code) => FORBIDDEN_CODES.has(code)) ?? errors[0];
       if (error) throw ruleError(error, MATCH_EVENT_ERROR_LABELS[error]);
 
-      await tx.matchEvent.create({
+      const event = await tx.matchEvent.create({
         data: {
           roundId,
           membershipId: input.membershipId,
           type: input.type,
           createdById: membership.id,
         },
+        select: { id: true },
+      });
+      await this.audit.recordForMember(tx, membership, { roundId }, 'EVENT_LAUNCHED', null, {
+        eventId: event.id,
+        type: input.type,
+        playerId: input.membershipId,
       });
     });
     return this.view(membership, roundId);
@@ -330,7 +377,7 @@ export class MatchService {
       const { state } = await this.load(tx, membership.groupId, roundId);
       const event = await tx.matchEvent.findFirst({
         where: { id: eventId, roundId },
-        select: { id: true, membershipId: true, type: true },
+        select: { id: true, membershipId: true, type: true, createdById: true },
       });
       if (!event) throw new NotFoundException();
 
@@ -344,6 +391,19 @@ export class MatchService {
       // `deleteMany` não estoura se o lance sumiu no meio do caminho: 0 apagados = 404, nunca 500.
       const { count } = await tx.matchEvent.deleteMany({ where: { id: event.id, roundId } });
       if (count !== 1) throw new NotFoundException();
+      await this.audit.recordForMember(
+        tx,
+        membership,
+        { roundId },
+        'EVENT_REMOVED',
+        {
+          eventId: event.id,
+          type: event.type,
+          playerId: event.membershipId,
+          createdById: event.createdById,
+        },
+        null,
+      );
     });
     return this.view(membership, roundId);
   }

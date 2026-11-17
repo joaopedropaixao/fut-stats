@@ -7,3 +7,4 @@ export * from './match';
 export * from './rotation';
 export * from './status';
 export * from './voting';
+export * from './log';

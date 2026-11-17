@@ -37,6 +37,7 @@ import {
   type SaveLineupInput,
   type SuggestLineupInput,
 } from '@fut-stats/shared';
+import { AuditService } from '../audit/audit.service';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import type { Prisma } from '../generated/prisma/client';
@@ -104,6 +105,7 @@ export class LineupsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ranking: RankingService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -422,6 +424,14 @@ export class LineupsService {
       if (error) {
         throw new ConflictException({ code: error, message: ROUND_TRANSITION_ERROR_LABELS[error] });
       }
+      await this.audit.record(tx, {
+        groupId: membership.groupId,
+        roundId: round.id,
+        actorId: membership.id,
+        action: to === 'TEAMS_PUBLISHED' ? 'TEAMS_PUBLISHED' : 'TEAMS_UNPUBLISHED',
+        before: { status: round.status },
+        after: { status: to },
+      });
     });
     return this.get(membership, round.id);
   }

@@ -39,6 +39,7 @@ import {
   type VotingPlayer,
   type VotingView,
 } from '@fut-stats/shared';
+import { AuditService } from '../audit/audit.service';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import type { Position } from '../generated/prisma/enums';
@@ -170,6 +171,7 @@ export class VotingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly roundLock: RoundLockService,
+    private readonly audit: AuditService,
   ) {}
 
   /** A votação da rodada: quem jogou, quantos votaram, o meu voto e o que posso fazer. Nunca traz voto de outra pessoa. */
@@ -197,7 +199,7 @@ export class VotingService {
       // O prazo vale pela hora, não por quem acordou o servidor: fecha agora e recusa o voto.
       const due = votingCloseReason(now, votingStateOf(round));
       if (due) {
-        await this.closeRound(tx, round, due, now);
+        await this.closeRound(tx, round, due, now, null);
         return 'CLOSED' as const;
       }
 
@@ -242,7 +244,8 @@ export class VotingService {
       // O último a votar fecha na hora.
       const after = await this.requireRound(tx, membership.groupId, roundId);
       const reason = votingCloseReason(now, votingStateOf(after));
-      if (reason) await this.closeRound(tx, after, reason, now);
+      // Quem votou por último não aparece: o voto é anônimo, o fechamento não tem ator.
+      if (reason) await this.closeRound(tx, after, reason, now, null);
       return 'VOTED' as const;
     });
 
@@ -260,7 +263,7 @@ export class VotingService {
       if (round.status !== 'VOTING') throw transitionError('INVALID_TRANSITION');
       // Se já era hora de fechar (prazo ou todo mundo votou), o motivo verdadeiro é esse, não o admin.
       const reason = votingCloseReason(now, votingStateOf(round)) ?? 'ADMIN_CLOSED';
-      await this.closeRound(tx, round, reason, now);
+      await this.closeRound(tx, round, reason, now, membership.id);
     });
     return this.buildView(membership, roundId, now);
   }
@@ -370,7 +373,7 @@ export class VotingService {
             if (round.status !== 'VOTING') return false;
             const reason = votingCloseReason(now, votingStateOf(round));
             if (!reason) return false;
-            await this.closeRound(tx, round, reason, now);
+            await this.closeRound(tx, round, reason, now, null);
             return true;
           },
         );
@@ -388,12 +391,15 @@ export class VotingService {
   /**
    * Fecha a votação (dentro da trava e do `tx` de quem chamou): confere o ciclo, apura as notas e os prêmios,
    * grava o resultado em cada `TeamPlayer` e leva a rodada a `CLOSED`. Depois disso o resultado não muda mais.
+   * Grava também a linha `VOTING_CLOSED` do registro da rodada: `actorId` é o admin que pediu (`POST .../voting/close`,
+   * qualquer que seja o motivo real) e `null` nos outros caminhos (último voto, prazo, relógio).
    */
   private async closeRound(
     tx: RoundTx,
     round: LoadedRound,
     reason: VotingEndReason,
     now: Date,
+    actorId: string | null,
   ): Promise<void> {
     const state: RoundState = {
       status: round.status,
@@ -445,6 +451,16 @@ export class VotingService {
       data: { status: 'CLOSED', closedAt: now, votingEndReason: reason },
     });
     if (count !== 1) throw transitionError('INVALID_TRANSITION');
+
+    await this.audit.record(tx, {
+      groupId: round.groupId,
+      roundId: round.id,
+      actorId,
+      action: 'VOTING_CLOSED',
+      before: { status: 'VOTING' },
+      // Só contagem: quem votou e o que votou não entram no registro.
+      after: { status: 'CLOSED', reason, voted: votes.length, total: playedIds.length },
+    });
   }
 
   private async buildView(
