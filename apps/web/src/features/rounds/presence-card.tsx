@@ -16,7 +16,7 @@ const FACES = 5;
 
 /**
  * Presença aberta, o card grande: grande momento verde (moldura, faixa do cabeçalho e ícone em `--color-success`,
- * sombra dura, entrada em degraus) com a data e o local, Confirmar / Ausência (o Confirmar é a tecla amarela), a
+ * sombra dura, entrada em degraus) com a data e o local, Confirmar / Ausência (os mesmos do detalhe da rodada, sem tecla amarela), a
  * contagem e a fileira de rostos de quem vai, que leva ao detalhe da rodada.
  */
 export function PresenceCard({ groupId, round }: { groupId: string; round: RoundDetail }) {
@@ -47,7 +47,7 @@ export function PresenceCard({ groupId, round }: { groupId: string; round: Round
             />
           </div>
           <div className="animate-row-in [--moment-delay:180ms]">
-            <MyPresence round={round} onChange={set} calm keyed />
+            <MyPresence round={round} onChange={set} calm />
           </div>
           <div className="animate-row-in flex flex-col gap-4 shadow-[inset_0_2px_0_0_var(--color-border)] pt-4 [--moment-delay:240ms]">
             <PresenceTally round={round} />

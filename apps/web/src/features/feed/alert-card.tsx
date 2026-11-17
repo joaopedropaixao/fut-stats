@@ -20,7 +20,7 @@ type AlertCardProps = {
 /**
  * O aviso grande, o único card da pilha: escolhe o card pelo tipo e reaproveita os que já existiam (resultado,
  * votação, jogo, presença); só o dos times é novo. Cada um é um grande momento (contorno grosso, sombra dura,
- * entrada em degraus) e só ele tem a tecla amarela da tela.
+ * entrada em degraus); a tecla amarela da tela, quando há, é só dele (a presença não tem: é verde, como no detalhe).
  */
 export function AlertCard({ groupId, alert, me }: AlertCardProps) {
   switch (alert.type) {

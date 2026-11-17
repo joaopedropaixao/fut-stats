@@ -53,14 +53,11 @@ export function MyPresence({
   round,
   onChange,
   calm = false,
-  keyed = false,
 }: {
   round: RoundDetail;
   onChange: (confirmed: boolean) => void;
   /** Sem resposta, o carimbo não usa o laranja de atenção (o card do Feed já tem a cor do papel). */
   calm?: boolean;
-  /** Aviso grande do Feed: o Confirmar é a tecla amarela da tela. */
-  keyed?: boolean;
 }) {
   const locked = !round.permissions.setOwnAttendance;
   const stamp = stampFor(round, locked, calm);
@@ -69,12 +66,7 @@ export function MyPresence({
   );
   return (
     <div className="flex flex-col gap-3">
-      <PresenceChoice
-        value={round.myAttendance}
-        onChange={onChange}
-        disabled={locked}
-        keyed={keyed}
-      />
+      <PresenceChoice value={round.myAttendance} onChange={onChange} disabled={locked} />
       <div
         // Troca de chave a cada resposta: o carimbo entra de novo, em degraus
         key={String(round.myAttendance)}

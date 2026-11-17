@@ -2,18 +2,29 @@ import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { PresenceChoice } from './presence-choice';
 
-const html = (props: { keyed?: boolean; value?: boolean | null }) =>
-  renderToString(<PresenceChoice value={props.value ?? null} onChange={() => {}} {...props} />);
+const html = (value: boolean | null) =>
+  renderToString(<PresenceChoice value={value} onChange={() => {}} />);
 
 describe('Confirmar / Ausência', () => {
-  it('no aviso grande do Feed o Confirmar é a tecla amarela e a Ausência segue no contorno vermelho', () => {
-    const out = html({ keyed: true });
-    expect(out.match(/bg-accent/g)).toHaveLength(1);
-    expect(out).toContain('shadow-key');
+  it('nunca usa a tecla amarela, em nenhuma resposta (Feed e detalhe da rodada são iguais)', () => {
+    for (const value of [null, true, false]) {
+      const out = html(value);
+      expect(out).not.toContain('bg-accent');
+      expect(out).not.toContain('shadow-key');
+    }
   });
 
-  it('fora do Feed não há amarelo: o Confirmar respondido é verde chapado', () => {
-    expect(html({ value: true })).not.toContain('bg-accent');
-    expect(html({ value: true })).toContain('bg-success');
+  it('Confirmar respondido é verde chapado e a Ausência recua', () => {
+    const out = html(true);
+    expect(out.match(/bg-success/g)).toHaveLength(1);
+    expect(out).not.toContain('bg-danger');
+  });
+
+  it('Ausência respondida é vermelha chapada, e o Confirmar recua no contorno verde, sem amarelo aceso', () => {
+    const out = html(false);
+    expect(out.match(/bg-danger/g)).toHaveLength(1);
+    expect(out).not.toContain('bg-success');
+    expect(out).toContain('shadow-[inset_0_0_0_2px_var(--color-success)]');
+    expect(out).not.toContain('bg-accent');
   });
 });

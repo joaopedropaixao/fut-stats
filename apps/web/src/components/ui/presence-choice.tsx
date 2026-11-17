@@ -8,15 +8,14 @@ type PresenceChoiceProps = {
   onChange: (confirmed: boolean) => void;
   /** Trava os dois (prazo vencido ou sem permissão). */
   disabled?: boolean;
-  /** Aviso grande do Feed: o Confirmar é a tecla amarela (a única da tela), em qualquer resposta; o estado fica no ✓ e no carimbo. */
-  keyed?: boolean;
 };
 
 /**
  * Presença do DS: CONFIRMAR e AUSÊNCIA empilhados, 64px cada, dentro de um trilho. A resposta atual fica
  * chapada (verde ou vermelho) com o ícone ✓ ou ×; a outra recua, só no contorno. Cor nunca é o único sinal.
+ * É o mesmo visual no detalhe da rodada e no aviso grande do Feed: aqui não há tecla amarela.
  */
-export function PresenceChoice({ value, onChange, disabled, keyed }: PresenceChoiceProps) {
+export function PresenceChoice({ value, onChange, disabled }: PresenceChoiceProps) {
   return (
     <div role="group" aria-label="Sua presença" className="flex flex-col gap-1 bg-bg p-1">
       <button
@@ -27,12 +26,10 @@ export function PresenceChoice({ value, onChange, disabled, keyed }: PresenceCho
         className={cn(
           'flex h-16 items-center justify-center gap-3 transition-colors duration-(--duration-fast) ease-out',
           disabled && 'opacity-60',
-          keyed
-            ? 'bg-accent text-on-accent shadow-key active:translate-x-1 active:translate-y-1 active:shadow-key-pressed'
-            : value === true
-              ? 'bg-success text-[#04210F] shadow-[inset_0_0_0_2px_#000]'
-              : 'text-[#86efac] shadow-[inset_0_0_0_2px_var(--color-success)]',
-          !keyed && value === false && 'opacity-55',
+          value === true
+            ? 'bg-success text-[#04210F] shadow-[inset_0_0_0_2px_#000]'
+            : 'text-[#86efac] shadow-[inset_0_0_0_2px_var(--color-success)]',
+          value === false && 'opacity-55',
         )}
       >
         <Icon name="check" size={24} strokeWidth={3} />
