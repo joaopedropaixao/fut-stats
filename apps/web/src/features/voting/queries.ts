@@ -7,29 +7,29 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPut } from '../../lib/api';
 import { historyKey } from '../history/history-key';
+import { useChannelMode } from '../live/channel-mode';
 import { refreshRounds, roundKey } from '../rounds/queries';
+import { votingRefreshInterval } from './refresh-interval';
 
 const votingPath = (groupId: string, roundId: string) =>
   `/groups/${groupId}/rounds/${roundId}/voting`;
-const votingKey = (groupId: string, roundId: string) =>
+export const votingKey = (groupId: string, roundId: string) =>
   [...roundKey(groupId, roundId), 'voting'] as const;
 export const resultKey = (groupId: string, roundId: string) =>
   [...roundKey(groupId, roundId), 'voting-result'] as const;
 
-/** De quanto em quanto tempo a votação aberta se atualiza sozinha (ms): o medidor mostra quem votou. */
-export const VOTING_REFRESH_MS = 15_000;
-
 /**
- * A votação da rodada. Aberta, atualiza a cada 15 s e ao voltar para a aba (a `jogo-ao-vivo` troca por tempo
- * real depois). Fechada ou antes de abrir, nada muda sozinho.
+ * A votação da rodada. Aberta, atualiza ao voltar para a aba e quando o canal ao vivo avisa (60 s de segurança);
+ * sem o canal, a cada 15 s. Fechada ou antes de abrir, nada muda sozinho.
  */
 export function useVoting(groupId: string, roundId: string | undefined) {
+  const channel = useChannelMode(roundId);
   return useQuery({
     queryKey: votingKey(groupId, roundId ?? ''),
     queryFn: ({ signal }) =>
       apiGet(votingPath(groupId, roundId ?? ''), votingViewSchema, { signal }),
     enabled: roundId !== undefined,
-    refetchInterval: (query) => (query.state.data?.status === 'VOTING' ? VOTING_REFRESH_MS : false),
+    refetchInterval: (query) => votingRefreshInterval(query.state.data?.status, channel),
     refetchOnWindowFocus: true,
   });
 }
