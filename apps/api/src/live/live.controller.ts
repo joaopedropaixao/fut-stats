@@ -39,8 +39,17 @@ export class LiveController implements OnModuleDestroy {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
+    // O cliente pode desistir enquanto a rodada é conferida: o `close` fica ligado desde já, senão a inscrição e o
+    // pulso abririam depois numa conexão morta e nunca seriam desligados.
+    let gone = false;
+    const markGone = (): void => {
+      gone = true;
+    };
+    res.once('close', markGone);
     // 404 antes de abrir o fluxo: o filtro de exceção responde normalmente.
     await this.live.requireRound(membership, roundId);
+    res.off('close', markGone);
+    if (gone || res.destroyed || req.destroyed) return;
 
     res.status(200).set({
       'Content-Type': 'text/event-stream; charset=utf-8',

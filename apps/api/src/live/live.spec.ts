@@ -16,6 +16,8 @@ import {
 import { addMember, createUser } from '../test/auth';
 import { createTestApp, resetDatabase, type TestApp } from '../test/test-app';
 import { RoundEventsService } from '../events/round-events.service';
+import { LiveController } from './live.controller';
+import { LiveService } from './live.service';
 
 /** Um cliente do canal: abre o fluxo de verdade (porta aberta) e lê o corpo aos poucos. */
 interface Stream {
@@ -557,6 +559,70 @@ describe('canal ao vivo da rodada', () => {
       }
       expect(events.listenerCount(c.group.id, c.round.id)).toBe(0);
       expect(events.listenerCount(c.group.id, outsider.round.id)).toBe(0);
+    });
+  });
+
+  describe('C9: só rodada em etapa com canal', () => {
+    it('C9: rodada encerrada (CLOSED) → 404, sem abrir fluxo nem deixar ouvinte', async () => {
+      const c = await setupAuditGroup(t, { status: 'CLOSED' });
+      const events = t.app.get(RoundEventsService);
+
+      const stream = await open(streamPath(c.group.id, c.round.id), c.admin.cookie);
+
+      expect(stream.status).toBe(404);
+      expect(stream.raw).not.toContain('event: ready');
+      expect(events.listenerCount(c.group.id, c.round.id)).toBe(0);
+    });
+
+    it('C9: rodada agendada (SCHEDULED) abre: é por onde os times publicados chegam', async () => {
+      const c = await setupAuditGroup(t, { status: 'SCHEDULED' });
+
+      const stream = await connect(c, c.white[0]!);
+
+      expect(stream.status).toBe(200);
+      await api(c, 'post', '/lineup/publish', c.admin).send({}).expect(200);
+      await stream.waitFor(() => stream.changes.length > 0);
+      expect(stream.changes[0]!.scopes).toEqual(['status']);
+    });
+  });
+
+  describe('C8: o cliente desiste enquanto a rodada é conferida', () => {
+    it('C8: fechar durante a conferência não deixa ouvinte nem pulso ligados', async () => {
+      const c = await setupAuditGroup(t, { status: 'IN_PROGRESS' });
+      const events = t.app.get(RoundEventsService);
+      const live = t.app.get(LiveService);
+      const controller = t.app.get(LiveController);
+      const openBefore = (controller as unknown as { open: Set<unknown> }).open.size;
+
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      let entered!: () => void;
+      const checking = new Promise<void>((resolve) => (entered = resolve));
+      const original = live.requireRound.bind(live);
+      const spy = jest.spyOn(live, 'requireRound').mockImplementation(async (...args) => {
+        entered();
+        await gate;
+        return original(...args);
+      });
+
+      try {
+        const req = http.get(`${baseUrl}${streamPath(c.group.id, c.round.id)}`, {
+          headers: { Cookie: c.admin.cookie },
+          agent: false,
+        });
+        req.on('error', () => undefined);
+        await checking;
+        // O cliente desiste no meio da conferência
+        req.destroy();
+        await sleep(50);
+        release();
+        await sleep(100);
+
+        expect(events.listenerCount(c.group.id, c.round.id)).toBe(0);
+        expect((controller as unknown as { open: Set<unknown> }).open.size).toBe(openBefore);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 

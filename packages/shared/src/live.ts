@@ -13,8 +13,12 @@ export const roundStreamEventSchema = z.object({
 });
 export type RoundStreamEvent = z.infer<typeof roundStreamEventSchema>;
 
-/** Etapas em que vale manter o canal aberto. */
+/**
+ * Etapas em que vale manter o canal aberto. `SCHEDULED` entra para a rodada da vez receber os times publicados
+ * na hora; encerrada (`CLOSED`) não tem canal.
+ */
 export const LIVE_ROUND_STATUSES = [
+  'SCHEDULED',
   'TEAMS_PUBLISHED',
   'IN_PROGRESS',
   'POST_MATCH',
