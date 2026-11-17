@@ -12,6 +12,7 @@ import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
 import { HistoryModule } from './history/history.module';
 import { LineupsModule } from './lineups/lineups.module';
+import { LiveModule } from './live/live.module';
 import { MatchModule } from './match/match.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RankingModule } from './ranking/ranking.module';
@@ -39,6 +40,7 @@ import { VotingModule } from './voting/voting.module';
     FeedModule,
     AuditModule,
     RoundEventsModule,
+    LiveModule,
     DevModule.forEnvironment(),
   ],
 })
