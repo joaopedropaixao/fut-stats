@@ -11,7 +11,7 @@
 | **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1c65574 (revisado em 2026-11-17: entraram #62–#69, #72, #73, #74) |
 | **Depende de** | auditoria-da-rodada, votacao, rodizio-reservas |
-| **Toca em** | packages/shared/src/live.ts, packages/shared/src/index.ts, apps/api/src/live, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/config/env.ts, .env.example, apps/web/src/features/live, apps/web/src/features/match/queries.ts, apps/web/src/features/match/refresh-interval.ts, apps/web/src/features/voting/queries.ts, apps/web/src/app/shell.tsx, docs/02-arquitetura.md (apps/web/vite.config.ts só se o proxy segurar o fluxo; avisar a `pwa-e-push`, que também mexe nele) |
+| **Toca em** | packages/shared/src/live.ts, packages/shared/src/index.ts, apps/api/src/events, apps/api/src/live, apps/api/src/rounds/rounds.service.ts, apps/api/src/rounds/rounds.module.ts, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/config/env.ts, .env.example, apps/web/src/features/live, apps/web/src/features/match/queries.ts, apps/web/src/features/match/refresh-interval.ts, apps/web/src/features/voting/queries.ts, apps/web/src/app/shell.tsx, docs/02-arquitetura.md (apps/web/vite.config.ts só se o proxy segurar o fluxo; avisar a `pwa-e-push`, que também mexe nele) |
 
 ## Produto
 
@@ -119,8 +119,16 @@ Sem mudança.
 Sem mudança (canal é infraestrutura; não há regra de negócio).
 
 Na API:
-- **`apps/api/src/live`:** `RoundEventsService` com um `EventEmitter` do Node (`setMaxListeners(0)`):
-  `emit(groupId, roundId, scopes)` e `subscribe(groupId, roundId, listener): () => void`. `LiveController` com o
+- **Sinal único de eventos da rodada (decisão do dono, 17 nov 2026):** `apps/api/src/events`, com
+  `RoundEventsService` sobre um `EventEmitter` do Node (`setMaxListeners(0)`). Toda escrita da rodada dispara **uma
+  vez, depois do commit**, `RoundEvent = { groupId, roundId, type, scopes, actorMembershipId | null }` (`type` com os
+  nomes da `AuditAction` onde existem, mais `ROTATION_STARTED/STOPPED`, `VOTE_CAST` e **`ROUND_CREATED`**
+  (rodada marcada, `scopes: ['status']`, que o push precisa)). Quem precisa **ouve**: o SSE desta fatia e o push da
+  `pwa-e-push`. Esta fatia é a dona do sinal: ele entra num commit isolado, aplicável sobre a develop
+  (`feat(api): sinal único de eventos da rodada`), que a `pwa-e-push` traz por cherry-pick. Nada sensível no evento
+  (voto nunca).
+- **`apps/api/src/live`:** só um ouvinte do sinal (`subscribe(groupId, roundId, listener): () => void`), que
+  repassa `{ scopes, at }`. `LiveController` com o
   `GET` (`@GroupMember()`, confere que a rodada é do grupo antes de abrir o fluxo; `@Sse()` do Nest ou a resposta
   na mão, o que der os cabeçalhos certos). Cancelar a inscrição no `close` da requisição.
 - **Avisar depois de gravar:** cada service chama `events.emit(...)` **depois** que o `withRoundLock` (ou a
@@ -191,6 +199,13 @@ um item para ligar o stream direto no domínio da API.
   estar certo.
 - Emissor na memória — uma instância só; o caminho para crescer fica anotado.
 - Depois de `auditoria-da-rodada` e `votacao` — todos os pontos de escrita já existem e estão listados num teste.
+- Sinal único de eventos da rodada (dono, 17 nov 2026) — `jogo-ao-vivo` e `pwa-e-push` iam pôr, cada uma, um gancho
+  "depois de gravar" nos mesmos services; um sinal só, com vários ouvintes, evita a duplicação e o conflito.
+- **Visão do dono (depois do lançamento):** um serviço de notificação próprio (p.ex.
+  `fut-stats-app-notification-service`) que ouve a API por canal aberto e centraliza tudo: manda os aparelhos se
+  atualizarem, envia as notificações e, no futuro, webhooks para fora. O sinal único desta onda é a costura: quando o
+  serviço existir, ele vira o ouvinte, sem mexer nos pontos de escrita. Feed e presença ao vivo ficam para essa
+  próxima rodada.
 
 ## Fora do escopo
 - Presença e Feed (resenhas, reações, comentários) em tempo real.
