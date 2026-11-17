@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "PostReactionType" AS ENUM ('BALL', 'FIRE', 'LAUGH', 'CLAP', 'FLOP');
+CREATE TYPE "PostReactionType" AS ENUM ('BALL', 'CATFISH', 'OSS', 'YELLOW_CARD', 'POPCORN');
 
 -- CreateTable
 CREATE TABLE "Post" (
