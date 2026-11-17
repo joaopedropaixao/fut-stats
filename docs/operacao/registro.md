@@ -111,6 +111,47 @@ WHERE a."roundId" = 'COLE-O-ROUND-ID-AQUI'
 ORDER BY a."createdAt", a.id;
 ```
 
+## Remover um jogador de verdade (manual, só o orquestrador)
+
+**O app nunca apaga um jogador** (decisão do dono, 17 nov 2026). O grupo tem mensalistas e avulsos que vão de vez em
+quando: o admin **desativa** quem não vai jogar por um tempo (`active: false`) e reativa quando volta. Remover de
+verdade (nos testes, ou em produção alguém que nunca mais vai jogar ou está desativado há muito tempo) é feito **à
+mão no banco, pelo orquestrador**, com o ok do dono. Por isso `AuditLog.actorId` é `ON DELETE RESTRICT`: o banco
+recusa apagar a `Membership` enquanto houver linha do registro com ela como ator, e `actorId` nulo continua
+significando só "automático".
+
+Passo a passo, numa transação só (troque `:mid` pelo `Membership.id`):
+
+1. **Conferir o que aponta para a participação.** Todas estas chaves são Restrict:
+
+   ```sql
+   SELECT
+     (SELECT count(*) FROM "Attendance"   WHERE "membershipId" = :mid) AS presencas,
+     (SELECT count(*) FROM "TeamPlayer"   WHERE "membershipId" = :mid) AS escalacoes,
+     (SELECT count(*) FROM "MatchEvent"   WHERE "membershipId" = :mid OR "createdById" = :mid) AS lances,
+     (SELECT count(*) FROM "Vote"         WHERE "voterId" = :mid OR "mvpId" = :mid OR "flopId" = :mid) AS votos,
+     (SELECT count(*) FROM "Rating"       WHERE "targetId" = :mid) AS notas,
+     (SELECT count(*) FROM "Post"         WHERE "authorId" = :mid) AS resenhas,
+     (SELECT count(*) FROM "PostReaction" WHERE "membershipId" = :mid) AS reacoes,
+     (SELECT count(*) FROM "PostComment"  WHERE "membershipId" = :mid) AS comentarios,
+     (SELECT count(*) FROM "AuditLog"     WHERE "actorId" = :mid) AS registro;
+   ```
+
+   Presença, escalação, lance, voto ou nota diferentes de zero: a pessoa tem história de rodada, e apagar mexe no
+   placar, nas notas e no ranking dos outros. **Pare e pergunte ao dono**; o normal é deixar desativado.
+2. **Guardar o registro do membro** antes de apagar (ele some do banco): `\copy (SELECT * FROM "AuditLog" WHERE
+   "actorId" = :mid ORDER BY "createdAt") TO 'auditlog-<mid>.csv' CSV HEADER`.
+3. **Apagar as linhas de `AuditLog` dele** (`DELETE FROM "AuditLog" WHERE "actorId" = :mid`). Não trocar por
+   `UPDATE ... SET "actorId" = NULL`: ator nulo quer dizer "automático" (fechamento da votação), e a linha passaria a
+   mentir. As linhas de outros atores que citam o id dele dentro de `before`/`after` ficam (é só texto).
+4. **Apagar o feed dele:** `PostComment` e `PostReaction` com `"membershipId" = :mid`; resenhas com
+   `"authorId" = :mid` só com o ok do dono (apagar a resenha leva junto as reações e os comentários dos outros).
+5. **Apagar a participação:** `DELETE FROM "Membership" WHERE id = :mid`. A conta (`User`) fica: a pessoa pode estar
+   em outro grupo.
+
+Nos testes e no `collections/dev-session.ts` (só banco local), a limpeza de grupos de dev sem rodada segue a mesma
+ordem para o grupo inteiro: registro, resenhas, participações, grupo (`apps/api/src/dev/dev-leftovers.ts`).
+
 ## Cuidados
 
 - **Ordem:** a hora da linha é a do início da transação. Duas escritas simultâneas podem ter `createdAt` quase

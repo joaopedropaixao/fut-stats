@@ -199,6 +199,13 @@ Sem tela.
   em vez de cada fatia ligar o seu.
 - `requestId` em `AsyncLocalStorage` — chega ao registro e ao log sem passar parâmetro por toda a pilha.
 - Seed não gera registro — ele não passa pelos services; o histórico do seed não tem "quem fez".
+- Jogador nunca é apagado (dono, 17 nov 2026) — mensalistas e avulsos vão de vez em quando; o admin desativa e
+  reativa, e o app não apaga `Membership`. Por isso `AuditLog.actorId` é `ON DELETE RESTRICT`. Remoção de verdade é
+  manual, no banco, pelo orquestrador, com o registro do membro apagado antes (passo a passo em
+  `docs/operacao/registro.md`); o `collections/dev-session.ts` apaga registro e resenhas dos grupos de dev antes das
+  participações (`apps/api/src/dev/dev-leftovers.ts`, coberto por `dev-leftovers.spec.ts`).
+- Uma migration só (`audit_log`, por cima da `feed`), já com o `RESTRICT` — nenhuma das duas anteriores
+  (`audit_log` e `audit_log_actor_restrict`) foi ao ar.
 
 ## Extensão: feed (dono, 2026-11-16)
 
@@ -215,7 +222,7 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
   rodada + ações do feed. A rota e o contrato da rodada (`GET .../rounds/:roundId/log`, `RoundLogEntry`) não mudam.
 - **Modelo final** (migration `audit_log`, por cima de `20261117174123_feed`; a `round_log` nunca foi mergeada e foi
   apagada): `AuditLog { id, groupId → Group, roundId? → Round (Cascade), postId? (sem FK), actorId? → Membership
-  (Restrict, migration `audit_log_actor_restrict`: a participação nunca é apagada, então `actorId` nulo é sempre
+  (Restrict, já na migration `audit_log`: a participação nunca é apagada, então `actorId` nulo é sempre
   automático e nunca "ator apagado"),
   action AuditAction, before Json?, after Json?, requestId?, createdAt }`, com índices `(roundId, createdAt)`,
   `(groupId, createdAt)`, `(postId, createdAt)`, `(actorId, createdAt)` e `(requestId)` (as consultas de

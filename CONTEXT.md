@@ -590,7 +590,8 @@ falha.
   nulo): o `requestId` do último voto, cruzado com o log de pedido, diria quem votou por último, e o da leitura diria
   quem abriu o app. Só o "Encerrar votação" do admin leva ator e `requestId`.
 - **`actorId` nulo é sempre automático, nunca "ator apagado":** a chave para `Membership` é `ON DELETE RESTRICT` (a
-  participação só é desativada, o app nunca a apaga).
+  participação só é desativada, o app nunca a apaga; a remoção manual apaga antes o registro do membro, nunca o
+  passa para nulo).
 - **Só inserção.** Apagar a rodada (só dá antes do jogo) apaga o registro dela junto (cascade).
 - **Antes e depois** são um retrato pequeno, sem dado pessoal além do id da participação: `{ status }` nas etapas;
   `{ score }` no placar (`score: null` enquanto ninguém lançou; salvar o mesmo placar de novo não grava linha); `{ status, score }` ao finalizar; `{ eventId, type, playerId }`
@@ -813,6 +814,11 @@ presença; contar gol contra como gol.
   único (409 `NICKNAME_TAKEN`, só se o membro termina ativo e o apelido é novo ou ele está sendo reativado). Falhou
   uma checagem: nada é gravado, nem os campos permitidos do mesmo pedido. **Remover = `active: false`**: a participação
   nunca é apagada.
+- **Jogador nunca é apagado** (dono, 17 nov 2026): o grupo tem mensalistas e avulsos que vão de vez em quando; o
+  admin desativa e reativa quem não vai jogar por um tempo, e o app não tem caminho que apague `Membership`. Remover
+  de verdade (testes, ou quem nunca mais vai jogar ou está desativado há muito tempo) é feito à mão no banco, pelo
+  orquestrador, seguindo `docs/operacao/registro.md` (o registro do membro sai antes, por causa do `RESTRICT` de
+  `AuditLog.actorId`). O `collections/dev-session.ts` (só banco local) apaga grupos de dev sem rodada na mesma ordem.
 - `GET`/`POST /api/groups/:groupId/invite` (admin): vê o código / gera um novo. O antigo deixa de valer na hora.
 - `GET /api/invites/:code` (**público**): `{ groupName, memberCount }`. Código inexistente ou trocado → 404.
   Caminho com caractere de controle (ex.: `%00`) → 404 em qualquer rota, antes de guard e banco
