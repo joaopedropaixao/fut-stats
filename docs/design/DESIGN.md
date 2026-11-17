@@ -80,8 +80,8 @@ A seção "Daltonismo" da folha tem a simulação.
   | Presença aberta | verde (`--color-success`) | Confirmar (o par é Confirmar / Ausência) |
 
   **Votação, decisão do dono (16 nov 2026):** o azul (`--color-vote`) foi retirado por destoar do app. Duas opções da
-  família do app foram montadas em `docs/design/prints/feed/design-2/opcoes/`: (a) **prata** com a urna e a faixa
-  listrada, que é a aplicada, e (b) o verde-luz do refletor (`#d6fabe`), que ficou de fora. O prata ganhou pela
+  família do app foram montadas: (a) **prata** com a urna e a faixa listrada, que é a aplicada
+  (`docs/design/prints/feed/design-2/opcoes/`), e (b) o verde-luz do refletor (`#d6fabe`), descartada em 17 nov 2026. O prata ganhou pela
   leitura de "cédula" e por ter caráter; a faixa listrada e a urna evitam que se confunda com a medalha de prata do
   pódio. Contraste do prata sobre as superfícies verdes ≥ 4,5:1 (testado).
 

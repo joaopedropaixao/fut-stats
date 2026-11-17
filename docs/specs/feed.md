@@ -115,7 +115,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | C35 | grupo com resenhas | rolar o Feed | seção "RESENHAS"; cada resenha é um card de grande momento (contorno de 3 px, sombra dura, entrada em degraus nos 3 primeiros): rosto e apelido do autor, selo ADMIN, quando ("HOJE, 21H" / "SÁB, 17 OUT"), título em pixel, texto corrido em Chakra Petch com as quebras de linha, "editada" quando foi | Playwright |
-| C36 | resenha | tocar numa reação | o contador sobe com o dígito "batendo"; a minha fica com contorno grosso e ✓; tocar em outra troca; tocar na mesma tira. Cada botão tem ícone pixel (desenho próprio; o OSS! é mais largo), o nome curto sempre visível embaixo do ícone (Bola, Bagre, OSS!, Cartão amarelo, Pipocou; também no `title`), o número e nome para leitor de tela ("Bagre, 3 reações, a sua"); em 320 px os nomes cabem sem estourar o botão de ≥ 44 px | Playwright |
+| C36 | resenha | tocar numa reação | o contador sobe com o dígito "batendo"; a minha fica com contorno grosso e ✓; tocar em outra troca; tocar na mesma tira. Cada botão tem ícone pixel (desenho próprio; o OSS! é mais largo), sem nome visível (volta de design 4, 17/11: só o ícone + o contador, com o ✓ da minha ao lado do contador, nunca sobre o ícone); o nome (Bola, Bagre, OSS!, Cartão amarelo, Pipocou) fica no `title` e no nome para leitor de tela ("Bagre, 3 reações, a sua"); em 320 px os 5 botões cabem numa linha com ≥ 44 px cada | Playwright |
 | C37 | resenha com 3 comentários | tocar em "COMENTÁRIOS · 3" | abre embaixo do card: rosto, apelido, quando e texto de cada um; campo "Escreva um comentário" com contador e "Enviar" | Playwright |
 | C38 | comentando | enviar | o comentário entra no fim, o campo limpa e o contador do card sobe; vazio não envia; 281 caracteres mostra o erro do shared | Playwright |
 | C39 | meu comentário (ou qualquer um, como admin) | lixeira (44 × 44) → gaveta "Apagar comentário?" | some da lista com aviso | Playwright |
@@ -130,7 +130,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C48 | texto com 1000 caracteres sem espaço e apelido de 10 letras | olhar o card | o texto quebra dentro do card (sem estourar a largura) | Playwright |
 | C49 | reduzir movimento | abrir | cards com fade; contador sem bater | Playwright (`emulateMedia`) |
 | C50 | carregando; erro nos avisos; erro nas resenhas | abrir | esqueleto; cada bloco com o próprio erro e "Tentar de novo" (um não derruba o outro). Console sem erros no fluxo real | Playwright |
-| C51 | larguras 320, 375, 390, 430 px e desktop | Feed (aviso grande de cada tipo, linhas, resenha com comentários abertos), nova resenha | sem rolagem horizontal, sem sobreposição, sem texto cortado; os 5 botões de reação cabem numa linha em 320 px com 44 px cada; no desktop, coluna centralizada. Checagem automática passa | Playwright |
+| C51 | larguras 320, 375, 390, 430 px e desktop | Feed (aviso grande de cada tipo, linhas, resenha com comentários abertos), nova resenha | sem rolagem horizontal, sem sobreposição, sem texto cortado; os 5 botões de reação (só ícone + contador, sem nome visível) cabem numa linha em 320 px com ≥ 44 px cada, nada sobreposto (o ✓ não cobre o ícone do OSS!); no desktop, coluna centralizada. Checagem automática passa | Playwright |
 
 ## Técnico
 
@@ -272,8 +272,8 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
     cor de identidade nunca vai nela**. Sempre com ícone e o tipo por escrito. Detalhe em `docs/design/DESIGN.md`.
   - **Volta de design 3 (16/11, decisão do dono):** o azul da votação foi retirado (`--color-vote` não existe mais) por
     ficar disruptivo; vale o **prata** (`--color-silver`) com a urna e uma faixa de cabeçalho listrada, para não
-    parecer o prata do pódio. Opção B que ficou de fora: o verde-luz do refletor (`#d6fabe`), em
-    `docs/design/prints/feed/design-2/opcoes/`. A 4ª reação é o **cartão amarelo**, único ícone com o amarelo
+    parecer o prata do pódio. **Fechado em 17/11:** fica o prata (opção A, a do código); a opção B, o verde-luz do
+    refletor (`#d6fabe`), foi descartada e os prints dela saíram de `design-2/opcoes/` (fica só o da A). A 4ª reação é o **cartão amarelo**, único ícone com o amarelo
     (ícone, não tecla); o OSS! ganhou letras retas na mesma linha de base. O "Encerrar votação" do admin é a tecla
     amarela (a gaveta de confirmação continua), e a exceção ao C34 está na linha do C34.
   - **Feedback do dono (15/11):** os cards do início ficaram "bem simples as letras e em cores diferentes". Cada
@@ -311,6 +311,10 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
 - Uma rota de avisos com o `me` de cada tipo — as linhas não precisam carregar a tela inteira de cada rodada.
 - Uma reação por pessoa, com 5 ícones pixel próprios — simples de entender e com a cara do app; emoji do sistema
   quebra a estética pixel.
+- Reações sem o nome visível embaixo do ícone (volta de design 4, 17/11, decisão do dono: "agora que os emojis
+  ficaram bem claros, pode tirar os nomes deles e deixar só o emoji mesmo") — o botão fica só com o ícone pixel e o
+  contador; o nome segue no `title` e no leitor de tela. O ✓ da minha reação fica ao lado do contador (c1dfcb3).
+- Cor da votação fechada no prata com a faixa listrada (17/11) — o verde-luz do refletor foi descartado.
 - Comentários abrem no card — conversa curta não pede outra tela.
 - "Quem vai" sai do início — o Feed precisa de espaço para avisos e resenhas; a lista completa continua a um toque.
 - Qualquer admin edita e apaga qualquer resenha — os admins são a "redação" do grupo.
