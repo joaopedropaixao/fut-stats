@@ -12,7 +12,7 @@ import { createTestApp, resetDatabase, type TestApp } from '../test/test-app';
  * propósito (e diz por quê). Sem isso, o teste de rotas falha.
  */
 
-/** Rotas que mudam placar, etapa ou lance: cada 200 delas tem de criar uma linha em `RoundLog`. */
+/** Rotas que mudam placar, etapa ou lance: cada 200 delas tem de criar uma linha em `AuditLog`. */
 const AUDITED_ROUTES = [
   'POST groups/:groupId/rounds/:roundId/match/start',
   'PUT groups/:groupId/rounds/:roundId/match/score',
@@ -160,11 +160,11 @@ describe('cobertura do registro da rodada', () => {
     async (route) => {
       const { setup, call } = DRIVERS[route];
       const c = await setup();
-      const before = await t.prisma.roundLog.count({ where: { roundId: c.round.id } });
+      const before = await t.prisma.auditLog.count({ where: { roundId: c.round.id } });
 
       await call(c).expect(200);
 
-      expect(await t.prisma.roundLog.count({ where: { roundId: c.round.id } })).toBe(before + 1);
+      expect(await t.prisma.auditLog.count({ where: { roundId: c.round.id } })).toBe(before + 1);
     },
   );
 });

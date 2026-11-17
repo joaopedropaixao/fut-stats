@@ -53,8 +53,15 @@ enum VotingEndReason {
 /// Tipo de lance registrado na rodada. Igual a `MatchEventType` do domain.
 /// OWN_GOAL = gol contra: fica com quem fez e conta no placar do adversário.
 /// Gols sofridos não são lance: saem do placar (gols do time adversário).
-/// Ações do registro da rodada. Igual a `ROUND_LOG_ACTIONS` do domain.
-enum RoundLogAction {
+enum MatchEventType {
+  GOAL
+  ASSIST
+  OWN_GOAL
+}
+
+/// Ações do registro de auditoria. Igual a `ROUND_LOG_ACTIONS` + `FEED_LOG_ACTIONS` do domain.
+enum AuditAction {
+  // Rodada
   TEAMS_PUBLISHED
   TEAMS_UNPUBLISHED
   MATCH_STARTED
@@ -64,12 +71,14 @@ enum RoundLogAction {
   VOTING_CLOSED
   EVENT_LAUNCHED
   EVENT_REMOVED
-}
-
-enum MatchEventType {
-  GOAL
-  ASSIST
-  OWN_GOAL
+  // Feed
+  POST_CREATED
+  POST_EDITED
+  POST_DELETED
+  COMMENT_CREATED
+  COMMENT_DELETED
+  REACTION_SET
+  REACTION_REMOVED
 }
 
 /// Tom de pele do bonequinho. Igual a `AvatarSkin` do domain (do mais claro ao mais escuro).
@@ -136,7 +145,7 @@ model Group {
   memberships Membership[]
   rounds      Round[]
   posts       Post[]
-  roundLogs   RoundLog[]
+  auditLogs   AuditLog[]
 }
 
 /// Um usuário dentro de um grupo: papel e dados de jogador daquele grupo.
@@ -177,7 +186,7 @@ model Membership {
   posts           Post[]
   postReactions   PostReaction[]
   postComments    PostComment[]
-  roundLogs       RoundLog[]
+  auditLogs       AuditLog[]
 
   @@unique([userId, groupId])
   @@index([groupId])
@@ -214,7 +223,7 @@ model Round {
   teamPlayers TeamPlayer[]
   matchEvents MatchEvent[]
   votes       Vote[]
-  logs        RoundLog[]
+  auditLogs   AuditLog[]
 
   @@unique([groupId, number])
   @@index([groupId, scheduledAt])
@@ -365,26 +374,34 @@ model PostComment {
   @@index([postId, createdAt])
 }
 
-/// Registro da rodada: quem mudou placar, etapa e lance, o quê e quando. Só inserção, na mesma transação da
-/// mudança. Voto e rodízio ficam de fora. Apagar a rodada apaga o registro dela.
-model RoundLog {
-  id        String         @id @default(cuid())
+/// Registro de auditoria do grupo: quem fez o quê e quando (rodada e feed). Só inserção, na mesma transação da
+/// mudança. Voto e rodízio ficam de fora. Interno: o admin lê o da rodada pela API; o do feed, só o dono, no banco.
+/// Apagar a rodada apaga as linhas dela (cascade); apagar a resenha NÃO apaga as dela (`postId` sem chave
+/// estrangeira, senão ninguém descobre quem apagou).
+model AuditLog {
+  id        String      @id @default(cuid())
   groupId   String
-  roundId   String
+  /// Linhas da rodada; nulo nas do feed.
+  roundId   String?
+  /// Linhas do feed; nulo nas da rodada. Sem chave estrangeira de propósito.
+  postId    String?
   /// Quem fez; nulo = automático (fechamento da votação sem pedido do admin).
   actorId   String?
-  action    RoundLogAction
+  action    AuditAction
   /// Retrato pequeno de antes e de depois, por ação (ver o spec auditoria-da-rodada).
   before    Json?
   after     Json?
   /// `x-request-id` do pedido que gerou a linha; nulo quando não há pedido (relógio da votação).
   requestId String?
-  createdAt DateTime       @default(now())
+  createdAt DateTime    @default(now())
 
   group Group       @relation(fields: [groupId], references: [id])
-  round Round       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  round Round?      @relation(fields: [roundId], references: [id], onDelete: Cascade)
   actor Membership? @relation(fields: [actorId], references: [id])
 
   @@index([roundId, createdAt])
   @@index([groupId, createdAt])
+  @@index([postId, createdAt])
+  @@index([requestId])
+  @@index([actorId, createdAt])
 }

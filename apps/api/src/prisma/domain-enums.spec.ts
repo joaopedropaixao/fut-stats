@@ -1,11 +1,13 @@
 import {
   AVATAR_HAIR_COLORS,
   AVATAR_HAIRS,
+  AUDIT_ACTIONS,
   AVATAR_SKINS,
   MATCH_EVENT_TYPES,
   POSITIONS,
   POST_REACTIONS,
   ROLES,
+  FEED_LOG_ACTIONS,
   ROUND_LOG_ACTIONS,
   ROUND_STATUSES,
   TEAMS,
@@ -17,7 +19,7 @@ import {
   type Position,
   type PostReaction,
   type Role,
-  type RoundLogAction,
+  type AuditAction,
   type RoundStatus,
   type Team,
   type VotingEndReason,
@@ -30,7 +32,7 @@ import {
   Position as DbPosition,
   PostReactionType as DbPostReactionType,
   Role as DbRole,
-  RoundLogAction as DbRoundLogAction,
+  AuditAction as DbAuditAction,
   RoundStatus as DbRoundStatus,
   Team as DbTeam,
   VotingEndReason as DbVotingEndReason,
@@ -43,7 +45,7 @@ type Equals<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 const positionTypesMatch: Equals<DbPosition, Position> = true;
 const teamTypesMatch: Equals<DbTeam, Team> = true;
 const roleTypesMatch: Equals<DbRole, Role> = true;
-const roundLogActionTypesMatch: Equals<DbRoundLogAction, RoundLogAction> = true;
+const auditActionTypesMatch: Equals<DbAuditAction, AuditAction> = true;
 const roundStatusTypesMatch: Equals<DbRoundStatus, RoundStatus> = true;
 const avatarSkinTypesMatch: Equals<DbAvatarSkin, AvatarSkin> = true;
 const avatarHairTypesMatch: Equals<DbAvatarHair, AvatarHair> = true;
@@ -79,10 +81,18 @@ describe('enums do banco x domain', () => {
     expect([...VOTING_END_REASONS]).toEqual(['ALL_VOTED', 'DEADLINE_PASSED', 'ADMIN_CLOSED']);
   });
 
-  it('C1: RoundLogAction tem as 9 ações do domain, na mesma ordem', () => {
-    expect(roundLogActionTypesMatch).toBe(true);
-    expect(Object.values(DbRoundLogAction)).toEqual([...ROUND_LOG_ACTIONS]);
+  it('C1: as 9 ações da rodada abrem o enum AuditAction do banco, na mesma ordem', () => {
     expect(ROUND_LOG_ACTIONS).toHaveLength(9);
+    expect(Object.values(DbAuditAction).slice(0, ROUND_LOG_ACTIONS.length)).toEqual([
+      ...ROUND_LOG_ACTIONS,
+    ]);
+  });
+
+  it('C23: ROUND_LOG_ACTIONS + FEED_LOG_ACTIONS são exatamente o enum AuditAction do banco, na mesma ordem', () => {
+    expect(auditActionTypesMatch).toBe(true);
+    expect(FEED_LOG_ACTIONS).toHaveLength(7);
+    expect(Object.values(DbAuditAction)).toEqual([...ROUND_LOG_ACTIONS, ...FEED_LOG_ACTIONS]);
+    expect(Object.values(DbAuditAction)).toEqual([...AUDIT_ACTIONS]);
   });
 
   it('RoundStatus tem os mesmos valores, na mesma ordem', () => {

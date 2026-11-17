@@ -70,11 +70,11 @@ describe('registro da rodada', () => {
       .set('Cookie', who.cookie);
 
   const logRows = (c: AuditGroup) =>
-    t.prisma.roundLog.findMany({
+    t.prisma.auditLog.findMany({
       where: { roundId: c.round.id },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
-  const logCount = () => t.prisma.roundLog.count();
+  const logCount = () => t.prisma.auditLog.count();
 
   const addEvent = (c: AuditGroup, target: Person, type: MatchEventType) =>
     t.prisma.matchEvent.create({
@@ -240,7 +240,7 @@ describe('registro da rodada', () => {
 
       for (let run = 0; run < 10; run++) {
         await t.prisma.matchEvent.deleteMany({ where: { roundId: c.round.id } });
-        await t.prisma.roundLog.deleteMany();
+        await t.prisma.auditLog.deleteMany();
 
         const [a, b] = await Promise.all([
           launch(c, first, first, 'GOAL'),
@@ -373,10 +373,10 @@ describe('registro da rodada', () => {
       jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 
       await t.prisma.$executeRawUnsafe(
-        `CREATE FUNCTION fail_round_log() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'falha forçada no registro'; END; $$ LANGUAGE plpgsql`,
+        `CREATE FUNCTION fail_audit_log() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'falha forçada no registro'; END; $$ LANGUAGE plpgsql`,
       );
       await t.prisma.$executeRawUnsafe(
-        `CREATE TRIGGER fail_round_log BEFORE INSERT ON "RoundLog" FOR EACH ROW EXECUTE FUNCTION fail_round_log()`,
+        `CREATE TRIGGER fail_audit_log BEFORE INSERT ON "AuditLog" FOR EACH ROW EXECUTE FUNCTION fail_audit_log()`,
       );
       try {
         await launch(c, player, player, 'GOAL').expect(500);
@@ -389,8 +389,8 @@ describe('registro da rodada', () => {
         });
         await post(c, c.admin, '/match/open-voting').expect(500);
       } finally {
-        await t.prisma.$executeRawUnsafe(`DROP TRIGGER fail_round_log ON "RoundLog"`);
-        await t.prisma.$executeRawUnsafe(`DROP FUNCTION fail_round_log()`);
+        await t.prisma.$executeRawUnsafe(`DROP TRIGGER fail_audit_log ON "AuditLog"`);
+        await t.prisma.$executeRawUnsafe(`DROP FUNCTION fail_audit_log()`);
       }
 
       expect(await t.prisma.matchEvent.findMany({ where: { roundId: c.round.id } })).toEqual([
@@ -493,7 +493,7 @@ describe('registro da rodada', () => {
       const other = await t.prisma.round.create({
         data: { groupId: c.group.id, scheduledAt: new Date(), status: 'SCHEDULED' },
       });
-      await t.prisma.roundLog.create({
+      await t.prisma.auditLog.create({
         data: {
           groupId: c.group.id,
           roundId: other.id,

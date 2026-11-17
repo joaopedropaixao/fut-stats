@@ -38,7 +38,7 @@ import {
 import { AuditService, type AuditSnapshot } from '../audit/audit.service';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
-import type { Position, RoundLogAction } from '../generated/prisma/enums';
+import type { Position, AuditAction } from '../generated/prisma/enums';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoundLockService } from '../rounds/round-lock.service';
@@ -420,7 +420,7 @@ export class MatchService {
     tx: Tx,
     membership: GroupMembership,
     roundId: string,
-    action: RoundLogAction,
+    action: AuditAction,
     before: AuditSnapshot | null,
     after: AuditSnapshot | null,
   ): Promise<void> {

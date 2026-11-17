@@ -575,13 +575,13 @@ describe('seed de desenvolvimento', () => {
   );
 
   it(
-    'C14: o seed grava direto, sem registro da rodada: nenhuma linha em RoundLog e o log das rodadas responde []',
+    'C14: o seed grava direto, sem registro da rodada: nenhuma linha em AuditLog e o log das rodadas responde []',
     async () => {
       await seed(t.prisma, { scenario: 'votacao', now: NOW });
       // Rodar de novo recria as rodadas e continua sem linha de registro.
       await seed(t.prisma, { scenario: 'votacao', now: NOW });
 
-      expect(await t.prisma.roundLog.count()).toBe(0);
+      expect(await t.prisma.auditLog.count()).toBe(0);
 
       const admin = await t.prisma.membership.findFirstOrThrow({
         where: { group: { slug: SEED_GROUP.slug }, role: 'ADMIN' },
