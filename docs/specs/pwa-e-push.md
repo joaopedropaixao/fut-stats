@@ -12,7 +12,7 @@
 | **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1c65574 (checkpoint de início em 17 nov 2026: entraram perfil-jogador #62, ajustes-tela-do-jogo #63, historico #64, votacao #66, ranking #67, rodizio-reservas #68, pacote-do-craque #69, polimento-v1 #72, feed #74 e auditoria-da-rodada #73) |
 | **Depende de** | feed, votacao, perfil-jogador |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/notifications, packages/domain/src/index.ts, packages/shared/src/push.ts, packages/shared/src/index.ts, apps/api/src/push, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/match/match.service.ts, apps/api/src/voting, apps/api/src/feed, packages/shared/src/feed.ts, apps/api/src/config/env.ts, apps/api/src/app.module.ts, apps/api/package.json, pnpm-lock.yaml, .env.example, render.yaml, apps/web/vite.config.ts, apps/web/public/push-sw.js, apps/web/src/features/pwa, apps/web/src/features/feed, apps/web/src/features/voting/result-alert.tsx, apps/web/src/pages/feed, apps/web/src/pages/perfil, apps/web/src/features/group/use-current-group.ts, apps/web/src/app/shell.tsx |
+| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/notifications, packages/domain/src/index.ts, packages/shared/src/push.ts, packages/shared/src/index.ts, apps/api/src/push, apps/api/src/events (só o cherry-pick do sinal da jogo-ao-vivo), apps/api/src/feed, packages/shared/src/feed.ts, apps/api/src/config/env.ts, apps/api/src/app.module.ts, apps/api/package.json, pnpm-lock.yaml, .env.example, render.yaml, apps/web/vite.config.ts, apps/web/public/push-sw.js, apps/web/src/features/pwa, apps/web/src/features/feed, apps/web/src/features/voting/result-alert.tsx, apps/web/src/pages/feed, apps/web/src/pages/perfil, apps/web/src/features/group/use-current-group.ts, apps/web/src/app/shell.tsx |
 
 ## Produto
 
@@ -202,18 +202,16 @@ Na API (`apps/api/src/push`):
   e a interface `PushSender` com a implementação `WebPushSender` (biblioteca `web-push`). Os testes de integração
   trocam o provider `PushSender` por um gravador (não é mock de banco: é a fronteira com o serviço de push de
   fora).
-- `notify` é chamado **depois de gravar** (depois que a transação ou a trava da rodada termina), sem `await` na
-  resposta (erro tratado e registrado com o `requestId` do `AsyncLocalStorage` de `common/request-context.ts`):
-  - `rounds.create`: depois do `round.create` (actor = quem criou);
-  - `lineups.transition`: depois do `$transaction`, só quando o destino é `TEAMS_PUBLISHED` (despublicar não avisa);
-  - `match.openVoting`: depois do `withRoundLock`;
-  - `voting`: o `closeRound` roda **dentro** do `tx` (com a linha `VOTING_CLOSED` do `AuditLog`), então o aviso não
-    sai dele: sai depois do `withRoundLock` em cada caminho que fecha, `close` (actor = admin), `submitVote` quando
-    o último voto fechou (actor `null`) e `closeDueVotings` para cada rodada que fechou (actor `null`). Uma vez só
-    por fechamento (C16).
-  Uma linha por gancho, para o rebase com a `jogo-ao-vivo` (que põe o aviso do canal ao vivo nos mesmos pontos)
-  ser trivial. O aviso de push não grava no `AuditLog`. Carrega o grupo, a rodada e os
-  destinatários (`notificationRecipients`), busca as assinaturas dos usuários deles e envia com TTL de 12 h.
+- **Sinal único de eventos da rodada** (decisão do dono, 17 nov 2026): a `pwa-e-push` **não** põe gancho nos
+  services de `rounds`, `lineups`, `match` e `voting`. A `jogo-ao-vivo` (dona do sinal) cria o módulo
+  `apps/api/src/events` (`RoundEventsService` sobre `EventEmitter`) e dispara, depois do commit, em todas as escritas
+  (no mesmo lugar do `AuditService`), o evento `{ groupId, roundId, type, scopes, actorMembershipId | null }`,
+  incluindo `ROUND_CREATED`. Esta fatia faz `git cherry-pick` desse commit (`feat(api): sinal único de eventos da
+  rodada`; some no rebase final por ser o mesmo patch) e o `NotificationsService` vira **ouvinte**: rodada
+  marcada → `ROUND_CREATED`; times publicados → `TEAMS_PUBLISHED` (despublicar não avisa); votação aberta →
+  `VOTING_OPENED`; votação fechada (admin, último voto, prazo, relógio) → `RESULT_OUT`, uma vez por fechamento
+  (C16). O ator vem do `actorMembershipId`. O envio não espera nem falha a escrita; erro vai para o log com o
+  `requestId`. O push não grava no `AuditLog`.
 - Variáveis novas, **as três ou nenhuma**, em `src/config/env.ts`, `.env.example` e `render.yaml` (`sync: false`):
   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:` do dono). Como gerar: `npx web-push
   generate-vapid-keys`, documentado em `docs/deploy.md`. Chave nunca em commit.
@@ -264,6 +262,7 @@ tiver aparelho); `perfil-320`, `feed-320`, `perfil-desktop`.
 - Envio sem esperar e sem falhar a ação — aviso é cortesia.
 - `importScripts` em vez de reescrever o service worker — mantém o que já funciona (cache e atualização).
 - `?grupo=` na URL do aviso — o aviso pode ser de outra pelada do usuário.
+- Push como ouvinte do sinal único de eventos da rodada (da `jogo-ao-vivo`), sem gancho próprio nos services — decisão do dono (17 nov 2026): um disparo depois do commit, vários ouvintes (SSE, push e, no futuro, um serviço de notificação próprio).
 - `hasPack` no aviso `RESULT` do Feed, e o card sem o `GET .../voting/result` — pendência do `pacote-do-craque`, opção A do dono (17 nov 2026); sem o service worker avisar a janela aberta (isso é da `jogo-ao-vivo`).
 
 ## Fora do escopo
