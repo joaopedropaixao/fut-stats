@@ -82,7 +82,9 @@ function Alerts({ groupId, isAdmin, me }: { groupId: string; isAdmin: boolean; m
           {isAdmin && <RouteButton to="/rodadas/nova" label="Criar rodada" icon="plus" block />}
         </>
       )}
-      {big && <AlertCard key={`${big.type}:${big.roundId}`} groupId={groupId} alert={big} me={me} />}
+      {big && (
+        <AlertCard key={`${big.type}:${big.roundId}`} groupId={groupId} alert={big} me={me} />
+      )}
       {lines.length > 0 && (
         <ul aria-label="Outros avisos" className="flex flex-col gap-3">
           {lines.map((alert, i) => (

@@ -81,17 +81,14 @@ export function PostCard({ groupId, post, index, notify }: PostCardProps) {
         <ReactionBar
           post={post}
           onReact={(reaction) =>
-            react.mutate(
-              reaction,
-              {
-                onError: (err) =>
-                  notify({
-                    kind: 'error',
-                    title: 'Não deu para reagir',
-                    message: apiErrorMessage(err, 'Falha de conexão. Tente de novo.'),
-                  }),
-              },
-            )
+            react.mutate(reaction, {
+              onError: (err) =>
+                notify({
+                  kind: 'error',
+                  title: 'Não deu para reagir',
+                  message: apiErrorMessage(err, 'Falha de conexão. Tente de novo.'),
+                }),
+            })
           }
         />
       </div>
