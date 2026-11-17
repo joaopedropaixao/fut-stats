@@ -36,8 +36,9 @@ export function TeamsPublishedCard({
   alert: FeedAlert;
   me: Me;
 }) {
-  const lineup = useLineup(groupId, alert.roundId);
   const team = alert.me.team ?? null;
+  // A escalação só serve para a posição na faixa de quem está escalado: sem time, nem busca.
+  const lineup = useLineup(groupId, team ? alert.roundId : undefined);
   return (
     <AlertFrame tone="TEAMS_PUBLISHED" label="Times publicados">
       <AlertBand tone="TEAMS_PUBLISHED">
