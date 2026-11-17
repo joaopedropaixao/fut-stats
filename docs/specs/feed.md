@@ -327,6 +327,8 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
 - Comentários abrem no card — conversa curta não pede outra tela.
 - "Quem vai" sai do início — o Feed precisa de espaço para avisos e resenhas; a lista completa continua a um toque.
 - Qualquer admin edita e apaga qualquer resenha — os admins são a "redação" do grupo.
+- O Feed não ganha os atalhos do admin da home antiga ("Nova rodada", "Administrar rodada") — decisão do dono
+  (17/11, opção A): o admin cria e administra rodadas por "Todas as rodadas".
 
 ### Cruzamento com `auditoria-da-rodada` (onda 5)
 As duas mexem em `schema.prisma`, `apps/api/src/app.module.ts` e `packages/shared/src/index.ts`. A auditoria entra
