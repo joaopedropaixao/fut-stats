@@ -385,3 +385,15 @@ rodada" (elementos separados); o JS inicial está no limite do arredondamento (s
 | Presença verde no Feed (C29, C34) | OK — CONFIRMAR verde e AUSÊNCIA vermelha, iguais ao detalhe da rodada nos 3 estados; nenhum amarelo na tela |
 | "Ver os times" sem o VS (C30) | OK — só o texto, 56 px, leva a /times, uma tecla amarela só |
 | Console, pronto na raiz | OK — sem erros; lint, typecheck, test (web 594) e build verdes |
+
+**Code review do PR (17/11), QA aprovado:**
+
+| Ponto | Resultado |
+|---|---|
+| Votação vencida: `feed/alerts` fecha antes e devolve RESULT; card da votação fechada refaz os avisos | OK — teste C8 de integração; no navegador o topo troca para o resultado |
+| Reações em fila por resenha (`scope`), só a última mexe no cache, lista conferida no fim | OK — toques rápidos e 500 no meio/no fim terminam iguais à API; `react-queue.test.ts` |
+| `key` do aviso grande com tipo e rodada | OK |
+| Migrations do feed numa só, enum final, sem drift | OK |
+| Times publicados só buscam a escalação de quem está escalado | OK |
+| Contador das telas reusa o `splitCharacters` do domain | OK |
+| Sem regressão (390/320), console, pronto na raiz | OK |
