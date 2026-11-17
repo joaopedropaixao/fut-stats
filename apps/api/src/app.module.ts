@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env';
 import { envFilePaths } from './config/env-files';
 import { DevModule } from './dev/dev.module';
+import { RoundEventsModule } from './events/round-events.module';
 import { FeedModule } from './feed/feed.module';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
@@ -37,6 +38,7 @@ import { VotingModule } from './voting/voting.module';
     RankingModule,
     FeedModule,
     AuditModule,
+    RoundEventsModule,
     DevModule.forEnvironment(),
   ],
 })

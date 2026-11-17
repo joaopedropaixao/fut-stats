@@ -38,6 +38,11 @@ import {
 import { AuditService, type AuditSnapshot } from '../audit/audit.service';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
+import {
+  RoundEventsService,
+  type RoundEventScope,
+  type RoundEventType,
+} from '../events/round-events.service';
 import type { Position } from '../generated/prisma/enums';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -103,6 +108,7 @@ export class MatchService {
     private readonly prisma: PrismaService,
     private readonly roundLock: RoundLockService,
     private readonly audit: AuditService,
+    private readonly events: RoundEventsService,
   ) {}
 
   /** O jogo da rodada: placar, quem jogou, lances, o que quem pede pode fazer e o que trava o próximo passo. */
@@ -202,6 +208,7 @@ export class MatchService {
         { status: 'IN_PROGRESS' },
       );
     });
+    this.signal(membership, roundId, 'MATCH_STARTED', ['match', 'status']);
     return this.view(membership, roundId);
   }
 
@@ -213,12 +220,12 @@ export class MatchService {
     // Quem não é admin leva NOT_ADMIN em qualquer etapa (o domain só o devolve com o placar aberto).
     assertAdmin(membership);
     const score: MatchScore = { WHITE: input.WHITE, BLACK: input.BLACK };
-    await this.withRoundLock(membership.groupId, roundId, async (tx) => {
+    const changed = await this.withRoundLock(membership.groupId, roundId, async (tx) => {
       const { state } = await this.load(tx, membership.groupId, roundId);
       const [error] = validateScoreEntry(score, toActor(membership), state);
       if (error) throw ruleError(error, SCORE_ENTRY_ERROR_LABELS[error]);
       // O mesmo placar de novo não muda nada: nem grava, nem registra.
-      if (state.score?.WHITE === score.WHITE && state.score?.BLACK === score.BLACK) return;
+      if (state.score?.WHITE === score.WHITE && state.score?.BLACK === score.BLACK) return false;
 
       await tx.round.update({
         where: { id: roundId },
@@ -232,7 +239,9 @@ export class MatchService {
         { score: scoreSnapshot(state.score) },
         { score: scoreSnapshot(score) },
       );
+      return true;
     });
+    if (changed) this.signal(membership, roundId, 'SCORE_SET', ['match']);
     return this.view(membership, roundId);
   }
 
@@ -270,6 +279,7 @@ export class MatchService {
         { status: 'POST_MATCH', score: scoreSnapshot(score) },
       );
     });
+    this.signal(membership, roundId, 'MATCH_FINISHED', ['match', 'status']);
     return this.view(membership, roundId);
   }
 
@@ -290,6 +300,7 @@ export class MatchService {
         data: { rotationStartedAt: new Date(), rotationMinutes: input.minutes },
       });
     });
+    this.signal(membership, roundId, 'ROTATION_STARTED', ['match']);
     return this.view(membership, roundId);
   }
 
@@ -306,6 +317,7 @@ export class MatchService {
         data: { rotationStartedAt: null, rotationMinutes: null },
       });
     });
+    this.signal(membership, roundId, 'ROTATION_STOPPED', ['match']);
     return this.view(membership, roundId);
   }
 
@@ -330,6 +342,7 @@ export class MatchService {
         { status: 'VOTING' },
       );
     });
+    this.signal(membership, roundId, 'VOTING_OPENED', ['match', 'status']);
     return this.view(membership, roundId);
   }
 
@@ -365,6 +378,7 @@ export class MatchService {
         playerId: input.membershipId,
       });
     });
+    this.signal(membership, roundId, 'EVENT_LAUNCHED', ['match']);
     return this.view(membership, roundId);
   }
 
@@ -405,7 +419,24 @@ export class MatchService {
         null,
       );
     });
+    this.signal(membership, roundId, 'EVENT_REMOVED', ['match']);
     return this.view(membership, roundId);
+  }
+
+  /** Sinaliza a escrita que acabou de ser gravada (depois do `withRoundLock`, nunca dentro). */
+  private signal(
+    membership: GroupMembership,
+    roundId: string,
+    type: RoundEventType,
+    scopes: readonly RoundEventScope[],
+  ): void {
+    this.events.emit({
+      groupId: membership.groupId,
+      roundId,
+      type,
+      scopes,
+      actorMembershipId: membership.id,
+    });
   }
 
   /** Toda escrita da rodada roda na trava por rodada (`RoundLockService`), compartilhada com a votação. */
