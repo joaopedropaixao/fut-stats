@@ -14,4 +14,9 @@ export const roundStreamEventSchema = z.object({
 export type RoundStreamEvent = z.infer<typeof roundStreamEventSchema>;
 
 /** Etapas em que vale manter o canal aberto. */
-export const LIVE_ROUND_STATUSES = ['TEAMS_PUBLISHED', 'IN_PROGRESS', 'POST_MATCH', 'VOTING'] as const;
+export const LIVE_ROUND_STATUSES = [
+  'TEAMS_PUBLISHED',
+  'IN_PROGRESS',
+  'POST_MATCH',
+  'VOTING',
+] as const;
