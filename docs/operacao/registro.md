@@ -28,7 +28,7 @@ não têm linha no banco); o **banco** diz *o que mudou* (só o que foi aceito).
 | `actorId` | `Membership.id` de quem pediu; `NULL` = automático (fechamento da votação sem pedido do admin) |
 | `action` | `AuditAction`: rodada (`TEAMS_PUBLISHED`, `TEAMS_UNPUBLISHED`, `MATCH_STARTED`, `SCORE_SET`, `MATCH_FINISHED`, `VOTING_OPENED`, `VOTING_CLOSED`, `EVENT_LAUNCHED`, `EVENT_REMOVED`) e feed (`POST_CREATED`, `POST_EDITED`, `POST_DELETED`, `COMMENT_CREATED`, `COMMENT_DELETED`, `REACTION_SET`, `REACTION_REMOVED`) |
 | `before`, `after` | JSON pequeno do que mudou (por ação, tabela no spec). O texto de resenha ou comentário **apagado ou editado** fica em `before` |
-| `requestId` | `x-request-id` do pedido; `NULL` quando não há pedido (relógio que fecha votação vencida) |
+| `requestId` | `x-request-id` do pedido; `NULL` em toda linha sem ator (fechamento da votação pelo último voto, pelo prazo ou pelo relógio), para não ligar o fechamento a quem votou por último ou abriu o app |
 | `createdAt` | quando (UTC) |
 
 `userId` (a conta Google) não está na tabela: vem de `Membership."userId"` pelo `actorId`.

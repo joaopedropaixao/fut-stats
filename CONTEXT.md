@@ -586,10 +586,14 @@ falha.
 - **Quem fez:** a participação (`Membership`) de quem pediu. No fechamento da votação, o ator é o admin só quando veio
   de `POST .../voting/close` (mesmo que o motivo real seja o prazo ou "todos votaram"); nos outros caminhos (último
   voto, prazo, relógio, leitura da votação ou **dos avisos do feed** depois do prazo) é **`null`**, para o voto
-  continuar anônimo. Todos passam por `closeRound`, que é quem grava. O relógio não tem pedido: `requestId` nulo.
+  continuar anônimo. Todos passam por `closeRound`, que é quem grava. **Linha sem ator não leva `requestId`** (fica
+  nulo): o `requestId` do último voto, cruzado com o log de pedido, diria quem votou por último, e o da leitura diria
+  quem abriu o app. Só o "Encerrar votação" do admin leva ator e `requestId`.
+- **`actorId` nulo é sempre automático, nunca "ator apagado":** a chave para `Membership` é `ON DELETE RESTRICT` (a
+  participação só é desativada, o app nunca a apaga).
 - **Só inserção.** Apagar a rodada (só dá antes do jogo) apaga o registro dela junto (cascade).
 - **Antes e depois** são um retrato pequeno, sem dado pessoal além do id da participação: `{ status }` nas etapas;
-  `{ score }` no placar (`score: null` enquanto ninguém lançou); `{ status, score }` ao finalizar; `{ eventId, type, playerId }`
+  `{ score }` no placar (`score: null` enquanto ninguém lançou; salvar o mesmo placar de novo não grava linha); `{ status, score }` ao finalizar; `{ eventId, type, playerId }`
   ao lançar lance (`before: null`) e `{ eventId, type, playerId, createdById }` ao apagar (`after: null`);
   `{ status, reason, voted, total }` ao fechar a votação (só contagem).
 - **Leitura:** `GET /api/groups/:groupId/rounds/:roundId/log`, só admin (jogador 403; outro grupo ou inativo 404), da
@@ -599,8 +603,8 @@ falha.
   `status`, `durationMs`, `userId` e `groupId`; com `status >= 400` também **`errorCode`**: o `code` do corpo do erro
   (ex. `NOT_OWN_COMMENT`, `INVALID_TRANSITION`), `VALIDATION_FAILED` no 400 de validação do Zod (só no log; o corpo da
   resposta não muda) ou `null` se o erro não tem código; nunca corpo, cookie, email nem nome; `/api/health` fica de fora). Erro
-  500 devolve `{ statusCode, message, requestId }` sem a pilha, que só vai para o log. Fechamento pelo relógio da
-  votação não tem pedido, então o `requestId` da linha é nulo.
+  500 devolve `{ statusCode, message, requestId }` sem a pilha, que só vai para o log. Linha sem ator (fechamento da
+  votação pelo último voto, pelo prazo ou pelo relógio) tem `requestId` nulo.
 
 **Evite:** gravar a linha fora da transação da mudança; registrar voto ou rodízio; pôr nome, email ou nota no
 `before`/`after` (texto de resenha e comentário é a exceção decidida, só do feed); confiar num `groupId` do cliente (toda leitura filtra pelo grupo da rota); mudar ou apagar linha do

@@ -127,11 +127,13 @@ describe('registro da rodada', () => {
       });
     });
 
-    it('C3: começar, placar 1x0 e 2x0, finalizar 3x2 e abrir a votação gravam 5 linhas na ordem', async () => {
+    it('C3: começar, placar 1x0, 2x0 e 2x0 de novo, finalizar 3x2 e abrir a votação gravam 5 linhas na ordem', async () => {
       const c = await setupAuditGroup(t, { status: 'TEAMS_PUBLISHED' });
 
       await post(c, c.admin, '/match/start').expect(200);
       await putScore(c, c.admin, 1, 0).expect(200);
+      await putScore(c, c.admin, 2, 0).expect(200);
+      // O mesmo placar de novo não muda nada e não vira linha.
       await putScore(c, c.admin, 2, 0).expect(200);
       for (const p of [c.white[6]!, c.white[5]!, c.white[4]!]) await addEvent(c, p, 'GOAL');
       for (const p of [c.black[6]!, c.black[5]!]) await addEvent(c, p, 'GOAL');
@@ -287,13 +289,13 @@ describe('registro da rodada', () => {
       });
     });
 
-    it('C8: o último voto fecha a votação (ALL_VOTED, sem ator) e nenhum voto vira linha', async () => {
+    it('C8: o último voto fecha a votação (ALL_VOTED, sem ator, sem requestId) e nenhum voto vira linha', async () => {
       const c = await setupAuditGroup(t, { status: 'VOTING', score: { WHITE: 0, BLACK: 0 } });
       const everyone = [...c.white, ...c.black];
 
       for (const voter of everyone.slice(0, -1)) await vote(c, voter).expect(200);
       expect(await logRows(c)).toEqual([]);
-      await vote(c, everyone.at(-1)!).expect(200);
+      await vote(c, everyone.at(-1)!).set(REQUEST_ID_HEADER, 'req-ultimo-voto-c8').expect(200);
 
       const rows = await logRows(c);
       expect(rows).toHaveLength(1);
@@ -302,6 +304,8 @@ describe('registro da rodada', () => {
         actorId: null,
         before: { status: 'VOTING' },
         after: { status: 'CLOSED', reason: 'ALL_VOTED', voted: 14, total: 14 },
+        // O requestId do último voto, cruzado com o log de pedido, diria quem votou por último.
+        requestId: null,
       });
       // Anônimo: nem o conteúdo do voto, nem quem votou por último.
       const raw = JSON.stringify(rows);
@@ -332,7 +336,7 @@ describe('registro da rodada', () => {
       });
     });
 
-    it('C8: quem abre a votação depois do prazo fecha ali (sem ator, com o requestId da leitura)', async () => {
+    it('C8: quem abre a votação depois do prazo fecha ali (sem ator e sem o requestId da leitura)', async () => {
       const c = await setupAuditGroup(t, { status: 'VOTING', votingOpenedAgoMs: 25 * HOUR_MS });
 
       await request(server())
@@ -347,14 +351,33 @@ describe('registro da rodada', () => {
         action: 'VOTING_CLOSED',
         actorId: null,
         after: { reason: 'DEADLINE_PASSED' },
-        requestId: 'req-leitura-c8',
+        requestId: null,
+      });
+    });
+
+    it('C8: listar as rodadas depois do prazo fecha a votação ali, sem ator e sem o requestId da lista', async () => {
+      const c = await setupAuditGroup(t, { status: 'VOTING', votingOpenedAgoMs: 25 * HOUR_MS });
+
+      await request(server())
+        .get(`/api/groups/${c.group.id}/rounds`)
+        .set('Cookie', c.white[0]!.cookie)
+        .set(REQUEST_ID_HEADER, 'req-lista-c8')
+        .expect(200);
+
+      const rows = await logRows(c);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        action: 'VOTING_CLOSED',
+        actorId: null,
+        after: { reason: 'DEADLINE_PASSED' },
+        requestId: null,
       });
     });
 
     it('C8: o voto que chega depois do prazo é recusado e a votação fecha ali, sem ator', async () => {
       const c = await setupAuditGroup(t, { status: 'VOTING', votingOpenedAgoMs: 25 * HOUR_MS });
 
-      await vote(c, c.white[0]!).expect(409);
+      await vote(c, c.white[0]!).set(REQUEST_ID_HEADER, 'req-voto-atrasado-c8').expect(409);
 
       const rows = await logRows(c);
       expect(rows).toHaveLength(1);
@@ -362,6 +385,7 @@ describe('registro da rodada', () => {
         action: 'VOTING_CLOSED',
         actorId: null,
         after: { reason: 'DEADLINE_PASSED', voted: 0, total: 14 },
+        requestId: null,
       });
     });
 
@@ -405,7 +429,7 @@ describe('registro da rodada', () => {
 
   describe('GET /log', () => {
     it('C10: o admin lê as linhas em ordem, com ação, rótulo, ator, antes, depois e hora', async () => {
-      const c = await setupAuditGroup(t, { status: 'POST_MATCH', score: { WHITE: 1, BLACK: 0 } });
+      const c = await setupAuditGroup(t, { status: 'POST_MATCH', score: { WHITE: 0, BLACK: 0 } });
       await putScore(c, c.admin, 1, 0).expect(200);
       await launch(c, c.white[6]!, c.white[6]!, 'GOAL').expect(200);
       await post(c, c.admin, '/match/open-voting').expect(200);
@@ -426,7 +450,7 @@ describe('registro da rodada', () => {
       expect(entries[0]).toMatchObject({
         label: 'Placar lançado',
         actor: { membershipId: c.admin.membershipId, nickname: 'Chefe' },
-        before: { score: { WHITE: 1, BLACK: 0 } },
+        before: { score: { WHITE: 0, BLACK: 0 } },
         after: { score: { WHITE: 1, BLACK: 0 } },
       });
       expect(entries[1]).toMatchObject({

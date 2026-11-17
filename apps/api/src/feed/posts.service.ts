@@ -22,11 +22,11 @@ import {
   type PostsQuery,
   type ReactionInput,
 } from '@fut-stats/shared';
-import { AuditService, type AuditSnapshot } from '../audit/audit.service';
+import { AuditService } from '../audit/audit.service';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
 import type { Prisma } from '../generated/prisma/client';
-import type { AuditAction, Role } from '../generated/prisma/enums';
+import type { Role } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 
 type Tx = Prisma.TransactionClient;
@@ -144,11 +144,18 @@ export class PostsService {
         },
         select: { id: true, title: true, body: true },
       });
-      await this.record(tx, membership, created.id, 'POST_CREATED', null, {
-        postId: created.id,
-        title: created.title,
-        body: created.body,
-      });
+      await this.audit.recordForMember(
+        tx,
+        membership,
+        { postId: created.id },
+        'POST_CREATED',
+        null,
+        {
+          postId: created.id,
+          title: created.title,
+          body: created.body,
+        },
+      );
       return created;
     });
     return this.view(membership, post.id);
@@ -168,10 +175,10 @@ export class PostsService {
         data: { title: input.title ?? null, body: input.body, editedAt: new Date() },
         select: { title: true, body: true },
       });
-      await this.record(
+      await this.audit.recordForMember(
         tx,
         membership,
-        postId,
+        { postId },
         'POST_EDITED',
         { postId, title: before.title, body: before.body },
         { postId, title: after.title, body: after.body },
@@ -194,10 +201,10 @@ export class PostsService {
         tx.postComment.count({ where: { postId } }),
       ]);
       await tx.post.delete({ where: { id: postId } });
-      await this.record(
+      await this.audit.recordForMember(
         tx,
         membership,
-        postId,
+        { postId },
         'POST_DELETED',
         {
           postId,
@@ -236,10 +243,10 @@ export class PostsService {
           create: { postId, membershipId: membership.id, reaction },
           update: { reaction },
         });
-        await this.record(
+        await this.audit.recordForMember(
           tx,
           membership,
-          postId,
+          { postId },
           'REACTION_SET',
           { postId, reaction: current?.reaction ?? null },
           { postId, reaction },
@@ -263,13 +270,16 @@ export class PostsService {
       });
       // Sem reação para tirar: nada muda e nada é registrado.
       if (!removed) return;
-      await tx.postReaction.delete({
-        where: { postId_membershipId: { postId, membershipId: membership.id } },
+      // deleteMany é idempotente: se a resenha foi apagada no meio (cascata), não apaga nada, não registra e o
+      // `view` abaixo responde 404 (o `delete` lançaria P2025 e viraria 500).
+      const { count } = await tx.postReaction.deleteMany({
+        where: { postId, membershipId: membership.id },
       });
-      await this.record(
+      if (count === 0) return;
+      await this.audit.recordForMember(
         tx,
         membership,
-        postId,
+        { postId },
         'REACTION_REMOVED',
         { postId, reaction: removed.reaction },
         null,
@@ -304,7 +314,7 @@ export class PostsService {
           data: { postId, membershipId: membership.id, text },
           include: { membership: { select: authorSelect } },
         });
-        await this.record(tx, membership, postId, 'COMMENT_CREATED', null, {
+        await this.audit.recordForMember(tx, membership, { postId }, 'COMMENT_CREATED', null, {
           postId,
           commentId: created.id,
           length: Array.from(text).length,
@@ -342,10 +352,10 @@ export class PostsService {
         DELETE FROM "PostComment" WHERE id = ${comment.id} RETURNING text, "membershipId"`;
       const [gone] = deleted;
       if (!gone) return;
-      await this.record(
+      await this.audit.recordForMember(
         tx,
         membership,
-        postId,
+        { postId },
         'COMMENT_DELETED',
         { postId, commentId: comment.id, authorId: gone.membershipId, text: gone.text },
         null,
@@ -355,25 +365,6 @@ export class PostsService {
 
   private requireManager(membership: GroupMembership): void {
     if (!canManagePost(toActor(membership))) throw new ForbiddenException();
-  }
-
-  /** Grava a linha do registro na transação da escrita: a mudança e o registro entram juntos, ou nenhum. */
-  private record(
-    tx: Tx,
-    membership: GroupMembership,
-    postId: string,
-    action: AuditAction,
-    before: AuditSnapshot | null,
-    after: AuditSnapshot | null,
-  ): Promise<void> {
-    return this.audit.record(tx, {
-      groupId: membership.groupId,
-      postId,
-      actorId: membership.id,
-      action,
-      before,
-      after,
-    });
   }
 
   /** Trava a resenha (`FOR UPDATE`) para o "antes" do registro ser o que o pedido anterior deixou. Outro grupo ou sem resenha: 404. */

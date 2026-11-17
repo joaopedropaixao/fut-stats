@@ -385,19 +385,20 @@ model AuditLog {
   roundId   String?
   /// Linhas do feed; nulo nas da rodada. Sem chave estrangeira de propósito.
   postId    String?
-  /// Quem fez; nulo = automático (fechamento da votação sem pedido do admin).
+  /// Quem fez; nulo = automático (fechamento da votação sem pedido do admin). A participação nunca é apagada
+  /// (só desativada), então a chave é Restrict: nulo nunca é "ator apagado".
   actorId   String?
   action    AuditAction
   /// Retrato pequeno de antes e de depois, por ação (ver o spec auditoria-da-rodada).
   before    Json?
   after     Json?
-  /// `x-request-id` do pedido que gerou a linha; nulo quando não há pedido (relógio da votação).
+  /// `x-request-id` do pedido que gerou a linha; nulo quando não há ator (fechamento da votação sem o admin).
   requestId String?
   createdAt DateTime    @default(now())
 
   group Group       @relation(fields: [groupId], references: [id])
   round Round?      @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  actor Membership? @relation(fields: [actorId], references: [id])
+  actor Membership? @relation(fields: [actorId], references: [id], onDelete: Restrict)
 
   @@index([roundId, createdAt])
   @@index([groupId, createdAt])

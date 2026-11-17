@@ -37,7 +37,8 @@ cada pedido à API ganha um identificador que aparece nos logs e na resposta, pa
 - **Quem fez:** a participação (`Membership`) de quem pediu. No fechamento automático da votação, ninguém
   (`actorId` nulo).
 - **O registro não muda:** só inserção. Apagar a rodada (só dá antes do jogo) apaga o registro dela junto.
-- **Antes e depois** são um retrato pequeno do que mudou, sem dado pessoal além do id da participação:
+- **Antes e depois** são um retrato pequeno do que mudou, sem dado pessoal além do id da participação (na rodada; no
+  feed a moderação guarda o conteúdo, ver "Ações do feed"). Salvar o mesmo placar de novo não muda nada e não grava:
 
 | Ação | `before` | `after` |
 |---|---|---|
@@ -172,8 +173,10 @@ Na API:
     coberto pelo C32). `closeRound` recebe
     o `actorId`: a participação do admin quando veio de `POST .../voting/close` (mesmo se o motivo real for
     `DEADLINE_PASSED`/`ALL_VOTED`), `null` em todos os outros caminhos (o voto continua anônimo: quem votou por
-    último não aparece). Fechamento pelo relógio não tem pedido, então `requestId` fica nulo; pelas leituras (votação, resultado, avisos)
-    leva o `requestId` da leitura e `actorId` nulo.
+    último não aparece). **Linha sem ator não leva `requestId`** (nulo em todos esses caminhos, revisão do PR #73):
+    o `requestId` do último voto, cruzado com o log de pedido (que tem o `userId`), diria quem votou por último, e o
+    da leitura (votação, resultado, `GET /rounds`, avisos) diria quem abriu o app. Só `POST .../voting/close` leva
+    ator e `requestId`.
   - **Fora, de propósito:** rodízio (`startRotation`/`stopRotation` em `match.service`), rascunho (`lineups.save`),
     criar/editar rodada (`rounds.service`). O teste de cobertura lista essas rotas como excluídas, para rota nova
     de escrita não passar despercebida.
@@ -211,7 +214,9 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
   (apagar a resenha **não** apaga o registro, senão ninguém descobre quem apagou). Enum `AuditAction` = ações da
   rodada + ações do feed. A rota e o contrato da rodada (`GET .../rounds/:roundId/log`, `RoundLogEntry`) não mudam.
 - **Modelo final** (migration `audit_log`, por cima de `20261117174123_feed`; a `round_log` nunca foi mergeada e foi
-  apagada): `AuditLog { id, groupId → Group, roundId? → Round (Cascade), postId? (sem FK), actorId? → Membership,
+  apagada): `AuditLog { id, groupId → Group, roundId? → Round (Cascade), postId? (sem FK), actorId? → Membership
+  (Restrict, migration `audit_log_actor_restrict`: a participação nunca é apagada, então `actorId` nulo é sempre
+  automático e nunca "ator apagado"),
   action AuditAction, before Json?, after Json?, requestId?, createdAt }`, com índices `(roundId, createdAt)`,
   `(groupId, createdAt)`, `(postId, createdAt)`, `(actorId, createdAt)` e `(requestId)` (as consultas de
   `docs/operacao/registro.md`). Domain: `ROUND_LOG_ACTIONS` + `FEED_LOG_ACTIONS` = `AUDIT_ACTIONS` (igual ao enum).
@@ -228,13 +233,15 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
 | `REACTION_REMOVED` | membro tira | `{ postId, reaction }` | `null` |
 
 - **Texto apagado ou editado fica guardado** no `before` (decisão do dono, opção 1): responde "o que foi apagado e
-  por quem". Só quem opera lê.
+  por quem". É a exceção ao "sem dado pessoal" da rodada: `POST_EDITED`, `POST_DELETED` e `COMMENT_DELETED` levam
+  título, texto e comentário, como prova da moderação. Só quem opera lê (não há rota de leitura do feed).
 - Mesmas garantias da rodada: mesma transação, pedido recusado não deixa linha, só inserção, `actorId` = quem pediu,
   `requestId` do contexto. `PUT` de reação igual à atual não muda nada e não deixa linha; `DELETE` de reação que não existe e apagar comentário
   que outro já apagou também não. As reações usam os nomes reais do domain (`BALL`, `CATFISH`, `OSS`, `YELLOW_CARD`,
   `POPCORN`). `length` do comentário conta caracteres (code points), não bytes. O `before` de editar e apagar resenha
   sai com a resenha travada (`FOR UPDATE`); reação trava por resenha e membro (`pg_advisory_xact_lock`), para dois
-  `PUT` do mesmo membro nunca gravarem duas linhas para uma mudança só.
+  `PUT` do mesmo membro nunca gravarem duas linhas para uma mudança só. Tirar a reação enquanto a resenha é apagada
+  (cascata) responde 404 e não grava (`deleteMany` idempotente, nunca 500).
 - **Sem rota de leitura do feed.** O registro do feed é para o dono, não para o admin do grupo: lê direto no banco,
   pelo `requestId` ou pelo usuário. `docs/operacao/registro.md` traz as consultas prontas (por `requestId`, por
   `userId` num intervalo, por resenha).
@@ -257,7 +264,8 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
 | C29 | admin apaga uma rodada `SCHEDULED` que tem linhas; o grupo tem linhas do feed | apagar | as linhas da rodada somem; as do feed ficam | integração |
 | C30 | pedido que dá 403 `NOT_OWN_COMMENT`; pedido que dá 400 de validação | olhar o log de pedido | a linha traz `errorCode` (`NOT_OWN_COMMENT`; `VALIDATION_FAILED`) e `status`; recusa sem código (404, 401) sai com `errorCode: null`; pedido 2xx sai sem a chave | integração (`request-context.spec.ts`) |
 | C31 | cobertura | percorrer as rotas `POST\|PUT\|PATCH\|DELETE` do controller do feed | toda rota de escrita está na lista de auditadas (200/201/204 → uma linha) ou de excluídas | integração (`audit-coverage.spec.ts`) |
-| C32 | votação `VOTING` com prazo vencido (o 4º caminho de fechamento) | `GET .../feed/alerts`, e de novo por outra pessoa | uma linha `VOTING_CLOSED` (`DEADLINE_PASSED`, `actorId` nulo, `requestId` do pedido de avisos); a segunda leitura não duplica; votação dentro do prazo, ou de outro grupo, não grava | integração (`audit-feed.spec.ts`) |
+| C32 | votação `VOTING` com prazo vencido (o 4º caminho de fechamento) | `GET .../feed/alerts`, e de novo por outra pessoa | uma linha `VOTING_CLOSED` (`DEADLINE_PASSED`, `actorId` nulo, `requestId` nulo); a segunda leitura não duplica; votação dentro do prazo, ou de outro grupo, não grava | integração (`audit-feed.spec.ts`) |
+| C33 | membro com reação numa resenha; outra transação apaga a resenha e segura a trava | `DELETE .../reaction` | 404 (não 500), nenhuma linha nova | integração (`audit-feed.spec.ts`) |
 
 ## Fora do escopo
 - Tela do registro para o admin.
@@ -273,6 +281,14 @@ passo falhou e quanto demorou. Os usuários não precisam ver isso.
   (16 nov 2026).
 
 ## QA
+**Volta 3 (code review do PR #73): APROVADO** (2026-11-17). Pronto na raiz verde (API 589 testes, domain, web e
+shared sem regressão). `unreact` com a resenha apagada no meio responde 404 (C33 reproduz o 500 antigo com `delete`);
+`VOTING_CLOSED` sem ator grava `requestId` nulo pelo último voto, pela visão da votação, por `GET /rounds`, pelo voto
+atrasado e pelos avisos (C8, C32), e o "Encerrar votação" segue com ator e `requestId` (C7); o mesmo placar de novo não
+grava linha (C3); `AuditLog.actorId` passou a `ON DELETE RESTRICT` (migration `20261117190000_audit_log_actor_restrict`,
+sem drift: nenhum caminho do app apaga `Membership`, só `collections/dev-session.ts`, ferramenta de dev, em grupos de
+dev sem rodada). C26, C28 e C33 rodados 5 vezes seguidas, estáveis.
+
 **Volta 2 (extensão do feed): APROVADO** (2026-11-17, @ebc58ce sobre develop 1b9afa5). Pronto na raiz verde (API 587
 testes em 29 suítes, domain 498, web 595, shared 4). Migration `20261117175943_audit_log` por cima da
 `20261117174123_feed` (intacta); `migrate status` em dia e `migrate diff` banco → schema sem diferença.
@@ -293,7 +309,7 @@ testes em 29 suítes, domain 498, web 595, shared 4). Migration `20261117175943_
 | Multi-grupo | ✅ | fluxo real: feed não vaza para o log da rodada; resenha de outro grupo 404 sem linha |
 
 Observações sem bloqueio: `AuditLog.actorId` com `ON DELETE SET NULL` (participação hoje só fica inativa, não é
-apagada); no 403 de papel o log de pedido segue com `groupId: null`.
+apagada; virou `RESTRICT` na volta 3); no 403 de papel o log de pedido segue com `groupId: null`.
 
 **Volta 1: (2026-11-16, @6ba5ab1 sobre develop e97ee8d). `pnpm turbo run lint typecheck
 test build --force`: 17/17 tarefas (API 508 testes em 26 suítes, domain 465, web 530, shared 2).

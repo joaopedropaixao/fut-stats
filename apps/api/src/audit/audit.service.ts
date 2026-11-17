@@ -7,7 +7,11 @@ import { Prisma } from '../generated/prisma/client';
 import type { AuditAction } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 
-/** Retrato pequeno do que mudou (por ação, ver o spec): só ids e valores, nunca dado pessoal. */
+/**
+ * Retrato pequeno do que mudou (por ação, ver o spec). Na rodada, só ids e valores. No feed, a moderação guarda o
+ * conteúdo: POST_EDITED leva o título e o texto de antes e de depois, POST_DELETED e COMMENT_DELETED o texto apagado
+ * (é a prova do que foi tirado; a leitura do registro é só de admin). Voto nunca entra: só contagens.
+ */
 export type AuditSnapshot = Prisma.InputJsonObject;
 
 export interface AuditRecord {
@@ -16,7 +20,7 @@ export interface AuditRecord {
   roundId?: string;
   /** Linhas do feed (resenha, comentário, reação). Sem chave estrangeira: sobrevive à resenha apagada. */
   postId?: string;
-  /** A participação de quem pediu; nulo = automático (fechamento da votação). */
+  /** A participação de quem pediu; nulo = automático (fechamento da votação sem pedido do admin). */
   actorId: string | null;
   action: AuditAction;
   before: AuditSnapshot | null;
@@ -32,7 +36,11 @@ export interface AuditRecord {
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Grava uma linha no `tx` recebido, com o `requestId` do pedido em andamento (nulo fora de um pedido). */
+  /**
+   * Grava uma linha no `tx` recebido. O `requestId` do pedido em andamento só vai com ator: a linha sem ator
+   * (VOTING_CLOSED pelo último voto ou pelo prazo) fica com `requestId` nulo, senão o log de pedido ligaria o
+   * fechamento a quem votou por último ou a quem só abriu o app.
+   */
   async record(tx: Prisma.TransactionClient, entry: AuditRecord): Promise<void> {
     await tx.auditLog.create({
       data: {
@@ -43,8 +51,27 @@ export class AuditService {
         action: entry.action,
         before: entry.before ?? Prisma.DbNull,
         after: entry.after ?? Prisma.DbNull,
-        requestId: getRequestId(),
+        requestId: entry.actorId === null ? null : getRequestId(),
       },
+    });
+  }
+
+  /** Linha com o membro que pediu como ator, na rodada (`{ roundId }`) ou no feed (`{ postId }`) do grupo dele. */
+  recordForMember(
+    tx: Prisma.TransactionClient,
+    membership: GroupMembership,
+    target: { roundId: string } | { postId: string },
+    action: AuditAction,
+    before: AuditSnapshot | null,
+    after: AuditSnapshot | null,
+  ): Promise<void> {
+    return this.record(tx, {
+      groupId: membership.groupId,
+      ...target,
+      actorId: membership.id,
+      action,
+      before,
+      after,
     });
   }
 

@@ -113,6 +113,18 @@ describe('registro do feed', () => {
     });
   const auditCount = () => t.prisma.auditLog.count();
 
+  /** Espera até algum pedido do banco ficar parado numa trava de linha (no máximo 5 s). */
+  async function waitForLockWait(): Promise<void> {
+    for (let i = 0; i < 100; i++) {
+      const [row] = await t.prisma.$queryRaw<{ n: number }[]>`
+        SELECT count(*)::int AS n FROM pg_stat_activity
+        WHERE datname = current_database() AND wait_event_type = 'Lock'`;
+      if (row && row.n > 0) return;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    throw new Error('nenhum pedido ficou esperando a trava');
+  }
+
   describe('resenha', () => {
     it('C24: admin publica, edita e apaga: 3 linhas com o texto antigo e o novo, sem rodada, e elas ficam depois de apagar a resenha', async () => {
       const c = await setup();
@@ -320,6 +332,37 @@ describe('registro do feed', () => {
       });
     });
 
+    it('C33: tirar a reação enquanto a resenha é apagada responde 404 (não 500) e não grava', async () => {
+      const c = await setup();
+      const post = await seedPost(c);
+      await putReaction(c, c.caio, post.id, 'BALL').expect(200);
+      const before = await auditCount();
+
+      // Outra transação apaga a resenha (a reação sai em cascata) e segura a trava da linha até ser liberada.
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      let markDeleted!: () => void;
+      const deleted = new Promise<void>((resolve) => (markDeleted = resolve));
+      const remover = t.prisma.$transaction(
+        async (tx) => {
+          await tx.post.delete({ where: { id: post.id } });
+          markDeleted();
+          await gate;
+        },
+        { timeout: 15_000 },
+      );
+      await deleted;
+
+      // O DELETE da reação ainda vê a resenha e a reação, e fica esperando a trava da linha.
+      const unreact = deleteReaction(c, c.caio, post.id).then((res) => res);
+      await waitForLockWait();
+      release();
+      await remover;
+
+      expect((await unreact).status).toBe(404);
+      expect(await auditCount()).toBe(before);
+    });
+
     it('C28: dois PUT de reação do mesmo membro ao mesmo tempo: o estado final bate com a cadeia de linhas', async () => {
       const c = await setup();
       const reactions: PostReactionType[] = ['BALL', 'CATFISH', 'OSS', 'POPCORN'];
@@ -454,7 +497,7 @@ describe('registro do feed', () => {
       return req;
     };
 
-    it('C32: ler os avisos com a votação vencida fecha ali: uma linha automática com o requestId da leitura, e ler de novo não duplica', async () => {
+    it('C32: ler os avisos com a votação vencida fecha ali: uma linha automática sem o requestId da leitura, e ler de novo não duplica', async () => {
       const g = await setupAuditGroup(t, { status: 'VOTING', votingOpenedAgoMs: 25 * HOUR_MS });
 
       await alerts(g.group.id, g.white[0]!.cookie, 'req-avisos-c32').expect(200);
@@ -467,7 +510,7 @@ describe('registro do feed', () => {
         actorId: null,
         before: { status: 'VOTING' },
         after: { status: 'CLOSED', reason: 'DEADLINE_PASSED', voted: 0, total: 14 },
-        requestId: 'req-avisos-c32',
+        requestId: null,
       });
       expect((await t.prisma.round.findUniqueOrThrow({ where: { id: g.round.id } })).status).toBe(
         'CLOSED',
