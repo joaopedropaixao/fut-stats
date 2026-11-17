@@ -284,3 +284,32 @@ export const REACTION_PALETTES = {
     R: 'var(--color-danger)',
   },
 } as const satisfies Record<PostReaction, Record<string, string>>;
+
+/**
+ * O ícone do app em pixel (a bola da capa e do ícone da tela inicial, 14x14), para o card "Instale o app"
+ * (pwa-e-push). Mesmas letras de `apps/web/scripts/generate-icons.mjs`: contorno preto (K), gomos (P),
+ * branco (W) e a sombra creme embaixo à direita (S).
+ */
+export const APP_ICON_SPRITE = [
+  '.....KKKK.....',
+  '...KKPPPPKK...',
+  '..KWWPPPPWWK..',
+  '.KWWWWPPWWWWK.',
+  '.KPWWWWWWWWPK.',
+  'KPPWWWPPWWWPPK',
+  'KPPWWPPPPWWPPK',
+  'KPWWWPPPPWWWSK',
+  'KWWWWWPPWWWWSK',
+  '.KWWWWWWWWWSK.',
+  '.KWPPWWWWPPSK.',
+  '..KPPPWWPPSK..',
+  '...KKPSSPKK...',
+  '.....KKKK.....',
+] as const satisfies SpriteMap;
+
+export const APP_ICON_PALETTE = {
+  K: '#000000',
+  P: '#111111',
+  W: '#ffffff',
+  S: 'var(--color-text-muted)',
+} as const satisfies Record<string, string>;

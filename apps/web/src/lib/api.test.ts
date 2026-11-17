@@ -4,11 +4,13 @@ import {
   ApiContractError,
   ApiError,
   apiDelete,
+  apiDeleteNoContent,
   apiErrorMessage,
   apiGet,
   apiPost,
   apiPostNoContent,
   apiPut,
+  apiPutNoContent,
 } from './api';
 
 const me = {
@@ -158,5 +160,32 @@ describe('escrita', () => {
     );
 
     await expect(apiDelete('/x')).resolves.toBeUndefined();
+  });
+});
+
+describe('PUT e DELETE com corpo e sem resposta (204)', () => {
+  it('mandam o corpo em JSON e não leem a resposta', async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const body = { endpoint: 'https://push.example/abc' };
+
+    await expect(apiPutNoContent('/push/subscriptions', body)).resolves.toBeUndefined();
+    await expect(apiDeleteNoContent('/push/subscriptions', body)).resolves.toBeUndefined();
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/push/subscriptions',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify(body) }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/push/subscriptions',
+      expect.objectContaining({ method: 'DELETE', body: JSON.stringify(body) }),
+    );
+  });
+
+  it('lançam ApiError quando a API recusa', async () => {
+    mockFetch(400, { message: 'inválido' });
+    await expect(apiPutNoContent('/push/subscriptions', {})).rejects.toBeInstanceOf(ApiError);
   });
 });
