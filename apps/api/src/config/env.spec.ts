@@ -92,4 +92,57 @@ describe('validateEnv', () => {
       'https://fut-stats-three.vercel.app',
     );
   });
+
+  describe('VAPID (avisos push)', () => {
+    const vapid = {
+      VAPID_PUBLIC_KEY: 'chave-publica-de-teste',
+      VAPID_PRIVATE_KEY: 'chave-privada-de-teste',
+      VAPID_SUBJECT: 'mailto:dono@example.com',
+    };
+
+    it('C8: as três juntas passam e a API sobe com push ligado', () => {
+      expect(validateEnv({ ...valid, ...vapid })).toMatchObject(vapid);
+    });
+
+    it('C8: nenhuma das três passa e deixa o push desligado', () => {
+      const env = validateEnv(valid);
+      expect(env.VAPID_PUBLIC_KEY).toBeUndefined();
+      expect(env.VAPID_PRIVATE_KEY).toBeUndefined();
+      expect(env.VAPID_SUBJECT).toBeUndefined();
+    });
+
+    it('C8: valores vazios (o .env.example) valem como ausentes', () => {
+      const env = validateEnv({
+        ...valid,
+        VAPID_PUBLIC_KEY: '',
+        VAPID_PRIVATE_KEY: '',
+        VAPID_SUBJECT: '',
+      });
+      expect(env.VAPID_PUBLIC_KEY).toBeUndefined();
+    });
+
+    it.each(['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT'] as const)(
+      'C8: só duas das três (sem %s) não sobe e diz qual falta',
+      (missing) => {
+        const partial = { ...vapid, [missing]: undefined };
+        expect(() => validateEnv({ ...valid, ...partial })).toThrow(new RegExp(missing));
+      },
+    );
+
+    it('C8: só uma das três não sobe e diz quais faltam', () => {
+      expect(() => validateEnv({ ...valid, VAPID_PUBLIC_KEY: 'x' })).toThrow(
+        /VAPID_PRIVATE_KEY[\s\S]*VAPID_SUBJECT/,
+      );
+    });
+
+    it('C8: o contato precisa ser mailto: ou https', () => {
+      expect(() => validateEnv({ ...valid, ...vapid, VAPID_SUBJECT: 'dono@example.com' })).toThrow(
+        /VAPID_SUBJECT/,
+      );
+      expect(
+        validateEnv({ ...valid, ...vapid, VAPID_SUBJECT: 'https://example.com/contato' })
+          .VAPID_SUBJECT,
+      ).toBe('https://example.com/contato');
+    });
+  });
 });

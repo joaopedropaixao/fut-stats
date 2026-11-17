@@ -47,3 +47,11 @@ services:
       # e tem que bater com a cadastrada no Google Cloud.
       - key: APP_URL
         value: https://fut-stats-three.vercel.app
+      # Avisos push (Web Push): as três juntas ou nenhuma (sem elas o push fica desligado). Gerar o par com
+      # `npx web-push generate-vapid-keys`; o subject é o contato do dono (mailto:). Passo a passo em docs/deploy.md.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
