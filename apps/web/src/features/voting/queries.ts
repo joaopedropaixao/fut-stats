@@ -7,7 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPut } from '../../lib/api';
 import { historyKey } from '../history/history-key';
-import { roundKey, roundsKey } from '../rounds/queries';
+import { refreshRounds, roundKey } from '../rounds/queries';
 
 const votingPath = (groupId: string, roundId: string) =>
   `/groups/${groupId}/rounds/${roundId}/voting`;
@@ -50,7 +50,7 @@ export function useVotingActions(groupId: string, roundId: string) {
   const path = votingPath(groupId, roundId);
   const setView = (view: VotingView) => {
     queryClient.setQueryData(votingKey(groupId, roundId), view);
-    void queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true });
+    void refreshRounds(queryClient, groupId);
     if (view.status === 'CLOSED') {
       void queryClient.invalidateQueries({ queryKey: historyKey(groupId), exact: true });
       void queryClient.invalidateQueries({ queryKey: resultKey(groupId, roundId), exact: true });

@@ -9,6 +9,9 @@ import {
   PLAYER_SPRITE,
   playerPalette,
   playerSpriteMap,
+  REACTION_PALETTES,
+  REACTION_SPRITES,
+  REACTION_SPRITE_SIZE,
   shirtColors,
   spritePaths,
 } from './pixel-sprite-maps';
@@ -134,5 +137,34 @@ describe('contorno do cabelo preto na pele mais escura', () => {
 
   it('sem precisar do contorno, o mapa fica como está', () => {
     expect(playerSpriteMap(DEFAULT_AVATAR)).toEqual(bodySprite(DEFAULT_AVATAR.hair));
+  });
+});
+
+describe('ícones das reações (12 de altura)', () => {
+  const names = Object.keys(REACTION_SPRITES) as (keyof typeof REACTION_SPRITES)[];
+
+  it('são as 5 reações da lista fechada', () => {
+    expect(names.sort()).toEqual(['BALL', 'CATFISH', 'OSS', 'POPCORN', 'YELLOW_CARD']);
+  });
+
+  it.each(names)('%s tem 12 linhas de largura fixa e só letras da própria paleta', (name) => {
+    const map = REACTION_SPRITES[name];
+    expect(map).toHaveLength(REACTION_SPRITE_SIZE);
+    const width = map[0]!.length;
+    expect(width).toBeGreaterThanOrEqual(REACTION_SPRITE_SIZE);
+    expect(width).toBeLessThanOrEqual(22); // cabe no botão de 46 px em 320 px, na escala 2
+    expect(map.every((row) => row.length === width)).toBe(true);
+    const palette = REACTION_PALETTES[name] as Record<string, string>;
+    const letters = new Set(map.join('').replaceAll('.', ''));
+    for (const letter of letters) expect(palette[letter], `${name}: ${letter}`).toBeDefined();
+  });
+
+  it('só o cartão amarelo usa o amarelo (exceção autorizada pelo dono); nenhum usa o ouro ou o flop', () => {
+    for (const name of names) {
+      const colors = JSON.stringify(REACTION_PALETTES[name]);
+      expect(colors).not.toMatch(/flop/);
+      if (name !== 'YELLOW_CARD') expect(colors).not.toMatch(/accent|gold/);
+    }
+    expect(JSON.stringify(REACTION_PALETTES.YELLOW_CARD)).toContain('var(--color-accent)');
   });
 });

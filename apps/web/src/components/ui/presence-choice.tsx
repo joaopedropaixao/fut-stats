@@ -13,6 +13,7 @@ type PresenceChoiceProps = {
 /**
  * Presença do DS: CONFIRMAR e AUSÊNCIA empilhados, 64px cada, dentro de um trilho. A resposta atual fica
  * chapada (verde ou vermelho) com o ícone ✓ ou ×; a outra recua, só no contorno. Cor nunca é o único sinal.
+ * É o mesmo visual no detalhe da rodada e no aviso grande do Feed: aqui não há tecla amarela.
  */
 export function PresenceChoice({ value, onChange, disabled }: PresenceChoiceProps) {
   return (

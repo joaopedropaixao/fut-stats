@@ -4,6 +4,7 @@ import {
   AVATAR_SKINS,
   MATCH_EVENT_TYPES,
   POSITIONS,
+  POST_REACTIONS,
   ROLES,
   ROUND_STATUSES,
   TEAMS,
@@ -13,6 +14,7 @@ import {
   type AvatarSkin,
   type MatchEventType,
   type Position,
+  type PostReaction,
   type Role,
   type RoundStatus,
   type Team,
@@ -24,6 +26,7 @@ import {
   AvatarSkin as DbAvatarSkin,
   MatchEventType as DbMatchEventType,
   Position as DbPosition,
+  PostReactionType as DbPostReactionType,
   Role as DbRole,
   RoundStatus as DbRoundStatus,
   Team as DbTeam,
@@ -42,6 +45,7 @@ const avatarSkinTypesMatch: Equals<DbAvatarSkin, AvatarSkin> = true;
 const avatarHairTypesMatch: Equals<DbAvatarHair, AvatarHair> = true;
 const avatarHairColorTypesMatch: Equals<DbAvatarHairColor, AvatarHairColor> = true;
 const matchEventTypesMatch: Equals<DbMatchEventType, MatchEventType> = true;
+const postReactionTypesMatch: Equals<DbPostReactionType, PostReaction> = true;
 const votingEndReasonTypesMatch: Equals<DbVotingEndReason, VotingEndReason> = true;
 
 describe('enums do banco x domain', () => {
@@ -89,5 +93,10 @@ describe('enums do banco x domain', () => {
   it('AvatarHairColor tem os mesmos valores, na mesma ordem', () => {
     expect(avatarHairColorTypesMatch).toBe(true);
     expect(Object.values(DbAvatarHairColor)).toEqual([...AVATAR_HAIR_COLORS]);
+  });
+
+  it('PostReactionType tem os mesmos valores, na mesma ordem', () => {
+    expect(postReactionTypesMatch).toBe(true);
+    expect(Object.values(DbPostReactionType)).toEqual([...POST_REACTIONS]);
   });
 });

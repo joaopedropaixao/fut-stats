@@ -1,13 +1,17 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import {
+  FEED_ALERT_LABELS,
   ROUND_STATUS_LABELS,
   TEAM_LABELS,
   type MatchView,
   type MatchWinner,
 } from '@fut-stats/shared';
+import { AlertBand } from '../../components/ui/alert-frame';
+import { ALERT_TONES } from '../../components/ui/alert-tone';
 import { Bump } from '../../components/ui/bump';
 import { IconButton } from '../../components/ui/button';
 import { Icon } from '../../components/ui/icons';
+import { LiveSeal } from '../../components/ui/live-seal';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { pixelDigitsPath } from '../../components/ui/pixel-glyphs';
 import { PixelText } from '../../components/ui/pixel-text';
@@ -57,6 +61,8 @@ type ScoreboardProps = {
   bare?: boolean;
   /** Sem a faixa da etapa em cima: quem usa já diz a etapa (card do histórico). */
   hideStatus?: boolean;
+  /** Aviso do Feed: a faixa da etapa ganha a cor de identidade (vermelho com o selo AO VIVO, ou laranja). */
+  alert?: boolean;
   /** Partida encerrada: o time vencedor ganha "✓ Venceu" (empate, "= Empate") embaixo do nome. */
   winner?: MatchWinner;
   /** Admin com o placar aberto: −/+ de cada time embaixo. Cada toque grava. */
@@ -74,6 +80,7 @@ export function Scoreboard({
   compact,
   bare,
   hideStatus,
+  alert,
   winner,
   editor,
 }: ScoreboardProps) {
@@ -92,18 +99,32 @@ export function Scoreboard({
       aria-label="Placar"
       className={cn('flex flex-col bg-surface', !bare && 'moment-frame animate-moment-in')}
     >
-      {!hideStatus && (
-        <div className="flex h-11 items-center bg-track px-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
-          <span className="inline-flex items-center gap-2 text-text">
-            {live && (
-              <span
-                aria-hidden
-                className="animate-live-blink size-2.5 shrink-0 rounded-full bg-success"
-              />
-            )}
-            <PixelText>{ROUND_STATUS_LABELS[status]}</PixelText>
+      {!hideStatus && alert && (status === 'IN_PROGRESS' || status === 'POST_MATCH') ? (
+        <AlertBand tone={status} nowrap className="h-14 justify-between py-0">
+          <span className="inline-flex min-w-0 items-center gap-2 text-text">
+            <Icon
+              name={live ? 'clock' : 'pencil'}
+              size={22}
+              className={`shrink-0 ${ALERT_TONES[status].ink}`}
+            />
+            <PixelText wrap>{FEED_ALERT_LABELS[status]}</PixelText>
           </span>
-        </div>
+          {live && <LiveSeal />}
+        </AlertBand>
+      ) : (
+        !hideStatus && (
+          <div className="flex h-11 items-center bg-track px-4 shadow-[inset_0_-3px_0_0_var(--color-border-strong)]">
+            <span className="inline-flex items-center gap-2 text-text">
+              {live && (
+                <span
+                  aria-hidden
+                  className="animate-live-blink size-2.5 shrink-0 rounded-full bg-success"
+                />
+              )}
+              <PixelText>{ROUND_STATUS_LABELS[status]}</PixelText>
+            </span>
+          </div>
+        )
       )}
       <div
         // Com "Venceu" sobre o nome, o texto do lado branco precisa de todo o espaço até o corte (320 px)

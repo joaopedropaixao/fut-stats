@@ -10,9 +10,9 @@
 | **Modo** | Par |
 | **Parte de** | — |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @e97ee8d (checkpoint de início em 2026-11-15; antes @1021769) |
 | **Depende de** | votacao, pacote-do-craque, perfil-jogador |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/feed, packages/domain/src/index.ts, packages/shared/src/feed.ts, packages/shared/src/index.ts, apps/api/src/feed, apps/api/src/app.module.ts, apps/api/src/seed, apps/web/src/pages/feed, apps/web/src/features/feed, apps/web/src/pages/rounds/home.tsx, apps/web/src/features/voting, apps/web/src/features/match/game-card.tsx, apps/web/src/router.tsx |
+| **Toca em** | apps/api/prisma/schema.prisma, apps/api/prisma/migrations/*_feed, apps/api/prisma/seed.ts, packages/domain/src/feed, packages/domain/src/group, packages/domain/src/index.ts, packages/shared/src/feed.ts, packages/shared/src/index.ts, apps/api/src/feed, apps/api/src/app.module.ts, apps/api/src/seed, apps/web/src/pages/feed, apps/web/src/features/feed, apps/web/src/pages/rounds/home.tsx (removido), apps/web/src/pages/{rounds,voting,elenco}/routes, apps/web/src/features/voting, apps/web/src/features/match, apps/web/src/features/lineup, apps/web/src/features/rounds, apps/web/src/components/ui/{pixel-sprite-maps,text-field,text-area,row-menu}, apps/web/src/app/preload.ts, apps/web/src/router.tsx |
 
 ## Produto
 
@@ -41,8 +41,9 @@ escrevem, com reações e comentários de todo mundo. É o que dá vida ao app e
   lista é o aviso grande; os outros aparecem em linha.
 - **Resenha:** só admin escreve (visão do produto). Título opcional com até 60 caracteres; texto obrigatório com
   até 1000, com quebra de linha. **Só texto na v1** (imagem pede um serviço de arquivos novo).
-- **Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`): bola, fogo, risada, palmas
-  e perna de pau. Tocar em outra troca; tocar na mesma tira.
+- **Reação:** uma por pessoa por resenha, de uma lista fechada de 5 (`POST_REACTIONS`): bola ("golaço, curti o lance"), bagre
+  (a zoeira de "joga mal hoje"), OSS! (respeito e raça), cartão amarelo ("essa foi feia") e pipocou ("amarelou, fugiu
+  da dividida"). Tocar em outra troca; tocar na mesma tira.
 - **Comentário:** qualquer membro, até 280 caracteres, sem edição. Apaga o autor ou um admin.
 - Textos passam pela mesma regra de caractere inválido do apelido (`hasInvalidCharacters`), liberando a quebra de
   linha; sem espaço nas pontas; em NFC.
@@ -76,7 +77,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C12 | outro admin do grupo | `PATCH .../posts/:postId` com texto novo | 200; `editedAt` preenchido; o autor continua o original | integração |
 | C13 | admin | `DELETE .../posts/:postId` | 204; reações e comentários somem do banco; `GET` dá 404 | integração |
 | C14 | 25 resenhas | `GET .../posts`; depois com `cursor` | 10 da mais nova para a mais antiga e `nextCursor`; as seguintes; a última página com `nextCursor: null`; nenhuma repetida | integração |
-| C15 | membro | `PUT .../posts/:postId/reaction` `{ reaction: 'FIRE' }`; depois `'BALL'`; depois `DELETE .../reaction` | `reactions.FIRE: 1` e `myReaction: 'FIRE'`; troca para `BALL` (FIRE volta a 0); sem reação | integração |
+| C15 | membro | `PUT .../posts/:postId/reaction` `{ reaction: 'CATFISH' }`; depois `'BALL'`; depois `DELETE .../reaction` | `reactions.CATFISH: 1` e `myReaction: 'CATFISH'`; troca para `BALL` (CATFISH volta a 0); sem reação | integração |
 | C16 | dois `PUT` de reação do mesmo membro ao mesmo tempo | `Promise.all` | uma reação só no banco; nunca 500 | integração |
 | C17 | reação fora da lista | `PUT` | 400 | integração |
 | C18 | membro | `POST .../posts/:postId/comments` `{ text }` | 201 `Comment` com autor e `canDelete: true`; o `commentCount` da resenha sobe | integração |
@@ -91,23 +92,30 @@ Cada cenário tem um id. Os testes levam o id no nome.
 
 **Tela: avisos** (`/`, 390 px)
 
+> Checkpoint 2026-11-15: o início de hoje já tem `ResultAlert` ("O RESULTADO SAIU", pacote em miniatura e
+> "Abrir pacote"; sem votos, "Ver resultado" e sem pacote; depois de aberto vira `ResultLine`), `VotingCard`
+> (que foi neutro por decisão do dono e voltou a ter cor na volta de design de 16/11) e `GameCard`. O "já abri o pacote" é
+> **por aparelho** (`hasOpenedResult`, guardado no navegador): a API sempre manda o `RESULT` dentro dos 7 dias, e
+> o front rebaixa o `RESULT` aberto para linha, promovendo o próximo da lista a aviso grande. Os cards existentes
+> são reaproveitados como aviso grande (sem duplicar), ganhando o que faltar do padrão de grande momento.
+
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| C27 | resultado novo + votação aberta + presença aberta | abrir o Feed | **um** card grande (o do resultado, com "Abrir pacote") e duas **linhas de aviso** abaixo: "VOTAÇÃO ABERTA · FALTA O SEU VOTO" e "PRESENÇA ABERTA · RESPONDA". Cada linha tem ícone, o tipo escrito, cor do tipo e seta; alvo ≥ 44 px | Playwright |
-| C28 | abri o pacote | voltar ao Feed | o resultado vira linha ("RESULTADO DA RODADA 12") e a votação sobe para card grande | Playwright |
-| C29 | só presença aberta | abrir | card grande da presença (o de hoje: data, local, CONFIRMAR / AUSÊNCIA, contagem), com uma fileira de rostos de quem vai ("+9" no fim) que leva ao detalhe da rodada | Playwright |
-| C30 | times publicados e estou escalado | abrir | card grande **"TIMES PUBLICADOS"** com "VOCÊ JOGA NO PRETO" (faixa com o meu bonequinho) e a tecla "Ver os times"; não escalado: "Você não está escalado" | Playwright |
+| C27 | resultado novo (pacote fechado) + votação aberta + presença aberta | abrir o Feed | **um** card grande (o `ResultAlert` de hoje, com o pacote em miniatura e "Abrir pacote"; rodada sem votos: "Ver resultado", sem pacote) e duas **linhas de aviso** abaixo: "VOTAÇÃO ABERTA · FALTA O SEU VOTO" e "PRESENÇA ABERTA · RESPONDA". Cada linha tem ícone, o tipo escrito, cor do tipo e seta; alvo ≥ 44 px | Playwright |
+| C28 | abri o pacote (neste aparelho) | voltar ao Feed | o resultado vira linha ("RESULTADO · RODADA 12") e a votação sobe para card grande (o `VotingCard`, agora com a tecla amarela "Dar minhas notas" se joguei e não votei) | Playwright |
+| C29 | só presença aberta | abrir | card grande da presença (o de hoje: data, local, CONFIRMAR / AUSÊNCIA, contagem), com uma fileira de rostos de quem vai ("+9" no fim) que leva ao detalhe da rodada. CONFIRMAR / AUSÊNCIA iguais aos do detalhe da rodada (volta de design 5): CONFIRMAR verde, ausência em vermelho, nenhum amarelo em estado nenhum (confirmado, ausência, sem resposta) | Playwright |
+| C30 | times publicados e estou escalado | abrir | card grande **"TIMES PUBLICADOS"** com "VOCÊ JOGA NO PRETO" (faixa com o meu bonequinho) e a tecla "Ver os times" só com o texto, sem o VS (volta de design 5, 17/11); não escalado: "Você não está escalado" | Playwright |
 | C31 | jogo rolando; Resenha | abrir | o card do jogo de hoje ("Em jogo" / "Hora da Resenha") como aviso grande; votação de outra rodada, se houver, em linha | Playwright |
 | C32 | nenhuma rodada ativa | abrir | sem avisos: "Nenhuma rodada marcada" (admin: tecla "Criar rodada") e as resenhas logo abaixo | Playwright |
 | C33 | linha de aviso | tocar | leva à tela do tipo: votar, resultado, times, jogo ou detalhe da rodada | Playwright |
-| C34 | a tela inteira | contar teclas amarelas | no máximo uma (a do aviso grande). "Nova resenha" e "Todas as rodadas" são de contorno | Playwright |
+| C34 | a tela inteira | contar teclas amarelas | no máximo uma (a do aviso grande; com a presença como aviso grande, nenhuma: o CONFIRMAR é verde, exceção do dono de 17/11). "Nova resenha" e "Todas as rodadas" são de contorno. **Exceção (dono, 16/11):** na página da votação, a ação de quem vota e o "Encerrar votação" do admin podem ser amarelas juntas, com o bloco do admin separado (rótulo ADMIN e divisor); fora disso, a regra vale | Playwright |
 
 **Tela: resenhas**
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | C35 | grupo com resenhas | rolar o Feed | seção "RESENHAS"; cada resenha é um card de grande momento (contorno de 3 px, sombra dura, entrada em degraus nos 3 primeiros): rosto e apelido do autor, selo ADMIN, quando ("HOJE, 21H" / "SÁB, 17 OUT"), título em pixel, texto corrido em Chakra Petch com as quebras de linha, "editada" quando foi | Playwright |
-| C36 | resenha | tocar numa reação | o contador sobe com o dígito "batendo"; a minha fica com contorno grosso e ✓; tocar em outra troca; tocar na mesma tira. Cada botão tem ícone pixel, número e nome para leitor de tela ("Fogo, 3 reações, a sua") | Playwright |
+| C36 | resenha | tocar numa reação | o contador sobe com o dígito "batendo"; a minha fica com contorno grosso e ✓; tocar em outra troca; tocar na mesma tira. Cada botão tem ícone pixel (desenho próprio; o OSS! é mais largo), sem nome visível (volta de design 5, 17/11: só o ícone + o contador, com o ✓ da minha ao lado do contador, nunca sobre o ícone); o nome (Bola, Bagre, OSS!, Cartão amarelo, Pipocou) fica no `title` e no nome para leitor de tela ("Bagre, 3 reações, a sua"); em 320 px os 5 botões cabem numa linha com ≥ 44 px cada | Playwright |
 | C37 | resenha com 3 comentários | tocar em "COMENTÁRIOS · 3" | abre embaixo do card: rosto, apelido, quando e texto de cada um; campo "Escreva um comentário" com contador e "Enviar" | Playwright |
 | C38 | comentando | enviar | o comentário entra no fim, o campo limpa e o contador do card sobe; vazio não envia; 281 caracteres mostra o erro do shared | Playwright |
 | C39 | meu comentário (ou qualquer um, como admin) | lixeira (44 × 44) → gaveta "Apagar comentário?" | some da lista com aviso | Playwright |
@@ -122,7 +130,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C48 | texto com 1000 caracteres sem espaço e apelido de 10 letras | olhar o card | o texto quebra dentro do card (sem estourar a largura) | Playwright |
 | C49 | reduzir movimento | abrir | cards com fade; contador sem bater | Playwright (`emulateMedia`) |
 | C50 | carregando; erro nos avisos; erro nas resenhas | abrir | esqueleto; cada bloco com o próprio erro e "Tentar de novo" (um não derruba o outro). Console sem erros no fluxo real | Playwright |
-| C51 | larguras 320, 375, 390, 430 px e desktop | Feed (aviso grande de cada tipo, linhas, resenha com comentários abertos), nova resenha | sem rolagem horizontal, sem sobreposição, sem texto cortado; os 5 botões de reação cabem numa linha em 320 px com 44 px cada; no desktop, coluna centralizada. Checagem automática passa | Playwright |
+| C51 | larguras 320, 375, 390, 430 px e desktop | Feed (aviso grande de cada tipo, linhas, resenha com comentários abertos), nova resenha | sem rolagem horizontal, sem sobreposição, sem texto cortado; os 5 botões de reação (só ícone + contador, sem nome visível) cabem numa linha em 320 px com ≥ 44 px cada, nada sobreposto (o ✓ não cobre o ícone do OSS!); no desktop, coluna centralizada. Checagem automática passa | Playwright |
 
 ## Técnico
 
@@ -134,6 +142,7 @@ com `packages/domain/src/feed`.
 |---|---|---|---|---|---|
 | `GET` | `/feed/alerts` | membro | — | `FeedAlert[]` | 404 |
 | `GET` | `/posts` | membro | query `PostsQuery` | `PostList` | 400; 404 |
+| `GET` | `/posts/:postId` | membro | — | `Post` | 404 |
 | `POST` | `/posts` | admin | `PostInput` | `Post` (201) | 400; 403; 404 |
 | `PATCH` | `/posts/:postId` | admin | `PostInput` | `Post` | 400; 403; 404 |
 | `DELETE` | `/posts/:postId` | admin | — | 204 | 403; 404 |
@@ -142,6 +151,14 @@ com `packages/domain/src/feed`.
 | `GET` | `/posts/:postId/comments` | membro | — | `Comment[]` | 404 |
 | `POST` | `/posts/:postId/comments` | membro | `CommentInput` | `Comment` (201) | 400; 404 |
 | `DELETE` | `/posts/:postId/comments/:commentId` | autor ou admin | — | 204 | 403 `NOT_OWN_COMMENT`; 404 |
+
+`GET /posts/:postId` serve a tela de editar aberta direto pela URL; dá 404 para resenha de outro grupo, inexistente,
+não membro ou membro inativo (mesmas regras de C23 e C24).
+
+**Limites e tipos saem do shared.** `packages/shared/src/feed.ts` reexporta do domain `POST_TITLE_MAX_LENGTH`,
+`POST_BODY_MAX_LENGTH`, `COMMENT_MAX_LENGTH`, `FEED_ALERT_TYPES` e `POST_REACTIONS` (valores) e os tipos
+`FeedAlertType` e `PostReaction`. O front importa de `@fut-stats/shared` (contadores, ordem dos botões) e não copia
+número.
 
 ```ts
 // packages/shared/src/feed.ts
@@ -164,8 +181,8 @@ export const feedAlertSchema = z.object({
   }),
 });
 
-export const postReactionSchema = z.enum(POST_REACTIONS);       // 'BALL' | 'FIRE' | 'LAUGH' | 'CLAP' | 'FLOP'
-export const POST_REACTION_LABELS: Record<PostReaction, string>; // Bola, Fogo, Risada, Palmas, Perna de pau
+export const postReactionSchema = z.enum(POST_REACTIONS);       // 'BALL' | 'CATFISH' | 'OSS' | 'YELLOW_CARD' | 'POPCORN'
+export const POST_REACTION_LABELS: Record<PostReaction, string>; // Bola, Bagre, OSS!, Cartão amarelo, Pipocou
 export const POST_INPUT_ERROR_LABELS: Record<PostInputError, string>;
 export const COMMENT_ERROR_LABELS: Record<TextFieldError, string>;
 export const NOT_OWN_COMMENT_LABEL = 'Você só apaga o seu próprio comentário';
@@ -246,10 +263,33 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
     (`GameCard`, card de votação e de resultado de `votacao`/`pacote-do-craque`, card da presença do início de
     hoje). Novo: o card de times publicados, no padrão `moment-frame` com a `you-banner`.
   - **Linha de aviso** (`features/feed/alert-line.tsx`): 56 px, ícone do tipo + título em pixel + situação curta
-    + seta; contorno de 2 px na cor do tipo. O texto de cada situação sai de uma função pura com teste
-    (`alert-text.ts`).
-  - Cores por papel do DS: resultado em ouro, votação em laranja (atenção), presença em verde, jogo em creme com
-    o ponto "ao vivo". Sempre com ícone e o tipo por escrito.
+    + seta; contorno neutro de 2 px e faixa à esquerda na cor do tipo (volta de design 1). O texto de cada
+    situação sai de uma função pura com teste (`alert-text.ts`).
+  - **Cores de identidade (volta de design 1, 16/11, decisão do dono; vale no lugar da votação neutra):** jogo
+    vermelho com o selo AO VIVO piscando em degraus, Resenha laranja, resultado ouro, votação prata
+    (`--color-silver`, com a urna e a faixa listrada), times em branco e preto com o corte diagonal, presença verde. A cor vai na moldura, na faixa
+    do cabeçalho e no ícone (na linha, faixa à esquerda e ícone); **o aviso grande sempre tem a tecla amarela e a
+    cor de identidade nunca vai nela** (exceção: a presença, abaixo). Sempre com ícone e o tipo por escrito. Detalhe em `docs/design/DESIGN.md`.
+  - **Volta de design 5 (17/11, decisão do dono): exceção da presença.** No aviso grande da presença, CONFIRMAR e
+    AUSÊNCIA usam o mesmo visual e os mesmos estados do detalhe da rodada (`PresenceChoice` sem tecla amarela):
+    verde para confirmar, vermelho na ausência, e nada amarelo aceso em estado nenhum. O dono: "Sei que vai contra o
+    amarelo para ação, mas ficou meio estranho, sem contar que quando seleciona o Ausência, o amarelo ainda fica
+    aceso." O aviso de presença é o único aviso grande sem tecla amarela.
+  - **Volta de design 3 (16/11, decisão do dono):** o azul da votação foi retirado (`--color-vote` não existe mais) por
+    ficar disruptivo; vale o **prata** (`--color-silver`) com a urna e uma faixa de cabeçalho listrada, para não
+    parecer o prata do pódio. **Fechado em 17/11:** fica o prata (opção A, a do código); a opção B, o verde-luz do
+    refletor (`#d6fabe`), foi descartada e os prints dela saíram de `design-2/opcoes/` (fica só o da A). A 4ª reação é o **cartão amarelo**, único ícone com o amarelo
+    (ícone, não tecla); o OSS! ganhou letras retas na mesma linha de base. O "Encerrar votação" do admin é a tecla
+    amarela (a gaveta de confirmação continua), e a exceção ao C34 está na linha do C34.
+  - **Feedback do dono (15/11):** os cards do início ficaram "bem simples as letras e em cores diferentes". Cada
+    card é grande momento (contorno grosso, sombra dura, entrada animada, tipografia com hierarquia: rótulo pequeno,
+    título grande em pixel com sombra, texto corrido). **Ouro é recompensa; o amarelo fica só na tecla de ação;
+    nunca os dois competindo no mesmo card.** (Exceção autorizada pelo dono: o ícone da reação cartão amarelo é
+    amarelo; é ícone, não tecla.) Um aviso grande por vez. Rostos sempre com o bonequinho
+    (`MemberAvatar`).
+  - Peso inicial: o Feed é um pedaço `lazy` (`pages/feed/feed-area.ts`, que substitui `pages/rounds/home` no
+    `app/preload.ts`); import de valor de `@fut-stats/shared` só dentro dele, nunca em `app/`, `components/ui` ou
+    `features/session` (JS inicial de 118,4 kB, polimento-v1).
   - A lista "Quem vai" sai do início e fica no detalhe da rodada; o card da presença ganha a fileira de rostos.
   - A consulta dos avisos usa uma chave **sob a da lista de rodadas** (`[...roundsKey(groupId), 'alerts']`): tudo
     que já invalida a lista de rodadas (mudança de etapa, e o tempo real de `jogo-ao-vivo`) atualiza os avisos sem
@@ -276,9 +316,25 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
 - Uma rota de avisos com o `me` de cada tipo — as linhas não precisam carregar a tela inteira de cada rodada.
 - Uma reação por pessoa, com 5 ícones pixel próprios — simples de entender e com a cara do app; emoji do sistema
   quebra a estética pixel.
+- Reações sem o nome visível embaixo do ícone (volta de design 5, 17/11, decisão do dono: "agora que os emojis
+  ficaram bem claros, pode tirar os nomes deles e deixar só o emoji mesmo") — o botão fica só com o ícone pixel e o
+  contador; o nome segue no `title` e no leitor de tela. O ✓ da minha reação fica ao lado do contador (c1dfcb3).
+- Cor da votação fechada no prata com a faixa listrada (17/11) — o verde-luz do refletor foi descartado.
+- CONFIRMAR da presença no Feed volta ao verde (17/11) — a tecla amarela ali destoava do detalhe da rodada e ficava
+  acesa mesmo com a Ausência escolhida; a presença é a exceção à tecla amarela do aviso grande.
+- A tecla "Ver os times" do aviso de times publicados fica só com o texto, sem o desenho do VS (17/11, decisão do
+  dono).
 - Comentários abrem no card — conversa curta não pede outra tela.
 - "Quem vai" sai do início — o Feed precisa de espaço para avisos e resenhas; a lista completa continua a um toque.
 - Qualquer admin edita e apaga qualquer resenha — os admins são a "redação" do grupo.
+- O Feed não ganha os atalhos do admin da home antiga ("Nova rodada", "Administrar rodada") — decisão do dono
+  (17/11, opção A): o admin cria e administra rodadas por "Todas as rodadas".
+
+### Cruzamento com `auditoria-da-rodada` (onda 5)
+As duas mexem em `schema.prisma`, `apps/api/src/app.module.ts` e `packages/shared/src/index.ts`. A auditoria entra
+primeiro (model `RoundLog`, dona do schema nesta onda). O feed faz a sua migration normalmente; quando a auditoria
+entrar, rebase, junta o `schema.prisma` mantendo os dois e confere que `prisma migrate dev` não acusa drift (se
+acusar, recria a migration do feed por cima). O feed não escreve em placar, etapa ou lance.
 
 ## Fora do escopo
 - Imagem e vídeo na resenha (decisão do dono, P6); link clicável e menção no texto.
@@ -292,4 +348,52 @@ Aviso/Votação, Aviso/Presença) e "Avisos e estados".
 - P6 · Resenha com imagem na v1? → Não: só texto; imagem fica para a v1.1 (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**Veredito: APROVADO na volta 2** (16 nov 2026). Volta 1 (relançada do zero na retomada) reprovou por 2 critérios de
+front; os 51 cenários já funcionavam.
+
+| Volta | Falha | Correção |
+|---|---|---|
+| 1 | JS inicial 118,6 kB > 118,4 kB da base (3 rotas lazy novas, cada uma com lista de deps no pedaço inicial) | `loadFeedArea` único, `resenhas/*` resolvida dentro do pedaço do Feed (`postScreen`), preload percorre `router.routes`: 118,4 kB (118.437 bytes gzip) |
+| 1 | Ouro (rótulo e traço) colado à tecla amarela no `ResultAlert` | rótulo e traço neutros; ouro só no pacote |
+| 1 (obs.) | Sem aviso grande, o admin perdia "Nenhuma rodada marcada"/"Criar rodada" | decisão do TPL: sem aviso grande (nada, ou só resultados abertos) vale o estado de C32, com as linhas abaixo |
+
+Tabela final (volta 2 sobre a volta 1):
+
+| Id | Resultado |
+|---|---|
+| C1–C26 (domínio, API, seed) | OK — testes com o id no nome; domain 491, shared 4, api 513 verdes |
+| C27, C28 | OK — um card grande, ouro só no pacote; aberto, a votação sobe com "Dar minhas notas" |
+| C29–C31, C33 | OK |
+| C32 | OK — admin com "Criar rodada", jogador sem tecla, linhas abaixo |
+| C34 | OK — no máximo 1 tecla amarela em todos os estados |
+| C35–C50 | OK |
+| C51 | OK — checagem automática verde em 320/375/390/430/1280 |
+| Visual do dono (15/11) | OK |
+| Peso inicial | OK — 118,4 kB, sem import de valor do shared no caminho inicial |
+| Pronto na raiz | OK — lint, typecheck, test (web 569), build |
+
+Observações para o dono: no C32 admin, a linha RESULTADO (borda ouro) fica logo abaixo da tecla amarela "Criar
+rodada" (elementos separados); o JS inicial está no limite do arredondamento (sem folga para o próximo pedaço).
+
+**Volta de design 5 (17/11), QA aprovado:**
+
+| Pedido | Resultado |
+|---|---|
+| Reações sem nome visível (C36) | OK — só ícone + contador; nome no `title` e no nome acessível ("Bagre, 3 reações, a sua"); reagir, trocar e tirar certos |
+| ✓ ao lado do contador (c1dfcb3) | OK — interseção 0 do ✓ com o ícone e com o contador nas 5 reações, em 320 e 390 |
+| Barra de reações (C51) | OK — 5 numa linha; botões de 48,4×64 (320) a 112,4×64 (1280); sem rolagem nem sobreposição. Atenção: no OSS! em 320 sobram 3,2 px entre o ícone e a borda, para o contorno de 3 px da minha |
+| Presença verde no Feed (C29, C34) | OK — CONFIRMAR verde e AUSÊNCIA vermelha, iguais ao detalhe da rodada nos 3 estados; nenhum amarelo na tela |
+| "Ver os times" sem o VS (C30) | OK — só o texto, 56 px, leva a /times, uma tecla amarela só |
+| Console, pronto na raiz | OK — sem erros; lint, typecheck, test (web 594) e build verdes |
+
+**Code review do PR (17/11), QA aprovado:**
+
+| Ponto | Resultado |
+|---|---|
+| Votação vencida: `feed/alerts` fecha antes e devolve RESULT; card da votação fechada refaz os avisos | OK — teste C8 de integração; no navegador o topo troca para o resultado |
+| Reações em fila por resenha (`scope`), só a última mexe no cache, lista conferida no fim | OK — toques rápidos e 500 no meio/no fim terminam iguais à API; `react-queue.test.ts` |
+| `key` do aviso grande com tipo e rodada | OK |
+| Migrations do feed numa só, enum final, sem drift | OK |
+| Times publicados só buscam a escalação de quem está escalado | OK |
+| Contador das telas reusa o `splitCharacters` do domain | OK |
+| Sem regressão (390/320), console, pronto na raiz | OK |

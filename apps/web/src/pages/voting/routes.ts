@@ -1,5 +1,7 @@
 import type { RouteObject } from 'react-router';
 
+const loadVotingArea = () => import('./voting-area');
+
 /**
  * Rotas da votação, dentro do AppShell. Padrão de `lazy` (ver router.tsx): votar e resultado saem no mesmo
  * pedaço (`./voting-area`).
@@ -7,10 +9,10 @@ import type { RouteObject } from 'react-router';
 export const votingRoutes: RouteObject[] = [
   {
     path: 'rodadas/:roundId/votar',
-    lazy: async () => ({ Component: (await import('./voting-area')).VotePage }),
+    lazy: async () => ({ Component: (await loadVotingArea()).VotePage }),
   },
   {
     path: 'rodadas/:roundId/resultado',
-    lazy: async () => ({ Component: (await import('./voting-area')).ResultPage }),
+    lazy: async () => ({ Component: (await loadVotingArea()).ResultPage }),
   },
 ];

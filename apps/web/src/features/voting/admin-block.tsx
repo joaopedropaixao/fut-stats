@@ -16,12 +16,17 @@ type AdminBlockProps = {
 
 /**
  * O que só o admin vê (folha: Gaveta/Encerrar votação): quem ainda não votou, com rosto e apelido, para cobrar
- * no grupo (o voto em si nunca aparece), e a tecla de contorno "Encerrar votação", que pede confirmação.
+ * no grupo (o voto em si nunca aparece), e a tecla amarela "Encerrar votação" (é uma ação), que pede confirmação.
+ * O bloco vem separado da ação de quem vota (rótulo ADMIN e um divisor), para as duas teclas amarelas não colarem.
  */
 export function AdminBlock({ pending, canClose, onClose, closing }: AdminBlockProps) {
   const [confirming, setConfirming] = useState(false);
   return (
-    <section aria-label="Para o admin" className="animate-row-in flex flex-col gap-4">
+    <section aria-label="Para o admin" className="animate-row-in mt-4 flex flex-col gap-4">
+      <div aria-hidden className="flex items-center gap-3">
+        <PixelText className="text-text-muted">Admin</PixelText>
+        <span className="h-0.5 flex-1 bg-border" />
+      </div>
       {pending && pending.length > 0 && (
         <div className="flex flex-col gap-3 bg-surface p-4 shadow-card">
           <PixelText as="h2">{`Faltam votar · ${pending.length}`}</PixelText>
@@ -44,8 +49,6 @@ export function AdminBlock({ pending, canClose, onClose, closing }: AdminBlockPr
       )}
       {canClose && (
         <Button
-          variant="outline"
-          size={52}
           icon="lock"
           label="Encerrar votação"
           block

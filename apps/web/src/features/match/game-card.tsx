@@ -1,5 +1,7 @@
 import { matchRotationPlan, rotationStatus, TEAM_LABELS, type MatchView } from '@fut-stats/shared';
 import type { CSSProperties } from 'react';
+import { AlertFrame } from '../../components/ui/alert-frame';
+import { toneDivider } from '../../components/ui/alert-tone';
 import { PixelText } from '../../components/ui/pixel-text';
 import { RouteButton } from '../rounds/route-button';
 import { goalsOfScore } from './match-text';
@@ -20,24 +22,28 @@ function copy(view: MatchView): { message: string; action: string } {
 }
 
 /**
- * Início com a rodada em jogo ou na Resenha: grande momento (contorno de 3px, sombra dura, entrada em degraus)
- * com o placar, o que fazer agora e a tecla para a tela do jogo.
+ * Aviso grande do jogo: em jogo é vermelho, com o selo AO VIVO piscando; na Hora da Resenha é laranja. A identidade
+ * fica na moldura de 3px, na faixa da etapa e no ícone; a tecla para a tela do jogo é sempre a amarela. Sombra dura
+ * e entrada em degraus, como todo grande momento.
  */
 export function GameCard({ view }: { view: MatchView }) {
   const { message, action } = copy(view);
   const showTally = view.status === 'POST_MATCH' && view.me.isAdmin;
+  const tone = view.status === 'POST_MATCH' ? 'POST_MATCH' : 'IN_PROGRESS';
   return (
-    <section
-      aria-label={view.status === 'POST_MATCH' ? 'Hora da Resenha' : 'Jogo em andamento'}
-      className="moment-frame animate-moment-in flex flex-col bg-surface-raised"
+    <AlertFrame
+      tone={tone}
+      label={view.status === 'POST_MATCH' ? 'Hora da Resenha' : 'Jogo em andamento'}
     >
-      <Scoreboard status={view.status} score={view.score} compact bare />
+      <Scoreboard status={view.status} score={view.score} compact bare alert />
       <div
-        className="flex flex-col gap-4 p-4 shadow-[inset_0_3px_0_0_var(--color-border-strong)]"
-        style={{ '--moment-delay': '120ms' } as CSSProperties}
+        className="flex flex-col gap-4 p-4"
+        style={{ ...toneDivider(tone), '--moment-delay': '120ms' } as CSSProperties}
       >
         <div className="animate-row-in flex flex-col gap-2">
-          <PixelText wrap>{message}</PixelText>
+          <PixelText as="h2" size={24} wrap className="text-text [text-shadow:2px_2px_0_#000]">
+            {message}
+          </PixelText>
           {view.status === 'IN_PROGRESS' && view.rotation && view.me.team && (
             <RotationHomeLine view={view} />
           )}
@@ -58,7 +64,7 @@ export function GameCard({ view }: { view: MatchView }) {
           className="animate-row-in [--moment-delay:220ms]"
         />
       </div>
-    </section>
+    </AlertFrame>
   );
 }
 

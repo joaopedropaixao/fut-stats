@@ -1,21 +1,17 @@
-import type { DataRouter } from 'react-router';
+import type { DataRouter, RouteObject } from 'react-router';
 
 /**
- * Os pedaços de cada área, os mesmos que o router carrega sob demanda (o mesmo `import()` vira o mesmo arquivo).
- * Depois da primeira tela pronta, vão para o cache do navegador em segundo plano: trocar de aba não espera a rede.
+ * Os pedaços de cada área são os mesmos que o router carrega sob demanda: o `lazy` de cada rota. Depois da primeira
+ * tela pronta, o preload chama o `lazy` das rotas ainda não carregadas (o mesmo `import()` vira o mesmo arquivo) e
+ * eles vão para o cache do navegador em segundo plano: trocar de aba não espera a rede. Sem lista paralela: rota
+ * nova com `lazy` entra sozinha, e nenhum `import()` a mais vai para o JS inicial.
  */
-const AREAS = [
-  () => import('../pages/rounds/home'),
-  () => import('../pages/times/times-area'),
-  () => import('../pages/rounds/rounds-area'),
-  () => import('../pages/match/match-page'),
-  () => import('../pages/perfil/perfil-area'),
-  () => import('../pages/elenco/elenco-area'),
-  () => import('../pages/historico/historico-area'),
-  () => import('../pages/ranking/ranking-area'),
-  () => import('../pages/voting/voting-area'),
-  () => import('../pages/entrar-e-grupo/start-area'),
-];
+export function lazyLoaders(routes: readonly RouteObject[]): (() => Promise<unknown>)[] {
+  return routes.flatMap(({ lazy, children = [] }) => [
+    ...(typeof lazy === 'function' ? [lazy as () => Promise<unknown>] : []),
+    ...lazyLoaders(children),
+  ]);
+}
 
 /** Com "economizar dados" ligado, não gasta rede com o que ninguém pediu. */
 function saveDataOn() {
@@ -34,19 +30,22 @@ function whenIdle(task: () => void) {
   }, SETTLE_MS);
 }
 
-export function preloadAreas() {
+export function preloadAreas(router: Pick<DataRouter, 'routes'>) {
   if (saveDataOn()) return;
   whenIdle(() => {
-    for (const load of AREAS) load().catch(() => undefined);
+    for (const load of lazyLoaders(router.routes)) {
+      // Erro de rede aqui não importa: a tela tenta de novo quando for aberta
+      load().catch(() => undefined);
+    }
   });
 }
 
 /** Espera o router ter a primeira tela pronta (o pedaço dela já chegou) e só então pré-carrega o resto. */
-export function preloadWhenReady(router: Pick<DataRouter, 'state' | 'subscribe'>) {
-  if (router.state.initialized) return preloadAreas();
+export function preloadWhenReady(router: Pick<DataRouter, 'state' | 'subscribe' | 'routes'>) {
+  if (router.state.initialized) return preloadAreas(router);
   const unsubscribe = router.subscribe((state) => {
     if (!state.initialized) return;
     unsubscribe();
-    preloadAreas();
+    preloadAreas(router);
   });
 }

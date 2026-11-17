@@ -7,7 +7,7 @@ import {
 } from '@fut-stats/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPut } from '../../lib/api';
-import { roundKey, roundsKey } from '../rounds/queries';
+import { refreshRounds, roundKey } from '../rounds/queries';
 
 const lineupKey = (groupId: string, roundId: string) =>
   [...roundKey(groupId, roundId), 'lineup'] as const;
@@ -35,7 +35,7 @@ function useLineupMutation<V>(
     onSuccess: (lineup) => {
       queryClient.setQueryData(lineupKey(groupId, roundId), lineup);
       void queryClient.invalidateQueries({ queryKey: roundKey(groupId, roundId), exact: true });
-      void queryClient.invalidateQueries({ queryKey: roundsKey(groupId), exact: true });
+      void refreshRounds(queryClient, groupId);
     },
   });
 }

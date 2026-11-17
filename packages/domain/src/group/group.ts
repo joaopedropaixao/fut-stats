@@ -52,8 +52,12 @@ export function hasInvalidCharacters(text: string): boolean {
 
 let graphemeSegmenter: Intl.Segmenter | null | undefined;
 
-// Criado só no primeiro uso: navegador sem Intl.Segmenter não quebra ao importar o pacote.
-function splitCharacters(text: string): string[] {
+/**
+ * O texto em caracteres visíveis (grafemas): acento decomposto e emoji composto valem um. O segmentador é criado
+ * só no primeiro uso: navegador sem Intl.Segmenter não quebra ao importar o pacote. Também é a contagem do
+ * contador das telas (via shared), para a tela e a regra contarem igual.
+ */
+export function splitCharacters(text: string): string[] {
   if (graphemeSegmenter === undefined) {
     graphemeSegmenter =
       typeof Intl.Segmenter === 'function'
@@ -65,8 +69,11 @@ function splitCharacters(text: string): string[] {
   return Array.from(graphemeSegmenter.segment(text), ({ segment }) => segment);
 }
 
-// Conta o caractere visível (grafema): acento decomposto e emoji com tom de pele contam como um.
-function validateText(value: string, max: number): TextFieldError | null {
+/**
+ * Valida um texto curto (apelido, nome, título): sem espaço nas pontas, sem caractere inválido, até `max`
+ * caracteres visíveis. Conta o grafema: acento decomposto e emoji com tom de pele contam como um.
+ */
+export function validateText(value: string, max: number): TextFieldError | null {
   const text = value.trim();
   if (hasInvalidCharacters(text)) return 'INVALID_CHARACTERS';
   if (text.length === 0) return 'EMPTY';
@@ -78,6 +85,14 @@ function validateText(value: string, max: number): TextFieldError | null {
   if (characters.some((c) => [...c].length > MAX_CODE_POINTS_PER_CHARACTER)) return 'TOO_LONG';
   if (characters.length > max) return 'TOO_LONG';
   return null;
+}
+
+/**
+ * Como `validateText`, mas a quebra de linha (`\n` ou `\r\n`) vale e conta como um caractere. Controle solto
+ * (`\r` sem `\n`, tab, `\0`) segue inválido. Para texto de várias linhas (resenha, comentário).
+ */
+export function validateMultilineText(value: string, max: number): TextFieldError | null {
+  return validateText(value.replace(/\r?\n/g, ' '), max);
 }
 
 /** Ordem alfabética do português: ignora maiúscula e acento ("Ávila" junto de "avião"). */

@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env';
 import { envFilePaths } from './config/env-files';
 import { DevModule } from './dev/dev.module';
+import { FeedModule } from './feed/feed.module';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
 import { HistoryModule } from './history/history.module';
@@ -33,6 +34,7 @@ import { VotingModule } from './voting/voting.module';
     HistoryModule,
     VotingModule,
     RankingModule,
+    FeedModule,
     DevModule.forEnvironment(),
   ],
 })

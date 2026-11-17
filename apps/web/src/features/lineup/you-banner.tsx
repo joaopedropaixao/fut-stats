@@ -9,8 +9,8 @@ type YouBannerProps = {
   team: TeamKey;
   /** O meu bonequinho. */
   avatar: PlayerAvatar;
-  /** Posição por extenso ("Zagueiro") ou `null` para reserva. */
-  position: string | null;
+  /** Posição por extenso ("Zagueiro"), `null` para reserva ou `undefined` enquanto não se sabe (sem selo). */
+  position?: string | null;
 };
 
 /** Faixa de quem está escalado: "Você joga no Branco", a posição e o selo do time. Texto e forma, não só cor. */
@@ -36,7 +36,7 @@ export function YouBanner({ team, avatar, position }: YouBannerProps) {
         <PixelText wrap>{`Você joga no ${TEAM_LABELS[team]}`}</PixelText>
         <div className="flex flex-wrap items-center gap-2">
           <Badge label={TEAM_LABELS[team]} variant={white ? 'white' : 'black'} />
-          <Badge label={position ?? 'Reserva'} variant="neutral" />
+          {position !== undefined && <Badge label={position ?? 'Reserva'} variant="neutral" />}
         </div>
       </div>
     </section>

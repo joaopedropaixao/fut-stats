@@ -3,7 +3,7 @@
  * `spritePaths` junta os pixels vizinhos da mesma cor num retângulo só (como o `rle_paths` da folha).
  */
 
-import type { PlayerAvatar } from '@fut-stats/shared';
+import type { PlayerAvatar, PostReaction } from '@fut-stats/shared';
 import { DEFAULT_AVATAR, type AvatarHair } from '../../lib/avatar';
 
 /** Mapa de pixels: uma letra por cor, `.` é vazio. */
@@ -169,3 +169,118 @@ export function spritePaths(
   });
   return byColor;
 }
+
+/**
+ * Os ícones das reações das resenhas. Altura de 12; a largura é a da linha (12, e 20 no OSS!, que é uma figurinha de
+ * texto). Uma letra por cor; `.` é vazio; `K` é o contorno escuro.
+ */
+export const REACTION_SPRITE_SIZE = 12;
+
+export const REACTION_SPRITES = {
+  // Bola: gomos escuros no branco, com contorno
+  BALL: [
+    '...KKKKKK...',
+    '..KWWKKWWK..',
+    '.KWWKKKKWWK.',
+    'KWWWWKKWWWWK',
+    'KWKWWWWWWKWK',
+    'KKKKWWWWKKKK',
+    'KKKKWWWWKKKK',
+    'KWKWWWWWWKWK',
+    'KWWWWKKWWWWK',
+    '.KWWKKKKWWK.',
+    '..KWWKKWWK..',
+    '...KKKKKK...',
+  ],
+  // Bagre: peixe de lado com três bigodes (barbilhões) à esquerda e a cauda dividida à direita
+  CATFISH: [
+    '............',
+    '............',
+    '.....D......',
+    '....DDD.....',
+    '..BBBBBBB..D',
+    'LLBBBBBBBBDD',
+    '..BWKBBBBBD.',
+    'LLBBBBBBBBD.',
+    '..LLLLLLLLDD',
+    'LLLLLLLLLLD.',
+    '............',
+    '............',
+  ],
+  // OSS!: figurinha de texto. Letras pretas grossas e retas, na mesma linha de base, cada uma com o contorno branco
+  // de 1 px, e a faixa vermelha cortando a base dos dois S (a ponta da faixa preta do jiu-jitsu)
+  OSS: [
+    '..FFF....FFFF...FFFF.',
+    '.FKKKF..FKKKKF.FKKKKF',
+    'FKKKKKFFKKKKKFFKKKKKF',
+    'FKKFKKFFKKFFF.FKKFFF.',
+    'FKKFKKFFKKKKF.FKKKKF.',
+    'FKKFKKF.FKKKKF.FKKKKF',
+    'FKKFKKF.FFFKKFFFFFKKF',
+    'FKKFKKFFRRRRRRRRRRRRF',
+    'FKKKKKFFRRRRRRRRRRRRF',
+    '.FKKKF.FKKKKFFFKKKKF.',
+    '..FFF...FFFF...FFFF..',
+    '.....................',
+  ],
+  // Cartão amarelo: cartão vertical de contorno escuro, com o brilho à esquerda e a sombra à direita. É o único
+  // ícone que leva o amarelo (autorizado pelo dono: é ícone, não tecla)
+  YELLOW_CARD: [
+    '............',
+    '...KKKKKK...',
+    '..KLLYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '..KLYYYYNK..',
+    '...KKKKKK...',
+    '............',
+  ],
+  // Pipocou: saquinho de pipoca listrado de vermelho e creme, com a pipoca estourando em cima
+  POPCORN: [
+    '...WW.WW....',
+    '..WWWWWWWW..',
+    '.WWPWWWPWWW.',
+    '.WWWWWWWWWW.',
+    '.PPPPPPPPPP.',
+    '.RRWWRRWWRR.',
+    '.RRWWRRWWRR.',
+    '.RRWWRRWWRR.',
+    '..RWWRRWWR..',
+    '..RWWRRWWR..',
+    '..RWWRRWWR..',
+    '...KKKKKK...',
+  ],
+} as const satisfies Record<PostReaction, SpriteMap>;
+
+/** As cores de cada ícone de reação (tokens do DS). O amarelo só entra no cartão amarelo, por decisão do dono. */
+export const REACTION_PALETTES = {
+  BALL: { K: '#111111', W: 'var(--color-text)' },
+  CATFISH: {
+    D: 'var(--color-silver-shadow)',
+    B: 'var(--color-silver)',
+    L: 'var(--color-silver-light)',
+    W: 'var(--color-text)',
+    K: '#111111',
+  },
+  OSS: {
+    K: '#111111',
+    F: 'var(--color-team-white)',
+    R: 'var(--color-danger)',
+  },
+  YELLOW_CARD: {
+    K: '#111111',
+    Y: 'var(--color-accent)',
+    L: 'var(--color-gold-light)',
+    N: 'var(--color-accent-pressed)',
+  },
+  POPCORN: {
+    K: '#111111',
+    W: 'var(--color-text)',
+    P: 'var(--color-text-muted)',
+    R: 'var(--color-danger)',
+  },
+} as const satisfies Record<PostReaction, Record<string, string>>;
