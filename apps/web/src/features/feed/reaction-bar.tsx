@@ -8,12 +8,12 @@ import { Bump } from '../../components/ui/bump';
 import { Icon } from '../../components/ui/icons';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { cn } from '../../lib/cn';
-import { reactionAriaLabel, reactionShortName } from './reaction-label';
+import { reactionAriaLabel } from './reaction-label';
 import { ReactionIcon } from './reaction-icon';
 
 /**
- * As 5 reações de uma resenha: ícone pixel, nome curto e contador de cada uma, em 5 colunas (≥ 44 px em 320 px). O
- * nome fica sempre visível embaixo do ícone (o desenho sozinho não basta para todas) e também vai no `title`.
+ * As 5 reações de uma resenha: só o ícone pixel e o contador de cada uma, em 5 colunas (≥ 44 px em 320 px). Sem nome
+ * visível: o nome inteiro vai no `title` e no nome acessível ("Bagre, 3 reações, a sua").
  * A minha fica com contorno grosso e ✓ (ao lado do contador, nunca sobre o ícone); tocar em outra troca, tocar na mesma tira. O contador "bate" quando muda.
  */
 export function ReactionBar({
@@ -38,19 +38,13 @@ export function ReactionBar({
             title={POST_REACTION_LABELS[reaction]}
             onClick={() => onReact(mine ? null : reaction)}
             className={cn(
-              'flex min-h-20 min-w-0 flex-col items-center justify-center gap-1 bg-surface py-1.5 active:translate-x-0.5 active:translate-y-0.5',
+              'flex min-h-14 min-w-0 flex-col items-center justify-center gap-1.5 bg-surface py-2 active:translate-x-0.5 active:translate-y-0.5',
               mine
                 ? 'text-text shadow-[inset_0_0_0_3px_var(--color-text)]'
                 : 'text-text-muted shadow-card',
             )}
           >
             <ReactionIcon reaction={reaction} />
-            <span
-              aria-hidden
-              className="max-w-full text-caption leading-none font-medium tracking-tight"
-            >
-              {reactionShortName(reaction)}
-            </span>
             {/* O ✓ da minha reação fica ao lado do contador, em linha: nunca por cima do ícone (o OSS! é largo) */}
             <span className="flex max-w-full flex-wrap items-center justify-center gap-1">
               <Bump value={count} scale={1.5}>

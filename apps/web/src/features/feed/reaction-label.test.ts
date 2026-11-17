@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reactionAriaLabel, reactionShortName } from './reaction-label';
+import { reactionAriaLabel } from './reaction-label';
 
 describe('nome do botão de reação (C36)', () => {
   it('diz o nome, quantas reações e se é a minha', () => {
@@ -9,12 +9,7 @@ describe('nome do botão de reação (C36)', () => {
   });
 });
 
-describe('nome curto embaixo do ícone', () => {
-  it('o Cartão amarelo mostra só "Cartão"; os outros mostram o nome inteiro', () => {
-    expect(reactionShortName('YELLOW_CARD')).toBe('Cartão');
-    expect(reactionShortName('CATFISH')).toBe('Bagre');
-    expect(reactionShortName('POPCORN')).toBe('Pipocou');
-  });
+describe('nome inteiro no leitor de tela', () => {
   it('o aria-label do Cartão amarelo diz o nome inteiro', () => {
     expect(reactionAriaLabel('YELLOW_CARD', 2, true)).toBe('Cartão amarelo, 2 reações, a sua');
   });

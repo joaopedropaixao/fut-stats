@@ -11,15 +11,17 @@ const post = {
 describe('barra de reações (C36)', () => {
   const html = renderToString(<ReactionBar post={post} onReact={() => {}} />);
 
-  it('mostra as 5 reações na ordem, com o nome curto visível e no title', () => {
+  it('mostra as 5 reações na ordem, com o nome só no title e sem texto visível', () => {
     const names = ['Bola', 'Bagre', 'OSS!', 'Cartão amarelo', 'Pipocou'];
     let last = -1;
     for (const name of names) {
-      expect(html).toContain(`title="${name}"`);
-      const at = html.indexOf(`>${name === 'Cartão amarelo' ? 'Cartão' : name}</span>`);
+      const at = html.indexOf(`title="${name}"`);
       expect(at).toBeGreaterThan(last);
       last = at;
+      // o nome não aparece como texto visível (nem inteiro, nem a forma curta "Cartão")
+      expect(html).not.toContain(`>${name}</`);
     }
+    expect(html).not.toContain('>Cartão</');
   });
 
   it('o nome do leitor de tela diz o nome, quantas reações e a minha', () => {

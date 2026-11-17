@@ -5,11 +5,3 @@ export function reactionAriaLabel(reaction: PostReaction, count: number, mine: b
   const total = `${count} ${count === 1 ? 'reação' : 'reações'}`;
   return `${POST_REACTION_LABELS[reaction]}, ${total}${mine ? ', a sua' : ''}`;
 }
-
-/** Nomes que não cabem no botão de 46 px (320 px) ganham uma forma curta; o nome inteiro segue no `title` e no leitor de tela. */
-const SHORT_NAMES: Partial<Record<PostReaction, string>> = { YELLOW_CARD: 'Cartão' };
-
-/** O nome que aparece embaixo do ícone da reação. */
-export function reactionShortName(reaction: PostReaction): string {
-  return SHORT_NAMES[reaction] ?? POST_REACTION_LABELS[reaction];
-}
