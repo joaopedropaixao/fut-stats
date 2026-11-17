@@ -14,8 +14,11 @@ export interface TestAppOptions {
   controllers?: Type[];
   /** Módulos de que esses controllers dependem (ex.: `AuthModule` para injetar o `SessionService`). */
   imports?: (Type | DynamicModule)[];
-  /** Providers trocados por outra classe. Só para o que é externo (ex.: o Google); nunca o Prisma. */
-  overrides?: { provide: Type; useClass: Type }[];
+  /**
+   * Providers trocados por outra classe (`provide` pode ser classe abstrata, usada como token). Só para o que é
+   * externo (ex.: o Google, o serviço de push); nunca o Prisma.
+   */
+  overrides?: { provide: Type | (abstract new (...args: never[]) => unknown); useClass: Type }[];
 }
 
 /** Sobe a app real (AppModule) apontando para o banco de teste. Feche com `app.close()`. */

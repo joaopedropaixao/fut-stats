@@ -15,6 +15,7 @@ import { LineupsModule } from './lineups/lineups.module';
 import { LiveModule } from './live/live.module';
 import { MatchModule } from './match/match.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PushModule } from './push/push.module';
 import { RankingModule } from './ranking/ranking.module';
 import { RoundsModule } from './rounds/rounds.module';
 import { VotingModule } from './voting/voting.module';
@@ -41,6 +42,7 @@ import { VotingModule } from './voting/voting.module';
     AuditModule,
     RoundEventsModule,
     LiveModule,
+    PushModule,
     DevModule.forEnvironment(),
   ],
 })
