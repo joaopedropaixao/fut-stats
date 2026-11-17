@@ -22,7 +22,7 @@ export type RoundEventType =
 
 /**
  * O sinal de uma escrita da rodada que já foi gravada. Não carrega dado de domínio: quem ouve busca o que precisa.
- * Nunca leva o conteúdo de um voto.
+ * Nunca leva o conteúdo de um voto, nem diz quem votou (`VOTE_CAST` sai sem ator).
  */
 export interface RoundEvent {
   groupId: string;

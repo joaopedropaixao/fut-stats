@@ -305,7 +305,8 @@ describe('sinal único de eventos da rodada: as escritas', () => {
       status: 200,
       type: 'VOTE_CAST',
       scopes: ['voting'],
-      actor: (c) => c.white[0]!.membershipId,
+      // O voto é anônimo: o sinal não diz quem votou.
+      actor: () => null,
     },
     'POST groups/:groupId/rounds/:roundId/voting/close': {
       setup: () => setupAuditGroup(t, { status: 'VOTING' }),
@@ -503,8 +504,10 @@ describe('sinal único de eventos da rodada: as escritas', () => {
       'scopes',
       'type',
     ]);
+    expect(heard[0]!.actorMembershipId).toBeNull();
     const text = JSON.stringify(heard[0]);
-    for (const secret of [mvpId, flopId, 'ratings', 'targetId']) expect(text).not.toContain(secret);
+    for (const secret of [voter.membershipId, voter.userId, mvpId, flopId, 'ratings', 'targetId'])
+      expect(text).not.toContain(secret);
   });
 
   it('E9: um ouvinte que lança não derruba a escrita nem esconde o sinal dos outros', async () => {

@@ -259,7 +259,8 @@ export class VotingService {
         roundId,
         type: 'VOTE_CAST',
         scopes: ['voting'],
-        actorMembershipId: membership.id,
+        // O voto é anônimo: nenhum ouvinte do sinal precisa saber quem votou.
+        actorMembershipId: null,
       });
     } else {
       this.events.emit({
