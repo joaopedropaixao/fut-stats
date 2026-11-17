@@ -1,17 +1,17 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { ResultAlert } from './result-alert';
 
-describe('aviso grande do resultado (C27, ouro de identidade e tecla amarela)', () => {
-  const html = renderToString(
-    <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter>
-        <ResultAlert groupId="g1" roundId="r8" number={8} />
-      </MemoryRouter>
-    </QueryClientProvider>,
+const render = (hasPack?: boolean) =>
+  renderToString(
+    <MemoryRouter>
+      <ResultAlert roundId="r8" number={8} hasPack={hasPack} />
+    </MemoryRouter>,
   );
+
+describe('aviso grande do resultado (ouro de identidade e tecla amarela)', () => {
+  const html = render(false);
 
   it('a identidade é o ouro: moldura, faixa do cabeçalho e rótulo da rodada', () => {
     expect(html).toContain('Rodada 8');
@@ -30,5 +30,25 @@ describe('aviso grande do resultado (C27, ouro de identidade e tecla amarela)', 
     expect(html).toContain('moment-frame');
     expect(html).toContain('animate-moment-in');
     expect(html).toContain('5px 5px 0 var(--color-shadow)');
+  });
+});
+
+describe('aviso grande do resultado com o `hasPack` do aviso (C42)', () => {
+  it('com pacote: miniatura do pacote e "Abrir pacote", sem buscar o resultado', () => {
+    const html = render(true);
+    expect(html).toContain('Abrir pacote');
+    expect(html).toContain('animate-pack-wobble');
+    expect(html).toContain('Quem foi o craque?');
+    expect(html).toContain('href="/rodadas/r8/resultado"');
+  });
+
+  it('sem pacote: ícone e "Ver resultado"', () => {
+    const html = render(false);
+    expect(html).toContain('Ver resultado');
+    expect(html).not.toContain('animate-pack-wobble');
+  });
+
+  it('aviso sem o campo (API antiga): não promete pacote', () => {
+    expect(render(undefined)).toContain('Ver resultado');
   });
 });
