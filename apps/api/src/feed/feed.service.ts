@@ -56,6 +56,9 @@ export class FeedService {
     const attendanceOf = new Map(attendanceRows.map((row) => [row.roundId, row.confirmed]));
     const voted = new Set(voteRows.map((row) => row.roundId));
     const byId = new Map(rounds.map((round) => [round.id, round]));
+    const packRoundIds = await this.roundsWithPack(
+      alerts.filter((alert) => alert.type === 'RESULT').map((alert) => alert.roundId),
+    );
 
     return alerts.map(({ type, roundId }): FeedAlert => {
       const round = byId.get(roundId)!;
@@ -75,8 +78,22 @@ export class FeedService {
         case 'VOTING':
           return { ...base, me: { played: teamOf.has(roundId), voted: voted.has(roundId) } };
         case 'RESULT':
-          return { ...base, me: {} };
+          return { ...base, me: {}, hasPack: packRoundIds.has(roundId) };
       }
     });
+  }
+
+  /**
+   * Das rodadas, as que têm Craque com nota (`isMvp` com `roundScore`), e por isso o resultado chega como pacote
+   * (a mesma regra do `hasPack` do web). Rodada fechada sem votos não tem. Sem rodada, nem consulta.
+   */
+  private async roundsWithPack(roundIds: string[]): Promise<Set<string>> {
+    if (roundIds.length === 0) return new Set();
+    const rows = await this.prisma.teamPlayer.findMany({
+      where: { roundId: { in: roundIds }, isMvp: true, roundScore: { not: null } },
+      select: { roundId: true },
+      distinct: ['roundId'],
+    });
+    return new Set(rows.map((row) => row.roundId));
   }
 }
