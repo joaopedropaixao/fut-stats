@@ -923,13 +923,15 @@ front decidir quem pode editar ou apagar (`canManage` e `canDelete` vêm da API)
 ### Sinal de eventos da rodada e canal ao vivo: `RoundEvent` / `RoundStreamEvent` / `LIVE_ROUND_STATUSES` 🚧
 **O que é:** um sinal técnico, sem regra de negócio nova. O `RoundEventsService` (`apps/api/src/events`) avisa, em
 memória, que uma escrita da rodada acabou de ser gravada: `{ groupId, roundId, type, scopes, actorMembershipId }`,
-com `type` entre `ROUND_CREATED`, `TEAMS_PUBLISHED`, `TEAMS_UNPUBLISHED`, `MATCH_STARTED`, `SCORE_SET`,
+com `type` entre `ROUND_CREATED`, `ROUND_UPDATED`, `ROUND_DELETED`, `TEAMS_PUBLISHED`, `TEAMS_UNPUBLISHED`, `MATCH_STARTED`, `SCORE_SET`,
 `MATCH_FINISHED`, `VOTING_OPENED`, `EVENT_LAUNCHED`, `EVENT_REMOVED`, `ROTATION_STARTED`, `ROTATION_STOPPED`,
 `VOTE_CAST` e `VOTING_CLOSED`, e `scopes` entre `match` (jogo), `voting` (votação) e `status` (etapa).
 **Quem ouve:** vários ouvintes no mesmo sinal. Hoje o canal ao vivo (SSE, `GET /api/groups/:groupId/rounds/:roundId/stream`,
 contrato em `packages/shared/src/live.ts`), que repassa só `{ scopes, at }` (`RoundStreamEvent`) aos aparelhos
 conectados, para eles buscarem a própria visão; o push da `pwa-e-push` ouve o mesmo sinal, e um serviço de notificação
-futuro entra do mesmo jeito. Só membro ativo do grupo abre o canal (resposta comum 404 para o resto).
+futuro entra do mesmo jeito. Só membro ativo do grupo abre o canal, e só para rodada numa etapa com canal
+(`LIVE_ROUND_STATUSES`: de `SCHEDULED` a `VOTING`; encerrada não); resposta comum 404 para o resto. A presença
+não sinaliza.
 **Faz:** sinaliza depois do commit, uma vez por escrita que mudou algo; `actorMembershipId` é quem pediu, ou `null`
 quando ninguém pediu (último voto, prazo vencido, relógio) e no `VOTE_CAST`.
 **Não faz:** não carrega dado de domínio, nunca o conteúdo do voto nem quem votou; não sinaliza escrita recusada, o

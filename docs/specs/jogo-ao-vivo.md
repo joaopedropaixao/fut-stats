@@ -34,7 +34,7 @@ Nenhuma regra de negócio nova. Regras técnicas do canal:
 
 | Escrita | `scopes` |
 |---|---|
-| publicar / despublicar times | `status` |
+| marcar, editar ou apagar a rodada; publicar / despublicar times | `status` |
 | começar o jogo, finalizar, abrir a votação | `match`, `status` |
 | placar, lançar e apagar lance, ligar e parar o rodízio | `match` |
 | votar (novo ou editado) | `voting` |
@@ -76,7 +76,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C19 | canal derrubado (rota do stream abortada no Playwright) | A lança um gol | aparece em B pelo modo antigo, em até 5 s na Resenha (15 s em jogo e na votação) | Playwright |
 | C20 | canal volta | esperar a nova tentativa | B reconecta, busca tudo uma vez e volta ao tempo real | Playwright |
 | C21 | B esconde a aba | olhar a rede | a conexão fecha; ao voltar, reconecta e atualiza na hora | Playwright |
-| C22 | rodada sem nada ao vivo (`SCHEDULED`, `CLOSED`) ou sem rodada | abrir o app | nenhuma conexão de stream aberta | Playwright |
+| C22 | rodada encerrada (`CLOSED`) ou sem rodada; rodada agendada que não é a da vez | abrir o app | nenhuma conexão de stream aberta (a da vez agendada abre: é por onde chegam os times publicados) | Playwright |
 | C23 | qualquer tela, canal conectado e depois derrubado | olhar | nada muda no visual e nenhum aviso de erro aparece para a pessoa; console sem erros de JavaScript (falha de rede do stream não é erro de JS) | Playwright |
 | C24 | larguras 320, 375, 390, 430 px e desktop | telas do jogo e da votação recebendo atualização | a atualização não desloca o layout nem cria sobreposição (os dígitos "batem" no lugar) | Playwright |
 
@@ -107,7 +107,7 @@ export const roundStreamEventSchema = z.object({
 export type RoundStreamEvent = z.infer<typeof roundStreamEventSchema>;
 
 /** Etapas em que vale manter o canal aberto. */
-export const LIVE_ROUND_STATUSES = ['TEAMS_PUBLISHED', 'IN_PROGRESS', 'POST_MATCH', 'VOTING'] as const;
+export const LIVE_ROUND_STATUSES = ['SCHEDULED', 'TEAMS_PUBLISHED', 'IN_PROGRESS', 'POST_MATCH', 'VOTING'] as const;
 ```
 
 Nenhuma rota existente muda.
@@ -122,12 +122,13 @@ Na API:
 - **Sinal único de eventos da rodada (decisão do dono, 17 nov 2026):** `apps/api/src/events`, com
   `RoundEventsService` sobre um `EventEmitter` do Node (`setMaxListeners(0)`). Toda escrita da rodada dispara **uma
   vez, depois do commit**, `RoundEvent = { groupId, roundId, type, scopes, actorMembershipId | null }` (`type` com os
-  nomes da `AuditAction` onde existem, mais `ROTATION_STARTED/STOPPED`, `VOTE_CAST` e **`ROUND_CREATED`**
+  nomes da `AuditAction` onde existem, mais `ROTATION_STARTED/STOPPED`, `VOTE_CAST`, `ROUND_UPDATED`/`ROUND_DELETED` (review do PR #75) e **`ROUND_CREATED`**
   (rodada marcada, `scopes: ['status']`, que o push precisa)). Quem precisa **ouve**: o SSE desta fatia e o push da
   `pwa-e-push`. Esta fatia é a dona do sinal: ele entra num commit isolado, aplicável sobre a develop
   (`feat(api): sinal único de eventos da rodada`), que a `pwa-e-push` traz por cherry-pick. Nada sensível no evento
   (voto nunca).
-- **`apps/api/src/live`:** só um ouvinte do sinal (`subscribe(groupId, roundId, listener): () => void`), que
+- **`apps/api/src/live`:** só abre para rodada em `LIVE_ROUND_STATUSES` (encerrada → 404) e liga o `close` antes de
+  conferir a rodada (cliente que desiste no meio não deixa ouvinte nem pulso). Só um ouvinte do sinal (`subscribe(groupId, roundId, listener): () => void`), que
   repassa `{ scopes, at }`. `LiveController` com o
   `GET` (`@GroupMember()`, confere que a rodada é do grupo antes de abrir o fluxo; `@Sse()` do Nest ou a resposta
   na mão, o que der os cabeçalhos certos). Cancelar a inscrição no `close` da requisição.
@@ -162,13 +163,17 @@ Sem mudança visual. Regra 7 do documento de autonomia (sem sobreposição) vale
 atualizar sozinhas.
 - **`features/live/use-round-stream.ts`:** abre um `EventSource` para a rodada, valida cada mensagem com
   `roundStreamEventSchema` e invalida as consultas pelo escopo:
-  - `match` → a visão do jogo (`matchKey`) e o histórico (`historyKey`, exato), que já é invalidado depois de lance;
-  - `voting` → a visão da votação e o resultado;
-  - `status` → o detalhe da rodada, os times (`lineup`) e a lista de rodadas **por prefixo** (`roundsKey(groupId)`
-    sem `exact`), que leva junto os avisos do Feed.
-  Ao (re)conectar, invalida os três escopos (pode ter perdido aviso). A lógica de estado (conectado, tentando,
-  modo antigo) é uma máquina pura com teste (`stream-state.ts`): 3 falhas seguidas em 1 min → modo antigo por
-  60 s, depois tenta de novo.
+  - `match` → a visão do jogo (`matchKey`); o histórico (`historyKey`) só na troca de etapa e na Resenha, nunca
+    por placar ou lance em jogo;
+  - `voting` → a visão da votação e o resultado; `voting` + `status` (a votação fechou) → também o histórico, o
+    ranking e as figurinhas;
+  - `status` → tudo **desta rodada** por prefixo (`roundKey(groupId, roundId)`: detalhe, times, jogo, votação),
+    mais a lista de rodadas e os avisos do Feed (exatos).
+  O que é do grupo (lista, avisos, histórico, ranking) é pedido sem cancelar a busca em andamento: com dois canais,
+  o segundo aviso entra na busca do primeiro. Ao (re)conectar, invalida os três escopos (pode ter perdido aviso).
+  A lógica de estado (conectado, tentando, modo antigo) é uma máquina pura com teste (`stream-state.ts`): 3 falhas
+  seguidas em 1 min → modo antigo por 60 s, depois tenta de novo. O `ready` só zera as falhas se a conexão ficar
+  de pé por 30 s (`STABLE_MS`): conexão que abre e cai logo não fica num laço de reconexão.
 - **`features/live/live-rounds.tsx`:** montado no `AppShell`. Lê a lista de rodadas e mantém o canal aberto para
   a rodada da vez e para a rodada em votação (no máximo 2 conexões), só em `LIVE_ROUND_STATUSES` e com a aba
   visível. Assim toda tela se beneficia sem cada uma abrir o seu. Desde `feed` (#74) o início é o Feed: os avisos
@@ -244,7 +249,7 @@ em `packages/shared/src/live.ts` (corrigido em `ca8c393`, só formatação). Vol
 | C19 | ✅ | stream abortado: modo antigo a cada 5 s na Resenha; gol em 1,07 s |
 | C20 | ✅ | reconecta ao fim do minuto do modo antigo, busca uma vez e para o polling; lance seguinte em 331 ms |
 | C21 | ✅ | aba escondida fecha as conexões; ao voltar reconecta e atualiza na hora |
-| C22 | ✅ | `SCHEDULED`, `CLOSED` e sem rodada: nenhuma conexão |
+| C22 | ✅ | `SCHEDULED`, `CLOSED` e sem rodada: nenhuma conexão (antes do review; a da vez agendada passou a abrir) |
 | C23 | ✅ | nada muda no visual com o canal derrubado; nenhum erro de JS no console |
 | C24 | ✅ | 320/375/390/430/1280 no jogo, Resenha e votação recebendo atualização: sem rolagem horizontal nem sobreposição desta fatia |
 
