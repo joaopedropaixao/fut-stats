@@ -8,7 +8,13 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { apiDeleteNoContent, apiGet, apiPost, apiPutNoContent } from '../../lib/api';
 import { detectIos, readStandalone } from './device';
-import { pushState, type PushPermission, type PushState } from './push-state';
+import {
+  pushState,
+  showEnablePushLine,
+  type PushPermission,
+  type PushState,
+  type PushStateInput,
+} from './push-state';
 import { urlBase64ToUint8Array } from './push-subscription';
 
 /** Quanto esperar o service worker ficar pronto ao ligar (em dev ele não existe e o `ready` nunca responde). */
@@ -50,6 +56,8 @@ export type PushTestStatus = 'idle' | 'sending' | 'sent' | 'not-registered' | 'e
 
 export type UsePush = {
   state: PushState;
+  /** A linha "Ative os avisos" do Feed vale agora (ver `showEnablePushLine`). */
+  enableLine: boolean;
   permission: PushPermission;
   /** Ligando ou desligando. */
   busy: boolean;
@@ -153,7 +161,7 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
     onError: () => setTestStatus('error'),
   });
 
-  const state = pushState({
+  const input: PushStateInput = {
     serverEnabled: config.data?.enabled,
     ios: detectIos(),
     standalone: readStandalone(),
@@ -164,11 +172,12 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
         ? undefined
         : subscription !== null
       : false,
-  });
+  };
 
   const publicKey = config.data?.publicKey ?? null;
   return {
-    state,
+    state: pushState(input),
+    enableLine: showEnablePushLine(input),
     permission,
     busy: enableMutation.isPending || disableMutation.isPending,
     failed,

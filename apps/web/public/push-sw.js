@@ -68,7 +68,7 @@ function pickClickAction(windowClients, origin) {
 function readPushData(event) {
   try {
     return event.data ? event.data.json() : null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -99,6 +99,7 @@ function onNotificationClick(scope, event) {
 }
 
 // Só dentro de um service worker de verdade (o Vitest roda o arquivo numa sandbox sem este escopo global)
+/* global ServiceWorkerGlobalScope */
 if (typeof ServiceWorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope) {
   self.addEventListener('push', function (event) {
     onPush(self, event);

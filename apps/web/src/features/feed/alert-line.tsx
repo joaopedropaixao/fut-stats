@@ -1,9 +1,9 @@
 import type { FeedAlert, FeedAlertType } from '@fut-stats/shared';
-import type { CSSProperties } from 'react';
 import { Link } from 'react-router';
 import { ALERT_TONES } from '../../components/ui/alert-tone';
 import { Icon, type IconName } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
+import { ALERT_LINE_CLASS, alertLineStyle } from './alert-line-style';
 import { alertAriaLabel, alertText } from './alert-text';
 
 const ICONS: Partial<Record<FeedAlertType, IconName>> = {
@@ -36,13 +36,8 @@ export function AlertLine({ alert, resultOpened = false, index = 0 }: AlertLineP
       to={text.to}
       aria-label={alertAriaLabel(text)}
       data-alert={alert.type}
-      className="animate-row-in flex min-h-14 items-stretch gap-3 bg-surface-raised pr-3 active:translate-x-1 active:translate-y-1 active:shadow-none"
-      style={
-        {
-          '--moment-delay': `${index * 80}ms`,
-          boxShadow: 'inset 0 0 0 2px var(--color-border-strong), 3px 3px 0 var(--color-shadow)',
-        } as CSSProperties
-      }
+      className={ALERT_LINE_CLASS}
+      style={alertLineStyle(index)}
     >
       <span aria-hidden className="w-2 shrink-0" style={{ background: tone.stripe }} />
       <span className="flex min-w-0 flex-1 items-center gap-3 py-2">

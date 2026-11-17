@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { cn } from '../../lib/cn';
-import { Icon } from './icons';
+import { Icon, Spinner } from './icons';
 import { PixelText } from './pixel-text';
 
 type SwitchProps = {
@@ -9,6 +9,8 @@ type SwitchProps = {
   onCheckedChange: (checked: boolean) => void;
   /** Travado: o estado aparece, não muda, e o `hint` diz por quê (cadeado, não só cor). */
   disabled?: boolean;
+  /** Esperando a resposta: o botão não responde ao toque e a bolinha vira a rodinha. */
+  loading?: boolean;
   hint?: string;
   className?: string;
 };
@@ -22,6 +24,7 @@ export function Switch({
   checked,
   onCheckedChange,
   disabled,
+  loading,
   hint,
   className,
 }: SwitchProps) {
@@ -52,7 +55,8 @@ export function Switch({
         aria-checked={checked}
         aria-label={label}
         aria-describedby={hint ? `${labelId} ${hintId}` : labelId}
-        disabled={disabled}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
         onClick={() => onCheckedChange(!checked)}
         className="flex h-12 w-20 shrink-0 items-center justify-center disabled:opacity-60"
       >
@@ -83,7 +87,13 @@ export function Switch({
               'transition-[left] duration-(--duration-normal) ease-out',
               checked ? 'left-10' : 'left-1',
             )}
-          />
+          >
+            {loading && (
+              <span className="absolute inset-0 flex items-center justify-center text-[#000]">
+                <Spinner size={16} />
+              </span>
+            )}
+          </span>
         </span>
       </button>
     </div>

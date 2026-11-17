@@ -1,8 +1,9 @@
 import { useEffect, useRef, type ReactNode, type Ref } from 'react';
-import { Navigate, Outlet, useLocation, useNavigation } from 'react-router';
+import { Navigate, Outlet, useLocation, useNavigation, useSearchParams } from 'react-router';
 import { ErrorState, SkeletonList } from '../components/ui/states';
 import { TabBar } from '../components/ui/tab-bar';
 import { peekPendingDestination } from '../features/group/invite-code';
+import { setCurrentGroupId } from '../features/group/use-current-group';
 import { LiveRoundsMount } from '../features/live/live-rounds-mount';
 import { useSession } from '../features/session/use-session';
 import { TABS } from './tabs';
@@ -20,6 +21,24 @@ export function AppShell() {
   const firstRender = useRef(true);
   // Trocou de tela e o pedaço dela ainda está vindo: a tela anterior fica; passou de 300 ms, entra o esqueleto
   const loadingScreen = useDelayedFlag(useNavigation().state === 'loading', SLOW_NAVIGATION_MS);
+
+  // O aviso push abre o app com `?grupo=<id>` (a pelada do aviso): troca a pelada atual se ela é do usuário,
+  // ignora se não é, e tira o parâmetro da URL. Espera a sessão para saber de quem são as peladas.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const groupParam = searchParams.get('grupo');
+  const myGroups = session.data?.groups;
+  useEffect(() => {
+    if (groupParam === null || !myGroups) return;
+    if (myGroups.some((g) => g.id === groupParam)) setCurrentGroupId(groupParam);
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('grupo');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [groupParam, myGroups, setSearchParams]);
 
   // Trocou de aba: o foco vai para o título da tela, para o leitor de tela anunciar onde a pessoa está
   useEffect(() => {
@@ -58,7 +77,8 @@ export function AppShell() {
           retrying={session.isFetching}
         />
       )}
-      {ready && (loadingScreen ? <SkeletonList rows={3} /> : <Outlet />)}
+      {/* Com `?grupo=` ainda na URL a pelada está para trocar: a tela espera o frame em vez de abrir a errada */}
+      {ready && (loadingScreen || groupParam !== null ? <SkeletonList rows={3} /> : <Outlet />)}
       {ready && <LiveRoundsMount />}
     </ShellFrame>
   );
