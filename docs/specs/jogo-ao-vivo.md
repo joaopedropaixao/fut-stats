@@ -218,4 +218,36 @@ um item para ligar o stream direto no domínio da API.
 - P14 · Tempo real depois de `votacao` (onda 5)? → Sim (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**2 voltas. VEREDITO: APROVADO** (17 nov 2026). Volta 1: os 24 cenários passaram, reprovada só pelo `prettier --check`
+em `packages/shared/src/live.ts` (corrigido em `ca8c393`, só formatação). Volta 2: aprovada.
+
+| Id | Resultado | Evidência |
+|---|---|---|
+| C1 | ✅ | `live.spec.ts`: 200, `text/event-stream`, `no-cache, no-transform`, `X-Accel-Buffering: no`, `event: ready` primeiro, `retry: 3000` |
+| C2 | ✅ | dois membros recebem `{ scopes: ['match'], at }` em < 1 s; o evento passa no `roundStreamEventSchema` |
+| C3 | ✅ | rotas lidas dos decorators (match, lineups, voting) + votar + rodízio; um aviso por escrita com os escopos da tabela; último voto `voting`+`status` |
+| C4 | ✅ | 409, 403, 404 e voto inválido não avisam |
+| C5 | ✅ | outra rodada do grupo e outro grupo não chegam |
+| C6 | ✅ | `closeDueVotings` avisa `voting`+`status` só quando fecha de fato |
+| C7 | ✅ | `: ping` com o pulso baixado a 300 ms no teste |
+| C8 | ✅ | `listenerCount` volta ao que era, inclusive depois de 30 conexões |
+| C9 | ✅ | 401 sem sessão; 404 para outro grupo, inativo, rodada de outro grupo e inexistente, sem abrir fluxo |
+| C10 | ✅ | 50 conexões recebem; a escrita responde em < 1,5 s |
+| C11 | ✅ | ouvinte que lança e conexão cortada não derrubam a escrita nem os outros |
+| C12 | ✅ | o evento só tem `at` e `scopes`; o `VOTE_CAST` do sinal sai sem autor |
+| C13 | ✅ | gol de A aparece em B em ~0,1 s |
+| C14 | ✅ | começar: 40 ms; finalizar 3x2 → "Hora da Resenha": 48 ms, sem recarregar |
+| C15 | ✅ | card do rodízio em B em 49 ms |
+| C16 | ✅ | medidor 9 → 10 de 16 em 40 ms |
+| C17 | ✅ | "A votação fechou" ao enviar; Feed mostra "O resultado saiu" em 33 ms |
+| C18 | ✅ | 60 s parado na Resenha: **1 pedido** (antes: 12) |
+| C19 | ✅ | stream abortado: modo antigo a cada 5 s na Resenha; gol em 1,07 s |
+| C20 | ✅ | reconecta ao fim do minuto do modo antigo, busca uma vez e para o polling; lance seguinte em 331 ms |
+| C21 | ✅ | aba escondida fecha as conexões; ao voltar reconecta e atualiza na hora |
+| C22 | ✅ | `SCHEDULED`, `CLOSED` e sem rodada: nenhuma conexão |
+| C23 | ✅ | nada muda no visual com o canal derrubado; nenhum erro de JS no console |
+| C24 | ✅ | 320/375/390/430/1280 no jogo, Resenha e votação recebendo atualização: sem rolagem horizontal nem sobreposição desta fatia |
+
+Checagens: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` verde na raiz (api 649, web 635, domain 498,
+shared 4); JS inicial 117,9 kB de 150 (o canal vem num pedaço tardio de 2,3 kB); sem `schema.prisma`, lockfile ou
+dependência nova; o sinal (`c1adba2` + `9569ebb`) aplica limpo sobre a develop.
