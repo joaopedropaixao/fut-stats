@@ -1,10 +1,28 @@
-import { Injectable, Logger, type OnApplicationShutdown } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  type OnApplicationShutdown,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { notificationRecipients, votingDeadline, type NotificationType } from '@fut-stats/domain';
 import { notificationContent, type PushPayload } from '@fut-stats/shared';
 import { getRequestId } from '../common/request-context';
+import { RoundEventsService, type RoundEventType } from '../events/round-events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from './push.service';
 import { PushSender } from './push-sender';
+
+/**
+ * Qual evento da rodada vira qual aviso. `TEAMS_UNPUBLISHED` e o resto não avisam. `VOTING_CLOSED` é um evento só para
+ * o admin, o último voto, o prazo e o relógio: o aviso sai uma vez por fechamento.
+ */
+const EVENT_TO_NOTIFICATION: Partial<Record<RoundEventType, NotificationType>> = {
+  ROUND_CREATED: 'ROUND_CREATED',
+  TEAMS_PUBLISHED: 'TEAMS_PUBLISHED',
+  VOTING_OPENED: 'VOTING_OPENED',
+  VOTING_CLOSED: 'RESULT_OUT',
+};
 
 export interface NotifyInput {
   groupId: string;
@@ -19,15 +37,35 @@ export interface NotifyInput {
  * (`notificationRecipients`); o texto é do shared (`notificationContent`); o envio é do `PushSender`.
  */
 @Injectable()
-export class NotificationsService implements OnApplicationShutdown {
+export class NotificationsService implements OnModuleInit, OnModuleDestroy, OnApplicationShutdown {
   private readonly logger = new Logger(NotificationsService.name);
   private readonly pending = new Set<Promise<void>>();
+  private stopListening: (() => void) | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushService,
     private readonly sender: PushSender,
+    private readonly events: RoundEventsService,
   ) {}
+
+  /** Ouve o sinal único da rodada: quem escreve na rodada não conhece o push. */
+  onModuleInit(): void {
+    this.stopListening = this.events.on((event) => {
+      const type = EVENT_TO_NOTIFICATION[event.type];
+      if (!type) return;
+      this.notify(type, {
+        groupId: event.groupId,
+        roundId: event.roundId,
+        actorId: event.actorMembershipId,
+      });
+    });
+  }
+
+  onModuleDestroy(): void {
+    this.stopListening?.();
+    this.stopListening = null;
+  }
 
   /** Dispara e volta na hora. Erro vai para o log com o `requestId` de quem pediu; nada sobe. */
   notify(type: NotificationType, input: NotifyInput): void {

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { RoundEventsModule } from '../events/round-events.module';
 import { NotificationsService } from './notifications.service';
 import { PushController } from './push.controller';
 import { PushSender } from './push-sender';
@@ -7,6 +8,7 @@ import { WebPushSender } from './web-push-sender';
 
 /** Avisos push: assinaturas por aparelho, `NotificationsService` (exportado) e o enviador (`PushSender`). */
 @Module({
+  imports: [RoundEventsModule],
   controllers: [PushController],
   providers: [PushService, NotificationsService, { provide: PushSender, useClass: WebPushSender }],
   exports: [NotificationsService],
