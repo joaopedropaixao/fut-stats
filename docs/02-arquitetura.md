@@ -54,6 +54,31 @@ produção). Só considerar o Railway se a API "dormindo" incomodar de verdade o
 | `main` | produção | Neon branch `prod` |
 | `feature/*` | preview da Vercel por PR | Neon branch `dev` |
 
+### Tempo real: sinal único de eventos da rodada e canal ao vivo
+
+**O sinal (`apps/api/src/events`).** Toda escrita da rodada que já foi gravada vira um `RoundEvent`
+(`{ groupId, roundId, type, scopes, actorMembershipId }`) no `RoundEventsService`, um `EventEmitter` do Node em
+memória (`setMaxListeners(0)`). Os services de `rounds`, `lineups`, `match` e `voting` chamam `emit` **depois** que a
+transação resolve (nunca dentro); erro ao sinalizar é registrado e engolido, e um ouvinte com erro não impede os
+outros. O sinal não carrega dado de domínio e nunca o conteúdo de um voto (`VOTE_CAST` sai sem autor: o voto é
+anônimo). Quem se interessa ouve: `on(listener)` para tudo, `subscribe(groupId, roundId, listener)` para uma rodada.
+
+**Os ouvintes.** Hoje, o canal ao vivo (SSE, abaixo). A `pwa-e-push` ouve o mesmo sinal para mandar o push. Um
+serviço de notificação futuro entra do mesmo jeito, sem mexer nos services de escrita.
+
+**O canal ao vivo (`apps/api/src/live`).** `GET /api/groups/:groupId/rounds/:roundId/stream` é um fluxo
+Server-Sent Events. É só um ouvinte do sinal (`subscribe` por rodada): repassa `{ scopes, at }` (`match`, `voting`,
+`status`) e mais nada. Cada aparelho busca a própria visão pela rota de sempre, com as permissões dele.
+
+- **Um processo só:** o emissor vive na memória e serve enquanto a API roda numa instância (Render gratuito). Com
+  mais de uma instância, quem escreve numa não alcança quem está conectado na outra.
+- **Caminho para crescer:** trocar o `EventEmitter` por `LISTEN/NOTIFY` do Postgres. `emit` vira `NOTIFY` num canal
+  com o `RoundEvent` e cada instância, ao receber o `LISTEN`, repassa aos próprios ouvintes. A interface do serviço
+  (`emit`, `on`, `subscribe`) e o contrato do fluxo não mudam. O payload do `NOTIFY` tem limite de 8 kB, de sobra
+  para um sinal sem dado.
+- **Proxy:** o fluxo sai com `Cache-Control: no-cache, no-transform` e `X-Accel-Buffering: no`, e a API manda um
+  comentário `: ping` a cada `STREAM_HEARTBEAT_MS` (padrão 20 s) para a conexão não cair parada.
+
 ## Estrutura do repositório (planejada)
 
 ```

@@ -15,6 +15,8 @@ export const envSchema = z.object({
    * `0` desliga (os testes). Fechar também acontece no último voto e ao abrir o app depois do prazo.
    */
   VOTING_CLOSER_INTERVAL_MS: z.coerce.number().int().min(0).default(60_000),
+  /** Intervalo do `: ping` do canal ao vivo, em ms (mantém a conexão viva atrás de proxy). Padrão 20 000. */
+  STREAM_HEARTBEAT_MS: z.coerce.number().int().positive().default(20_000),
   /** Credenciais do client OAuth "Web application" do Google Cloud. */
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),

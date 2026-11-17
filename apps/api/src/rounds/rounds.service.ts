@@ -32,6 +32,7 @@ import {
 } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
+import { RoundEventsService } from '../events/round-events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RankingService } from '../ranking/ranking.service';
 import { VotingService } from '../voting/voting.service';
@@ -77,6 +78,7 @@ export class RoundsService {
     private readonly prisma: PrismaService,
     private readonly voting: VotingService,
     private readonly ranking: RankingService,
+    private readonly events: RoundEventsService,
   ) {}
 
   async create(membership: GroupMembership, input: CreateRoundInput): Promise<RoundDetail> {
@@ -87,6 +89,13 @@ export class RoundsService {
         location: input.location,
       },
       select: { id: true },
+    });
+    this.events.emit({
+      groupId: membership.groupId,
+      roundId: round.id,
+      type: 'ROUND_CREATED',
+      scopes: ['status'],
+      actorMembershipId: membership.id,
     });
     return this.detail(membership, round.id);
   }

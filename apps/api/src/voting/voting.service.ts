@@ -42,6 +42,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
+import { RoundEventsService } from '../events/round-events.service';
 import type { Position } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoundLockService, type RoundTx } from '../rounds/round-lock.service';
@@ -172,6 +173,7 @@ export class VotingService {
     private readonly prisma: PrismaService,
     private readonly roundLock: RoundLockService,
     private readonly audit: AuditService,
+    private readonly events: RoundEventsService,
   ) {}
 
   /** A votação da rodada: quem jogou, quantos votaram, o meu voto e o que posso fazer. Nunca traz voto de outra pessoa. */
@@ -246,9 +248,29 @@ export class VotingService {
       const reason = votingCloseReason(now, votingStateOf(after));
       // Quem votou por último não aparece: o voto é anônimo, o fechamento não tem ator.
       if (reason) await this.closeRound(tx, after, reason, now, null);
-      return 'VOTED' as const;
+      return reason ? ('VOTED_AND_CLOSED' as const) : ('VOTED' as const);
     });
 
+    // O voto recusado por prazo também fechou a rodada (a transação gravou o fechamento). Fechar pelo último voto
+    // ou pelo prazo é automático: sem ator (o voto é anônimo).
+    if (outcome === 'VOTED') {
+      this.events.emit({
+        groupId: membership.groupId,
+        roundId,
+        type: 'VOTE_CAST',
+        scopes: ['voting'],
+        // O voto é anônimo: nenhum ouvinte do sinal precisa saber quem votou.
+        actorMembershipId: null,
+      });
+    } else {
+      this.events.emit({
+        groupId: membership.groupId,
+        roundId,
+        type: 'VOTING_CLOSED',
+        scopes: ['voting', 'status'],
+        actorMembershipId: null,
+      });
+    }
     if (outcome === 'CLOSED') throw votingError('VOTING_CLOSED');
     return this.buildView(membership, roundId, now);
   }
@@ -264,6 +286,13 @@ export class VotingService {
       // Se já era hora de fechar (prazo ou todo mundo votou), o motivo verdadeiro é esse, não o admin.
       const reason = votingCloseReason(now, votingStateOf(round)) ?? 'ADMIN_CLOSED';
       await this.closeRound(tx, round, reason, now, membership.id);
+    });
+    this.events.emit({
+      groupId: membership.groupId,
+      roundId,
+      type: 'VOTING_CLOSED',
+      scopes: ['voting', 'status'],
+      actorMembershipId: membership.id,
     });
     return this.buildView(membership, roundId, now);
   }
@@ -377,7 +406,16 @@ export class VotingService {
             return true;
           },
         );
-        if (done) closed += 1;
+        if (done) {
+          closed += 1;
+          this.events.emit({
+            groupId: candidate.groupId,
+            roundId: candidate.id,
+            type: 'VOTING_CLOSED',
+            scopes: ['voting', 'status'],
+            actorMembershipId: null,
+          });
+        }
       } catch (error) {
         this.logger.error(
           `Não consegui fechar a votação da rodada ${candidate.id}`,
