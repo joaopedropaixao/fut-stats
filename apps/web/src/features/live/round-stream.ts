@@ -74,7 +74,7 @@ export function connectRoundStream<Scope>(options: RoundStreamOptions<Scope>): (
     const live = () => !closed && source === current;
     current.addEventListener('ready', () => {
       if (!live()) return;
-      setState(onReady());
+      setState(onReady(state, now()));
       options.onChanged(options.fallbackScopes);
     });
     current.addEventListener('changed', (event) => {

@@ -115,6 +115,24 @@ describe('round-stream: o canal ao vivo da rodada', () => {
     expect(modes.at(-1)).toBe('live');
   });
 
+  it('conexão que abre e cai logo: não reconecta para sempre, vai para o modo antigo na 3ª queda', () => {
+    const { changed, modes } = setup();
+    for (let i = 0; i < 3; i += 1) {
+      last().emit('ready', '{}');
+      vi.advanceTimersByTime(500);
+      last().emit('error');
+      if (i < 2) vi.advanceTimersByTime(RECONNECT_MS);
+    }
+    expect(FakeSource.all).toHaveLength(3);
+    expect(modes.at(-1)).toBe('polling');
+    // no modo antigo não tenta (nem refaz tudo) a cada 3 s
+    vi.advanceTimersByTime(LEGACY_MS - 1);
+    expect(FakeSource.all).toHaveLength(3);
+    expect(changed).toHaveLength(3);
+    vi.advanceTimersByTime(1);
+    expect(FakeSource.all).toHaveLength(4);
+  });
+
   it('fechar encerra a conexão e as tentativas, e ignora o que chegar depois', () => {
     const { changed, close } = setup();
     const source = last();

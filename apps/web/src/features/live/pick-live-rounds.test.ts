@@ -37,7 +37,7 @@ describe('pickLiveRoundIds: quais rodadas abrem o canal', () => {
     }
   });
 
-  it('rodada agendada ou encerrada não abre conexão', () => {
+  it('rodada encerrada não abre conexão', () => {
     const other = roundStatusSchema.options.filter(
       (s) => !LIVE_ROUND_STATUSES.some((l) => l === s),
     );
@@ -71,8 +71,21 @@ describe('pickLiveRoundIds: quais rodadas abrem o canal', () => {
     expect(pickLiveRoundIds(list({ currentId: 'fantasma' }))).toEqual([]);
   });
 
+  it('a da vez agendada abre (times publicados ao vivo), sem passar de duas com a em votação', () => {
+    const result = pickLiveRoundIds(
+      list({
+        upcoming: [round('a', 'SCHEDULED'), round('c', 'SCHEDULED')],
+        past: [round('b', 'VOTING')],
+        currentId: 'a',
+        votingId: 'b',
+      }),
+    );
+    expect(result).toEqual(['a', 'b']);
+  });
+
   it('a lista de estados ao vivo é a do contrato (sem cópia local)', () => {
     expect([...LIVE_ROUND_STATUSES]).toEqual([
+      'SCHEDULED',
       'TEAMS_PUBLISHED',
       'IN_PROGRESS',
       'POST_MATCH',

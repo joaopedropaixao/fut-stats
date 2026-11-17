@@ -2,6 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { historyKey } from '../history/history-key';
 import { matchKey } from '../match/queries';
+import { playerProfileKey, rankingKey } from '../ranking/queries';
 import { alertsKey, roundKey, roundsKey } from '../rounds/queries';
 import { resultKey, votingKey } from '../voting/queries';
 import { invalidateScopes } from './invalidate-scopes';
@@ -9,7 +10,7 @@ import { invalidateScopes } from './invalidate-scopes';
 const G = 'g1';
 const R = 'r1';
 
-function seeded() {
+function seeded(matchStatus: string = 'POST_MATCH') {
   const client = new QueryClient();
   const keys = {
     match: matchKey(G, R),
@@ -20,10 +21,13 @@ function seeded() {
     alerts: alertsKey(G),
     detail: roundKey(G, R),
     lineup: [...roundKey(G, R), 'lineup'] as const,
+    otherRound: [...roundKey(G, 'r2'), 'match'] as const,
     otherGroup: roundsKey('g2'),
-    ranking: ['ranking', G] as const,
+    ranking: rankingKey(G),
+    profile: playerProfileKey(G, 'm1'),
   };
   for (const key of Object.values(keys)) client.setQueryData(key, {});
+  client.setQueryData(keys.match, { status: matchStatus });
   const invalidated = () =>
     Object.entries(keys)
       .filter(([, key]) => client.getQueryState(key)?.isInvalidated)
@@ -33,10 +37,16 @@ function seeded() {
 }
 
 describe('invalidateScopes: o que refaz em cada escopo', () => {
-  it('match: a visão do jogo e o histórico, nada mais', () => {
-    const { client, invalidated } = seeded();
+  it('match na Resenha: a visão do jogo e o histórico (os lances entram nele)', () => {
+    const { client, invalidated } = seeded('POST_MATCH');
     invalidateScopes(client, G, R, ['match']);
     expect(invalidated()).toEqual(['history', 'match']);
+  });
+
+  it('match em jogo: só a visão do jogo; o histórico espera a troca de etapa', () => {
+    const { client, invalidated } = seeded('IN_PROGRESS');
+    invalidateScopes(client, G, R, ['match']);
+    expect(invalidated()).toEqual(['match']);
   });
 
   it('voting: a visão da votação e o resultado', () => {
@@ -45,7 +55,7 @@ describe('invalidateScopes: o que refaz em cada escopo', () => {
     expect(invalidated()).toEqual(['result', 'voting']);
   });
 
-  it('status: tudo sob a lista de rodadas do grupo (detalhe, times, avisos), sem tocar em outro grupo', () => {
+  it('status: tudo desta rodada, a lista e os avisos do Feed; nem outra rodada nem outro grupo', () => {
     const { client, invalidated } = seeded();
     invalidateScopes(client, G, R, ['status']);
     expect(invalidated()).toEqual(
@@ -53,15 +63,54 @@ describe('invalidateScopes: o que refaz em cada escopo', () => {
     );
   });
 
-  it('status junto de match e voting: cada consulta é pedida uma vez só (o prefixo já cobre)', () => {
+  it('match + status (troca de etapa do jogo): refaz o histórico mesmo em jogo', () => {
+    const { client, invalidated } = seeded('IN_PROGRESS');
+    invalidateScopes(client, G, R, ['match', 'status']);
+    expect(invalidated()).toContain('history');
+  });
+
+  it('voting + status (a votação fechou): histórico, ranking e figurinhas também', () => {
     const { client, invalidated } = seeded();
+    invalidateScopes(client, G, R, ['voting', 'status']);
+    expect(invalidated()).toEqual(
+      [
+        'alerts',
+        'detail',
+        'history',
+        'lineup',
+        'list',
+        'match',
+        'profile',
+        'ranking',
+        'result',
+        'voting',
+      ].sort(),
+    );
+  });
+
+  it('status junto de match e voting: nenhuma chave da rodada é pedida duas vezes', () => {
+    const { client } = seeded();
     const spy = vi.spyOn(client, 'invalidateQueries');
     invalidateScopes(client, G, R, ['match', 'voting', 'status']);
-    // o prefixo das rodadas e o histórico: nenhuma chave sob a rodada é invalidada duas vezes
-    expect(spy).toHaveBeenCalledTimes(2);
-    expect(invalidated()).toEqual(
-      ['alerts', 'detail', 'history', 'lineup', 'list', 'match', 'result', 'voting'].sort(),
+    const keys = spy.mock.calls.map(([filters]) => JSON.stringify(filters?.queryKey));
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(keys.filter((k) => k.startsWith(JSON.stringify(roundKey(G, R)).slice(0, -1)))).toEqual([
+      JSON.stringify(roundKey(G, R)),
+    ]);
+  });
+
+  it('o que é do grupo não cancela a busca em andamento (dois canais juntam a mesma busca)', () => {
+    const { client } = seeded();
+    const spy = vi.spyOn(client, 'invalidateQueries');
+    invalidateScopes(client, G, R, ['status']);
+    invalidateScopes(client, G, 'r2', ['status']);
+    const shared = spy.mock.calls.filter(([filters]) =>
+      [JSON.stringify(roundsKey(G)), JSON.stringify(alertsKey(G))].includes(
+        JSON.stringify(filters?.queryKey),
+      ),
     );
+    expect(shared).toHaveLength(4);
+    for (const [, options] of shared) expect(options).toEqual({ cancelRefetch: false });
   });
 
   it('vários escopos somam, e o mesmo escopo repetido não atrapalha', () => {

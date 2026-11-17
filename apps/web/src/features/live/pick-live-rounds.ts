@@ -7,7 +7,8 @@ const LIVE = new Set<string>(LIVE_ROUND_STATUSES);
 
 /**
  * As rodadas que merecem canal aberto: a da vez e a em votação (sem repetir), só se estiverem numa etapa de
- * `LIVE_ROUND_STATUSES`. Rodada agendada, encerrada ou inexistente não abre conexão.
+ * `LIVE_ROUND_STATUSES`. A da vez agendada abre (é por onde os times publicados chegam); encerrada ou
+ * inexistente não abre conexão.
  */
 export function pickLiveRoundIds(list: RoundList | undefined): string[] {
   if (!list) return [];

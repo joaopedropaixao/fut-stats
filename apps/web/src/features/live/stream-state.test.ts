@@ -9,6 +9,7 @@ import {
   onRetry,
   RECONNECT_MS,
   retryDelay,
+  STABLE_MS,
   type StreamState,
 } from './stream-state';
 
@@ -22,7 +23,7 @@ describe('stream-state: máquina do canal ao vivo', () => {
   });
 
   it('o ready conecta: tempo real', () => {
-    const state = onReady();
+    const state = onReady(initialStreamState, 0);
     expect(state.phase).toBe('connected');
     expect(channelMode(state)).toBe('live');
     expect(retryDelay(state, 0)).toBeNull();
@@ -57,18 +58,27 @@ describe('stream-state: máquina do canal ao vivo', () => {
     expect(state.phase).toBe('connecting');
   });
 
-  it('conectar de verdade zera a contagem: falhas de antes não somam com as de depois', () => {
+  it('conexão que ficou de pé por STABLE_MS zera a contagem: falhas de antes não somam com as de depois', () => {
     const afterTwo = failTimes([0, 3_000]);
-    expect(afterTwo.phase).toBe('connecting');
-    const reconnected = onReady();
-    const fail = onFailure(reconnected, 9_000);
-    expect(fail).toEqual({ phase: 'connecting', failures: [9_000] });
-    expect(failTimes([12_000], fail).phase).toBe('connecting');
+    const reconnected = onReady(afterTwo, 6_000);
+    const fail = onFailure(reconnected, 6_000 + STABLE_MS);
+    expect(fail).toEqual({ phase: 'connecting', failures: [6_000 + STABLE_MS] });
+    expect(failTimes([6_000 + STABLE_MS + 3_000], fail).phase).toBe('connecting');
   });
 
-  it('o canal caiu depois de conectado: volta ao modo antigo e conta uma falha', () => {
-    const state = onFailure(onReady(), 5_000);
-    expect(state).toEqual({ phase: 'connecting', failures: [5_000] });
+  it('conexão que abre e cai logo não zera a contagem: o laço de reconexão vai para o modo antigo', () => {
+    // abre (ready) e cai 1 s depois, três vezes seguidas, a cada 3 s
+    let state: StreamState = initialStreamState;
+    for (const at of [0, 4_000, 8_000]) {
+      state = onReady(state, at);
+      state = onFailure(state, at + 1_000);
+    }
+    expect(state).toEqual({ phase: 'legacy', until: 9_000 + LEGACY_MS });
+  });
+
+  it('o canal caiu depois de conectado por muito tempo: conta uma falha só', () => {
+    const state = onFailure(onReady(initialStreamState, 0), STABLE_MS + 5_000);
+    expect(state).toEqual({ phase: 'connecting', failures: [STABLE_MS + 5_000] });
     expect(channelMode(state)).toBe('polling');
   });
 
@@ -89,7 +99,7 @@ describe('stream-state: máquina do canal ao vivo', () => {
   it('onRetry fora do modo antigo não mexe no estado', () => {
     const connecting = failTimes([0]);
     expect(onRetry(connecting, 10_000)).toBe(connecting);
-    const connected = onReady();
+    const connected = onReady(initialStreamState, 0);
     expect(onRetry(connected, 10_000)).toBe(connected);
   });
 });
