@@ -224,7 +224,9 @@ Regras de visual do documento de autonomia valem como critério.
   `apps/web/public/push-sw.js` trata `push` (valida o conteúdo e chama `showNotification`) e `notificationclick`
   (foca ou abre). A lógica fica em funções puras no mesmo arquivo, testadas pelo Vitest importando o arquivo. Se
   o `importScripts` não servir na versão instalada do plugin, trocar para `injectManifest` com o mesmo
-  comportamento (decisão do TPL, registrada no spec).
+  comportamento (decisão do TPL, registrada no spec). **Registro (17 nov 2026):** o `importScripts` funcionou no `generateSW` do
+  vite-plugin-pwa 2.0.0; o `push-sw.js` fica fora do pré-cache (`globIgnores`) e o `check-build` confere que o `sw.js`
+  o importa. O `install-prompt.ts` (guarda o `beforeinstallprompt` desde a partida) entra no JS inicial: 119,0 de 150 kB.
 - **`features/pwa/`:** `use-install.ts` (guarda o `beforeinstallprompt`, detecta iPhone e `standalone`),
   `use-push.ts` (suporte, permissão, assinar, cancelar, estado do servidor), `install-card.tsx`,
   `push-card.tsx`, `ios-install-sheet.tsx`. Decisão de "o que mostrar" numa função pura com teste
