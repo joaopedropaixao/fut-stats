@@ -12,7 +12,7 @@
 | **Status** | aprovado em 2026-11-14 |
 | **Base** | develop @1c65574 (checkpoint de início em 17 nov 2026: entraram perfil-jogador #62, ajustes-tela-do-jogo #63, historico #64, votacao #66, ranking #67, rodizio-reservas #68, pacote-do-craque #69, polimento-v1 #72, feed #74 e auditoria-da-rodada #73) |
 | **Depende de** | feed, votacao, perfil-jogador |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/notifications, packages/domain/src/index.ts, packages/shared/src/push.ts, packages/shared/src/index.ts, apps/api/src/push, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/match/match.service.ts, apps/api/src/voting, apps/api/src/config/env.ts, apps/api/src/app.module.ts, apps/api/package.json, pnpm-lock.yaml, .env.example, render.yaml, apps/web/vite.config.ts, apps/web/public/push-sw.js, apps/web/src/features/pwa, apps/web/src/features/feed, apps/web/src/pages/perfil, apps/web/src/features/group/use-current-group.ts, apps/web/src/app/shell.tsx |
+| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/notifications, packages/domain/src/index.ts, packages/shared/src/push.ts, packages/shared/src/index.ts, apps/api/src/push, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/match/match.service.ts, apps/api/src/voting, apps/api/src/feed, packages/shared/src/feed.ts, apps/api/src/config/env.ts, apps/api/src/app.module.ts, apps/api/package.json, pnpm-lock.yaml, .env.example, render.yaml, apps/web/vite.config.ts, apps/web/public/push-sw.js, apps/web/src/features/pwa, apps/web/src/features/feed, apps/web/src/features/voting/result-alert.tsx, apps/web/src/pages/feed, apps/web/src/pages/perfil, apps/web/src/features/group/use-current-group.ts, apps/web/src/app/shell.tsx |
 
 ## Produto
 
@@ -113,6 +113,13 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C39 | reduzir movimento; carregando; erro ao assinar | cards | sem animação; interruptor em carregando; "Não deu para ativar agora. Tente de novo." | Playwright |
 | C40 | larguras 320, 375, 390, 430 px e desktop | Perfil com os dois cards, a gaveta do iPhone, o Feed com as duas linhas | sem rolagem horizontal, sem sobreposição, sem texto cortado; interruptor com área de 80 × 48; no desktop, coluna centralizada. Checagem automática passa. Console sem erros no fluxo real | Playwright |
 
+**Pendência do `pacote-do-craque` (resposta do dono em 17 nov 2026: opção A)**
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C41 | rodada fechada com votos (há Craque com nota); rodada fechada sem votos | `GET .../feed/alerts` | o aviso `RESULT` traz `hasPack: true`; o da rodada sem votos traz `hasPack: false`; os outros tipos não trazem o campo | integração |
+| C42 | Feed com o aviso grande "O resultado saiu", com e sem pacote | abrir o Feed | com pacote: miniatura do pacote e "Abrir pacote"; sem: ícone e "Ver resultado"; **nenhum** `GET .../voting/result` na rede ao abrir o Feed | Playwright |
+
 **Em aparelho real (o Playwright não recebe push de verdade):** o TPL deixa no PR um roteiro curto para o dono
 conferir no staging depois do merge: instalar no Android e no iPhone, ligar os avisos, "Testar aviso" com o app
 fechado, e tocar no aviso.
@@ -130,7 +137,14 @@ com `packages/domain/src/notifications`.
 | `DELETE` | `/push/subscriptions` | logado | `PushUnsubscribeInput` | 204 | 400; 401 |
 | `POST` | `/push/test` | logado | — | `PushTestResult` | 401 |
 
-Nenhuma rota existente muda de forma: criar rodada, publicar, abrir e fechar a votação só ganham o envio depois de
+**`GET .../feed/alerts` (aditivo):** o `feedAlertSchema` em `packages/shared/src/feed.ts` ganha
+`hasPack: z.boolean().optional()`, que só vem no tipo `RESULT`: `true` se a rodada tem um Craque com nota
+(`TeamPlayer.isMvp` com `roundScore` não nulo; mesma regra do `hasPack` de `features/pack/deck.ts`). O
+`ResultAlert` do Feed passa a usar esse campo e deixa de chamar `GET .../voting/result` (pendência do
+`pacote-do-craque`; saber na hora que o resultado saiu fica com o push `RESULT_OUT` com o app fechado e com a
+`jogo-ao-vivo` com o app aberto). Mudança só aditiva: a `jogo-ao-vivo` pode mexer no Feed para recarregar avisos.
+
+Nenhuma outra rota existente muda de forma: criar rodada, publicar, abrir e fechar a votação só ganham o envio depois de
 gravar.
 
 ```ts
@@ -250,6 +264,7 @@ tiver aparelho); `perfil-320`, `feed-320`, `perfil-desktop`.
 - Envio sem esperar e sem falhar a ação — aviso é cortesia.
 - `importScripts` em vez de reescrever o service worker — mantém o que já funciona (cache e atualização).
 - `?grupo=` na URL do aviso — o aviso pode ser de outra pelada do usuário.
+- `hasPack` no aviso `RESULT` do Feed, e o card sem o `GET .../voting/result` — pendência do `pacote-do-craque`, opção A do dono (17 nov 2026); sem o service worker avisar a janela aberta (isso é da `jogo-ao-vivo`).
 
 ## Fora do escopo
 - Lembretes agendados ("a votação fecha em 2 h", "falta você confirmar"). O despertador de `producao` só garante
