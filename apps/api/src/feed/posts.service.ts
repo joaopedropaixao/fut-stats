@@ -22,10 +22,14 @@ import {
   type PostsQuery,
   type ReactionInput,
 } from '@fut-stats/shared';
+import { AuditService, type AuditSnapshot } from '../audit/audit.service';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
-import type { Role } from '../generated/prisma/enums';
+import type { Prisma } from '../generated/prisma/client';
+import type { AuditAction, Role } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
+
+type Tx = Prisma.TransactionClient;
 
 /** Os comentários que a lista devolve: os mais recentes, em ordem de envio. */
 const COMMENTS_LIMIT = 200;
@@ -91,7 +95,10 @@ function decodeCursor(cursor: string): { createdAt: Date; id: string } {
 
 @Injectable()
 export class PostsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   /** Da mais nova para a mais antiga, em páginas. Reações, a minha e o número de comentários vêm em consultas por página. */
   async list(membership: GroupMembership, { limit, cursor }: PostsQuery): Promise<PostList> {
@@ -127,60 +134,117 @@ export class PostsService {
   async create(membership: GroupMembership, input: PostInput): Promise<Post> {
     // Rota só de admin (guard); a regra do domain fica como segunda trava.
     this.requireManager(membership);
-    const post = await this.prisma.post.create({
-      data: {
-        groupId: membership.groupId,
-        authorId: membership.id,
-        title: input.title ?? null,
-        body: input.body,
-      },
-      select: { id: true },
+    const post = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.post.create({
+        data: {
+          groupId: membership.groupId,
+          authorId: membership.id,
+          title: input.title ?? null,
+          body: input.body,
+        },
+        select: { id: true, title: true, body: true },
+      });
+      await this.record(tx, membership, created.id, 'POST_CREATED', null, {
+        postId: created.id,
+        title: created.title,
+        body: created.body,
+      });
+      return created;
     });
     return this.view(membership, post.id);
   }
 
-  /** Qualquer admin edita qualquer resenha; o autor continua o original. */
+  /** Qualquer admin edita qualquer resenha; o autor continua o original. O registro guarda o texto antigo e o novo. */
   async update(membership: GroupMembership, postId: string, input: PostInput): Promise<Post> {
     this.requireManager(membership);
-    const { count } = await this.prisma.post.updateMany({
-      where: { id: postId, groupId: membership.groupId },
-      data: { title: input.title ?? null, body: input.body, editedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockPost(tx, membership, postId);
+      const before = await tx.post.findFirstOrThrow({
+        where: { id: postId, groupId: membership.groupId },
+        select: { title: true, body: true },
+      });
+      const after = await tx.post.update({
+        where: { id: postId },
+        data: { title: input.title ?? null, body: input.body, editedAt: new Date() },
+        select: { title: true, body: true },
+      });
+      await this.record(
+        tx,
+        membership,
+        postId,
+        'POST_EDITED',
+        { postId, title: before.title, body: before.body },
+        { postId, title: after.title, body: after.body },
+      );
     });
-    if (count === 0) throw new NotFoundException();
     return this.view(membership, postId);
   }
 
-  /** Reações e comentários saem junto (cascata no banco). */
+  /** Reações e comentários saem junto (cascata no banco). O registro guarda o texto apagado e as contagens. */
   async remove(membership: GroupMembership, postId: string): Promise<void> {
     this.requireManager(membership);
-    const { count } = await this.prisma.post.deleteMany({
-      where: { id: postId, groupId: membership.groupId },
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockPost(tx, membership, postId);
+      const post = await tx.post.findFirstOrThrow({
+        where: { id: postId, groupId: membership.groupId },
+        select: { authorId: true, title: true, body: true },
+      });
+      const [reactionCount, commentCount] = await Promise.all([
+        tx.postReaction.count({ where: { postId } }),
+        tx.postComment.count({ where: { postId } }),
+      ]);
+      await tx.post.delete({ where: { id: postId } });
+      await this.record(
+        tx,
+        membership,
+        postId,
+        'POST_DELETED',
+        {
+          postId,
+          authorId: post.authorId,
+          title: post.title,
+          body: post.body,
+          reactionCount,
+          commentCount,
+        },
+        null,
+      );
     });
-    if (count === 0) throw new NotFoundException();
   }
 
-  /** Troca a reação de quem pede (uma por pessoa por resenha). Dois pedidos juntos dão uma linha só. */
+  /**
+   * Troca a reação de quem pede (uma por pessoa por resenha). Dois pedidos juntos do mesmo membro andam um de
+   * cada vez (trava por resenha + membro), então o "antes" de cada linha do registro é sempre o "depois" da
+   * anterior. Pedir a reação que já está não muda nada e não deixa linha.
+   */
   async react(
     membership: GroupMembership,
     postId: string,
     { reaction }: ReactionInput,
   ): Promise<Post> {
     await this.requirePost(membership, postId);
-    const key = { postId_membershipId: { postId, membershipId: membership.id } };
-    const save = () =>
-      this.prisma.postReaction.upsert({
-        where: key,
-        create: { postId, membershipId: membership.id, reaction },
-        update: { reaction },
-      });
     try {
-      try {
-        await save();
-      } catch (error) {
-        // Corrida de dois "criar" juntos: o segundo já encontra a linha e só troca.
-        if (!hasPrismaCode(error, 'P2002')) throw error;
-        await save();
-      }
+      await this.prisma.$transaction(async (tx) => {
+        await this.lockReaction(tx, postId, membership.id);
+        const current = await tx.postReaction.findUnique({
+          where: { postId_membershipId: { postId, membershipId: membership.id } },
+          select: { reaction: true },
+        });
+        if (current?.reaction === reaction) return;
+        await tx.postReaction.upsert({
+          where: { postId_membershipId: { postId, membershipId: membership.id } },
+          create: { postId, membershipId: membership.id, reaction },
+          update: { reaction },
+        });
+        await this.record(
+          tx,
+          membership,
+          postId,
+          'REACTION_SET',
+          { postId, reaction: current?.reaction ?? null },
+          { postId, reaction },
+        );
+      });
     } catch (error) {
       // A resenha foi apagada entre a conferência e a gravação.
       if (hasPrismaCode(error, 'P2003')) throw new NotFoundException();
@@ -191,7 +255,26 @@ export class PostsService {
 
   async unreact(membership: GroupMembership, postId: string): Promise<Post> {
     await this.requirePost(membership, postId);
-    await this.prisma.postReaction.deleteMany({ where: { postId, membershipId: membership.id } });
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockReaction(tx, postId, membership.id);
+      const removed = await tx.postReaction.findUnique({
+        where: { postId_membershipId: { postId, membershipId: membership.id } },
+        select: { reaction: true },
+      });
+      // Sem reação para tirar: nada muda e nada é registrado.
+      if (!removed) return;
+      await tx.postReaction.delete({
+        where: { postId_membershipId: { postId, membershipId: membership.id } },
+      });
+      await this.record(
+        tx,
+        membership,
+        postId,
+        'REACTION_REMOVED',
+        { postId, reaction: removed.reaction },
+        null,
+      );
+    });
     return this.view(membership, postId);
   }
 
@@ -208,6 +291,7 @@ export class PostsService {
     return rows.reverse().map((row) => this.toComment(row, actor));
   }
 
+  /** O registro guarda só o tamanho (em caracteres): o texto já está no comentário. */
   async addComment(
     membership: GroupMembership,
     postId: string,
@@ -215,9 +299,17 @@ export class PostsService {
   ): Promise<Comment> {
     await this.requirePost(membership, postId);
     try {
-      const row = await this.prisma.postComment.create({
-        data: { postId, membershipId: membership.id, text },
-        include: { membership: { select: authorSelect } },
+      const row = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.postComment.create({
+          data: { postId, membershipId: membership.id, text },
+          include: { membership: { select: authorSelect } },
+        });
+        await this.record(tx, membership, postId, 'COMMENT_CREATED', null, {
+          postId,
+          commentId: created.id,
+          length: Array.from(text).length,
+        });
+        return created;
       });
       return this.toComment(row, toActor(membership));
     } catch (error) {
@@ -226,7 +318,11 @@ export class PostsService {
     }
   }
 
-  /** O autor ou um admin apaga; outro jogador recebe 403 `NOT_OWN_COMMENT`. Comentário de outra resenha: 404. */
+  /**
+   * O autor ou um admin apaga; outro jogador recebe 403 `NOT_OWN_COMMENT`. Comentário de outra resenha: 404.
+   * O registro guarda o texto apagado e o autor. Quem chega depois de outro que já apagou o mesmo comentário
+   * tem o resultado que queria e não deixa linha (só quem apagou de verdade registra).
+   */
   async removeComment(
     membership: GroupMembership,
     postId: string,
@@ -240,12 +336,56 @@ export class PostsService {
     if (!canDeleteComment(toActor(membership), comment.membershipId)) {
       throw new ForbiddenException({ code: 'NOT_OWN_COMMENT', message: NOT_OWN_COMMENT_LABEL });
     }
-    // Já pode ter sido apagado por outro (autor e admin juntos): o resultado é o mesmo.
-    await this.prisma.postComment.deleteMany({ where: { id: comment.id } });
+    await this.prisma.$transaction(async (tx) => {
+      // Apagar devolve a linha apagada; se outro já apagou, não há o que registrar.
+      const deleted = await tx.$queryRaw<{ text: string; membershipId: string }[]>`
+        DELETE FROM "PostComment" WHERE id = ${comment.id} RETURNING text, "membershipId"`;
+      const [gone] = deleted;
+      if (!gone) return;
+      await this.record(
+        tx,
+        membership,
+        postId,
+        'COMMENT_DELETED',
+        { postId, commentId: comment.id, authorId: gone.membershipId, text: gone.text },
+        null,
+      );
+    });
   }
 
   private requireManager(membership: GroupMembership): void {
     if (!canManagePost(toActor(membership))) throw new ForbiddenException();
+  }
+
+  /** Grava a linha do registro na transação da escrita: a mudança e o registro entram juntos, ou nenhum. */
+  private record(
+    tx: Tx,
+    membership: GroupMembership,
+    postId: string,
+    action: AuditAction,
+    before: AuditSnapshot | null,
+    after: AuditSnapshot | null,
+  ): Promise<void> {
+    return this.audit.record(tx, {
+      groupId: membership.groupId,
+      postId,
+      actorId: membership.id,
+      action,
+      before,
+      after,
+    });
+  }
+
+  /** Trava a resenha (`FOR UPDATE`) para o "antes" do registro ser o que o pedido anterior deixou. Outro grupo ou sem resenha: 404. */
+  private async lockPost(tx: Tx, membership: GroupMembership, postId: string): Promise<void> {
+    const locked = await tx.$queryRaw<{ locked: number }[]>`
+      SELECT 1 AS locked FROM "Post" WHERE id = ${postId} AND "groupId" = ${membership.groupId} FOR UPDATE`;
+    if (locked.length === 0) throw new NotFoundException();
+  }
+
+  /** Um pedido de reação por vez, por resenha e membro (vale até o fim da transação). */
+  private async lockReaction(tx: Tx, postId: string, membershipId: string): Promise<void> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`reaction:${postId}:${membershipId}`}))`;
   }
 
   /** A resenha tem de ser do grupo da rota; senão 404 (não revela resenha de outro grupo). */
