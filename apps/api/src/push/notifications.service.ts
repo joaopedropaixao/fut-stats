@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  type OnApplicationShutdown,
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
@@ -37,7 +36,7 @@ export interface NotifyInput {
  * (`notificationRecipients`); o texto é do shared (`notificationContent`); o envio é do `PushSender`.
  */
 @Injectable()
-export class NotificationsService implements OnModuleInit, OnModuleDestroy, OnApplicationShutdown {
+export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificationsService.name);
   private readonly pending = new Set<Promise<void>>();
   private stopListening: (() => void) | null = null;
@@ -62,9 +61,16 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy, OnAp
     });
   }
 
-  onModuleDestroy(): void {
+  /**
+   * No desligamento: para de ouvir e espera os avisos em andamento, que ainda usam o banco (assinatura morta é
+   * apagada). Tem que ser aqui: o Nest roda `onModuleDestroy` em todos os módulos antes de `beforeApplicationShutdown`
+   * e `onApplicationShutdown`, e o `PrismaModule` (global) é o último a ser destruído; nos ganchos de shutdown o
+   * Prisma já desconectou.
+   */
+  async onModuleDestroy(): Promise<void> {
     this.stopListening?.();
     this.stopListening = null;
+    await this.whenIdle();
   }
 
   /** Dispara e volta na hora. Erro vai para o log com o `requestId` de quem pediu; nada sobe. */
@@ -80,10 +86,6 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy, OnAp
   /** Espera os avisos em andamento terminarem (testes e desligamento da API). */
   async whenIdle(): Promise<void> {
     while (this.pending.size > 0) await Promise.all([...this.pending]);
-  }
-
-  async onApplicationShutdown(): Promise<void> {
-    await this.whenIdle();
   }
 
   private async dispatch(
@@ -134,22 +136,9 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy, OnAp
         : undefined,
     });
 
-    await Promise.all(
-      subscriptions.map(async (subscription) => {
-        try {
-          const outcome = await this.sender.send(subscription, payload);
-          // O serviço de push diz que o aparelho não existe mais: apaga a assinatura.
-          if (outcome === 'gone') {
-            await this.prisma.pushSubscription.deleteMany({
-              where: { endpoint: subscription.endpoint },
-            });
-          }
-        } catch (error) {
-          // Um aparelho fora do ar não impede os outros; a assinatura fica para a próxima.
-          this.logFailure(type, requestId, error);
-        }
-      }),
-    );
+    const { errors } = await this.push.sendToSubscriptions(subscriptions, payload);
+    // Um aparelho fora do ar não impede os outros; a assinatura fica para a próxima.
+    for (const error of errors) this.logFailure(type, requestId, error);
   }
 
   private logFailure(type: NotificationType, requestId: string | null, error: unknown): void {
