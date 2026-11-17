@@ -502,7 +502,7 @@ resultado (Craque, Perna de Pau e a nota de cada um). As regras de cada passo j�
   Dali em diante o resultado não muda (nem se o prazo do grupo mudar nem se alguém for desativado).
 - **Três caminhos de fechamento, o que vier primeiro:** o último voto (fecha na hora, na mesma transação), o relógio da
   API (`VotingCloser`, a cada `VOTING_CLOSER_INTERVAL_MS`, padrão 60 000; `0` desliga) e quem abre o app depois do
-  prazo (`GET /rounds`, `GET .../voting` e `GET .../voting/result` fecham as vencidas do grupo antes de responder).
+  prazo (`GET /rounds`, `GET .../feed/alerts`, `GET .../voting` e `GET .../voting/result` fecham as vencidas do grupo antes de responder).
   Em produção o despertador (`producao`) chama o mesmo `VotingService.closeDueVotings(now, groupId?)` de fora.
 - **Voto depois do prazo é recusado** (409 `VOTING_CLOSED`) mesmo que ninguém tenha fechado ainda: o `PUT` fecha a
   rodada ali mesmo (`DEADLINE_PASSED`) e responde o 409. O prazo vale pela hora, não por quem acordou o servidor.
@@ -810,7 +810,8 @@ todo mundo. Decidido pelo dono (22 out 2026: um aviso grande por vez, ordem resu
 `IN_PROGRESS`, `POST_MATCH`, `TEAMS_PUBLISHED` e `PRESENCE` olham a rodada da vez (`pickCurrentRound`). O jogo ao
 vivo vem antes de tudo; a folha fixa só "resultado > votação > presença". `now` vem de fora. A API devolve cada aviso
 com o número e o horário da rodada e o `me` de quem pede (`attendance`, `team`, `played`, `voted`; cada campo só no
-tipo em que faz sentido). A rota só lê: quem fecha votação vencida é a lista de rodadas, não o feed.
+tipo em que faz sentido). Antes de calcular, a rota fecha as votações vencidas do grupo (`closeDueVotings`), como a lista de rodadas: senão
+entregaria `VOTING` de uma votação que o card fecha ao abrir, e o topo do Feed ficaria vazio no lugar do `RESULT`.
 
 Na tela, o `RESULT` cujo pacote já foi aberto **neste aparelho** (`hasOpenedResult`) desce para linha e o próximo
 da lista vira o aviso grande. Sem aviso grande (nenhum aviso, ou só resultados já abertos), o Feed mostra "Nenhuma

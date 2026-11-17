@@ -161,20 +161,43 @@ describe('feed: avisos', () => {
     expect(res.body).toEqual([]);
   });
 
-  it('C8: o feed só lê: votação com o prazo vencido segue como está no banco (quem fecha é a lista de rodadas)', async () => {
+  it('C8: votação com o prazo vencido fecha antes de calcular: vem o RESULT, não a VOTING', async () => {
     const { group, cookie } = await setup();
-    const round = await createRound(group.id, 'VOTING', new Date(Date.now() - 4 * DAY_MS));
-    await t.prisma.round.update({
-      where: { id: round.id },
-      data: { votingOpenedAt: new Date(Date.now() - 25 * HOUR_MS) },
+    // Times completos como no teste da votação (o fechamento confere a escalação), prazo de 24 h vencido.
+    const lineup = [
+      ['WHITE', 'GOALKEEPER', false],
+      ['WHITE', 'DEFENDER', false],
+      ['WHITE', 'FORWARD', false],
+      ['WHITE', 'MIDFIELDER', true],
+      ['BLACK', 'GOALKEEPER', false],
+      ['BLACK', 'DEFENDER', false],
+      ['BLACK', 'FORWARD', false],
+      ['BLACK', 'MIDFIELDER', true],
+    ] as const;
+    const players = [];
+    for (const [team, position, isReserve] of lineup) {
+      const member = await addMember(t, (await createUser(t)).id, group.id);
+      players.push({ membershipId: member.id, team, position, isReserve });
+    }
+    const round = await t.prisma.round.create({
+      data: {
+        groupId: group.id,
+        status: 'VOTING',
+        scheduledAt: new Date(Date.now() - 2 * DAY_MS),
+        whiteGoals: 0,
+        blackGoals: 0,
+        votingOpenedAt: new Date(Date.now() - 25 * HOUR_MS),
+        teamPlayers: { create: players },
+      },
     });
 
     const res = await get(group.id, cookie).expect(200);
 
-    expect(res.body.map((a: { type: string }) => a.type)).toEqual(['VOTING']);
+    expect(res.body.map((a: { type: string; roundId: string }) => [a.type, a.roundId])).toEqual([
+      ['RESULT', round.id],
+    ]);
     expect(await t.prisma.round.findUniqueOrThrow({ where: { id: round.id } })).toMatchObject({
-      status: 'VOTING',
-      closedAt: null,
+      status: 'CLOSED',
     });
   });
 

@@ -1,9 +1,11 @@
-import type { CSSProperties } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, type CSSProperties } from 'react';
 import { AlertBand, AlertFrame, AlertTitle } from '../../components/ui/alert-frame';
 import { ALERT_TONES } from '../../components/ui/alert-tone';
 import { Badge } from '../../components/ui/badge';
 import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
+import { alertsKey } from '../rounds/queries';
 import { RouteButton } from '../rounds/route-button';
 import { closesInLabel } from './deadline';
 import { Meter } from './meter';
@@ -26,6 +28,13 @@ type VotingCardProps = {
 export function VotingCard({ groupId, roundId }: VotingCardProps) {
   const voting = useVoting(groupId, roundId);
   const view = voting.data;
+  const closed = view?.status === 'CLOSED';
+  const queryClient = useQueryClient();
+  // Cinto de segurança: a votação fechou (prazo vencido) depois que os avisos chegaram; refaz os avisos para o
+  // resultado tomar o lugar deste card, em vez de o topo do Feed ficar vazio.
+  useEffect(() => {
+    if (closed) void queryClient.invalidateQueries({ queryKey: alertsKey(groupId), exact: true });
+  }, [closed, groupId, queryClient]);
   if (!view || view.status !== 'VOTING') return null;
   return <Loaded view={view} updatedAt={voting.dataUpdatedAt} />;
 }
