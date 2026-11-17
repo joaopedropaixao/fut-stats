@@ -882,7 +882,7 @@ todo mundo. Decidido pelo dono (22 out 2026: um aviso grande por vez, ordem resu
 `IN_PROGRESS`, `POST_MATCH`, `TEAMS_PUBLISHED` e `PRESENCE` olham a rodada da vez (`pickCurrentRound`). O jogo ao
 vivo vem antes de tudo; a folha fixa só "resultado > votação > presença". `now` vem de fora. A API devolve cada aviso
 com o número e o horário da rodada e o `me` de quem pede (`attendance`, `team`, `played`, `voted`; cada campo só no
-tipo em que faz sentido). Antes de calcular, a rota fecha as votações vencidas do grupo (`closeDueVotings`), como a lista de rodadas: senão
+tipo em que faz sentido). O `RESULT` traz também `hasPack` (só nele; `true` se a rodada tem Craque com nota: `TeamPlayer.isMvp` com `roundScore` não nulo; `false` na rodada fechada sem votos), para o Feed escolher "Abrir pacote" ou "Ver resultado" sem chamar `GET .../voting/result`. Antes de calcular, a rota fecha as votações vencidas do grupo (`closeDueVotings`), como a lista de rodadas: senão
 entregaria `VOTING` de uma votação que o card fecha ao abrir, e o topo do Feed ficaria vazio no lugar do `RESULT`.
 
 Na tela, o `RESULT` cujo pacote já foi aberto **neste aparelho** (`hasOpenedResult`) desce para linha e o próximo
@@ -939,6 +939,45 @@ mesmo placar repetido nem outra rodada; não funciona com mais de uma instância
 é `LISTEN/NOTIFY`, ver `docs/02-arquitetura.md`).
 **Evite:** mandar estado ou dado sensível pelo sinal ou pelo canal; sinalizar de dentro da transação; chamar o canal
 ao vivo direto dos services (eles só sinalizam).
+
+### Avisos (push): `notificationRecipients` / `notificationContent` ✅
+**O que é:** o app avisa pelo celular, com o app fechado (Web Push), quando acontece algo da pelada. São 4 avisos
+(`NOTIFICATION_TYPES`, em `packages/domain/src/notifications`), todos por evento, nenhum agendado (resposta do dono à
+P7, 14 nov 2026; lembrete com hora marcada pede um agendador e a API gratuita dorme):
+
+| Tipo | Quando | Quem recebe | Abre |
+|---|---|---|---|
+| `ROUND_CREATED` | o admin cria a rodada | todos os ativos do grupo | detalhe da rodada |
+| `TEAMS_PUBLISHED` | o admin publica os times (despublicar não avisa; publicar de novo avisa de novo) | os escalados (titulares e reservas) que seguem ativos | aba Times |
+| `VOTING_OPENED` | o admin abre a votação | quem jogou a rodada e segue ativo | votar |
+| `RESULT_OUT` | a votação fecha (admin, último voto ou prazo, uma vez só por fechamento) | todos os ativos do grupo | resultado |
+
+**Quem recebe:** `notificationRecipients(type, { activeMemberIds, lineupIds?, actorId })` devolve membershipIds, sem
+repetir, só de membro **ativo**, e **sem o ator** (quem causou a ação não recebe o próprio aviso; `actorId` `null` =
+ninguém causou: prazo, último voto). Não envia nada nem conhece aparelho. Sem escalados, os tipos de escalação não
+têm destinatário. Quem foi desativado depois de jogar não recebe.
+
+**O texto:** `notificationContent(type, data)` (shared) é a fonte única de título, texto, `url` e `tag`. O título é o
+**nome da pelada**; a data é a **real da rodada**, no formato do app e no fuso de Brasília ("sáb, 24 out, 9h"; o
+prazo da votação, "até sáb às 21h"), nunca um dia da semana fixo. O `RESULT_OUT` **não diz quem foi o Craque**: o
+suspense é do pacote. A `url` leva `?grupo=<groupId>` (o aviso pode ser de outra pelada do usuário; o app só troca
+para uma pelada que é dele). A `tag` é `${type}:${roundId}`: o aviso novo substitui o antigo na bandeja.
+
+**Por aparelho:** a assinatura (`PushSubscription`: `endpoint` único, chaves, `userAgent`) é de um aparelho de um
+usuário e vale para todas as peladas dele; não há escolha por tipo nem por grupo na v1. Ligar num celular não liga
+no outro; outro usuário entrando no mesmo aparelho (mesmo `endpoint`) toma a linha; sair da conta desliga os avisos
+daquele aparelho. O navegador só pede permissão depois do toque em "Ativar avisos".
+
+**Cortesia:** aviso nunca falha a ação (publicar, abrir votação...): o envio sai depois de gravar, sem esperar, com
+TTL de 12 h; erro de rede vai para o log com o `requestId` e a assinatura fica; 404 ou 410 do serviço de push apaga a
+assinatura. Push não grava no `AuditLog`. Sem as três variáveis VAPID (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+`VAPID_SUBJECT`; as três ou nenhuma) o push fica desligado: `GET /push/config` diz `enabled: false` e nada tenta enviar.
+
+**Contrato:** `packages/shared/src/push.ts`; rotas sob `/api`, só com sessão (sem grupo): `GET /push/config`,
+`PUT|DELETE /push/subscriptions` (204), `POST /push/test` (`{ sent }`).
+
+**Evite:** pôr destinatário ou texto no service ou no front (vêm do domain e do shared); revelar o Craque no
+resultado; um dia da semana fixo no texto; pedir permissão sem toque; deixar o envio atrasar ou derrubar a ação.
 
 ---
 
