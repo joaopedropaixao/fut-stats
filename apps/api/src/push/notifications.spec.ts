@@ -49,7 +49,7 @@ describe('push: avisos da pelada (NotificationsService)', () => {
     const endpoints: string[] = [];
     for (let i = 0; i < devices; i += 1) {
       seq += 1;
-      const endpoint = `https://push.example.com/send/${seq}`;
+      const endpoint = `https://fcm.googleapis.com/fcm/send/${seq}`;
       endpoints.push(endpoint);
       await t.prisma.pushSubscription.create({
         data: { userId: user.id, endpoint, p256dh: 'p256dh', auth: 'auth' },
@@ -281,7 +281,7 @@ describe('push: avisos sem chaves VAPID', () => {
     const user = await createUser(t);
     await addMember(t, user.id, group.id);
     await t.prisma.pushSubscription.create({
-      data: { userId: user.id, endpoint: 'https://push.example.com/x', p256dh: 'a', auth: 'b' },
+      data: { userId: user.id, endpoint: 'https://fcm.googleapis.com/fcm/x', p256dh: 'a', auth: 'b' },
     });
     const round = await t.prisma.round.create({
       data: { groupId: group.id, scheduledAt: SCHEDULED_AT },

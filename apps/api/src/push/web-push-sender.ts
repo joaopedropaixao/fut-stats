@@ -6,8 +6,11 @@ import type { Env } from '../config/env';
 import { PUSH_TTL_SECONDS, PushSender, type PushTarget } from './push-sender';
 import { vapidConfig } from './vapid';
 
-/** O serviço de push responde 404 ou 410 quando o aparelho desfez a assinatura (ou ela venceu). */
-const GONE_STATUS: ReadonlySet<number> = new Set([404, 410]);
+/**
+ * A assinatura morreu: 404 ou 410 quando o aparelho a desfez (ou ela venceu); 403 quando ela foi criada com outra chave
+ * VAPID (a chave do servidor trocou), e nunca mais vai aceitar o envio.
+ */
+const GONE_STATUS: ReadonlySet<number> = new Set([403, 404, 410]);
 
 /** `PushSender` de verdade: `web-push` assina com as chaves VAPID e criptografa o conteúdo. */
 @Injectable()

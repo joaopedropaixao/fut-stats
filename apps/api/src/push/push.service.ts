@@ -1,14 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type {
-  PushConfig,
-  PushPayload,
-  PushSubscriptionInput,
-  PushTestResult,
+import {
+  isPushServiceEndpoint,
+  type PushConfig,
+  type PushPayload,
+  type PushSubscriptionInput,
+  type PushTestResult,
 } from '@fut-stats/shared';
 import type { Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
-import { PushSender } from './push-sender';
+import { PushSender, type PushTarget } from './push-sender';
 import { vapidConfig } from './vapid';
 
 /** O texto do aviso de teste (não é de nenhuma pelada: o título é o do app). */
@@ -41,24 +42,39 @@ export class PushService {
   }
 
   /**
-   * Guarda o aparelho. O `endpoint` identifica o aparelho: o mesmo de novo atualiza as chaves, e se outro usuário
-   * entrou naquele aparelho a linha passa para ele.
+   * Guarda o aparelho. O `endpoint` identifica a assinatura do navegador: o mesmo usuário de novo atualiza as chaves.
+   * Outro usuário só leva a linha se mandar as mesmas chaves guardadas (o mesmo navegador, com outra conta logada);
+   * com chaves diferentes é 409: saber o `endpoint` de alguém não basta para tomar os avisos dele.
+   * O `endpoint` é conferido de novo aqui (o schema já confere): a API faz pedidos para ele, então só serviço de push.
    */
   async subscribe(
     userId: string,
     input: PushSubscriptionInput,
     userAgent: string | null,
   ): Promise<void> {
-    const data = {
-      userId,
-      p256dh: input.keys.p256dh,
-      auth: input.keys.auth,
-      userAgent,
-    };
-    await this.prisma.pushSubscription.upsert({
-      where: { endpoint: input.endpoint },
-      create: { endpoint: input.endpoint, ...data },
-      update: data,
+    if (!isPushServiceEndpoint(input.endpoint))
+      throw new UnprocessableEntityException({
+        code: 'PUSH_ENDPOINT_NOT_ALLOWED',
+        message: 'Endereço de push desconhecido.',
+      });
+    const { endpoint, keys } = input;
+    await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.pushSubscription.findUnique({
+        where: { endpoint },
+        select: { userId: true, p256dh: true, auth: true },
+      });
+      const data = { userId, p256dh: keys.p256dh, auth: keys.auth, userAgent };
+      if (!existing) {
+        await tx.pushSubscription.create({ data: { endpoint, ...data } });
+        return;
+      }
+      const sameBrowser = existing.p256dh === keys.p256dh && existing.auth === keys.auth;
+      if (existing.userId !== userId && !sameBrowser)
+        throw new ConflictException({
+          code: 'PUSH_SUBSCRIPTION_TAKEN',
+          message: 'Este aparelho já está ligado a outra conta.',
+        });
+      await tx.pushSubscription.update({ where: { endpoint }, data });
     });
   }
 
@@ -74,19 +90,34 @@ export class PushService {
       where: { userId },
       select: { endpoint: true, p256dh: true, auth: true },
     });
-    let sent = 0;
-    for (const subscription of subscriptions) {
-      try {
-        const outcome = await this.sender.send(subscription, TEST_PAYLOAD);
-        if (outcome === 'sent') sent += 1;
-        else
+    const { sent } = await this.sendToSubscriptions(subscriptions, TEST_PAYLOAD);
+    return { sent };
+  }
+
+  /**
+   * Envia para cada aparelho em paralelo. Só apaga a assinatura quando o serviço de push diz que ela morreu (`gone`);
+   * erro de rede não apaga (fica para a próxima) e não impede os outros: volta em `errors` para quem chamou registrar.
+   */
+  async sendToSubscriptions(
+    subscriptions: readonly PushTarget[],
+    payload: PushPayload,
+  ): Promise<{ sent: number; errors: unknown[] }> {
+    const outcomes = await Promise.allSettled(
+      subscriptions.map(async (subscription) => {
+        const outcome = await this.sender.send(subscription, payload);
+        if (outcome === 'gone')
           await this.prisma.pushSubscription.deleteMany({
             where: { endpoint: subscription.endpoint },
           });
-      } catch {
-        // Aviso de teste é cortesia: um aparelho fora do ar não derruba os outros.
-      }
+        return outcome;
+      }),
+    );
+    let sent = 0;
+    const errors: unknown[] = [];
+    for (const outcome of outcomes) {
+      if (outcome.status === 'rejected') errors.push(outcome.reason);
+      else if (outcome.value === 'sent') sent += 1;
     }
-    return { sent };
+    return { sent, errors };
   }
 }

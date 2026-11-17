@@ -69,7 +69,7 @@ describe('push: avisos disparados pelas ações da rodada', () => {
     const endpoints: string[] = [];
     for (let i = 0; i < (data.devices ?? 1); i += 1) {
       seq += 1;
-      const endpoint = `https://push.example.com/send/${seq}`;
+      const endpoint = `https://fcm.googleapis.com/fcm/send/${seq}`;
       endpoints.push(endpoint);
       await t.prisma.pushSubscription.create({
         data: { userId: user.id, endpoint, p256dh: 'p', auth: 'a' },

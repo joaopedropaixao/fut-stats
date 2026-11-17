@@ -39,7 +39,7 @@ describe('WebPushSender', () => {
     expect(PUSH_TTL_SECONDS).toBe(43_200);
   });
 
-  it.each([404, 410])('%i do serviço de push vira "gone"', async (statusCode) => {
+  it.each([403, 404, 410])('%i do serviço de push vira "gone"', async (statusCode) => {
     send.mockRejectedValue(
       Object.assign(new Error('Received unexpected response code'), { statusCode }),
     );

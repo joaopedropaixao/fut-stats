@@ -10,7 +10,7 @@ import { createTestApp, resetDatabase, type TestApp } from '../test/test-app';
 import { PushSender } from './push-sender';
 
 const keys = { p256dh: 'BPubKeyDoAparelho', auth: 'segredoDeAuth' };
-const endpointA = 'https://push.example.com/send/aparelho-a';
+const endpointA = 'https://fcm.googleapis.com/fcm/send/aparelho-a';
 
 describe('push: rotas', () => {
   let t: TestApp;
@@ -83,17 +83,47 @@ describe('push: rotas', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ userId: first.user.id, p256dh: 'novaChave', auth: 'novoAuth' });
 
-    await put(second.cookie, { endpoint: endpointA, keys }).expect(204);
+    // O mesmo navegador com outra conta: manda as mesmas chaves guardadas, e a linha passa para ela.
+    await put(second.cookie, {
+      endpoint: endpointA,
+      keys: { p256dh: 'novaChave', auth: 'novoAuth' },
+    }).expect(204);
     rows = await t.prisma.pushSubscription.findMany();
     expect(rows).toHaveLength(1);
     expect(rows[0]!.userId).toBe(second.user.id);
+  });
+
+  it('C10: outro usuário com o endpoint de alguém e chaves diferentes leva 409 e a linha fica com o dono', async () => {
+    const owner = await login();
+    const intruder = await login();
+    await put(owner.cookie, { endpoint: endpointA, keys }).expect(204);
+    const res = await put(intruder.cookie, {
+      endpoint: endpointA,
+      keys: { p256dh: 'outraChave', auth: 'outroAuth' },
+    }).expect(409);
+    expect(res.body).toMatchObject({ code: 'PUSH_SUBSCRIPTION_TAKEN' });
+    const rows = await t.prisma.pushSubscription.findMany();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ userId: owner.user.id, p256dh: keys.p256dh, auth: keys.auth });
+  });
+
+  it('C11: endpoint de host interno ou fora dos serviços de push dá 400 (SSRF)', async () => {
+    const { cookie } = await login();
+    for (const endpoint of [
+      'https://169.254.169.254/latest/meta-data',
+      'https://localhost/push',
+      'https://api.internal/push',
+      'https://push.example.com/send/x',
+    ])
+      await put(cookie, { endpoint, keys }).expect(400);
+    expect(await t.prisma.pushSubscription.count()).toBe(0);
   });
 
   it('C11: corpo sem keys, endpoint que não é https e endpoint com mais de 2000 caracteres dão 400', async () => {
     const { cookie } = await login();
     await put(cookie, { endpoint: endpointA }).expect(400);
     await put(cookie, { endpoint: 'http://push.example.com/x', keys }).expect(400);
-    await put(cookie, { endpoint: `https://push.example.com/${'a'.repeat(2000)}`, keys }).expect(
+    await put(cookie, { endpoint: `https://fcm.googleapis.com/fcm/${'a'.repeat(2000)}`, keys }).expect(
       400,
     );
     await put(cookie, { endpoint: endpointA, keys: { p256dh: '', auth: 'x' } }).expect(400);
@@ -105,13 +135,13 @@ describe('push: rotas', () => {
     const mine = await login();
     const other = await login();
     await put(mine.cookie, { endpoint: endpointA, keys }).expect(204);
-    const otherEndpoint = 'https://push.example.com/send/aparelho-b';
+    const otherEndpoint = 'https://fcm.googleapis.com/fcm/send/aparelho-b';
     await put(other.cookie, { endpoint: otherEndpoint, keys }).expect(204);
 
     await del(mine.cookie, { endpoint: otherEndpoint }).expect(204);
     expect(await t.prisma.pushSubscription.count()).toBe(2);
 
-    await del(mine.cookie, { endpoint: 'https://push.example.com/send/nao-existe' }).expect(204);
+    await del(mine.cookie, { endpoint: 'https://fcm.googleapis.com/fcm/send/nao-existe' }).expect(204);
     expect(await t.prisma.pushSubscription.count()).toBe(2);
 
     await del(mine.cookie, { endpoint: endpointA }).expect(204);
@@ -151,10 +181,10 @@ describe('push: rotas', () => {
   it('C20: o teste só vai para os aparelhos do próprio usuário e apaga o que o serviço diz que sumiu', async () => {
     const mine = await login();
     const other = await login();
-    const gone = 'https://push.example.com/send/sumiu';
+    const gone = 'https://fcm.googleapis.com/fcm/send/sumiu';
     await put(mine.cookie, { endpoint: endpointA, keys }).expect(204);
     await put(mine.cookie, { endpoint: gone, keys }).expect(204);
-    await put(other.cookie, { endpoint: 'https://push.example.com/send/outro', keys }).expect(204);
+    await put(other.cookie, { endpoint: 'https://fcm.googleapis.com/fcm/send/outro', keys }).expect(204);
     sender.answers.set(gone, 'gone');
 
     const res = await request(server())
