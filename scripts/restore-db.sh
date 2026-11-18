@@ -3,7 +3,7 @@
 # Uso: scripts/restore-db.sh [--force] arquivo.sql.gz.gpg
 #
 # Variáveis de ambiente (nunca passe a senha como argumento):
-#   RESTORE_DATABASE_URL  conexão do banco de DESTINO (use uma branch descartável do Neon, nunca a de produção). Obrigatória.
+#   RESTORE_DATABASE_URL  conexão do banco de DESTINO (um Postgres vazio, ou uma branch do Neon "Schema only" com --force; nunca a de produção). Obrigatória.
 #   BACKUP_PASSPHRASE     a senha com que o backup foi cifrado. Obrigatória.
 # O destino precisa estar vazio (sem tabelas). Com --force o script apaga tudo do schema "public" do destino antes
 # de restaurar. Precisa de psql, gzip e gpg no PATH.
@@ -58,7 +58,7 @@ tabelas="$(psql "$RESTORE_DATABASE_URL" --no-psqlrc --tuples-only --no-align --q
 limpou=0
 if [ "$tabelas" != "0" ]; then
   if [ "$force" -ne 1 ]; then
-    erro "o banco de destino já tem $tabelas tabela(s). Restaure num banco vazio (uma branch nova do Neon) ou use --force para apagar o que há nele."
+    erro "o banco de destino já tem $tabelas tabela(s). Restaure num banco vazio (um Postgres novo) ou use --force para apagar o que há nele (por exemplo, numa branch do Neon \"Schema only\", que já vem com as tabelas, e nunca na produção)."
   fi
   echo "Atenção: --force, apagando tudo do schema public do destino..." >&2
   psql "$RESTORE_DATABASE_URL" --no-psqlrc --quiet -v ON_ERROR_STOP=1 \
