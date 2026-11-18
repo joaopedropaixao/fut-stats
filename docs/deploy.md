@@ -394,10 +394,30 @@ o nome entra (`render.yaml`, `apps/web/vercel.json`, esta documentação e o `do
 `node scripts/check-deploy-config.mjs` (que roda no `pnpm test`) confere que o host de produção do `vercel.json` é o
 mesmo do `APP_URL` de produção do `render.yaml`.
 
-O `render.yaml` e o `apps/web/vercel.json` são os mesmos nas duas branches. A API de produção só responde pelos
-endereços de produção graças às regras de `/api/*` do `vercel.json`: os hosts `futstats-app.com.br` **e** `fut-stats-app.vercel.app`
-(o endereço padrão do projeto na Vercel, que continua existindo) vão para `fut-stats-api.onrender.com`; qualquer outro
-host continua indo para o staging. O `www.futstats-app.com.br` só redireciona para o principal na Vercel (não precisa de regra).
+O `render.yaml` e o `apps/web/vercel.json` são os mesmos nas duas branches. Quem decide para qual API vai o `/api/*` é
+o **host** do pedido, nas regras do `vercel.json` (a primeira que casa vale; o valor do `has` é uma expressão regular
+que casa o host inteiro):
+
+| Host | `/api/*` vai para |
+|---|---|
+| `futstats-app.com.br` | produção (`fut-stats-api.onrender.com`) |
+| `fut-stats-app.vercel.app` e todo host do projeto `fut-stats-app` na Vercel: a URL única de cada deploy (`fut-stats-app-<hash>-<time>.vercel.app`) e os aliases de branch (`fut-stats-app-git-main-<time>.vercel.app`) | produção |
+| hosts do projeto de staging `fut-stats`: `fut-stats-three.vercel.app`, a URL de cada deploy e os previews de branch (`fut-stats-<hash>-…`, `fut-stats-git-<branch>-…`) | staging (`fut-stats-api-staging.onrender.com`) |
+| qualquer outro host | **nenhuma API** (falha fechada: o pedido cai no `index.html` e o app mostra erro, em vez de gravar no banco errado) |
+
+Antes, a regra do staging não tinha condição: a URL única de um deploy de produção e o alias `git-main` mandavam o
+`/api` para o **staging** sem erro nenhum (front de produção gravando no banco de staging). O
+`node scripts/check-deploy-config.mjs` (no `pnpm test`) simula o roteamento com hosts de exemplo de cada linha da
+tabela e falha se algum for para o lugar errado. Os endereços principais (`futstats-app.com.br`,
+`fut-stats-app.vercel.app`, `fut-stats-three.vercel.app`) têm regra literal própria, antes das expressões regulares:
+se a Vercel tratar a expressão de outro jeito, eles continuam certos e só as URLs de deploy e de preview falham fechado.
+**Conferir depois do merge na `develop`:** `https://fut-stats-three.vercel.app/api/health` segue `{"status":"ok"}` e o
+`/api/health` da URL do último deploy do staging (Vercel → Deployments → o deploy → o endereço `fut-stats-…`) também. O `www.futstats-app.com.br` só redireciona para o principal na Vercel
+(não precisa de regra).
+
+> O projeto `fut-stats-app` também gera **previews** de outras branches, e eles iriam para a API de produção. Para
+> evitar, em **Settings → Git → Ignored Build Step** do projeto `fut-stats-app`, escolha **Only build production**
+> (ou o comando `[ "$VERCEL_ENV" != "production" ]`, que pula o que não é produção).
 
 **O que o dono já tem** (não precisa refazer): o projeto `fut-stats-app` na Vercel (branch `main`, raiz `apps/web`), os dois
 projetos do Sentry (com os DSN), o client OAuth de produção do Google, o par VAPID de produção e o `BACKUP_PASSPHRASE`.
@@ -532,11 +552,19 @@ O client **Fut Stats produção** já existe (o dono criou com os endereços de 
 5. Cole o DSN da API em `SENTRY_DSN` no Render (produção **e** staging; `SENTRY_ENVIRONMENT` já vem do `render.yaml`) e o
    do web em `VITE_SENTRY_DSN` (e `VITE_SENTRY_ENVIRONMENT` = `production`) no projeto da Vercel; faça **Redeploy**
    na Vercel (a variável entra no build).
-6. **Conferir:** a cada deploy da API aparece no projeto `fut-stats-api` a mensagem **"API no ar"** (nível info) com o
-   ambiente. Sem ela, o DSN está errado.
+6. **Conferir (depois do R7c, que traz o `TICK_SECRET`):** chame a conferência do Sentry, com o segredo do
+   despertador (do gerenciador de senhas) colado no lugar de `SEGREDO`:
+   ```sh
+   curl -sS -X POST -H "Authorization: Bearer SEGREDO" https://fut-stats-api.onrender.com/api/internal/sentry-check
+   ```
+   A resposta é `{"sent":true}` e aparece no projeto `fut-stats-api` a mensagem **"Teste do Sentry"** (nível info), com
+   o ambiente e o commit do deploy (`release`). `{"sent":false}`: o `SENTRY_DSN` não está no Render de produção. Sem a
+   mensagem com `sent: true`: o DSN está errado. A API **não** manda mais nada ao subir: no Render gratuito cada chamada
+   do despertador é uma partida a frio (cerca de 48 por dia), e isso gastaria a cota gratuita do Sentry.
 
-> O Sentry só recebe erro de verdade (resposta 5xx e falha não tratada) e o `id` do usuário e o `requestId`. Nunca email,
-> nome, cookie, cabeçalho nem corpo de pedido.
+> O Sentry só recebe erro de verdade (resposta 5xx, falha não tratada e erro de trabalho de fundo: o fechamento da
+> votação, o relógio, o envio de push, o sinal da rodada e o canal ao vivo, com a tag `source`) e o `id` do usuário e o
+> `requestId`. Nunca email, nome, cookie, cabeçalho nem corpo de pedido.
 
 ### R6c. Tempo real no staging (antes da release)
 
@@ -548,6 +576,10 @@ O client **Fut Stats produção** já existe (o dono criou com os endereços de 
    funcionando): abra um item para ligar o stream direto na API.
 
 ### R7. Release
+
+**Antes:** o e-mail de contato da Política de Privacidade preenchido (`CONTACT_EMAIL` em
+`apps/web/src/pages/privacidade/privacy-content.ts`, num PR para a `develop`). No PR `develop` → `main` o CI roda a
+checagem de deploy em modo release e fica **vermelho** enquanto o e-mail for o marcador.
 
 O orquestrador abre o PR `develop` → `main` e mergeia com o seu ok, e cria a tag `v1.0.0`. **Conferir:** o Render de
 produção builda sozinho (as migrations rodam no build, na branch `prod` do Neon), fica **Live** e a Vercel publica o
@@ -572,11 +604,15 @@ app em `https://futstats-app.com.br`. Confira <https://fut-stats-api.onrender.co
 2. Crie o segredo `PROD_TICK_URL` no GitHub: `https://fut-stats-api.onrender.com/api/internal/tick`.
 3. **Actions → Despertador → Run workflow** (branch `main`; só aparece depois do R7). O Render de produção precisa já
    estar **Live** com o `TICK_SECRET` salvo.
-4. **Conferir:** o job fica verde e o log termina com `{"closedVotings":0}`. Se falhar com `401`, os dois `TICK_SECRET`
-   são diferentes (o do Render só vale depois do deploy que o inclui); com `404`, o Render ainda não tem o `TICK_SECRET`.
+4. **Conferir:** o job fica verde e o log termina com `{"closedVotings":0,"failed":0}`. Se falhar com `401`, os dois
+   `TICK_SECRET` são diferentes (o do Render só vale depois do deploy que o inclui); com `404`, o Render ainda não tem o
+   `TICK_SECRET`; com `500`, alguma votação vencida não conseguiu fechar (`failed` diz quantas): o erro de cada uma está
+   no Sentry (tag `source: voting-close`, com o `groupId` e o `roundId`) e a rodada segue em votação até o próximo tick
+   dar certo. Depois, confira o Sentry (R5, passo 6).
 
 O workflow roda sozinho de 30 em 30 minutos e chama a API **direto no Render** (acorda a API se ela estiver dormindo;
-espera até 2 minutos e tenta mais uma vez). Se o job ficar vermelho, o GitHub avisa por e-mail.
+espera até 2 minutos e tenta mais uma vez). Se o job ficar vermelho (inclusive quando uma votação falha ao fechar), o
+GitHub avisa por e-mail.
 
 > **Os 60 dias do GitHub:** o GitHub **desliga** os agendamentos (despertador **e** backup) de repositório sem atividade
 > por 60 dias. Um commit ou **Actions → o workflow → Enable workflow** religa. Anote no calendário para conferir.
@@ -653,4 +689,6 @@ Precisa do `pg_dump` na mesma versão principal do Neon (17).
    (`docs/operacao/registro.md` traz as consultas prontas).
 5. Quando o app (web) mostrar "Deu ruim aqui", o erro vai para o projeto `fut-stats-web` com o id do usuário.
 
-A mensagem **"API no ar"** (nível info) aparece a cada deploy da API: serve para provar que o Sentry está ligado.
+Erro de trabalho de fundo (sem pedido do app) chega com a tag `source` (`voting-close`, `voting-closer`, `push-send`,
+`push-test`, `round-event-emit`, `round-event-listener`, `live-write`) e, quando há, `groupId` e `roundId`. Para provar
+que o Sentry está ligado, use a conferência do R5 (passo 6): a API não manda mensagem ao subir.

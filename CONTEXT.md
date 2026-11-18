@@ -991,16 +991,23 @@ não mexe em `packages/domain`. Spec: `docs/specs/producao.md`; passo a passo do
 
 **Endereço:** domínio próprio `.com.br` (o Google não aceita `*.vercel.app` como domínio autorizado), `futstats-app.com.br` (comprado no registro.br em 18 nov 2026), escrito no
 `render.yaml`, no `vercel.json` e nos docs; o `scripts/check-deploy-config.mjs` confere que o host do `vercel.json` é o do
-`APP_URL` de produção e que não é `*.vercel.app`. O `fut-stats-app.vercel.app` (endereço padrão do projeto)
-continua indo para a API de produção.
+`APP_URL` de produção e que não é `*.vercel.app`. O `/api` vai para a API pelo **host** (`vercel.json`, a primeira regra
+que casa vale): o domínio e todo host do projeto `fut-stats-app` na Vercel (endereço padrão, URL única de cada deploy,
+alias `git-main`) vão para a produção; os hosts do projeto `fut-stats` (staging e previews) para o staging; qualquer outro
+host não chega a API nenhuma (falha fechada: cai no `index.html`). A checagem simula o roteamento com hosts de exemplo.
 
 **Despertador (`apps/api/src/internal`):** `POST /api/internal/tick`, `Authorization: Bearer <TICK_SECRET>`, sem sessão
 (`@Public()` tira o guard de sessão; o guard próprio compara o segredo em tempo constante e qualquer falha é o mesmo 401,
-sem dizer o motivo). Só chama `VotingService.closeDueVotings(new Date())` (todos os grupos) e devolve `TickResult`
-(`{ closedVotings }`, `packages/shared/src/internal.ts`): o registro (`VOTING_CLOSED` sem autor e sem `requestId`), o sinal
+sem dizer o motivo). Só chama `VotingService.closeDueVotingsReport(new Date())` (todos os grupos) e devolve `TickResult`
+(`{ closedVotings, failed }`, `packages/shared/src/internal.ts`); com `failed > 0` responde **500** com o mesmo corpo, para
+o job do GitHub ficar vermelho e mandar e-mail (cada falha já foi ao Sentry com `source: voting-close`, e a rodada segue em
+votação até um tick dar certo). O registro (`VOTING_CLOSED` sem autor e sem `requestId`), o sinal
 único e o push `RESULT_OUT` saem desse método, uma vez só mesmo com dois `tick` ao mesmo tempo (trava por rodada). O módulo
 só existe com `TICK_SECRET` no ambiente (mínimo de 32 caracteres, só na produção): sem ele a rota responde 404
-(`InternalModule.forEnvironment()`, o desenho do `DevModule`). Quem chama é o GitHub Actions
+(`InternalModule.forEnvironment()`, o desenho do `DevModule`). Os arquivos de ambiente entram no `process.env` antes de o
+`AppModule` ser montado (`src/load-env.ts`, primeiro import do `main.ts`), então o `TICK_SECRET` e o `SENTRY_DSN` do
+arquivo local valem igual ao Render. No mesmo módulo, `POST /api/internal/sentry-check` (mesmo segredo) manda a mensagem
+info "Teste do Sentry" e responde `{ sent }`: é a conferência do Sentry no roteiro (R5). Quem chama é o GitHub Actions
 (`.github/workflows/despertador.yml`, de 30 em 30 minutos, direto na API de produção no Render): a votação fecha "no prazo,
 com até uns 30 a 40 minutos de folga"; o último voto e quem abre o app depois do prazo seguem fechando na hora.
 
@@ -1011,20 +1018,25 @@ ele consultaria o banco a cada minuto e o Neon gratuito nunca dormiria. O stagin
 erro de verdade: o 500 não tratado e qualquer resposta com status >= 500 (o `AllExceptionsFilter` captura); 400, 401, 403,
 404 e 409 não vão. O evento leva as tags `requestId` e `groupId`, `user: { id }` e `environment` (`SENTRY_ENVIRONMENT`,
 padrão `NODE_ENV`); nunca email, nome, cookie, cabeçalho, corpo, query nem IP (`dataCollection` fechado e `beforeSend`, que
-deixa só o id do usuário). Sem rastreamento de desempenho. Na subida, uma mensagem info "API no ar" prova que o Sentry está
-ligado. No web, o Sentry entra por `import()` depois da primeira tela, só com `VITE_SENTRY_DSN`.
+deixa só o id do usuário). Sem rastreamento de desempenho; `release` = `RENDER_GIT_COMMIT`. Erro de trabalho de fundo, que o
+filtro HTTP não vê, vai por `reportBackgroundError` com a tag `source` (`voting-close`, `voting-closer`, `push-send`,
+`push-test`, `round-event-emit`, `round-event-listener`, `live-write`) e, quando há, `groupId`/`roundId`; o do push vai sem
+o endereço do aparelho. A API **não** manda nada ao subir (no Render gratuito cada tick é uma partida a frio e gastaria a
+cota): a conferência é o `sentry-check`. No web, o Sentry entra por `import()` depois da primeira tela, só com `VITE_SENTRY_DSN`.
 
 **Backup (`scripts/backup-db.sh`, `scripts/restore-db.sh`):** todo dia, `pg_dump` do banco de produção, gzip e gpg
 (AES256, senha em `BACKUP_PASSPHRASE`), guardado 30 dias como artefato do GitHub Actions (`.github/workflows/backup.yml`).
 Restaurar recusa destino com tabelas sem `--force`. Um backup que nunca foi restaurado não é backup: o dono restaura numa
 branch descartável do Neon antes do lançamento.
 
-**Seed e rotas de dev:** o seed recusa `NODE_ENV=production` ("O seed não roda em produção", código 1, antes de tocar no
-banco); as rotas `/api/dev/*` não existem em produção.
+**Seed e rotas de dev:** o seed só roda com `NODE_ENV` `development` ou `test`; com qualquer outro valor, **inclusive sem
+`NODE_ENV`** (a API trata a falta como produção e o `render.yaml` não define), recusa ("O seed não roda em produção",
+código 1, antes de tocar no banco); as rotas `/api/dev/*` não existem em produção.
 
 **Evite:** dar ao despertador outra tarefa que não seja fechar votação vencida (lembretes e rodízio precisam de precisão que
 o agendamento do GitHub não tem); aceitar o segredo fora do cabeçalho `Authorization`; mandar 4xx, dado pessoal ou corpo de
-pedido para o Sentry; ligar `VOTING_CLOSER_INTERVAL_MS` em produção; usar o `x-request-id` do cliente em produção.
+pedido para o Sentry; ligar `VOTING_CLOSER_INTERVAL_MS` em produção; usar o `x-request-id` do cliente em produção;
+engolir em silêncio uma falha de trabalho de fundo (use `reportBackgroundError`); mandar mensagem ao Sentry a cada subida.
 
 ---
 

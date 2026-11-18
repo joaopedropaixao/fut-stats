@@ -64,12 +64,12 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C2 | `SENTRY_DSN` inválido (não é URL) | validar o ambiente | a API não sobe e diz o motivo | integração (`env.spec.ts`) |
 | C3 | `SENTRY_DSN` definido e transporte trocado por um gravador | erro 500 forçado numa rota autenticada de grupo | um evento com `environment`, as tags `requestId` e `groupId` e `user: { id }`; sem email, nome, cookie, cabeçalho de autorização nem corpo | integração |
 | C4 | idem | respostas 400, 401, 403, 404 e 409 | nenhum evento | integração |
-| C5 | idem | a API sobe | uma mensagem de nível info "API no ar" com o ambiente (prova que o Sentry está ligado a cada deploy) | integração |
+| C5 | idem | a API sobe; depois, `POST /api/internal/sentry-check` com o `TICK_SECRET` | ao subir, nada é enviado (no Render gratuito cada tick é uma partida a frio: ~48 por dia gastariam a cota); a conferência manda uma mensagem info "Teste do Sentry" com o ambiente e responde `{ sent: true }` (sem Sentry, `{ sent: false }`) — code review do PR #78 | integração |
 | C6 | `NODE_ENV=production` | `GET /api/dev/...` | 404 (regressão do que já existe) | integração |
-| C7 | `NODE_ENV=production` | rodar o seed | recusa com "O seed não roda em produção" e sai com código 1, sem tocar no banco | integração (`seed.spec.ts`) |
+| C7 | `NODE_ENV` diferente de `development` e `test`, **inclusive sem `NODE_ENV`** (o padrão da API é produção e o `render.yaml` não define) | rodar o seed | recusa com "O seed não roda em produção" e sai com código 1, sem tocar no banco (code review do PR #78: antes só recusava `production`) | integração (`seed.spec.ts`) |
 | C8 | `GET /api/health` | chamar com o banco fora do ar | continua 200 (o health não consulta o banco: o Render chama a cada poucos segundos e o Neon gratuito suspende banco parado) | integração |
 | C9 | `render.yaml` | checagem de configuração (`scripts/check-deploy-config.mjs`, roda no `pnpm test` da raiz) | dois serviços: staging na `develop` e produção na `main`; os dois com `healthCheckPath`, `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, as do Google, `APP_URL`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT` e as três `VAPID_*`; o de produção com `APP_URL=https://futstats-app.com.br`, `TICK_SECRET` (`sync: false`) e `VOTING_CLOSER_INTERVAL_MS=0`; o staging sem `TICK_SECRET`; nenhum valor de segredo escrito no arquivo | checagem |
-| C10 | `apps/web/vercel.json` | a mesma checagem | o `/api/*` de `futstats-app.com.br` e de `fut-stats-app.vercel.app` vai para a API de produção, e o resto para a de staging; a regra do `index.html` continua por último; o host de produção é o mesmo do `APP_URL` de produção do `render.yaml` e não é `*.vercel.app` | checagem |
+| C10 | `apps/web/vercel.json` | a mesma checagem, simulando o roteamento por host | o `/api` de `futstats-app.com.br` e de todo host do projeto `fut-stats-app` (endereço padrão, URL única de cada deploy, alias `git-main`) vai para a produção; o dos hosts do projeto `fut-stats` (staging e previews) para o staging; host desconhecido não chega a API nenhuma (falha fechada); a regra do `index.html` por último (code review do PR #78: antes a regra do staging não tinha condição e mandava deploy único e `git-main` da produção para o staging) | checagem |
 | C11 | banco local com o seed | `scripts/backup-db.sh` com `BACKUP_PASSPHRASE` | gera `fut-stats-<data>.sql.gz.gpg`; o arquivo não tem texto legível (`strings` não acha nomes de tabela) | integração (script, no Postgres de teste) |
 | C12 | o arquivo de C11 | `scripts/restore-db.sh` num banco vazio, com a senha certa | o banco restaurado tem as mesmas contagens por tabela do original | integração (script) |
 | C13 | senha errada; variável faltando; banco de destino não vazio | `restore-db.sh` / `backup-db.sh` | falha com mensagem clara e código ≠ 0; o destino não vazio é recusado sem `--force` | integração (script) |
@@ -79,9 +79,9 @@ Cada cenário tem um id. Os testes levam o id no nome.
 
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
-| C19 | `TICK_SECRET` configurado; uma rodada em `VOTING` com o prazo vencido e outra ainda no prazo, em grupos diferentes | `POST /api/internal/tick` com `Authorization: Bearer <segredo>`, **sem sessão** | 200 `{ closedVotings: 1 }`; a vencida passa a `CLOSED` com `DEADLINE_PASSED` e o resultado gravado; a outra segue em `VOTING` | integração |
+| C19 | `TICK_SECRET` configurado; uma rodada em `VOTING` com o prazo vencido e outra ainda no prazo, em grupos diferentes | `POST /api/internal/tick` com `Authorization: Bearer <segredo>`, **sem sessão** | 200 `{ closedVotings: 1, failed: 0 }`; a vencida passa a `CLOSED` com `DEADLINE_PASSED` e o resultado gravado; a outra segue em `VOTING` | integração |
 | C20 | idem, com membros com assinatura de push | o mesmo `tick` | o aviso `RESULT_OUT` sai para os ativos do grupo (enviador trocado pelo gravador), uma vez só | integração |
-| C21 | nada vencido | `tick` | 200 `{ closedVotings: 0 }`, sem escrever nada | integração |
+| C21 | nada vencido | `tick` | 200 `{ closedVotings: 0, failed: 0 }`, sem escrever nada | integração |
 | C22 | segredo errado; sem o cabeçalho; segredo certo em outro formato (`Basic`, query) | `tick` | 401, sem dizer o motivo e sem fechar nada | integração |
 | C23 | ambiente **sem** `TICK_SECRET` | `tick` | 404 (a rota não existe); `TICK_SECRET` com menos de 32 caracteres: a API não sobe (`env.spec.ts`) | integração |
 | C24 | dois `tick` ao mesmo tempo com uma votação vencida | `Promise.all` | fecha uma vez; a soma dos `closedVotings` é 1; um só aviso de resultado | integração |
@@ -96,6 +96,16 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C28 | `NODE_ENV` development ou test | o mesmo pedido | segue como hoje: o valor válido recebido é usado (C16 da `auditoria-da-rodada`, útil para o QA e para o Bruno) | integração (regressão) |
 | C29 | banco de teste com os usuários de dev | a ferramenta `collections/dev-session.ts` (usada com o `/dev/entrar`) cria o grupo "Pelada Inativa" | o grupo é criado com o avatar padrão (`DEFAULT_AVATAR`) e o usuário inativo fica inativo nele; antes falhava porque `groups.create` era chamado sem `avatar` | integração (reproduz o defeito) |
 | C30 | rodada em `VOTING` vencida, com membros com assinatura de push | `tick` | o fechamento sai pelo mesmo `closeDueVotings` do relógio: uma linha `VOTING_CLOSED` sem autor no registro da rodada e um sinal único `VOTING_CLOSED` (o canal ao vivo recebe `changed`); junto com C20, o push `RESULT_OUT` sai uma vez | integração |
+
+**Code review do PR #78** (18 nov 2026)
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C33 | `CONTACT_EMAIL` da Política de Privacidade ainda com o marcador | checagem de deploy | fora da release, só avisa; no PR para a `main` (`GITHUB_BASE_REF=main`) é problema e o CI fica vermelho; valor que não é marcador tem de ser um e-mail; os testes do web não prendem o valor | checagem |
+| C34 | uma votação vencida cujo fechamento falha (erro do banco) e outra que fecha | `tick` | 500 `{ closedVotings: 1, failed: 1 }` (o job do GitHub fica vermelho e manda e-mail); a que falhou segue em `VOTING`; um evento no Sentry com a tag `source: voting-close`, `groupId` e `roundId` | integração |
+| C35 | Sentry ligado | erro de trabalho de fundo: fechamento da votação, relógio, envio de push (aviso e teste), sinal da rodada e canal ao vivo | vai ao Sentry com a tag `source` e, quando há, `groupId`/`roundId`; o push sai sem o endereço do aparelho (só `host`, `statusCode`, `code`); nunca lança | integração |
+| C36 | `TICK_SECRET` e `SENTRY_DSN` só no arquivo de ambiente local | a API sobe | o despertador e o Sentry ligam igual ao Render: os arquivos de ambiente entram no `process.env` antes de o `AppModule` ser montado (o painel do Render vence o arquivo; o da equipe vence o da raiz) | unitário (`load-env-files.spec.ts`) |
+| C37 | Sentry do web | erro em qualquer tela do app | a URL do evento é o padrão da rota (`/rodadas/:roundId/votar`, `/jogadores/:membershipId`, `/historico/:roundId`, `/resenhas/:postId/editar`...), conferido contra a árvore de rotas real (`app-routes.tsx`) | unitário |
 
 **Web**
 
@@ -117,9 +127,9 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | R2 | Neon: copiar as duas URLs da branch `prod` (com e sem `-pooler`) | guardadas no gerenciador de senhas |
 | R3 | Render: sincronizar o Blueprint (aparece o serviço `fut-stats-api`, plano gratuito) e colar as variáveis, inclusive **um par VAPID novo, só de produção** (`npx web-push generate-vapid-keys`; o do staging não serve) | o serviço aparece e as variáveis ficam salvas; o primeiro deploy só fica "Live" depois do R7 (a `main` ainda não tem o app), quando `GET /api/health` responde 200 pelo endereço de produção; se o Render der outro endereço que não `fut-stats-api.onrender.com`, o `vercel.json` é corrigido antes da release |
 | R4 | Google Cloud: no client "Fut Stats produção" (já criado pelo dono com as URIs de vercel.app), acrescentar a origem `https://futstats-app.com.br` e a callback `https://futstats-app.com.br/api/auth/google/callback`; no Branding: domínio autorizado `futstats-app.com.br`, página inicial `https://futstats-app.com.br` e Política de Privacidade `https://futstats-app.com.br/privacidade` (só existe depois do R7); publicar o app (sair de "Testing") | login em `https://futstats-app.com.br` com uma conta que não está na lista de teste |
-| R5 | Sentry: criar a conta e dois projetos (API e web); colar os DSN no Render e na Vercel | a mensagem "API no ar" aparece no Sentry |
+| R5 | Sentry: criar a conta e dois projetos (API e web), ligar "Prevent Storing of IP Addresses"; colar os DSN no Render e na Vercel | depois do R7c: `POST https://fut-stats-api.onrender.com/api/internal/sentry-check` com o `TICK_SECRET` responde `{ "sent": true }` e a mensagem "Teste do Sentry" aparece no Sentry |
 | R6c | Tempo real no staging (pelo domínio próprio nada muda além do host do rewrite) (os 3 passos do PR #75): duas sessões, admin e jogador, na mesma rodada; o admin lança um gol | o gol aparece no jogador em até 2 s e o `.../stream` fica aberto na aba Rede; se o rewrite da Vercel segurar o fluxo, o gol aparece em até 5 s pelo modo antigo e abre-se um item para ligar o stream direto na API |
-| R7 | Release: PR `develop` → `main` (o orquestrador abre e mergeia com o ok do dono), tag `v1.0.0` | produção no ar com as migrations aplicadas |
+| R7 | Antes: o e-mail de contato da Política de Privacidade preenchido (`CONTACT_EMAIL`), senão o CI do PR para a `main` fica vermelho (C33). Release: PR `develop` → `main` (o orquestrador abre e mergeia com o ok do dono), tag `v1.0.0` | produção no ar com as migrations aplicadas |
 | R7b | GitHub: criar os segredos `PROD_DIRECT_URL` e `BACKUP_PASSPHRASE` e rodar o backup à mão uma vez | artefato gerado; restaurar numa branch descartável do Neon com `restore-db.sh` e conferir |
 | R7c | Despertador: gerar um segredo (`openssl rand -base64 48`), colar como `TICK_SECRET` no Render (produção) e nos segredos do GitHub, criar o segredo `PROD_TICK_URL` (o endereço direto da API de produção no Render + `/api/internal/tick`) e rodar o workflow à mão uma vez | o job fica verde e responde `{ closedVotings: 0 }` |
 | R8 | Fumaça em produção: entrar, criar a pelada, gerar o convite e o roteiro em aparelho real do PR #76 (Android e iPhone: instalar, abrir pelo ícone, ligar os avisos, "Testar aviso" com o app fechado, tocar na notificação; com um admin em outro aparelho, marcar rodada, publicar times, abrir e encerrar a votação; "Sair da conta" para de receber) | tudo funciona; nenhum erro novo no Sentry |
@@ -133,13 +143,21 @@ Uma rota nova, interna (não é para o app): o **webhook do despertador**. Schem
 
 | Método | Rota (sob `/api`) | Quem pode | Request | Response | Erros |
 |---|---|---|---|---|---|
-| `POST` | `/internal/tick` | quem tem o `TICK_SECRET` (`Authorization: Bearer`); sem sessão | — | `TickResult` | 401; 404 sem `TICK_SECRET` no ambiente |
+| `POST` | `/internal/tick` | quem tem o `TICK_SECRET` (`Authorization: Bearer`); sem sessão | — | `TickResult` (500 com o mesmo corpo se `failed > 0`) | 401; 404 sem `TICK_SECRET` no ambiente |
+| `POST` | `/internal/sentry-check` | idem | — | `SentryCheckResult` | 401; 404 sem `TICK_SECRET` no ambiente |
 
 ```ts
 // packages/shared/src/internal.ts
-/** Resposta de POST /api/internal/tick: quantas votações vencidas foram fechadas agora. Sem dado de grupo. */
-export const tickResultSchema = z.object({ closedVotings: z.number().int() });
+/** Resposta de POST /api/internal/tick: fechadas agora e as que falharam (com failed > 0 a resposta é 500). */
+export const tickResultSchema = z.object({
+  closedVotings: z.number().int(),
+  failed: z.number().int(),
+});
 export type TickResult = z.infer<typeof tickResultSchema>;
+
+/** Resposta de POST /api/internal/sentry-check: se o Sentry estava ligado e recebeu "Teste do Sentry". */
+export const sentryCheckResultSchema = z.object({ sent: z.boolean() });
+export type SentryCheckResult = z.infer<typeof sentryCheckResultSchema>;
 ```
 
 Variáveis de ambiente novas (todas opcionais; sem elas o comportamento é o de hoje):
@@ -230,6 +248,23 @@ valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
 `erro-geral-desktop.png`, e um print do evento de teste no Sentry do staging.
 
 ### Decisões
+- **Code review do PR #78 (18 nov 2026):**
+  - Em produção o despertador é o único fechador agendado: uma falha no fechamento vai ao Sentry e o tick responde 500
+    (`{ closedVotings, failed }`), para o job ficar vermelho e o GitHub mandar e-mail. `closeDueVotingsReport` conta as
+    falhas; `closeDueVotings` segue devolvendo o número para os outros chamadores.
+  - Erro de fundo vai ao Sentry por `reportBackgroundError` (tag `source`): fechamento, relógio, push, sinal da rodada e
+    canal ao vivo. O push vai sem o endereço do aparelho.
+  - **Sem "API no ar" a cada subida**: no Render gratuito cada tick é uma partida a frio (~48 por dia) e gastaria a cota
+    do Sentry. A conferência do R5 virou `POST /api/internal/sentry-check` (mesmo segredo do despertador), que só gasta
+    um evento quando o dono chama. O `release` de cada evento é o `RENDER_GIT_COMMIT`.
+  - Os arquivos de ambiente entram no `process.env` antes de o `AppModule` ser montado (`src/load-env.ts`, primeiro
+    import do `main.ts`): `TICK_SECRET` e `SENTRY_DSN` do arquivo local valem igual ao Render.
+  - Seed só com `NODE_ENV` `development` ou `test`.
+  - `vercel.json` por host, com falha fechada (C10). Os previews do projeto `fut-stats-app` iriam para a produção: o
+    roteiro manda desligá-los (Ignored Build Step).
+  - O e-mail de contato barra a release (C33), sem prender o valor nos testes.
+  - Opcional não feito: trocar o `apt install postgresql-client-17` do CI por um shim no container de serviço. Precisa
+    de uma execução do Actions para conferir e o ganho é pouco (segundos por execução).
 - Dois projetos na Vercel e dois serviços no Render, um `vercel.json` e um `render.yaml` — a `main` e a `develop`
   carregam os mesmos arquivos; a diferença fica na regra por endereço e nas variáveis de cada painel.
 - Client do Google separado para produção — segredo de staging vazado não abre a produção.
