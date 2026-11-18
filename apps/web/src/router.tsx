@@ -94,6 +94,15 @@ export const router = createBrowserRouter([
     hydrateFallbackElement: <RouteFallback />,
     errorElement: <RouteError />,
   },
+  // Política de Privacidade: pública (o Google pede a URL para publicar o app), fora do AppShell e do JS inicial
+  {
+    path: '/privacidade',
+    lazy: async () => ({
+      Component: (await import('./pages/privacidade/privacy-page')).PrivacyPage,
+    }),
+    hydrateFallbackElement: <RouteFallback />,
+    errorElement: <RouteError />,
+  },
   // Vitrine dos componentes de base, para comparar com a folha do DS (docs/design/folha).
   // Só em dev: o build de produção nem inclui o código dela.
   ...(import.meta.env.DEV

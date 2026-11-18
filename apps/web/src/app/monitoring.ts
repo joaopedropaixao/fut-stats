@@ -26,16 +26,71 @@ type Monitoring = {
   setUser: (id: string | null) => void;
 };
 
-/** O que sai de cada evento: só o id do usuário; nada de cookie, cabeçalho nem corpo. */
+/** Partes fixas das rotas do app: ficam como estão; qualquer outra parte do caminho é dado variável (id, código). */
+const STATIC_SEGMENTS = new Set([
+  'entrar',
+  'comecar',
+  'convite',
+  'privacidade',
+  'rodadas',
+  'nova',
+  'jogo',
+  'editar',
+  'times',
+  'resenhas',
+  'ranking',
+  'historico',
+  'perfil',
+  'elenco',
+  'dev',
+  'erro',
+  'erro-na-tela',
+  'componentes',
+]);
+
+/** O nome que o roteador dá ao segmento variável depois de cada parte fixa (`/convite/:code`). */
+const PARAM_AFTER: Record<string, string> = {
+  convite: ':code',
+  rodadas: ':roundId',
+  elenco: ':membershipId',
+};
+
+/**
+ * Endereço de página sem dado variável: só o caminho (sem query nem hash, que podem trazer `?grupo=<id>`), com o
+ * código do convite e os ids trocados pelo nome do parâmetro. `/convite/AB12CD` vira `/convite/:code`.
+ */
+export function scrubPath(address: string): string {
+  let path: string;
+  try {
+    path = new URL(address, 'https://app.local').pathname;
+  } catch {
+    path = address.split(/[?#]/)[0] ?? '';
+  }
+  return path
+    .split('/')
+    .map((segment, i, all) =>
+      !segment || STATIC_SEGMENTS.has(segment) ? segment : (PARAM_AFTER[all[i - 1] ?? ''] ?? ':id'),
+    )
+    .join('/');
+}
+
+/**
+ * O que sai de cada evento: só o id do usuário e o erro. Sem rastros de navegação e de console (`breadcrumbs`, que
+ * trazem as URLs visitadas), sem cookie, cabeçalho, corpo nem query; o endereço da página sai sem os dados variáveis.
+ */
 export function scrubEvent<T extends SentryReact.ErrorEvent>(event: T): T | null {
   const original = event.exception?.values?.[0]?.value;
   if (original && isChunkLoadError(new Error(original))) return null;
+  delete event.breadcrumbs;
   if (event.user) event.user = event.user.id ? { id: event.user.id } : undefined;
   if (event.request) {
     delete event.request.cookies;
     delete event.request.headers;
     delete event.request.data;
+    delete event.request.query_string;
+    if (event.request.url) event.request.url = scrubPath(event.request.url);
   }
+  if (event.transaction?.startsWith('/')) event.transaction = scrubPath(event.transaction);
   return event;
 }
 
@@ -70,6 +125,7 @@ export function createMonitoring(
           environment,
           dataCollection: PRIVATE_DATA_COLLECTION,
           tracesSampleRate: 0,
+          maxBreadcrumbs: 0,
           beforeSend: scrubEvent,
         });
         // O usuário pode ter carregado antes do Sentry: o id guardado entra agora
