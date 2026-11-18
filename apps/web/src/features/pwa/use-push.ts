@@ -15,7 +15,7 @@ import {
   type PushState,
   type PushStateInput,
 } from './push-state';
-import { urlBase64ToUint8Array } from './push-subscription';
+import { sameServerKey, subscribeWithKey } from './push-subscription';
 
 /** Quanto esperar o service worker ficar pronto ao ligar (em dev ele não existe e o `ready` nunca responde). */
 const READY_TIMEOUT_MS = 10_000;
@@ -103,14 +103,29 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
 
   const synced =
     sync && subscription !== undefined && subscription !== null && permission === 'granted';
+  const serverKey = config.data?.enabled === true ? config.data.publicKey : null;
   useEffect(() => {
-    if (!synced || !subscription || config.data?.enabled !== true) return;
+    if (!synced || !subscription || !serverKey) return;
     if (registered.current === subscription.endpoint) return;
     registered.current = subscription.endpoint;
-    const parsed = pushSubscriptionInputSchema.safeParse(subscription.toJSON());
-    if (parsed.success)
-      void apiPutNoContent('/push/subscriptions', parsed.data).catch(() => undefined);
-  }, [synced, subscription, config.data?.enabled]);
+    let cancelled = false;
+    void (async () => {
+      let current = subscription;
+      // Assinatura de uma chave VAPID velha: refaz com a atual (a permissão já está dada), senão nunca mais recebe
+      if (!sameServerKey(current.options.applicationServerKey, serverKey)) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) return;
+        current = (await subscribeWithKey(registration.pushManager, serverKey)).subscription;
+        registered.current = current.endpoint;
+        if (!cancelled) setSubscription(current);
+      }
+      const parsed = pushSubscriptionInputSchema.safeParse(current.toJSON());
+      if (parsed.success) await apiPutNoContent('/push/subscriptions', parsed.data);
+    })().catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [synced, subscription, serverKey]);
 
   const enableMutation = useMutation({
     mutationFn: async (publicKey: string) => {
@@ -119,19 +134,17 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
       setPermission(result);
       if (result !== 'granted') return null;
       const registration = await readyRegistration();
-      const existing = await registration.pushManager.getSubscription();
-      const created =
-        existing ??
-        (await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        }));
+      // Reaproveita a assinatura do navegador só se ela é da chave VAPID atual; de chave velha, desfaz e assina de novo
+      const { subscription: created, fresh } = await subscribeWithKey(
+        registration.pushManager,
+        publicKey,
+      );
       try {
         await apiPutNoContent('/push/subscriptions', toInput(created));
         registered.current = created.endpoint;
       } catch (error) {
         // Sem o registro no servidor a assinatura não serve: desfaz, para a próxima tentativa começar limpa
-        if (!existing) await created.unsubscribe().catch(() => undefined);
+        if (fresh) await created.unsubscribe().catch(() => undefined);
         throw error;
       }
       return created;
