@@ -42,17 +42,17 @@ describe('Switch carregando (C39)', () => {
     expect(html).toContain('animate-spin');
   });
 
-  it('com o rótulo de espera, escreve "Ligando…" no lugar de "Desligado"', () => {
+  it('com o rótulo de espera, escreve "Ligando..." no lugar de "Desligado"', () => {
     const html = renderToString(
       <Switch
         label="Avisos neste celular"
         checked={false}
         onCheckedChange={() => {}}
         loading
-        loadingLabel="Ligando…"
+        loadingLabel="Ligando..."
       />,
     );
-    expect(html).toContain('Ligando…');
+    expect(html).toContain('Ligando...');
     expect(html).not.toContain('Desligado');
     expect(html).toContain('animate-spin');
   });
@@ -63,11 +63,11 @@ describe('Switch carregando (C39)', () => {
         label="Avisos neste celular"
         checked={false}
         onCheckedChange={() => {}}
-        loadingLabel="Ligando…"
+        loadingLabel="Ligando..."
       />,
     );
     expect(html).toContain('Desligado');
-    expect(html).not.toContain('Ligando…');
+    expect(html).not.toContain('Ligando...');
   });
 
   it('parado: sem rodinha e com a área de 80 x 48', () => {

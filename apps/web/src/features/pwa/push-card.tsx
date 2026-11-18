@@ -19,7 +19,7 @@ const FAILED_TEXT: Record<NonNullable<UsePush['failed']>, string> = {
   disable: 'Não deu para desativar agora. Tente de novo.',
 };
 
-const PENDING_TEXT = { enable: 'Ligando…', disable: 'Desligando…', none: undefined } as const;
+const PENDING_TEXT = { enable: 'Ligando...', disable: 'Desligando...', none: undefined } as const;
 
 const BELL_MARK = (
   <span className="inline-flex size-14 shrink-0 items-center justify-center bg-bg text-text shadow-[inset_0_0_0_2px_var(--color-border-strong)]">

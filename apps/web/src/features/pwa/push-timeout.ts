@@ -4,7 +4,7 @@
  */
 export const SUBSCRIBE_TIMEOUT_MS = 60_000;
 
-/** O navegador não respondeu a tempo. A tela troca "Ligando…" pela mensagem de "demorou". */
+/** O navegador não respondeu a tempo. A tela troca "Ligando..." pela mensagem de "demorou". */
 export class PushTimeoutError extends Error {
   override name = 'PushTimeoutError';
 

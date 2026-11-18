@@ -63,7 +63,7 @@ export type UsePush = {
   permission: PushPermission;
   /** Ligando ou desligando. */
   busy: boolean;
-  /** O que está em andamento: o interruptor escreve "Ligando…" ou "Desligando…" no lugar do estado. */
+  /** O que está em andamento: o interruptor escreve "Ligando..." ou "Desligando..." no lugar do estado. */
   pending: 'enable' | 'disable' | null;
   /** A última tentativa de ligar ou desligar falhou (`enable-timeout`: o navegador demorou demais para assinar). */
   failed: 'enable' | 'enable-timeout' | 'disable' | null;
