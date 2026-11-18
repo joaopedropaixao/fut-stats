@@ -1,5 +1,5 @@
-// Confere a configuração de deploy (C9, C10, C14 e C26 do spec `producao`): render.yaml, apps/web/vercel.json e os
-// workflows backup.yml e despertador.yml. Sem dependência: o YAML é lido como texto, com regras simples para o formato
+// Confere a configuração de deploy (C9, C10, C14, C26 e C33 do spec `producao`): render.yaml, apps/web/vercel.json, os
+// workflows backup.yml e despertador.yml e o e-mail de contato da Política de Privacidade. Sem dependência: o YAML é lido como texto, com regras simples para o formato
 // que esses arquivos usam. Roda no `pnpm test` da raiz: `node scripts/check-deploy-config.mjs`.
 // Cada função de checagem devolve a lista de problemas (vazia = ok), em português.
 import { readFileSync } from 'node:fs';
@@ -196,57 +196,101 @@ export function checkProductionDomain(renderText) {
   return { problems, warnings };
 }
 
+/** Hosts do projeto de produção na Vercel (endereço padrão, URL única de cada deploy e alias de branch). */
+export const PROD_VERCEL_SAMPLE_HOSTS = [
+  PROD_VERCEL_HOST,
+  'fut-stats-app-a1b2c3d4e-joaopedropaixaos-projects.vercel.app',
+  'fut-stats-app-git-main-joaopedropaixaos-projects.vercel.app',
+];
+/** Hosts do projeto de staging (`fut-stats`): o endereço dele, a URL única de cada deploy e os previews de branch. */
+export const STAGING_SAMPLE_HOSTS = [
+  'fut-stats-three.vercel.app',
+  'fut-stats-a1b2c3d4e-joaopedropaixaos-projects.vercel.app',
+  'fut-stats-git-develop-joaopedropaixaos-projects.vercel.app',
+  'fut-stats-git-feature-app-joaopedropaixaos-projects.vercel.app',
+];
+/** Host que não é de nenhum dos dois projetos: o /api dele não pode chegar a API nenhuma (falha fechada). */
+export const UNKNOWN_SAMPLE_HOSTS = [
+  'exemplo.com.br',
+  'outro-projeto.vercel.app',
+  'fut-stats.example.com',
+];
+
+const PROD_API = `https://${PROD_SERVICE}.onrender.com/api/:path*`;
+const STAGING_API = `https://${STAGING_SERVICE}.onrender.com/api/:path*`;
+
 /**
- * C10: vercel.json. `primaryHost` é o host de produção (o do `APP_URL` do `render.yaml`): as regras de produção, com
- * `has` de host, vêm antes da do staging e cobrem esse host e o endereço padrão do projeto (`fut-stats-app.vercel.app`).
+ * O `has` de host da Vercel: o valor é uma expressão regular que precisa casar com o host inteiro (as regras usam
+ * `^...$`; um texto sem caracteres especiais é o próprio host).
+ */
+function hostMatches(value, host) {
+  try {
+    return new RegExp(`^(?:${value})$`).test(host);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Para onde vai `GET /api/x` num host, seguindo as regras do `vercel.json` como a Vercel faz (a primeira que casa vale):
+ * o destino de uma regra de `/api/:path*`, `'index.html'` se a regra do app vem antes, ou `null` se nada casa.
+ */
+export function routeApiHost(json, host) {
+  for (const rule of Array.isArray(json.rewrites) ? json.rewrites : []) {
+    if (rule.source === '/(.*)') return 'index.html';
+    if (rule.source !== '/api/:path*') continue;
+    const conditions = rule.has ?? [];
+    const ok = conditions.every(
+      (c) => c.type === 'host' && typeof c.value === 'string' && hostMatches(c.value, host),
+    );
+    if (ok) return rule.destination;
+  }
+  return null;
+}
+
+/**
+ * C10: vercel.json, pelo comportamento: o `/api` do domínio de produção (`primaryHost`, o do `APP_URL` do
+ * `render.yaml`) e de todo host do projeto `fut-stats-app` na Vercel vai para a API de produção; o dos hosts do projeto
+ * de staging vai para a de staging; o de qualquer outro host não chega a API nenhuma (falha fechada: cai no
+ * `index.html`). Toda regra de `/api` tem condição de host e a do `index.html` é a última.
  */
 export function checkVercel(json, primaryHost) {
   const problems = [];
   const rewrites = Array.isArray(json.rewrites) ? json.rewrites : [];
-  const apiRules = rewrites.filter((rule) => rule.source === '/api/:path*');
-  if (apiRules.length < 3) {
-    problems.push(
-      'vercel.json: esperava as regras de /api/:path* de produção (uma por host) e a do staging, por último',
-    );
-    return problems;
-  }
-  const prodRules = apiRules.slice(0, -1);
-  const stagingRule = apiRules.at(-1);
-  const hosts = new Set();
-  for (const rule of prodRules) {
-    const conditions = rule.has ?? [];
-    if (conditions.length !== 1 || conditions[0].type !== 'host' || !conditions[0].value) {
-      problems.push('vercel.json: cada regra de /api de produção deve ter has: um único type host');
-    } else {
-      hosts.add(conditions[0].value);
-    }
-    if (rule.destination !== `https://${PROD_SERVICE}.onrender.com/api/:path*`) {
+  const prodHosts = [primaryHost, ...PROD_VERCEL_SAMPLE_HOSTS].filter(Boolean);
+  for (const host of prodHosts) {
+    const to = routeApiHost(json, host);
+    if (to !== PROD_API) {
       problems.push(
-        `vercel.json: o /api de produção deve ir para https://${PROD_SERVICE}.onrender.com/api/:path*`,
+        `vercel.json: o /api de ${host} deve ir para a produção (${PROD_API}), vai para ${to}`,
       );
     }
   }
-  const expected = [primaryHost, PROD_VERCEL_HOST].filter(Boolean);
-  for (const host of expected) {
-    if (!hosts.has(host))
-      problems.push(`vercel.json: falta a regra de /api de produção para o host ${host}`);
-  }
-  for (const host of hosts) {
-    if (!expected.includes(host)) {
+  for (const host of STAGING_SAMPLE_HOSTS) {
+    const to = routeApiHost(json, host);
+    if (to !== STAGING_API) {
       problems.push(
-        `vercel.json: regra de /api de produção para um host que não é o de produção (${host})`,
+        `vercel.json: o /api de ${host} deve ir para o staging (${STAGING_API}), vai para ${to}`,
       );
     }
   }
-  if (stagingRule.has) {
-    problems.push(
-      'vercel.json: a regra do staging não pode ter condição (é o padrão) e vem depois das de produção',
-    );
+  for (const host of UNKNOWN_SAMPLE_HOSTS) {
+    const to = routeApiHost(json, host);
+    if (to === PROD_API || to === STAGING_API || (to && to.startsWith('http'))) {
+      problems.push(
+        `vercel.json: o /api de um host desconhecido (${host}) não pode ir para API nenhuma, vai para ${to}`,
+      );
+    }
   }
-  if (stagingRule.destination !== `https://${STAGING_SERVICE}.onrender.com/api/:path*`) {
-    problems.push(
-      `vercel.json: o /api padrão deve ir para https://${STAGING_SERVICE}.onrender.com/api/:path*`,
-    );
+  for (const rule of rewrites.filter((r) => r.source === '/api/:path*')) {
+    if (!(rule.has ?? []).some((c) => c.type === 'host')) {
+      problems.push(
+        'vercel.json: toda regra de /api tem condição de host (sem condição, host desconhecido cairia nela)',
+      );
+    }
+    if (rule.destination !== PROD_API && rule.destination !== STAGING_API) {
+      problems.push(`vercel.json: destino de /api desconhecido (${rule.destination})`);
+    }
   }
   const last = rewrites.at(-1);
   if (last?.source !== '/(.*)' || last?.destination !== '/index.html') {
@@ -367,10 +411,53 @@ export function checkDespertadorWorkflow(text) {
 }
 
 /** Roda todas as checagens nos arquivos do repositório. Devolve os problemas (falham) e os avisos (só imprimem). */
-export function checkAll(root = ROOT) {
+/** Onde fica o e-mail de contato da Política de Privacidade (`/privacidade`). */
+export const PRIVACY_CONTENT_PATH = 'apps/web/src/pages/privacidade/privacy-content.ts';
+
+/** Release = PR para a `main` (o CI roda em `pull_request`) ou um push na própria `main`. */
+export function isReleaseRun(env = process.env) {
+  return (
+    env.GITHUB_BASE_REF === 'main' || env.GITHUB_REF_NAME === 'main' || env.RELEASE_CHECK === '1'
+  );
+}
+
+/**
+ * E-mail de contato da Política de Privacidade: o Google publica o app com o link dela, então ela não vai para a
+ * produção com o marcador. Fora da release o marcador só avisa (o dono preenche quando decidir); na release
+ * (`isReleaseRun`) é problema e o CI fica vermelho. Um valor que não é marcador tem que ser um e-mail.
+ */
+export function checkContactEmail(text, { release = false } = {}) {
+  const problems = [];
+  const warnings = [];
+  const match = /^export const CONTACT_EMAIL(?::\s*string)?\s*=\s*([^;]+);/m.exec(text);
+  if (!match) {
+    problems.push(`${PRIVACY_CONTENT_PATH}: não achei o export const CONTACT_EMAIL`);
+    return { problems, warnings };
+  }
+  const raw = match[1].trim();
+  const placeholder = /^export const CONTACT_EMAIL_PLACEHOLDER\s*=\s*(['"])(.*?)\1/m.exec(
+    text,
+  )?.[2];
+  const literal = /^(['"])(.*)\1$/.exec(raw)?.[2];
+  const isPlaceholder =
+    raw === 'CONTACT_EMAIL_PLACEHOLDER' || (literal !== undefined && literal === placeholder);
+  if (isPlaceholder) {
+    const message =
+      'Política de Privacidade ainda com o marcador do e-mail de contato: preencher o CONTACT_EMAIL antes da release';
+    (release ? problems : warnings).push(message);
+  } else if (literal === undefined || !/^[^\s@'"]+@[^\s@'"]+\.[^\s@'"]+$/.test(literal)) {
+    problems.push(
+      `${PRIVACY_CONTENT_PATH}: CONTACT_EMAIL tem que ser um e-mail entre aspas (achei ${raw})`,
+    );
+  }
+  return { problems, warnings };
+}
+
+export function checkAll(root = ROOT, env = process.env) {
   const read = (path) => readFileSync(join(root, path), 'utf8');
   const render = read('render.yaml');
   const domain = checkProductionDomain(render);
+  const contact = checkContactEmail(read(PRIVACY_CONTENT_PATH), { release: isReleaseRun(env) });
   return {
     problems: [
       ...checkRender(render),
@@ -378,8 +465,9 @@ export function checkAll(root = ROOT) {
       ...checkVercel(JSON.parse(read('apps/web/vercel.json')), productionHostOf(render)),
       ...checkBackupWorkflow(read('.github/workflows/backup.yml')),
       ...checkDespertadorWorkflow(read('.github/workflows/despertador.yml')),
+      ...contact.problems,
     ],
-    warnings: domain.warnings,
+    warnings: [...domain.warnings, ...contact.warnings],
   };
 }
 
@@ -394,6 +482,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     process.exit(1);
   }
   console.log(
-    'Configuração de deploy ok (render.yaml, vercel.json, backup.yml e despertador.yml).',
+    'Configuração de deploy ok (render.yaml, vercel.json, backup.yml, despertador.yml e e-mail da privacidade).',
   );
 }
