@@ -638,6 +638,76 @@ Em aparelho real, **Android e iPhone** (o passo a passo para o grupo está em `d
 
 Siga o `docs/lancamento.md`.
 
+## Homologação
+
+O staging (<https://fut-stats-three.vercel.app>) serve de ambiente de teste para os admins: o workflow **Preparar
+homologação** monta a **Pelada de Demonstração** (21 jogadores fictícios, 8 rodadas passadas, resenhas e a rodada atual
+no estado que você escolher) e deixa os e-mails que você passar como **admins** dela. Só mexe no grupo
+`pelada-demo`: os outros grupos do staging e a produção não são tocados.
+
+### H1. Segredo e variável no GitHub (uma vez)
+
+1. <https://github.com/joaopedropaixao/fut-stats> → **Settings → Secrets and variables → Actions → New repository
+   secret**: nome `STAGING_DIRECT_URL`; valor = a URL de conexão da branch **`dev`** do Neon, a **direta**, sem
+   `-pooler` no host (a `DIRECT_URL` de staging do passo 1.3).
+2. Na mesma página, aba **Variables → New repository variable**: nome `PROD_DB_HOST`; valor = **só o host** da branch
+   **`prod`** do Neon, sem `-pooler` e sem `postgresql://` (ex.: `ep-xxxx.us-east-1.aws.neon.tech`). Não é segredo:
+   é a trava que faz o comando recusar rodar se o banco for o de produção.
+
+### H2. Terceiro par VAPID, só do staging (uma vez)
+
+O staging usa o par próprio de avisos, diferente do de produção.
+
+1. No terminal: `npx web-push generate-vapid-keys` (veja a seção 7.1).
+2. <https://dashboard.render.com> → **`fut-stats-api-staging`** → **Environment** → preencha as três `VAPID_PUBLIC_KEY`,
+   `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` → **Save, rebuild, and deploy** e espere ficar **Live**.
+
+> Trocar o par depois invalida os avisos já ligados: cada pessoa liga **Avisos neste celular** de novo.
+
+### H3. Preparar a demonstração
+
+1. <https://github.com/joaopedropaixao/fut-stats> → **Actions → Preparar homologação → Run workflow**.
+2. Em **Use workflow from**, deixe a branch **`develop`** (em qualquer outra o job nem roda).
+3. **admins**: os e-mails dos admins, separados por vírgula (os de Google deles). **cenario**: `agendada` (padrão),
+   `times`, `em-jogo`, `resenha`, `votacao` ou `encerrada` (o estado da rodada atual).
+4. **Conferir:** o job fica verde e o log termina com `Demo ok: "Pelada de Demonstração" ...`. O log nunca mostra a URL do banco.
+
+- **Rodar de novo recria só a demonstração** (zera o que os admins fizeram nela e volta ao cenário escolhido). Quem já
+  tinha conta volta como admin se o e-mail estiver na lista nova.
+- Admin que **nunca entrou** no staging ganha uma reserva: no primeiro login com o Google (mesmo e-mail, verificado
+  pelo Google) a conta assume a reserva e já entra como admin da demonstração. Outro e-mail não assume nada.
+- Falha com `Falta o segredo` ou `Falta a variável`: faltou o H1. Falha com `proibidos`: o `PROD_DB_HOST` bate com o
+  banco do segredo (o segredo está apontando para a produção: confira o H1, passo 1).
+- O workflow não roda migration: o deploy do Render já faz.
+
+### H4. Texto pronto para os admins
+
+> Oi! Preparei um ambiente de teste do Fut Stats para você conhecer e me ajudar a achar o que está estranho antes do
+> app ir para a galera.
+>
+> O endereço é https://fut-stats-three.vercel.app. É só de teste: os jogadores e os jogos são **fictícios**, pode
+> mexer à vontade (de vez em quando eu apago e monto de novo). Entre com o **Google**, com o e-mail que eu cadastrei, e
+> você já cai como admin da "Pelada de Demonstração".
+>
+> **Instalar no celular**
+> - **Android:** abra no Chrome → menu (⋮) → **Instalar app** (ou **Adicionar à tela inicial**).
+> - **iPhone:** abra no Safari → **Compartilhar** → **Adicionar à Tela de Início**. Os avisos só funcionam com o app
+>   instalado (iPhone com iOS 16.4 ou mais novo).
+>
+> **Ligar os avisos:** abra o app pelo ícone → **Perfil** → card **Avisos** → ligue **Avisos neste celular** → toque em
+> **Testar aviso** (a notificação tem que chegar).
+>
+> **O que testar**
+> 1. Rodada completa: marcar a rodada (**Criar rodada**) e confirmar a presença.
+> 2. Montar os times (**Times**, **Montar times**) e publicar.
+> 3. Jogo ao vivo: começar o jogo, lançar o placar e os lances (gol, assistência).
+> 4. Votação: abrir a votação, mandar o seu pacote de notas e escolher o Craque e o Perna de Pau; depois encerrar.
+> 5. Pacote do Craque (a carta do Craque da rodada) e o **Ranking**.
+> 6. Resenha: escrever uma no **Feed** (**Nova resenha**), reagir e comentar.
+>
+> **Se achar algo errado ou esquisito:** me manda um **print** e o que você esperava ver, aqui no grupo ou no WhatsApp.
+> Pode ser até "achei estranho", sem cerimônia.
+
 ## Como restaurar um backup
 
 Restaure **sempre num banco que não é o de produção**. O `restore-db.sh` só aceita um destino **vazio** (sem nenhuma
