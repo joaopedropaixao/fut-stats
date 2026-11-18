@@ -69,7 +69,10 @@ describe('createMonitoring', () => {
     const error = new Error('quebrou');
     monitoring.report(error, { source: 'route' });
     await settle();
-    expect(sentry.captureException).toHaveBeenCalledWith(error, { tags: { source: 'route' } });
+    expect(sentry.captureException).toHaveBeenCalledWith(error, {
+      tags: { source: 'route' },
+      user: { id: 'user-1' },
+    });
     expect(sentry.setUser).toHaveBeenLastCalledWith({ id: 'user-1' });
     monitoring.setUser(null);
     await settle();
@@ -88,7 +91,7 @@ describe('createMonitoring', () => {
     await settle();
     expect(sentry.init).toHaveBeenCalledTimes(1);
     expect(sentry.setUser).toHaveBeenCalledWith({ id: 'user-9' });
-    expect(sentry.captureException).toHaveBeenCalledWith(error, undefined);
+    expect(sentry.captureException).toHaveBeenCalledWith(error, { user: { id: 'user-9' } });
   });
 
   it('pedaço que sumiu (deploy novo) não vai para o Sentry', async () => {

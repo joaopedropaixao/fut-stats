@@ -87,7 +87,12 @@ export function createMonitoring(
       // Um erro que vem antes do início agendado também liga o Sentry: não se perde
       start();
       void ready?.then((sentry) => {
-        sentry?.captureException(error, context ? { tags: context } : undefined);
+        // O id vai junto de cada erro (e não só no escopo): o erro de uma tela costuma sair no mesmo instante em que
+        // a sessão carrega, antes de o `setUser` pendente rodar
+        sentry?.captureException(error, {
+          ...(context && { tags: context }),
+          ...(userId && { user: { id: userId } }),
+        });
       });
     },
     setUser(id) {
