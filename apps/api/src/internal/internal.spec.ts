@@ -257,6 +257,8 @@ describe('despertador: POST /api/internal/tick', () => {
         action: AuditAction.VOTING_CLOSED,
         groupId: due.group.id,
         actorId: null,
+        // Sem autor, sem requestId: o do tick não liga o fechamento a ninguém.
+        requestId: null,
         after: { status: 'CLOSED', reason: 'DEADLINE_PASSED', voted: 0, total: 4 },
       });
       expect(signals).toEqual([

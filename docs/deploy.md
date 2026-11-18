@@ -1,4 +1,6 @@
-# Deploy de staging (custo zero)
+# Deploy (custo zero): staging e produção
+
+As seções 1 a 7 descrevem o **staging**; a seção **Produção**, no fim, o ambiente da `main`.
 
 Staging = o que está na `develop`, publicado na internet. Três serviços, todos no plano gratuito:
 
@@ -241,8 +243,8 @@ curl -i https://<projeto>.vercel.app/api/health
   (ou `No pending migrations to apply`). No Neon, **Tables** da branch `dev` mostra as tabelas.
 - **Local:** o `.env` usa o Postgres do Docker (`docker compose up -d`). Migration nova se cria na sua
   máquina com `pnpm --filter @fut-stats/api db:migrate --name <nome>`, nunca no Render.
-- **Produção** (`main` + branch `prod` do Neon) vem depois, quando houver release: outro serviço no
-  Render e outro destino no rewrite. Não faz parte deste setup.
+- **Produção** (`main` + branch `prod` do Neon): outro serviço no Render e outro projeto na Vercel. Ver a seção
+  "Produção" abaixo.
 
 ---
 
@@ -365,3 +367,220 @@ computador recebe.
 | A API não sobe e o log cita `VAPID_*` | Só uma ou duas das três variáveis estão preenchidas, ou uma chave está com aspas, espaço, cortada ou trocada (a pública decodifica para 65 bytes, a privada para 32; a mensagem diz qual e o quê conferir, sem mostrar o valor) |
 | Log `push-failed` ou `push-test-failed` | Traz `name`, `statusCode`, `body` (resposta do serviço de push) ou `code` e `errors[]` (rede: `ECONNREFUSED`, `ETIMEDOUT`...), e só o host do aparelho. `push-subscription-gone` com 403 é par de chaves trocado; `push-sent` (debug) com 201 quer dizer que o serviço aceitou |
 | "Testar aviso" diz que enviou e nada chega | iPhone sem o app instalado na tela inicial, permissão bloqueada no navegador, ou o par de chaves foi trocado depois de ligar (desligue e ligue de novo), ou o macOS/Windows com o navegador sem permissão de notificação ou em "Não perturbe" |
+
+---
+
+# Produção
+
+Produção = o que está na `main`. Dois ambientes, **nada compartilhado**: cada um com o seu serviço no Render, o seu
+projeto na Vercel, o seu segredo de sessão, o seu client do Google e o seu par de chaves de aviso (VAPID).
+
+| | Staging | Produção |
+|---|---|---|
+| Branch | `develop` | `main` |
+| App (Vercel) | `fut-stats-three.vercel.app` | **`fut-stats-app.vercel.app`** |
+| API (Render) | `fut-stats-api-staging.onrender.com` | `fut-stats-api.onrender.com` |
+| Banco (Neon) | branch `dev` | branch `prod` |
+| Sentry | `SENTRY_ENVIRONMENT=staging` | `SENTRY_ENVIRONMENT=production` |
+| Fechar votação vencida | relógio da API (1 min) | despertador do GitHub (30 min); relógio desligado |
+| Backup | nenhum | diário, cifrado, 30 dias |
+
+> O endereço do app **não muda depois do lançamento**: a instalação e os avisos ficam presos a ele. Trocar obriga
+> o grupo a reinstalar e ligar os avisos de novo.
+
+O `render.yaml` e o `apps/web/vercel.json` são os mesmos nas duas branches. A API de produção só responde pelo
+endereço de produção graças a uma regra do `vercel.json` (`/api/*` do host `fut-stats-app.vercel.app` vai para
+`fut-stats-api.onrender.com`; qualquer outro host continua indo para o staging).
+
+## Variáveis por ambiente
+
+Todas no painel do Render (a API) e da Vercel (o web). Nenhum valor vai para o repositório.
+
+| Variável | Onde | Staging | Produção | Como obter |
+|---|---|---|---|---|
+| `DATABASE_URL` | Render | URL **com** `-pooler` da branch `dev` | URL **com** `-pooler` da branch `prod` | Neon → **Connect** (seção 1.3) |
+| `DIRECT_URL` | Render | URL **sem** `-pooler` da `dev` | URL **sem** `-pooler` da `prod` | idem, com o pooling desligado |
+| `JWT_SECRET` | Render | gerado pelo Render | gerado pelo Render (outro valor) | automático (`generateValue`) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Render | client "fut-stats" | **client novo "Fut Stats produção"** | Google Cloud (R4) |
+| `APP_URL` | Render | `https://fut-stats-three.vercel.app` (já no `render.yaml`) | `https://fut-stats-app.vercel.app` (já no `render.yaml`) | — |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Render | par do staging | **par novo, só de produção** | `npx web-push generate-vapid-keys` |
+| `SENTRY_DSN` | Render | DSN do projeto da API | o mesmo (a mesma API no Sentry) | Sentry (R5) |
+| `SENTRY_ENVIRONMENT` | Render | `staging` (no `render.yaml`) | `production` (no `render.yaml`) | — |
+| `TICK_SECRET` | Render | **não existe** | segredo de 48 bytes | `openssl rand -base64 48` (R6b) |
+| `VOTING_CLOSER_INTERVAL_MS` | Render | padrão (60000) | `0` (no `render.yaml`) | — |
+| `VITE_SENTRY_DSN` | Vercel (build) | DSN do projeto web | o mesmo | Sentry (R5) |
+| `VITE_SENTRY_ENVIRONMENT` | Vercel (build) | `staging` | `production` | — |
+| `ENABLE_EXPERIMENTAL_COREPACK` | Vercel | `1` | `1` | seção 3.2 |
+
+Segredos do **GitHub** (Settings → Secrets and variables → Actions → **New repository secret**):
+
+| Segredo | Para quê | Como obter |
+|---|---|---|
+| `PROD_DIRECT_URL` | o backup conecta no banco de produção | a URL **sem** `-pooler` da branch `prod` (a mesma do `DIRECT_URL` de produção) |
+| `BACKUP_PASSPHRASE` | cifra o backup | `openssl rand -base64 48`; **guarde também no gerenciador de senhas**: sem ela o backup não abre |
+| `TICK_SECRET` | o despertador autentica | o **mesmo** valor do `TICK_SECRET` do Render de produção |
+| `PROD_TICK_URL` | o despertador chama a API | `https://fut-stats-api.onrender.com/api/internal/tick` (o endereço **direto** do Render, não o da Vercel) |
+
+## Ordem do roteiro (R1 a R9)
+
+Só o dono tem acesso aos painéis. Faça na ordem; cada passo diz como conferir.
+
+### R1. Vercel: projeto de produção
+
+1. <https://vercel.com/new> → **Import** do `fut-stats` (o mesmo repositório do staging).
+2. **Project Name:** `fut-stats-app`. Se a Vercel disser que o nome está em uso, **pare e me avise** (o endereço é fixo
+   no `render.yaml` e no `vercel.json`).
+3. **Framework Preset:** `Vite`. **Environment Variables:** `ENABLE_EXPERIMENTAL_COREPACK` = `1`.
+   Deixe `VITE_SENTRY_DSN` e `VITE_SENTRY_ENVIRONMENT` para o R5 (o app funciona sem elas).
+4. **Deploy** (o primeiro falha, como no staging; só cria o projeto).
+5. **Settings → Build and Deployment:** **Root Directory** `apps/web`; **Include files outside the root directory** ligado.
+6. **Settings → Environments → Production → Branch Tracking:** `main` (o padrão; não troque).
+7. **Conferir:** em **Settings → Domains** o endereço é `fut-stats-app.vercel.app`.
+
+### R2. Neon: URLs da branch `prod`
+
+1. <https://console.neon.tech> → **Connect** → **Branch:** `prod`, **Connection pooling** ligado → copie (esta é a
+   `DATABASE_URL` de produção). Desligue o pooling e copie de novo (a `DIRECT_URL`).
+2. **Conferir:** as duas guardadas no gerenciador de senhas; uma tem `-pooler`, a outra não.
+
+### R3. Render: serviço de produção
+
+1. <https://dashboard.render.com> → **Blueprints** → o `fut-stats-staging` (o do staging, que lê o `render.yaml` da
+   `develop`) → **Manual sync** (ou **Sync**). Como a `develop` já tem o `render.yaml` com os dois serviços, aparece o
+   **`fut-stats-api`** (novo, plano **Free**, branch `main`). Confirme.
+2. Preencha as variáveis do serviço de produção (**nunca** as do staging):
+   `DATABASE_URL`, `DIRECT_URL` (R2), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (R4), as três `VAPID_*`, `SENTRY_DSN`
+   (R5) e `TICK_SECRET` (R6b). Se algum valor ainda não existe, deixe para depois e preencha em **Environment**.
+3. **Par VAPID novo, só de produção:** `npx web-push generate-vapid-keys`. O do staging **não** serve: trocar o par
+   invalida as assinaturas dos aparelhos. `VAPID_SUBJECT` = `mailto:` com o seu e-mail.
+4. Se o Render pedir cartão ou plano pago, **pare**. O serviço de produção builda a `main`: enquanto a release (R7) não
+   acontece, o primeiro deploy dele falha por não achar o app. É esperado; preencha as variáveis agora.
+5. **Conferir o endereço:** no topo da página do serviço aparece a URL; tem que ser
+   `https://fut-stats-api.onrender.com`. Se for outra (ex.: `fut-stats-api-ab12.onrender.com`), me avise: o
+   `vercel.json` e o `PROD_TICK_URL` mudam **antes** da release. Depois do R7 o serviço fica **Live** e
+   <https://fut-stats-api.onrender.com/api/health> responde `{"status":"ok"}`.
+
+> **Horas do plano gratuito:** o Render dá 750 horas por mês para **todos** os serviços gratuitos juntos. Se acabarem,
+> os dois param (inclusive a produção) até o mês seguinte. Por isso o despertador é de 30 em 30 minutos (a produção
+> dorme cerca de metade do tempo) e não de 15.
+
+### R4. Google Cloud: client OAuth de produção
+
+1. <https://console.cloud.google.com> → projeto **fut-stats** → **Google Auth Platform → Clients** (ou **APIs &
+   Services → Credentials**) → **Create client** → **Web application**, nome **Fut Stats produção**.
+2. **Authorized JavaScript origins:** `https://fut-stats-app.vercel.app`.
+   **Authorized redirect URIs:** `https://fut-stats-app.vercel.app/api/auth/google/callback`.
+3. Copie o **Client ID** e o **Client secret** para o Render de produção (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
+4. **Publicar o app:** **Google Auth Platform → Audience → Publish app** (sai de "Testing": qualquer conta Google
+   entra; só entra na pelada quem tem o convite).
+5. **Conferir:** depois do R7, entre com uma conta que **não** estava na lista de test users.
+
+### R5. Sentry: dois projetos
+
+1. <https://sentry.io> → crie a conta (plano gratuito, **Developer**). Crie uma organização.
+2. **Projects → Create Project**: um com a plataforma **Node.js** (nome `fut-stats-api`) e outro **React**
+   (`fut-stats-web`). Em "alert settings" deixe os padrões (e-mail para você em erro novo).
+3. Em **cada** projeto: **Settings → Security & Privacy** (ou **Project Settings → Security & Privacy**) → ligue
+   **Prevent Storing of IP Addresses** (o app já não envia IP; isto garante do lado do Sentry). Não ligue nada que
+   guarde dado do pedido.
+4. Copie o **DSN** de cada projeto (**Settings → Client Keys (DSN)**).
+5. Cole o DSN da API em `SENTRY_DSN` no Render (produção **e** staging; `SENTRY_ENVIRONMENT` já vem do `render.yaml`) e o
+   do web em `VITE_SENTRY_DSN` (e `VITE_SENTRY_ENVIRONMENT` = `production`) no projeto da Vercel; faça **Redeploy**
+   na Vercel (a variável entra no build).
+6. **Conferir:** a cada deploy da API aparece no projeto `fut-stats-api` a mensagem **"API no ar"** (nível info) com o
+   ambiente. Sem ela, o DSN está errado.
+
+> O Sentry só recebe erro de verdade (resposta 5xx e falha não tratada) e o `id` do usuário e o `requestId`. Nunca email,
+> nome, cookie, cabeçalho nem corpo de pedido.
+
+### R6. GitHub: segredos e o primeiro backup
+
+1. <https://github.com/joaopedropaixao/fut-stats> → **Settings → Secrets and variables → Actions → New repository
+   secret**: crie `PROD_DIRECT_URL` (R2, sem `-pooler`) e `BACKUP_PASSPHRASE` (`openssl rand -base64 48`; guarde no
+   gerenciador de senhas).
+2. **Actions → Backup do banco → Run workflow** (na `main`, depois do R7; antes disso rode com a branch onde o arquivo
+   existir).
+3. **Conferir:** o job fica verde e, na página da execução, em **Artifacts**, aparece `backup-banco-producao` (30 dias).
+4. **Restaurar uma vez de teste**: veja "Como restaurar um backup" abaixo. Backup que nunca foi restaurado não é backup.
+
+### R6b. Despertador
+
+1. Gere o segredo: `openssl rand -base64 48`. Cole como `TICK_SECRET` no Render de **produção** (Environment → Save)
+   **e** como segredo `TICK_SECRET` no GitHub (mesmo valor).
+2. Crie o segredo `PROD_TICK_URL` no GitHub: `https://fut-stats-api.onrender.com/api/internal/tick`.
+3. **Actions → Despertador → Run workflow.**
+4. **Conferir:** o job fica verde e o log termina com `{"closedVotings":0}`. Se falhar com `401`, os dois `TICK_SECRET`
+   são diferentes (o do Render só vale depois do deploy que o inclui); com `404`, o Render ainda não tem o `TICK_SECRET`.
+
+O workflow roda sozinho de 30 em 30 minutos e chama a API **direto no Render** (acorda a API se ela estiver dormindo;
+espera até 2 minutos e tenta mais uma vez). Se o job ficar vermelho, o GitHub avisa por e-mail.
+
+> **Os 60 dias do GitHub:** o GitHub **desliga** os agendamentos (despertador **e** backup) de repositório sem atividade
+> por 60 dias. Um commit ou **Actions → o workflow → Enable workflow** religa. Anote no calendário para conferir.
+>
+> **Folga da votação:** o agendamento do GitHub pode atrasar alguns minutos, então a votação vencida fecha com até uns 30
+> a 40 minutos de folga. O último voto e quem abre o app depois do prazo continuam fechando na hora, e voto depois do
+> prazo é recusado na hora.
+
+### R6c. Tempo real no staging (antes da release)
+
+1. No staging, abra duas sessões (admin e jogador) na mesma rodada em andamento (dois navegadores ou um anônimo).
+2. O admin lança um gol. **Conferir:** o gol aparece no jogador em até 2 segundos e, na aba **Rede** (Network) do
+   navegador, a chamada `.../stream` fica aberta.
+3. Se o gol só aparece em até 5 segundos, o rewrite da Vercel segurou o fluxo e o app caiu no modo antigo (continua
+   funcionando): abra um item para ligar o stream direto na API.
+
+### R7. Release
+
+O orquestrador abre o PR `develop` → `main` e mergeia com o seu ok, e cria a tag `v1.0.0`. **Conferir:** o Render de
+produção builda sozinho (as migrations rodam no build, na branch `prod` do Neon) e a Vercel publica o
+`fut-stats-app.vercel.app`.
+
+### R8. Fumaça em produção
+
+Em aparelho real, **Android e iPhone** (o passo a passo para o grupo está em `docs/lancamento.md`):
+
+1. Entrar com o Google, criar a pelada, gerar o convite.
+2. Instalar o app, abrir pelo ícone, ligar os avisos e tocar em **Testar aviso** com o app fechado; tocar na notificação.
+3. Com um admin em outro aparelho: marcar a rodada, publicar os times, abrir e encerrar a votação.
+4. **Perfil → Sair da conta**: depois disso o aparelho para de receber.
+5. **Conferir:** tudo funcionou e **nenhum erro novo** apareceu no Sentry.
+
+### R9. Lançar para a pelada
+
+Siga o `docs/lancamento.md`.
+
+## Como restaurar um backup
+
+Faça numa **branch descartável** do Neon, nunca na `prod`.
+
+1. Baixe o arquivo: GitHub → **Actions → Backup do banco** → a execução → **Artifacts → `backup-banco-producao`**
+   (vem num `.zip`; dentro está `fut-stats-AAAA-MM-DD.sql.gz.gpg`).
+2. No Neon, crie uma branch nova a partir da `prod` (ou de qualquer uma), **Auto-delete** como preferir, e copie a URL
+   **sem** `-pooler` dela.
+3. Na sua máquina (precisa de `psql` e `gpg`; `brew install libpq gnupg` no macOS):
+   ```sh
+   export RESTORE_DATABASE_URL='<URL da branch descartável>'
+   export BACKUP_PASSPHRASE='<a senha do gerenciador de senhas>'
+   sh scripts/restore-db.sh fut-stats-AAAA-MM-DD.sql.gz.gpg
+   ```
+4. O script recusa um destino que já tem tabelas (use uma branch nova ou `--force`, que apaga o `public` do destino) e
+   falha com mensagem clara se a senha estiver errada ou o arquivo corrompido, sem tocar no banco.
+5. **Conferir:** no Neon, **Tables** da branch descartável mostra as tabelas, e uma contagem como
+   `SELECT count(*) FROM "Membership";` bate com a produção. Apague a branch descartável.
+
+Para gerar um backup manual: `DIRECT_URL='<URL sem -pooler>' BACKUP_PASSPHRASE='...' sh scripts/backup-db.sh`.
+Precisa do `pg_dump` na mesma versão principal do Neon (17).
+
+## Como ler um erro no Sentry e achar o pedido pelo `requestId`
+
+1. Abra <https://sentry.io> → o projeto `fut-stats-api` → **Issues**. Cada item é um erro 500 (ou falha não tratada).
+2. Abra o item. No evento, em **Tags**, estão `requestId` e (se o pedido era de um grupo) `groupId`; em **User**, só o
+   `id` do usuário; em **environment**, `production` ou `staging`. Não há email, nome, cookie nem corpo do pedido.
+3. O mesmo `requestId` está no log da API (Render → o serviço → **Logs**, busque o valor): a linha do pedido tem
+   método, caminho (sem query), status e duração. O erro de verdade e a pilha ficam no log com esse id.
+4. Se o erro aconteceu numa rodada, o `requestId` também está no registro da rodada
+   (`docs/operacao/registro.md` traz as consultas prontas).
+5. Quando o app (web) mostrar "Deu ruim aqui", o erro vai para o projeto `fut-stats-web` com o id do usuário.
+
+A mensagem **"API no ar"** (nível info) aparece a cada deploy da API: serve para provar que o Sentry está ligado.

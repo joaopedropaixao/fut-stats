@@ -503,7 +503,8 @@ resultado (Craque, Perna de Pau e a nota de cada um). As regras de cada passo j�
 - **Três caminhos de fechamento, o que vier primeiro:** o último voto (fecha na hora, na mesma transação), o relógio da
   API (`VotingCloser`, a cada `VOTING_CLOSER_INTERVAL_MS`, padrão 60 000; `0` desliga) e quem abre o app depois do
   prazo (`GET /rounds`, `GET .../feed/alerts`, `GET .../voting` e `GET .../voting/result` fecham as vencidas do grupo antes de responder).
-  Em produção o despertador (`producao`) chama o mesmo `VotingService.closeDueVotings(now, groupId?)` de fora.
+  Em produção o despertador (`POST /api/internal/tick`, abaixo) chama o mesmo `VotingService.closeDueVotings(now, groupId?)` de fora,
+  e o relógio interno fica desligado lá (`VOTING_CLOSER_INTERVAL_MS=0`).
 - **Voto depois do prazo é recusado** (409 `VOTING_CLOSED`) mesmo que ninguém tenha fechado ainda: o `PUT` fecha a
   rodada ali mesmo (`DEADLINE_PASSED`) e responde o 409. O prazo vale pela hora, não por quem acordou o servidor.
 - **Sem votos:** a rodada fecha no prazo sem nota e sem prêmio para ninguém (votar é opcional).
@@ -599,7 +600,9 @@ falha.
   `{ status, reason, voted, total }` ao fechar a votação (só contagem).
 - **Leitura:** `GET /api/groups/:groupId/rounds/:roundId/log`, só admin (jogador 403; outro grupo ou inativo 404), da
   linha mais antiga para a mais nova, sem tela nesta fatia. O seed grava direto e não gera registro (`[]`).
-- **`requestId`:** todo pedido ganha `x-request-id` (o recebido se bater com `/^[A-Za-z0-9_-]{8,64}$/`, senão um UUID),
+- **`requestId`:** todo pedido ganha `x-request-id` (**só com `NODE_ENV` `development` ou `test`** o recebido vale, se bater
+  com `/^[A-Za-z0-9_-]{8,64}$/`; **em produção, e sem `NODE_ENV`, é sempre um UUID do servidor**, porque o id vai para o
+  registro da rodada e para a tag do Sentry e ninguém de fora escolhe o que entra lá; fora disso, um UUID),
   devolvido na resposta, na linha do registro e no log de pedido (uma linha por pedido com `method`, `path` sem query,
   `status`, `durationMs`, `userId` e `groupId`; com `status >= 400` também **`errorCode`**: o `code` do corpo do erro
   (ex. `NOT_OWN_COMMENT`, `INVALID_TRANSITION`), `VALIDATION_FAILED` no 400 de validação do Zod (só no log; o corpo da
@@ -978,6 +981,45 @@ assinatura. Push não grava no `AuditLog`. Sem as três variáveis VAPID (`VAPID
 
 **Evite:** pôr destinatário ou texto no service ou no front (vêm do domain e do shared); revelar o Craque no
 resultado; um dia da semana fixo no texto; pedir permissão sem toque; deixar o envio atrasar ou derrubar a ação.
+
+---
+
+### Produção: despertador, monitoramento e backup ✅
+
+**O que é:** a operação do ambiente de produção (`main` + Neon `prod`), separada do staging. Não tem regra de negócio:
+não mexe em `packages/domain`. Spec: `docs/specs/producao.md`; passo a passo do dono: `docs/deploy.md`.
+
+**Despertador (`apps/api/src/internal`):** `POST /api/internal/tick`, `Authorization: Bearer <TICK_SECRET>`, sem sessão
+(`@Public()` tira o guard de sessão; o guard próprio compara o segredo em tempo constante e qualquer falha é o mesmo 401,
+sem dizer o motivo). Só chama `VotingService.closeDueVotings(new Date())` (todos os grupos) e devolve `TickResult`
+(`{ closedVotings }`, `packages/shared/src/internal.ts`): o registro (`VOTING_CLOSED` sem autor e sem `requestId`), o sinal
+único e o push `RESULT_OUT` saem desse método, uma vez só mesmo com dois `tick` ao mesmo tempo (trava por rodada). O módulo
+só existe com `TICK_SECRET` no ambiente (mínimo de 32 caracteres, só na produção): sem ele a rota responde 404
+(`InternalModule.forEnvironment()`, o desenho do `DevModule`). Quem chama é o GitHub Actions
+(`.github/workflows/despertador.yml`, de 30 em 30 minutos, direto na API de produção no Render): a votação fecha "no prazo,
+com até uns 30 a 40 minutos de folga"; o último voto e quem abre o app depois do prazo seguem fechando na hora.
+
+**Relógio interno em produção:** desligado (`VOTING_CLOSER_INTERVAL_MS=0` no serviço de produção do `render.yaml`):
+ele consultaria o banco a cada minuto e o Neon gratuito nunca dormiria. O staging segue com o relógio de 1 minuto.
+
+**Sentry da API (`apps/api/src/common/monitoring.ts`):** só com `SENTRY_DSN` (sem ele o pacote nem é carregado). Vai só
+erro de verdade: o 500 não tratado e qualquer resposta com status >= 500 (o `AllExceptionsFilter` captura); 400, 401, 403,
+404 e 409 não vão. O evento leva as tags `requestId` e `groupId`, `user: { id }` e `environment` (`SENTRY_ENVIRONMENT`,
+padrão `NODE_ENV`); nunca email, nome, cookie, cabeçalho, corpo, query nem IP (`dataCollection` fechado e `beforeSend`, que
+deixa só o id do usuário). Sem rastreamento de desempenho. Na subida, uma mensagem info "API no ar" prova que o Sentry está
+ligado. No web, o Sentry entra por `import()` depois da primeira tela, só com `VITE_SENTRY_DSN`.
+
+**Backup (`scripts/backup-db.sh`, `scripts/restore-db.sh`):** todo dia, `pg_dump` do banco de produção, gzip e gpg
+(AES256, senha em `BACKUP_PASSPHRASE`), guardado 30 dias como artefato do GitHub Actions (`.github/workflows/backup.yml`).
+Restaurar recusa destino com tabelas sem `--force`. Um backup que nunca foi restaurado não é backup: o dono restaura numa
+branch descartável do Neon antes do lançamento.
+
+**Seed e rotas de dev:** o seed recusa `NODE_ENV=production` ("O seed não roda em produção", código 1, antes de tocar no
+banco); as rotas `/api/dev/*` não existem em produção.
+
+**Evite:** dar ao despertador outra tarefa que não seja fechar votação vencida (lembretes e rodízio precisam de precisão que
+o agendamento do GitHub não tem); aceitar o segredo fora do cabeçalho `Authorization`; mandar 4xx, dado pessoal ou corpo de
+pedido para o Sentry; ligar `VOTING_CLOSER_INTERVAL_MS` em produção; usar o `x-request-id` do cliente em produção.
 
 ---
 
