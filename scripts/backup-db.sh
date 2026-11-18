@@ -37,6 +37,15 @@ if ! pg_dump --no-owner --no-privileges --format=plain "$DIRECT_URL" >"$tmp/dump
   erro "o pg_dump falhou (conexão, senha do banco ou versão do pg_dump menor que a do servidor)."
 fi
 
+# Conferência da restauração: quantas linhas cada tabela tem NESTE dump (contadas nos blocos COPY do próprio arquivo,
+# então valem para o instante exato do backup). O restore-db.sh imprime o mesmo formato para comparar. Só contagem.
+echo "Linhas por tabela neste backup:" >&2
+awk '
+  /^COPY / { name = $2; sub(/^public\./, "", name); gsub(/"/, "", name); count = 0; inside = 1; next }
+  inside && /^\\\.$/ { printf "%s\t%d\n", name, count; inside = 0; next }
+  inside { count++ }
+' "$tmp/dump.sql" | LC_ALL=C sort >&2
+
 echo "Compactando e cifrando..." >&2
 gzip -c "$tmp/dump.sql" >"$tmp/dump.sql.gz"
 if ! printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --quiet --pinentry-mode loopback \

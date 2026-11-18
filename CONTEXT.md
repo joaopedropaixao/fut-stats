@@ -989,6 +989,11 @@ resultado; um dia da semana fixo no texto; pedir permissão sem toque; deixar o 
 **O que é:** a operação do ambiente de produção (`main` + Neon `prod`), separada do staging. Não tem regra de negócio:
 não mexe em `packages/domain`. Spec: `docs/specs/producao.md`; passo a passo do dono: `docs/deploy.md`.
 
+**Endereço:** domínio próprio `.com.br` (o Google não aceita `*.vercel.app` como domínio autorizado), escrito como `<DOMINIO>` no
+`render.yaml`, no `vercel.json` e nos docs até ser comprado; o `scripts/check-deploy-config.mjs` avisa enquanto o marcador existir
+e confere que o host do `vercel.json` é o do `APP_URL` de produção. O `fut-stats-app.vercel.app` (endereço padrão do projeto)
+continua indo para a API de produção.
+
 **Despertador (`apps/api/src/internal`):** `POST /api/internal/tick`, `Authorization: Bearer <TICK_SECRET>`, sem sessão
 (`@Public()` tira o guard de sessão; o guard próprio compara o segredo em tempo constante e qualquer falha é o mesmo 401,
 sem dizer o motivo). Só chama `VotingService.closeDueVotings(new Date())` (todos os grupos) e devolve `TickResult`
