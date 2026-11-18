@@ -1,14 +1,14 @@
 # Lançamento para a pelada
 
 Roteiro do dia em que o Fut Stats vai para o grupo. Pré-requisito: o roteiro de produção do `docs/deploy.md` (R0 a
-R8) feito e conferido, sem erro novo no Sentry. O app de produção fica em **`https://<DOMINIO>`**.
+R8) feito e conferido, sem erro novo no Sentry. O app de produção fica em **`https://futstats-app.com.br`**.
 
 > O endereço **não pode mudar depois**: a instalação e os avisos ficam presos a ele. Trocar obriga todo mundo a
 > reinstalar e ligar os avisos de novo.
 
 ## 1. Antes de chamar o grupo (você, o admin)
 
-- [ ] Entrar em `https://<DOMINIO>` com **Entrar com Google** e **Criar pelada** (nome, o seu apelido, a sua posição).
+- [ ] Entrar em `https://futstats-app.com.br` com **Entrar com Google** e **Criar pelada** (nome, o seu apelido, a sua posição).
 - [ ] Abrir **Perfil → Elenco** e **conferir os jogadores** (toque num jogador para editar): apelido, posição e a **nota inicial** de cada um (a nota inicial
       pesa na hora de montar os times equilibrados; ajuste antes da primeira rodada).
 - [ ] Pegar o **link de convite** no **Perfil**, no card de convite do admin (teclas **Copiar link**, **Mandar no WhatsApp** e
@@ -19,7 +19,7 @@ R8) feito e conferido, sem erro novo no Sentry. O app de produção fica em **`h
 
 ## 2. Texto pronto para o WhatsApp
 
-> Pessoal, a nossa pelada agora tem app (https://<DOMINIO>): times equilibrados, notas, ranking e resenhas.
+> Pessoal, a nossa pelada agora tem app (https://futstats-app.com.br): times equilibrados, notas, ranking e resenhas.
 >
 > 1. Entre pelo link e confirme seu apelido e posição: LINK-DE-CONVITE
 > 2. **Android:** abra o link no Chrome → menu (⋮) → **Instalar app** (ou **Adicionar à tela inicial**); ou, no **Perfil**, a tecla **Instalar**.

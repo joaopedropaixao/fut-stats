@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "has": [{ "type": "host", "value": "<DOMINIO>" }],
+      "has": [{ "type": "host", "value": "futstats-app.com.br" }],
       "destination": "https://fut-stats-api.onrender.com/api/:path*"
     },
     {

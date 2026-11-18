@@ -51,7 +51,7 @@ produção). Só considerar o Railway se a API "dormindo" incomodar de verdade o
 | Ambiente | Branch | Web (Vercel) | API (Render, free) | Banco (Neon) | Sentry | Despertador e backup |
 |----------|--------|--------------|--------------------|--------------|--------|----------------------|
 | staging | `develop` | `fut-stats-three.vercel.app` | `fut-stats-api-staging` | branch `dev` | `SENTRY_ENVIRONMENT=staging` | nenhum; o relógio interno fecha votações (1 min) |
-| produção | `main` | `<DOMINIO>` (domínio próprio `.com.br`; `fut-stats-app.vercel.app` é só o endereço padrão do projeto) | `fut-stats-api` | branch `prod` | `SENTRY_ENVIRONMENT=production` | despertador de 30 em 30 min (GitHub Actions) e backup diário cifrado; relógio interno desligado |
+| produção | `main` | `futstats-app.com.br` (domínio próprio `.com.br`; `fut-stats-app.vercel.app` é só o endereço padrão do projeto) | `fut-stats-api` | branch `prod` | `SENTRY_ENVIRONMENT=production` | despertador de 30 em 30 min (GitHub Actions) e backup diário cifrado; relógio interno desligado |
 | preview | `feature/*` | endereço do PR (Vercel) | a do staging | branch `dev` | — | — |
 
 Nada é compartilhado entre staging e produção: cada um tem o seu serviço, o seu banco, o segredo de sessão, o client do

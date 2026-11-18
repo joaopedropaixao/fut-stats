@@ -9,7 +9,7 @@
 | **Fatia** | `producao` (onda 6) |
 | **Modo** | Back |
 | **Parte de** | — (staging já está no ar: `docs/deploy.md`) |
-| **Status** | aprovado em 2026-11-14; endereço de produção: domínio próprio `.com.br` (dono, 18 nov 2026), nome a definir, marcado como `<DOMINIO>` |
+| **Status** | aprovado em 2026-11-14; endereço de produção: `futstats-app.com.br` (domínio próprio, dono, 18 nov 2026) |
 | **Base** | develop @2105544 (checkpoint de início em 18 nov 2026; antes, @1021769) |
 | **Depende de** | auditoria-da-rodada, orcamento-de-bundle, votacao, pwa-e-push, jogo-ao-vivo, polimento-v1 (todas na develop) |
 | **Toca em** | render.yaml, apps/web/vercel.json, .github/workflows, scripts, docs/deploy.md, docs/lancamento.md, docs/02-arquitetura.md, .env.example, apps/api/src/config/env.ts, apps/api/src/main.ts, apps/api/src/setup-app.ts, apps/api/src/common, apps/api/src/internal, apps/api/src/app.module.ts, packages/shared/src/internal.ts, apps/api/src/seed, apps/api/collections/dev-session.ts, apps/api/package.json, apps/web/src/main.tsx, apps/web/src/app, apps/web/src/router.tsx, apps/web/scripts/check-build.mjs, apps/web/package.json, package.json, pnpm-lock.yaml, CONTEXT.md, docs/03-roadmap.md |
@@ -35,15 +35,14 @@ Nenhuma regra de negócio. Regras de operação:
   com o seu serviço no Render, o seu projeto na Vercel, o seu segredo de sessão e o seu client do Google.
 - **Custo zero** continua a meta (`docs/02-arquitetura.md`): Render gratuito inclusive em produção (a API dorme
   depois de um tempo parada e leva cerca de 1 minuto para acordar), Vercel e Neon gratuitos, Sentry gratuito.
-- **Endereço de produção: domínio próprio `.com.br` no registro.br** (dono, 18 nov 2026; antes, 17 nov,
-  `fut-stats-app.vercel.app`). O Google não aceita `*.vercel.app` (nem `vercel.app`) como domínio autorizado, e sem ele
-  o app OAuth não sai de "Testing" (cada jogador teria de ser cadastrado e veria "app não verificado"). Até o dono
-  escolher o nome, todo arquivo e documento usa o marcador literal **`<DOMINIO>`** (`vercel.json`, `APP_URL` de
-  produção no `render.yaml`, roteiro, `docs/lancamento.md` e o texto do WhatsApp), trocado num comando só
-  (`docs/deploy.md`). O projeto da Vercel de produção continua o `fut-stats-app` (branch `main`, raiz `apps/web`, já
-  criado pelo dono); o domínio aponta para ele, e o `fut-stats-app.vercel.app` também leva o `/api` para a produção.
-  O staging segue em `fut-stats-three.vercel.app`. A instalação do app e os avisos ficam presos ao endereço: trocar
-  depois do lançamento obriga o grupo a reinstalar e ligar os avisos de novo.
+- **Endereço de produção: `futstats-app.com.br`**, domínio próprio comprado pelo dono no registro.br (18 nov 2026; DNS
+  nos servidores do registro.br; antes, 17 nov, `fut-stats-app.vercel.app`). O Google não aceita `*.vercel.app` (nem
+  `vercel.app`) como domínio autorizado, e sem ele o app OAuth não sai de "Testing" (cada jogador teria de ser cadastrado
+  e veria "app não verificado"). Entra no `vercel.json`, no `APP_URL` de produção do `render.yaml`, no roteiro, no
+  `docs/lancamento.md` e no texto do WhatsApp. O projeto da Vercel de produção continua o `fut-stats-app` (branch
+  `main`, raiz `apps/web`, já criado pelo dono); o domínio aponta para ele, e o `fut-stats-app.vercel.app` também leva o
+  `/api` para a produção. O staging segue em `fut-stats-three.vercel.app`. A instalação do app e os avisos ficam presos
+  ao endereço: trocar depois do lançamento obriga o grupo a reinstalar e ligar os avisos de novo.
 - **Login em produção**: o app do Google sai de "Testing" (qualquer conta Google entra; só entra na pelada
   quem tem o convite).
 - **Backup**: todo dia, cópia do banco de produção, **cifrada**, guardada por 30 dias como artefato do GitHub
@@ -69,8 +68,8 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C6 | `NODE_ENV=production` | `GET /api/dev/...` | 404 (regressão do que já existe) | integração |
 | C7 | `NODE_ENV=production` | rodar o seed | recusa com "O seed não roda em produção" e sai com código 1, sem tocar no banco | integração (`seed.spec.ts`) |
 | C8 | `GET /api/health` | chamar com o banco fora do ar | continua 200 (o health não consulta o banco: o Render chama a cada poucos segundos e o Neon gratuito suspende banco parado) | integração |
-| C9 | `render.yaml` | checagem de configuração (`scripts/check-deploy-config.mjs`, roda no `pnpm test` da raiz) | dois serviços: staging na `develop` e produção na `main`; os dois com `healthCheckPath`, `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, as do Google, `APP_URL`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT` e as três `VAPID_*`; o de produção com `APP_URL=https://<DOMINIO>`, `TICK_SECRET` (`sync: false`) e `VOTING_CLOSER_INTERVAL_MS=0`; o staging sem `TICK_SECRET`; nenhum valor de segredo escrito no arquivo | checagem |
-| C10 | `apps/web/vercel.json` | a mesma checagem | o `/api/*` de `<DOMINIO>` e de `fut-stats-app.vercel.app` vai para a API de produção, e o resto para a de staging; a regra do `index.html` continua por último; o host de produção é o mesmo do `APP_URL` de produção do `render.yaml` e não é `*.vercel.app`; com o marcador `<DOMINIO>` ainda no lugar, passa com aviso "trocar antes da release" | checagem |
+| C9 | `render.yaml` | checagem de configuração (`scripts/check-deploy-config.mjs`, roda no `pnpm test` da raiz) | dois serviços: staging na `develop` e produção na `main`; os dois com `healthCheckPath`, `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, as do Google, `APP_URL`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT` e as três `VAPID_*`; o de produção com `APP_URL=https://futstats-app.com.br`, `TICK_SECRET` (`sync: false`) e `VOTING_CLOSER_INTERVAL_MS=0`; o staging sem `TICK_SECRET`; nenhum valor de segredo escrito no arquivo | checagem |
+| C10 | `apps/web/vercel.json` | a mesma checagem | o `/api/*` de `futstats-app.com.br` e de `fut-stats-app.vercel.app` vai para a API de produção, e o resto para a de staging; a regra do `index.html` continua por último; o host de produção é o mesmo do `APP_URL` de produção do `render.yaml` e não é `*.vercel.app` | checagem |
 | C11 | banco local com o seed | `scripts/backup-db.sh` com `BACKUP_PASSPHRASE` | gera `fut-stats-<data>.sql.gz.gpg`; o arquivo não tem texto legível (`strings` não acha nomes de tabela) | integração (script, no Postgres de teste) |
 | C12 | o arquivo de C11 | `scripts/restore-db.sh` num banco vazio, com a senha certa | o banco restaurado tem as mesmas contagens por tabela do original | integração (script) |
 | C13 | senha errada; variável faltando; banco de destino não vazio | `restore-db.sh` / `backup-db.sh` | falha com mensagem clara e código ≠ 0; o destino não vazio é recusado sem `--force` | integração (script) |
@@ -113,11 +112,11 @@ Cada cenário tem um id. Os testes levam o id no nome.
 
 | Id | Passo | Conferência |
 |---|---|---|
-| R0 | Domínio: comprar `<DOMINIO>` no registro.br; na Vercel, projeto `fut-stats-app` → Settings → Domains, adicionar `<DOMINIO>` e `www.<DOMINIO>` (o www redireciona para o principal); no registro.br, os registros DNS que a Vercel pedir (recomendado: manter o DNS no registro.br com A do apex e CNAME do www; alternativa: servidores DNS da Vercel); trocar o marcador `<DOMINIO>` no repositório pelo nome (um comando, `docs/deploy.md`) num PR para a `develop` | a Vercel mostra o certificado válido nos dois nomes; `https://<DOMINIO>` abre o app |
-| R1 | Projeto de produção na Vercel `fut-stats-app` (já criado pelo dono: branch `main`, raiz `apps/web`): conferir as variáveis `VITE_SENTRY_DSN` e `VITE_SENTRY_ENVIRONMENT` | `<DOMINIO>` e `fut-stats-app.vercel.app` ligados ao projeto |
+| R0 | Domínio: comprar `futstats-app.com.br` no registro.br; na Vercel, projeto `fut-stats-app` → Settings → Domains, adicionar `futstats-app.com.br` e `www.futstats-app.com.br` (o www redireciona para o principal); no registro.br, os registros DNS que a Vercel pedir (recomendado: manter o DNS no registro.br com A do apex e CNAME do www; alternativa: servidores DNS da Vercel) | a Vercel mostra o certificado válido nos dois nomes; `https://futstats-app.com.br` abre o app |
+| R1 | Projeto de produção na Vercel `fut-stats-app` (já criado pelo dono: branch `main`, raiz `apps/web`): conferir as variáveis `VITE_SENTRY_DSN` e `VITE_SENTRY_ENVIRONMENT` | `futstats-app.com.br` e `fut-stats-app.vercel.app` ligados ao projeto |
 | R2 | Neon: copiar as duas URLs da branch `prod` (com e sem `-pooler`) | guardadas no gerenciador de senhas |
 | R3 | Render: sincronizar o Blueprint (aparece o serviço `fut-stats-api`, plano gratuito) e colar as variáveis, inclusive **um par VAPID novo, só de produção** (`npx web-push generate-vapid-keys`; o do staging não serve) | o serviço aparece e as variáveis ficam salvas; o primeiro deploy só fica "Live" depois do R7 (a `main` ainda não tem o app), quando `GET /api/health` responde 200 pelo endereço de produção; se o Render der outro endereço que não `fut-stats-api.onrender.com`, o `vercel.json` é corrigido antes da release |
-| R4 | Google Cloud: no client "Fut Stats produção" (já criado pelo dono com as URIs de vercel.app), acrescentar a origem `https://<DOMINIO>` e a callback `https://<DOMINIO>/api/auth/google/callback`; no Branding: domínio autorizado `<DOMINIO>`, página inicial `https://<DOMINIO>` e Política de Privacidade `https://<DOMINIO>/privacidade` (só existe depois do R7); publicar o app (sair de "Testing") | login em `https://<DOMINIO>` com uma conta que não está na lista de teste |
+| R4 | Google Cloud: no client "Fut Stats produção" (já criado pelo dono com as URIs de vercel.app), acrescentar a origem `https://futstats-app.com.br` e a callback `https://futstats-app.com.br/api/auth/google/callback`; no Branding: domínio autorizado `futstats-app.com.br`, página inicial `https://futstats-app.com.br` e Política de Privacidade `https://futstats-app.com.br/privacidade` (só existe depois do R7); publicar o app (sair de "Testing") | login em `https://futstats-app.com.br` com uma conta que não está na lista de teste |
 | R5 | Sentry: criar a conta e dois projetos (API e web); colar os DSN no Render e na Vercel | a mensagem "API no ar" aparece no Sentry |
 | R6c | Tempo real no staging (pelo domínio próprio nada muda além do host do rewrite) (os 3 passos do PR #75): duas sessões, admin e jogador, na mesma rodada; o admin lança um gol | o gol aparece no jogador em até 2 s e o `.../stream` fica aberto na aba Rede; se o rewrite da Vercel segurar o fluxo, o gol aparece em até 5 s pelo modo antigo e abre-se um item para ligar o stream direto na API |
 | R7 | Release: PR `develop` → `main` (o orquestrador abre e mergeia com o ok do dono), tag `v1.0.0` | produção no ar com as migrations aplicadas |
@@ -287,8 +286,8 @@ valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
 - P15 · Despertador e webhook para os avisos? → Sim, a opção 1: só o despertador, para a votação fechar e o
   resultado sair na hora; sem lembretes por enquanto (pedido do dono, 14 nov 2026, depois do lote).
 - P8 · Endereço de produção? → `fut-stats-app.vercel.app` (17 nov 2026), trocado no dia seguinte por **domínio próprio
-  `.com.br` no registro.br** (18 nov 2026), porque o Google não aceita `vercel.app` como domínio autorizado. Nome a definir
-  (`<DOMINIO>`). R6/R6b viraram R7b/R7c: o "Run workflow" só aparece na branch padrão (`main`) e a API de produção só
+  `.com.br` no registro.br** (18 nov 2026), porque o Google não aceita `vercel.app` como domínio autorizado. Nome: `futstats-app.com.br`
+  (comprado pelo dono em 18 nov 2026; DNS nos servidores do registro.br). R6/R6b viraram R7b/R7c: o "Run workflow" só aparece na branch padrão (`main`) e a API de produção só
   existe depois da release.
 - Lançamento (17 nov 2026): `docs/lancamento.md` com a instalação para o grupo, uma parte Android e outra iPhone
   (Safari → Compartilhar → Adicionar à Tela de Início; sem instalar, o iPhone não recebe avisos), ligar os avisos,

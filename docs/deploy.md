@@ -378,7 +378,7 @@ projeto na Vercel, o seu segredo de sessão, o seu client do Google e o seu par 
 | | Staging | Produção |
 |---|---|---|
 | Branch | `develop` | `main` |
-| App (Vercel) | `fut-stats-three.vercel.app` | **`<DOMINIO>`** (domínio próprio, registro.br) |
+| App (Vercel) | `fut-stats-three.vercel.app` | **`futstats-app.com.br`** (domínio próprio, registro.br) |
 | API (Render) | `fut-stats-api-staging.onrender.com` | `fut-stats-api.onrender.com` |
 | Banco (Neon) | branch `dev` | branch `prod` |
 | Sentry | `SENTRY_ENVIRONMENT=staging` | `SENTRY_ENVIRONMENT=production` |
@@ -388,24 +388,16 @@ projeto na Vercel, o seu segredo de sessão, o seu client do Google e o seu par 
 > O endereço do app **não muda depois do lançamento**: a instalação e os avisos ficam presos a ele. Trocar obriga
 > o grupo a reinstalar e ligar os avisos de novo.
 
-**O domínio próprio e o marcador `<DOMINIO>`.** O Google não aceita `*.vercel.app` como domínio autorizado, então a
-produção usa um domínio próprio `.com.br` (registro.br), ainda **não escolhido**. Enquanto isso, o repositório escreve
-o literal `<DOMINIO>` em todo lugar onde o nome entra (`render.yaml`, `apps/web/vercel.json`, esta documentação e o
-`docs/lancamento.md`). O `pnpm test` passa com o marcador, mas imprime um aviso grande ("produção ainda com
-<DOMINIO>: trocar antes da release"). **Depois de comprar o nome (R0), troque tudo numa linha**, na raiz do repositório
-(troque `nome.com.br` pelo domínio comprado, sem `https://`):
-
-```sh
-git grep -lz '<[D]OMINIO>' -- . ':!docs/specs' ':!scripts' | xargs -0 perl -pi -e 's/<[D]OMINIO>/nome.com.br/g'
-```
-
-(`perl` existe no macOS e no Linux; o `[D]` evita que este comando se reescreva a si mesmo. Confira com `git diff` e
-com `node scripts/check-deploy-config.mjs`: sem aviso, a troca vale.) Mande o resultado num PR para a `develop`.
+**O domínio próprio: `futstats-app.com.br`.** O Google não aceita `*.vercel.app` como domínio autorizado, então a
+produção usa um domínio próprio, comprado pelo dono no registro.br em 18 nov 2026. Ele já está escrito em todo lugar onde
+o nome entra (`render.yaml`, `apps/web/vercel.json`, esta documentação e o `docs/lancamento.md`), e o
+`node scripts/check-deploy-config.mjs` (que roda no `pnpm test`) confere que o host de produção do `vercel.json` é o
+mesmo do `APP_URL` de produção do `render.yaml`.
 
 O `render.yaml` e o `apps/web/vercel.json` são os mesmos nas duas branches. A API de produção só responde pelos
-endereços de produção graças às regras de `/api/*` do `vercel.json`: os hosts `<DOMINIO>` **e** `fut-stats-app.vercel.app`
+endereços de produção graças às regras de `/api/*` do `vercel.json`: os hosts `futstats-app.com.br` **e** `fut-stats-app.vercel.app`
 (o endereço padrão do projeto na Vercel, que continua existindo) vão para `fut-stats-api.onrender.com`; qualquer outro
-host continua indo para o staging. O `www.<DOMINIO>` só redireciona para o principal na Vercel (não precisa de regra).
+host continua indo para o staging. O `www.futstats-app.com.br` só redireciona para o principal na Vercel (não precisa de regra).
 
 **O que o dono já tem** (não precisa refazer): o projeto `fut-stats-app` na Vercel (branch `main`, raiz `apps/web`), os dois
 projetos do Sentry (com os DSN), o client OAuth de produção do Google, o par VAPID de produção e o `BACKUP_PASSPHRASE`.
@@ -421,7 +413,7 @@ Todas no painel do Render (a API) e da Vercel (o web). Nenhum valor vai para o r
 | `DIRECT_URL` | Render | URL **sem** `-pooler` da `dev` | URL **sem** `-pooler` da `prod` | idem, com o pooling desligado |
 | `JWT_SECRET` | Render | gerado pelo Render | gerado pelo Render (outro valor) | automático (`generateValue`) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Render | client "fut-stats" | **client novo "Fut Stats produção"** | Google Cloud (R4) |
-| `APP_URL` | Render | `https://fut-stats-three.vercel.app` (já no `render.yaml`) | `https://<DOMINIO>` (já no `render.yaml`; a callback do Google sai dele) | — |
+| `APP_URL` | Render | `https://fut-stats-three.vercel.app` (já no `render.yaml`) | `https://futstats-app.com.br` (já no `render.yaml`; a callback do Google sai dele) | — |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Render | par do staging | **par novo, só de produção** | `npx web-push generate-vapid-keys` |
 | `SENTRY_DSN` | Render | DSN do projeto da API | o mesmo (a mesma API no Sentry) | Sentry (R5) |
 | `SENTRY_ENVIRONMENT` | Render | `staging` (no `render.yaml`) | `production` (no `render.yaml`) | — |
@@ -450,8 +442,8 @@ padrão (`main`) e a API de produção só existe depois da release.
 
 1. **Comprar o domínio** em <https://registro.br> (`.com.br`, cerca de R$ 40 por ano). Escolha o nome, pague e espere
    ele ficar ativo.
-2. **Vercel:** projeto `fut-stats-app` → **Settings → Domains → Add Existing** → digite o domínio (`<DOMINIO>`). A
-   Vercel oferece adicionar também o `www`: aceite (`www.<DOMINIO>`). No `www`, escolha **Redirect to `<DOMINIO>`**
+2. **Vercel:** projeto `fut-stats-app` → **Settings → Domains → Add Existing** → digite o domínio (`futstats-app.com.br`). A
+   Vercel oferece adicionar também o `www`: aceite (`www.futstats-app.com.br`). No `www`, escolha **Redirect to `futstats-app.com.br`**
    (assim o `www` leva ao nome principal; não precisa de regra no `vercel.json`).
 3. **DNS no registro.br (recomendado):** mantenha o DNS no próprio registro.br. Em **registro.br → Meus domínios → o
    domínio → DNS → Editar zona** (ou "Configurar zona DNS"), crie o que a Vercel mostrar na tela do domínio:
@@ -466,14 +458,11 @@ padrão (`main`) e a API de produção só existe depois da release.
    algumas horas.
 5. **O endereço antigo `fut-stats-app.vercel.app`:** a Vercel continua servindo o projeto por ele e a regra do
    `vercel.json` manda o `/api` dele para a API de produção. Se você quiser que ele leve ao domínio novo, em **Settings →
-   Domains** o domínio padrão do projeto pode ser configurado com **Redirect** para `<DOMINIO>` quando a Vercel
+   Domains** o domínio padrão do projeto pode ser configurado com **Redirect** para `futstats-app.com.br` quando a Vercel
    oferecer essa opção para ele (a documentação de hoje não a descreve; confira na tela). Se não der, tudo bem: ele
-   continua abrindo o app, mas **o login com Google só funciona no domínio do `APP_URL`** (`<DOMINIO>`), porque a callback
+   continua abrindo o app, mas **o login com Google só funciona no domínio do `APP_URL`** (`futstats-app.com.br`), porque a callback
    é montada a partir dele.
-6. **Trocar o marcador no repositório:** rode o comando da seção "O domínio próprio e o marcador `<DOMINIO>`" (no topo
-   desta seção), confira com `node scripts/check-deploy-config.mjs` e mande num PR para a `develop` (vai para a `main`
-   na release, R7).
-7. **Conferir:** a Vercel mostra o certificado válido nos dois nomes e `https://<DOMINIO>` abre o app.
+6. **Conferir:** a Vercel mostra o certificado válido nos dois nomes e `https://futstats-app.com.br` abre o app.
 
 ### R1. Vercel: projeto de produção (já criado pelo dono)
 
@@ -483,7 +472,7 @@ O projeto `fut-stats-app` já existe (branch `main`, raiz `apps/web`). Confira, 
 2. **Environments → Production → Branch Tracking:** `main`.
 3. **Environment Variables:** `ENABLE_EXPERIMENTAL_COREPACK` = `1`; `VITE_SENTRY_DSN` (o DSN do projeto web do Sentry) e
    `VITE_SENTRY_ENVIRONMENT` = `production`. A variável do Sentry entra no build: depois de mudar, faça **Redeploy**.
-4. **Conferir:** em **Settings → Domains** estão ligados o `<DOMINIO>` (R0) e o `fut-stats-app.vercel.app`.
+4. **Conferir:** em **Settings → Domains** estão ligados o `futstats-app.com.br` (R0) e o `fut-stats-app.vercel.app`.
 
 ### R2. Neon: URLs da branch `prod`
 
@@ -518,17 +507,17 @@ O client **Fut Stats produção** já existe (o dono criou com os endereços de 
 
 1. <https://console.cloud.google.com> → projeto **fut-stats** → **Google Auth Platform → Clients** → **Fut Stats produção**.
 2. Acrescente (sem apagar os de `vercel.app`, que não atrapalham):
-   **Authorized JavaScript origins:** `https://<DOMINIO>`.
-   **Authorized redirect URIs:** `https://<DOMINIO>/api/auth/google/callback`.
+   **Authorized JavaScript origins:** `https://futstats-app.com.br`.
+   **Authorized redirect URIs:** `https://futstats-app.com.br/api/auth/google/callback`.
 3. Copie o **Client ID** e o **Client secret** para o Render de produção (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`),
    se ainda não colou.
-4. **Google Auth Platform → Branding:** **Authorized domains** → `<DOMINIO>` (o domínio comprado; o Google **recusa**
-   `vercel.app`); **Application home page** `https://<DOMINIO>`; **Application privacy policy link**
-   `https://<DOMINIO>/privacidade` (a página só existe depois do R7: o Google pode pedir para conferir o link; volte
+4. **Google Auth Platform → Branding:** **Authorized domains** → `futstats-app.com.br` (o domínio comprado; o Google **recusa**
+   `vercel.app`); **Application home page** `https://futstats-app.com.br`; **Application privacy policy link**
+   `https://futstats-app.com.br/privacidade` (a página só existe depois do R7: o Google pode pedir para conferir o link; volte
    aqui depois da release).
 5. **Publicar o app:** **Google Auth Platform → Audience → Publish app** (sai de "Testing": qualquer conta Google entra;
    só entra na pelada quem tem o convite).
-6. **Conferir:** depois do R7, entre em `https://<DOMINIO>` com uma conta que **não** estava na lista de test users.
+6. **Conferir:** depois do R7, entre em `https://futstats-app.com.br` com uma conta que **não** estava na lista de test users.
 
 ### R5. Sentry: dois projetos
 
@@ -554,7 +543,7 @@ O client **Fut Stats produção** já existe (o dono criou com os endereços de 
 1. No staging, abra duas sessões (admin e jogador) na mesma rodada em andamento (dois navegadores ou um anônimo).
 2. O admin lança um gol. **Conferir:** o gol aparece no jogador em até 2 segundos e, na aba **Rede** (Network) do
    navegador, a chamada `.../stream` fica aberta.
-3. Pelo domínio próprio (`<DOMINIO>`) nada muda além do host do rewrite: a mesma regra de `/api/*` do `vercel.json` vale.
+3. Pelo domínio próprio (`futstats-app.com.br`) nada muda além do host do rewrite: a mesma regra de `/api/*` do `vercel.json` vale.
 4. Se o gol só aparece em até 5 segundos, o rewrite da Vercel segurou o fluxo e o app caiu no modo antigo (continua
    funcionando): abra um item para ligar o stream direto na API.
 
@@ -562,8 +551,8 @@ O client **Fut Stats produção** já existe (o dono criou com os endereços de 
 
 O orquestrador abre o PR `develop` → `main` e mergeia com o seu ok, e cria a tag `v1.0.0`. **Conferir:** o Render de
 produção builda sozinho (as migrations rodam no build, na branch `prod` do Neon), fica **Live** e a Vercel publica o
-app em `https://<DOMINIO>`. Confira <https://fut-stats-api.onrender.com/api/health> e `https://<DOMINIO>/api/health`
-(os dois com `{"status":"ok"}`) e `https://<DOMINIO>/privacidade` (para o R4).
+app em `https://futstats-app.com.br`. Confira <https://fut-stats-api.onrender.com/api/health> e `https://futstats-app.com.br/api/health`
+(os dois com `{"status":"ok"}`) e `https://futstats-app.com.br/privacidade` (para o R4).
 
 ### R7b. GitHub: segredos e o primeiro backup (depois do R7)
 
@@ -600,7 +589,7 @@ espera até 2 minutos e tenta mais uma vez). Se o job ficar vermelho, o GitHub a
 
 Em aparelho real, **Android e iPhone** (o passo a passo para o grupo está em `docs/lancamento.md`):
 
-1. Entrar com o Google em `https://<DOMINIO>`, criar a pelada e pegar o link de convite (**Perfil**, card de convite).
+1. Entrar com o Google em `https://futstats-app.com.br`, criar a pelada e pegar o link de convite (**Perfil**, card de convite).
 2. Instalar o app, abrir pelo ícone, ligar o interruptor **Avisos neste celular** e tocar em **Testar aviso** com o app
    fechado; tocar na notificação.
 3. Com um admin em outro aparelho: marcar a rodada, publicar os times, abrir e encerrar a votação.

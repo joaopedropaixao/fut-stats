@@ -1,7 +1,7 @@
 # Blueprint do Render: duas APIs (plano free), uma por ambiente, cada uma com deploy automático na sua branch:
 #   fut-stats-api-staging  → develop (Neon dev)
 #   fut-stats-api          → main    (Neon prod)
-# `<DOMINIO>` é o domínio próprio de produção (registro.br): trocar pelo nome comprado antes da release (docs/deploy.md, R0).
+# `futstats-app.com.br` é o domínio próprio de produção (registro.br): trocar pelo nome comprado antes da release (docs/deploy.md, R0).
 # Passo a passo em docs/deploy.md.
 services:
   - type: web
@@ -109,7 +109,7 @@ services:
       # Endereço do app no navegador (a Vercel, que repassa /api/* para cá). A callback do Google sai daqui
       # e tem que bater com a cadastrada no Google Cloud.
       - key: APP_URL
-        value: https://<DOMINIO>
+        value: https://futstats-app.com.br
       # Avisos push (Web Push): as três juntas ou nenhuma (sem elas o push fica desligado). Gerar o par com
       # `npx web-push generate-vapid-keys`; o subject é o contato do dono (mailto:). Passo a passo em docs/deploy.md.
       - key: VAPID_PUBLIC_KEY

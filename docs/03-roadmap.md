@@ -52,7 +52,7 @@ abaixo).
 
 ### Próximas prioridades (18 nov 2026)
 Entregues até aqui: as fatias 0 a 14 e 16. Falta só a `producao` (endereço: domínio próprio `.com.br`, a comprar no registro.br
-com o marcador `<DOMINIO>`; o Google não aceita `vercel.app`) e o lançamento. Ordem:
+com o marcador `futstats-app.com.br`; o Google não aceita `vercel.app`) e o lançamento. Ordem:
 
 1. ✅ **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
    antes do `feed` porque ele é a próxima tela grande.
@@ -60,7 +60,7 @@ com o marcador `<DOMINIO>`; o Google não aceita `vercel.app`) e o lançamento. 
    (`RoundLog` e `Post`/`PostReaction`/`PostComment`): o `feed` entrou primeiro e a auditoria refez a migration por
    cima (o model virou `AuditLog` e passou a cobrir as escritas do feed).
 3. ✅ **`jogo-ao-vivo`** (Par) e ✅ **`pwa-e-push`** (Par); falta a **`producao`** (Back), que coloca a `main` no
-   ar no domínio próprio (`<DOMINIO>`).
+   ar no domínio próprio (`futstats-app.com.br`).
 4. **Lançar para a pelada** e coletar feedback em 2–3 rodadas. O `docs/lancamento.md` explica como instalar o app
    no Android e no **iPhone** (no Safari: Compartilhar → Adicionar à Tela de Início; sem instalar, o iPhone não
    recebe avisos). A ideia é todo mundo ter o app com ícone na tela, como um app da loja.
