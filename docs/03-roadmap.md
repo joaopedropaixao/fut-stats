@@ -50,19 +50,32 @@ abaixo).
 | 15 | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 15 em 15 minutos para a votação fechar na hora). Depois, a release e **lançar para a pelada** |
 | 16 ✅ | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
 
-### Próximas prioridades (15 nov 2026)
-Entregues até aqui: as fatias 0 a 8, 10, 11 e 16 (Fases 1, 2 e 3 completas). O que falta, em ordem:
+### Próximas prioridades (18 nov 2026)
+Entregues até aqui: as fatias 0 a 14 e 16. Falta só a `producao` (endereço decidido: `fut-stats-app.vercel.app`,
+P8, 17 nov 2026) e o lançamento. Ordem:
 
 1. ✅ **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
    antes do `feed` porque ele é a próxima tela grande.
-2. **`auditoria-da-rodada`** (Back) e **`feed`** (Par), em paralelo. As duas mexem no `schema.prisma`
+2. ✅ **`auditoria-da-rodada`** (Back) e **`feed`** (Par), em paralelo. As duas mexem no `schema.prisma`
    (`RoundLog` e `Post`/`PostReaction`/`PostComment`): o `feed` entrou primeiro e a auditoria refez a migration por
    cima (o model virou `AuditLog` e passou a cobrir as escritas do feed).
-3. **`jogo-ao-vivo`** (Par), **`pwa-e-push`** (Par) e **`producao`** (Back): a fase final, que entra junto do
-   lançamento (o jogo ao vivo depende da auditoria). Antes da `producao`, o dono decide o nome e o domínio do app
-   (P8).
-4. **Lançar para a pelada** e coletar feedback em 2–3 rodadas.
-5. Depois do lançamento: os ajustes do feedback, Cartola (Fase 5) e pagamentos (Fase 6).
+3. ✅ **`jogo-ao-vivo`** (Par) e ✅ **`pwa-e-push`** (Par); falta a **`producao`** (Back), que coloca a `main` no
+   ar em `fut-stats-app.vercel.app`.
+4. **Lançar para a pelada** e coletar feedback em 2–3 rodadas. O `docs/lancamento.md` explica como instalar o app
+   no Android e no **iPhone** (no Safari: Compartilhar → Adicionar à Tela de Início; sem instalar, o iPhone não
+   recebe avisos). A ideia é todo mundo ter o app com ícone na tela, como um app da loja.
+5. Depois do lançamento: os ajustes do feedback, as ideias abaixo, Cartola (Fase 5) e pagamentos (Fase 6).
+
+### Depois do lançamento: ideias aprovadas pelo dono
+Ainda sem spec nem ordem. Entram na trilha depois do feedback das primeiras rodadas.
+
+| Ideia | O que é | Origem |
+|---|---|---|
+| Serviço de notificação | Um serviço próprio (p.ex. `fut-stats-app-notification-service`) que ouve o sinal único de eventos da rodada e centraliza tudo: manda os aparelhos se atualizarem, envia os avisos e, no futuro, webhooks para fora. O sinal da `jogo-ao-vivo` já é a costura para isso | Dono, 17 nov 2026 (decisões em `specs/jogo-ao-vivo.md`) |
+| Feed e presença ao vivo | Reações, comentários e "vou / não vou" atualizam na hora, pelo mesmo canal da `jogo-ao-vivo` | Dono, 17 nov 2026 |
+| Moldura do Perna de Pau | A carta do Perna de Pau ganha moldura própria (madeira, rachada, "pé torto") no lugar da faixa da nota, que continua visível. Hoje a faixa segue a nota (`cardTier`), e um Perna de Pau com 6,5 sai prata | Dono, 18 nov 2026 |
+| Resenha-enquete | Uma resenha do tipo votação, para os admins decidirem com o grupo: o que fazer com o dinheiro da pelada, cancelar ou não uma pelada, e coisas do tipo | Dono, 18 nov 2026 |
+| Instagram da pelada | Levar resenhas, resultados, votações etc. para um Instagram da pelada, onde o pessoal já está todo dia, para mais gente ficar sabendo e engajar. Bem mais para a frente | Dono, 18 nov 2026 |
 
 Limite de três equipes ao mesmo tempo, somando Claude e Codex; cada orquestrador cuida das equipes que lançou e
 os avisos entre equipes vão no quadro (`.claude/scripts/quadro.sh`).
