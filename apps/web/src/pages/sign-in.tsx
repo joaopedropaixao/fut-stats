@@ -71,6 +71,14 @@ export function SignInPage() {
             </Link>
           )}
         </div>
+        <footer className="flex justify-center">
+          <Link
+            to="/privacidade"
+            className="inline-flex min-h-11 items-center px-3 text-sm text-text-muted underline"
+          >
+            Política de Privacidade
+          </Link>
+        </footer>
       </div>
     </main>
   );
