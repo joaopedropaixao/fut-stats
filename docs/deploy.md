@@ -23,7 +23,7 @@ Arquivos envolvidos:
 
 | Arquivo | Para quê |
 |---|---|
-| `render.yaml` | "Blueprint" do Render: descreve o serviço da API (plano free, branch `develop`, build, health check) |
+| `render.yaml` | "Blueprint" do Render: descreve os dois serviços da API (plano free, build, health check): o de staging, na branch `develop`, e o de produção, na `main` |
 | `apps/web/vercel.json` | Como a Vercel builda o front + o rewrite `/api/*` → Render |
 
 > **Antes de começar:** este PR precisa estar **mergeado na `develop`**. Render e Vercel leem os
@@ -358,7 +358,7 @@ computador recebe.
 
 ### 7.4 Testar
 
-1. Abra o app instalado, **Perfil → Avisos → ligar**, e toque em **Testar aviso**.
+1. Abra o app instalado, no **Perfil**, card **Avisos**, ligue o interruptor **Avisos neste celular** e toque em **Testar aviso**.
 2. Com o app fechado, peça para o admin criar uma rodada: o aviso chega sem abrir o app.
 
 | Sintoma | Causa provável |
@@ -378,7 +378,7 @@ projeto na Vercel, o seu segredo de sessão, o seu client do Google e o seu par 
 | | Staging | Produção |
 |---|---|---|
 | Branch | `develop` | `main` |
-| App (Vercel) | `fut-stats-three.vercel.app` | **`fut-stats-app.vercel.app`** |
+| App (Vercel) | `fut-stats-three.vercel.app` | **`<DOMINIO>`** (domínio próprio, registro.br) |
 | API (Render) | `fut-stats-api-staging.onrender.com` | `fut-stats-api.onrender.com` |
 | Banco (Neon) | branch `dev` | branch `prod` |
 | Sentry | `SENTRY_ENVIRONMENT=staging` | `SENTRY_ENVIRONMENT=production` |
@@ -388,9 +388,28 @@ projeto na Vercel, o seu segredo de sessão, o seu client do Google e o seu par 
 > O endereço do app **não muda depois do lançamento**: a instalação e os avisos ficam presos a ele. Trocar obriga
 > o grupo a reinstalar e ligar os avisos de novo.
 
-O `render.yaml` e o `apps/web/vercel.json` são os mesmos nas duas branches. A API de produção só responde pelo
-endereço de produção graças a uma regra do `vercel.json` (`/api/*` do host `fut-stats-app.vercel.app` vai para
-`fut-stats-api.onrender.com`; qualquer outro host continua indo para o staging).
+**O domínio próprio e o marcador `<DOMINIO>`.** O Google não aceita `*.vercel.app` como domínio autorizado, então a
+produção usa um domínio próprio `.com.br` (registro.br), ainda **não escolhido**. Enquanto isso, o repositório escreve
+o literal `<DOMINIO>` em todo lugar onde o nome entra (`render.yaml`, `apps/web/vercel.json`, esta documentação e o
+`docs/lancamento.md`). O `pnpm test` passa com o marcador, mas imprime um aviso grande ("produção ainda com
+<DOMINIO>: trocar antes da release"). **Depois de comprar o nome (R0), troque tudo numa linha**, na raiz do repositório
+(troque `nome.com.br` pelo domínio comprado, sem `https://`):
+
+```sh
+git grep -lz '<[D]OMINIO>' -- . ':!docs/specs' ':!scripts' | xargs -0 perl -pi -e 's/<[D]OMINIO>/nome.com.br/g'
+```
+
+(`perl` existe no macOS e no Linux; o `[D]` evita que este comando se reescreva a si mesmo. Confira com `git diff` e
+com `node scripts/check-deploy-config.mjs`: sem aviso, a troca vale.) Mande o resultado num PR para a `develop`.
+
+O `render.yaml` e o `apps/web/vercel.json` são os mesmos nas duas branches. A API de produção só responde pelos
+endereços de produção graças às regras de `/api/*` do `vercel.json`: os hosts `<DOMINIO>` **e** `fut-stats-app.vercel.app`
+(o endereço padrão do projeto na Vercel, que continua existindo) vão para `fut-stats-api.onrender.com`; qualquer outro
+host continua indo para o staging. O `www.<DOMINIO>` só redireciona para o principal na Vercel (não precisa de regra).
+
+**O que o dono já tem** (não precisa refazer): o projeto `fut-stats-app` na Vercel (branch `main`, raiz `apps/web`), os dois
+projetos do Sentry (com os DSN), o client OAuth de produção do Google, o par VAPID de produção e o `BACKUP_PASSPHRASE`.
+**Falta:** o domínio (R0), o Neon `prod` (R2), o Render (R3) e os segredos do GitHub (R7b e R7c).
 
 ## Variáveis por ambiente
 
@@ -402,11 +421,11 @@ Todas no painel do Render (a API) e da Vercel (o web). Nenhum valor vai para o r
 | `DIRECT_URL` | Render | URL **sem** `-pooler` da `dev` | URL **sem** `-pooler` da `prod` | idem, com o pooling desligado |
 | `JWT_SECRET` | Render | gerado pelo Render | gerado pelo Render (outro valor) | automático (`generateValue`) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Render | client "fut-stats" | **client novo "Fut Stats produção"** | Google Cloud (R4) |
-| `APP_URL` | Render | `https://fut-stats-three.vercel.app` (já no `render.yaml`) | `https://fut-stats-app.vercel.app` (já no `render.yaml`) | — |
+| `APP_URL` | Render | `https://fut-stats-three.vercel.app` (já no `render.yaml`) | `https://<DOMINIO>` (já no `render.yaml`; a callback do Google sai dele) | — |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Render | par do staging | **par novo, só de produção** | `npx web-push generate-vapid-keys` |
 | `SENTRY_DSN` | Render | DSN do projeto da API | o mesmo (a mesma API no Sentry) | Sentry (R5) |
 | `SENTRY_ENVIRONMENT` | Render | `staging` (no `render.yaml`) | `production` (no `render.yaml`) | — |
-| `TICK_SECRET` | Render | **não existe** | segredo de 48 bytes | `openssl rand -base64 48` (R6b) |
+| `TICK_SECRET` | Render | **não existe** | segredo de 48 bytes | `openssl rand -base64 48` (R7c) |
 | `VOTING_CLOSER_INTERVAL_MS` | Render | padrão (60000) | `0` (no `render.yaml`) | — |
 | `VITE_SENTRY_DSN` | Vercel (build) | DSN do projeto web | o mesmo | Sentry (R5) |
 | `VITE_SENTRY_ENVIRONMENT` | Vercel (build) | `staging` | `production` | — |
@@ -421,21 +440,50 @@ Segredos do **GitHub** (Settings → Secrets and variables → Actions → **New
 | `TICK_SECRET` | o despertador autentica | o **mesmo** valor do `TICK_SECRET` do Render de produção |
 | `PROD_TICK_URL` | o despertador chama a API | `https://fut-stats-api.onrender.com/api/internal/tick` (o endereço **direto** do Render, não o da Vercel) |
 
-## Ordem do roteiro (R1 a R9)
+## Ordem do roteiro (R0 a R9)
 
-Só o dono tem acesso aos painéis. Faça na ordem; cada passo diz como conferir.
+Só o dono tem acesso aos painéis. Faça na ordem; cada passo diz como conferir. Os passos R7b e R7c (backup e despertador)
+só podem ser feitos **depois do R7**, porque o GitHub só mostra "Run workflow" para workflows que já estão na branch
+padrão (`main`) e a API de produção só existe depois da release.
 
-### R1. Vercel: projeto de produção
+### R0. Domínio próprio (registro.br + Vercel)
 
-1. <https://vercel.com/new> → **Import** do `fut-stats` (o mesmo repositório do staging).
-2. **Project Name:** `fut-stats-app`. Se a Vercel disser que o nome está em uso, **pare e me avise** (o endereço é fixo
-   no `render.yaml` e no `vercel.json`).
-3. **Framework Preset:** `Vite`. **Environment Variables:** `ENABLE_EXPERIMENTAL_COREPACK` = `1`.
-   Deixe `VITE_SENTRY_DSN` e `VITE_SENTRY_ENVIRONMENT` para o R5 (o app funciona sem elas).
-4. **Deploy** (o primeiro falha, como no staging; só cria o projeto).
-5. **Settings → Build and Deployment:** **Root Directory** `apps/web`; **Include files outside the root directory** ligado.
-6. **Settings → Environments → Production → Branch Tracking:** `main` (o padrão; não troque).
-7. **Conferir:** em **Settings → Domains** o endereço é `fut-stats-app.vercel.app`.
+1. **Comprar o domínio** em <https://registro.br> (`.com.br`, cerca de R$ 40 por ano). Escolha o nome, pague e espere
+   ele ficar ativo.
+2. **Vercel:** projeto `fut-stats-app` → **Settings → Domains → Add Existing** → digite o domínio (`<DOMINIO>`). A
+   Vercel oferece adicionar também o `www`: aceite (`www.<DOMINIO>`). No `www`, escolha **Redirect to `<DOMINIO>`**
+   (assim o `www` leva ao nome principal; não precisa de regra no `vercel.json`).
+3. **DNS no registro.br (recomendado):** mantenha o DNS no próprio registro.br. Em **registro.br → Meus domínios → o
+   domínio → DNS → Editar zona** (ou "Configurar zona DNS"), crie o que a Vercel mostrar na tela do domínio:
+   um registro **A** do domínio principal (o "apex", nome em branco ou `@`) com o IP que a Vercel indicar, e um
+   **CNAME** para o `www` apontando para o valor que a Vercel indicar. Copie os valores **da tela da Vercel**, não de
+   outro projeto.
+   Por que assim: é a menor mudança (só dois registros), o dono continua controlando o DNS e o e-mail do domínio fica
+   intacto. A alternativa, se o registro.br não aceitar algum registro, é **trocar os servidores DNS** do domínio para
+   os da Vercel (a tela da Vercel mostra os dois nomes, tipo `ns1.vercel-dns.com`); antes disso copie para a Vercel
+   qualquer registro que você já use (e-mail, verificações), porque a troca leva a zona toda.
+4. Espere a Vercel mostrar **Valid Configuration** (e o certificado emitido) nos dois nomes. Pode levar de minutos a
+   algumas horas.
+5. **O endereço antigo `fut-stats-app.vercel.app`:** a Vercel continua servindo o projeto por ele e a regra do
+   `vercel.json` manda o `/api` dele para a API de produção. Se você quiser que ele leve ao domínio novo, em **Settings →
+   Domains** o domínio padrão do projeto pode ser configurado com **Redirect** para `<DOMINIO>` quando a Vercel
+   oferecer essa opção para ele (a documentação de hoje não a descreve; confira na tela). Se não der, tudo bem: ele
+   continua abrindo o app, mas **o login com Google só funciona no domínio do `APP_URL`** (`<DOMINIO>`), porque a callback
+   é montada a partir dele.
+6. **Trocar o marcador no repositório:** rode o comando da seção "O domínio próprio e o marcador `<DOMINIO>`" (no topo
+   desta seção), confira com `node scripts/check-deploy-config.mjs` e mande num PR para a `develop` (vai para a `main`
+   na release, R7).
+7. **Conferir:** a Vercel mostra o certificado válido nos dois nomes e `https://<DOMINIO>` abre o app.
+
+### R1. Vercel: projeto de produção (já criado pelo dono)
+
+O projeto `fut-stats-app` já existe (branch `main`, raiz `apps/web`). Confira, em **Settings**:
+
+1. **Build and Deployment:** **Root Directory** `apps/web`; **Include files outside the root directory** ligado.
+2. **Environments → Production → Branch Tracking:** `main`.
+3. **Environment Variables:** `ENABLE_EXPERIMENTAL_COREPACK` = `1`; `VITE_SENTRY_DSN` (o DSN do projeto web do Sentry) e
+   `VITE_SENTRY_ENVIRONMENT` = `production`. A variável do Sentry entra no build: depois de mudar, faça **Redeploy**.
+4. **Conferir:** em **Settings → Domains** estão ligados o `<DOMINIO>` (R0) e o `fut-stats-app.vercel.app`.
 
 ### R2. Neon: URLs da branch `prod`
 
@@ -450,7 +498,7 @@ Só o dono tem acesso aos painéis. Faça na ordem; cada passo diz como conferir
    **`fut-stats-api`** (novo, plano **Free**, branch `main`). Confirme.
 2. Preencha as variáveis do serviço de produção (**nunca** as do staging):
    `DATABASE_URL`, `DIRECT_URL` (R2), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (R4), as três `VAPID_*`, `SENTRY_DSN`
-   (R5) e `TICK_SECRET` (R6b). Se algum valor ainda não existe, deixe para depois e preencha em **Environment**.
+   (R5) e `TICK_SECRET` (R7c). Se algum valor ainda não existe, deixe para depois e preencha em **Environment**.
 3. **Par VAPID novo, só de produção:** `npx web-push generate-vapid-keys`. O do staging **não** serve: trocar o par
    invalida as assinaturas dos aparelhos. `VAPID_SUBJECT` = `mailto:` com o seu e-mail.
 4. Se o Render pedir cartão ou plano pago, **pare**. O serviço de produção builda a `main`: enquanto a release (R7) não
@@ -466,18 +514,26 @@ Só o dono tem acesso aos painéis. Faça na ordem; cada passo diz como conferir
 
 ### R4. Google Cloud: client OAuth de produção
 
-1. <https://console.cloud.google.com> → projeto **fut-stats** → **Google Auth Platform → Clients** (ou **APIs &
-   Services → Credentials**) → **Create client** → **Web application**, nome **Fut Stats produção**.
-2. **Authorized JavaScript origins:** `https://fut-stats-app.vercel.app`.
-   **Authorized redirect URIs:** `https://fut-stats-app.vercel.app/api/auth/google/callback`.
-3. Copie o **Client ID** e o **Client secret** para o Render de produção (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
-4. **Publicar o app:** **Google Auth Platform → Audience → Publish app** (sai de "Testing": qualquer conta Google
-   entra; só entra na pelada quem tem o convite).
-5. **Conferir:** depois do R7, entre com uma conta que **não** estava na lista de test users.
+O client **Fut Stats produção** já existe (o dono criou com os endereços de `vercel.app`). Ajuste para o domínio próprio:
+
+1. <https://console.cloud.google.com> → projeto **fut-stats** → **Google Auth Platform → Clients** → **Fut Stats produção**.
+2. Acrescente (sem apagar os de `vercel.app`, que não atrapalham):
+   **Authorized JavaScript origins:** `https://<DOMINIO>`.
+   **Authorized redirect URIs:** `https://<DOMINIO>/api/auth/google/callback`.
+3. Copie o **Client ID** e o **Client secret** para o Render de produção (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`),
+   se ainda não colou.
+4. **Google Auth Platform → Branding:** **Authorized domains** → `<DOMINIO>` (o domínio comprado; o Google **recusa**
+   `vercel.app`); **Application home page** `https://<DOMINIO>`; **Application privacy policy link**
+   `https://<DOMINIO>/privacidade` (a página só existe depois do R7: o Google pode pedir para conferir o link; volte
+   aqui depois da release).
+5. **Publicar o app:** **Google Auth Platform → Audience → Publish app** (sai de "Testing": qualquer conta Google entra;
+   só entra na pelada quem tem o convite).
+6. **Conferir:** depois do R7, entre em `https://<DOMINIO>` com uma conta que **não** estava na lista de test users.
 
 ### R5. Sentry: dois projetos
 
-1. <https://sentry.io> → crie a conta (plano gratuito, **Developer**). Crie uma organização.
+1. <https://sentry.io>: o dono **já criou** a conta e os dois projetos (e tem os DSN); se faltar algo, crie a conta (plano
+   gratuito, **Developer**) e uma organização.
 2. **Projects → Create Project**: um com a plataforma **Node.js** (nome `fut-stats-api`) e outro **React**
    (`fut-stats-web`). Em "alert settings" deixe os padrões (e-mail para você em erro novo).
 3. Em **cada** projeto: **Settings → Security & Privacy** (ou **Project Settings → Security & Privacy**) → ligue
@@ -493,22 +549,40 @@ Só o dono tem acesso aos painéis. Faça na ordem; cada passo diz como conferir
 > O Sentry só recebe erro de verdade (resposta 5xx e falha não tratada) e o `id` do usuário e o `requestId`. Nunca email,
 > nome, cookie, cabeçalho nem corpo de pedido.
 
-### R6. GitHub: segredos e o primeiro backup
+### R6c. Tempo real no staging (antes da release)
+
+1. No staging, abra duas sessões (admin e jogador) na mesma rodada em andamento (dois navegadores ou um anônimo).
+2. O admin lança um gol. **Conferir:** o gol aparece no jogador em até 2 segundos e, na aba **Rede** (Network) do
+   navegador, a chamada `.../stream` fica aberta.
+3. Pelo domínio próprio (`<DOMINIO>`) nada muda além do host do rewrite: a mesma regra de `/api/*` do `vercel.json` vale.
+4. Se o gol só aparece em até 5 segundos, o rewrite da Vercel segurou o fluxo e o app caiu no modo antigo (continua
+   funcionando): abra um item para ligar o stream direto na API.
+
+### R7. Release
+
+O orquestrador abre o PR `develop` → `main` e mergeia com o seu ok, e cria a tag `v1.0.0`. **Conferir:** o Render de
+produção builda sozinho (as migrations rodam no build, na branch `prod` do Neon), fica **Live** e a Vercel publica o
+app em `https://<DOMINIO>`. Confira <https://fut-stats-api.onrender.com/api/health> e `https://<DOMINIO>/api/health`
+(os dois com `{"status":"ok"}`) e `https://<DOMINIO>/privacidade` (para o R4).
+
+### R7b. GitHub: segredos e o primeiro backup (depois do R7)
 
 1. <https://github.com/joaopedropaixao/fut-stats> → **Settings → Secrets and variables → Actions → New repository
    secret**: crie `PROD_DIRECT_URL` (R2, sem `-pooler`) e `BACKUP_PASSPHRASE` (`openssl rand -base64 48`; guarde no
    gerenciador de senhas).
-2. **Actions → Backup do banco → Run workflow** (na `main`, depois do R7; antes disso rode com a branch onde o arquivo
-   existir).
+2. **Actions → Backup do banco → Run workflow** (branch `main`). A tecla só aparece depois do R7, porque o GitHub só
+   mostra "Run workflow" para workflows que já estão na branch padrão.
 3. **Conferir:** o job fica verde e, na página da execução, em **Artifacts**, aparece `backup-banco-producao` (30 dias).
-4. **Restaurar uma vez de teste**: veja "Como restaurar um backup" abaixo. Backup que nunca foi restaurado não é backup.
+4. **Restaurar uma vez de teste**: veja "Como restaurar um backup" abaixo, comparando as contagens que o backup e a
+   restauração imprimem. Backup que nunca foi restaurado não é backup.
 
-### R6b. Despertador
+### R7c. Despertador (depois do R7)
 
 1. Gere o segredo: `openssl rand -base64 48`. Cole como `TICK_SECRET` no Render de **produção** (Environment → Save)
    **e** como segredo `TICK_SECRET` no GitHub (mesmo valor).
 2. Crie o segredo `PROD_TICK_URL` no GitHub: `https://fut-stats-api.onrender.com/api/internal/tick`.
-3. **Actions → Despertador → Run workflow.**
+3. **Actions → Despertador → Run workflow** (branch `main`; só aparece depois do R7). O Render de produção precisa já
+   estar **Live** com o `TICK_SECRET` salvo.
 4. **Conferir:** o job fica verde e o log termina com `{"closedVotings":0}`. Se falhar com `401`, os dois `TICK_SECRET`
    são diferentes (o do Render só vale depois do deploy que o inclui); com `404`, o Render ainda não tem o `TICK_SECRET`.
 
@@ -522,26 +596,13 @@ espera até 2 minutos e tenta mais uma vez). Se o job ficar vermelho, o GitHub a
 > a 40 minutos de folga. O último voto e quem abre o app depois do prazo continuam fechando na hora, e voto depois do
 > prazo é recusado na hora.
 
-### R6c. Tempo real no staging (antes da release)
-
-1. No staging, abra duas sessões (admin e jogador) na mesma rodada em andamento (dois navegadores ou um anônimo).
-2. O admin lança um gol. **Conferir:** o gol aparece no jogador em até 2 segundos e, na aba **Rede** (Network) do
-   navegador, a chamada `.../stream` fica aberta.
-3. Se o gol só aparece em até 5 segundos, o rewrite da Vercel segurou o fluxo e o app caiu no modo antigo (continua
-   funcionando): abra um item para ligar o stream direto na API.
-
-### R7. Release
-
-O orquestrador abre o PR `develop` → `main` e mergeia com o seu ok, e cria a tag `v1.0.0`. **Conferir:** o Render de
-produção builda sozinho (as migrations rodam no build, na branch `prod` do Neon) e a Vercel publica o
-`fut-stats-app.vercel.app`.
-
 ### R8. Fumaça em produção
 
 Em aparelho real, **Android e iPhone** (o passo a passo para o grupo está em `docs/lancamento.md`):
 
-1. Entrar com o Google, criar a pelada, gerar o convite.
-2. Instalar o app, abrir pelo ícone, ligar os avisos e tocar em **Testar aviso** com o app fechado; tocar na notificação.
+1. Entrar com o Google em `https://<DOMINIO>`, criar a pelada e pegar o link de convite (**Perfil**, card de convite).
+2. Instalar o app, abrir pelo ícone, ligar o interruptor **Avisos neste celular** e tocar em **Testar aviso** com o app
+   fechado; tocar na notificação.
 3. Com um admin em outro aparelho: marcar a rodada, publicar os times, abrir e encerrar a votação.
 4. **Perfil → Sair da conta**: depois disso o aparelho para de receber.
 5. **Conferir:** tudo funcionou e **nenhum erro novo** apareceu no Sentry.
@@ -552,22 +613,42 @@ Siga o `docs/lancamento.md`.
 
 ## Como restaurar um backup
 
-Faça numa **branch descartável** do Neon, nunca na `prod`.
+Restaure **sempre num banco que não é o de produção**. O `restore-db.sh` só aceita um destino **vazio** (sem nenhuma
+tabela) e recusa qualquer outro, a menos que você passe `--force` (que apaga tudo do schema `public` do destino).
+Atenção: uma branch do Neon criada a partir da `prod` já vem **com as tabelas e os dados**, então o script a recusa.
+Duas opções:
+
+- **A. Postgres local vazio (recomendado, não mexe no Neon).** Precisa do Docker:
+  ```sh
+  docker run --rm -d --name restaurar-teste -e POSTGRES_PASSWORD=postgres -p 5434:5432 postgres:17-alpine
+  export RESTORE_DATABASE_URL='postgresql://postgres:postgres@localhost:5434/postgres'
+  ```
+  Ele nasce vazio, então não precisa de `--force`. Para terminar: `docker stop restaurar-teste`.
+- **B. Branch do Neon só com o schema.** **Branches → New branch → Parent branch:** `prod` → marque **Schema only** →
+  **Create** (recurso em beta, disponível no plano gratuito; conta como uma "root branch", e o plano gratuito tem 3).
+  Ela copia as tabelas **sem os dados**, então o destino **não está vazio** e você precisa de `--force` (que apaga o
+  `public` **dessa branch**). Copie a URL **sem** `-pooler` **da branch nova** e **confira que não é a da `prod`** (o
+  nome da branch aparece no painel do Neon). Apague a branch no fim.
+
+Passo a passo:
 
 1. Baixe o arquivo: GitHub → **Actions → Backup do banco** → a execução → **Artifacts → `backup-banco-producao`**
-   (vem num `.zip`; dentro está `fut-stats-AAAA-MM-DD.sql.gz.gpg`).
-2. No Neon, crie uma branch nova a partir da `prod` (ou de qualquer uma), **Auto-delete** como preferir, e copie a URL
-   **sem** `-pooler` dela.
-3. Na sua máquina (precisa de `psql` e `gpg`; `brew install libpq gnupg` no macOS):
+   (vem num `.zip`; dentro está `fut-stats-AAAA-MM-DD.sql.gz.gpg`). Na mesma execução, abra o passo **Gerar o backup
+   cifrado** e copie a lista **"Linhas por tabela neste backup"** (só contagens, sem dado).
+2. Prepare o destino (opção A ou B acima) e, na sua máquina (precisa de `psql` e `gpg`; no macOS,
+   `brew install libpq gnupg`), rode:
    ```sh
-   export RESTORE_DATABASE_URL='<URL da branch descartável>'
    export BACKUP_PASSPHRASE='<a senha do gerenciador de senhas>'
-   sh scripts/restore-db.sh fut-stats-AAAA-MM-DD.sql.gz.gpg
+   sh scripts/restore-db.sh fut-stats-AAAA-MM-DD.sql.gz.gpg            # destino vazio (opção A)
+   sh scripts/restore-db.sh --force fut-stats-AAAA-MM-DD.sql.gz.gpg    # branch só com o schema (opção B)
    ```
-4. O script recusa um destino que já tem tabelas (use uma branch nova ou `--force`, que apaga o `public` do destino) e
-   falha com mensagem clara se a senha estiver errada ou o arquivo corrompido, sem tocar no banco.
-5. **Conferir:** no Neon, **Tables** da branch descartável mostra as tabelas, e uma contagem como
-   `SELECT count(*) FROM "Membership";` bate com a produção. Apague a branch descartável.
+3. O script decifra antes de tocar no banco (senha errada ou arquivo corrompido falham ali, sem mexer no destino). Se a
+   restauração falhar **sem** `--force`, ela é desfeita e o destino fica como estava; **com** `--force` o schema
+   `public` já foi apagado, então o destino fica vazio ou incompleto (rode de novo).
+4. **Conferir:** no fim o script imprime **"Linhas por tabela no destino restaurado"**, no mesmo formato da lista do
+   backup. As duas listas têm que ser **iguais, tabela por tabela** (a do backup é contada no próprio arquivo, no
+   instante do backup; é a prova de que nada se perdeu). Para comparar, cole cada lista num arquivo e rode `diff`:
+   sem saída, está igual. (Comparar com a produção "de agora" não prova nada: ela muda o tempo todo.)
 
 Para gerar um backup manual: `DIRECT_URL='<URL sem -pooler>' BACKUP_PASSPHRASE='...' sh scripts/backup-db.sh`.
 Precisa do `pg_dump` na mesma versão principal do Neon (17).

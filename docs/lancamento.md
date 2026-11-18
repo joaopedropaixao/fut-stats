@@ -1,30 +1,32 @@
 # Lançamento para a pelada
 
-Roteiro do dia em que o Fut Stats vai para o grupo. Pré-requisito: o roteiro de produção do `docs/deploy.md` (R1 a
-R8) feito e conferido, sem erro novo no Sentry. O app de produção fica em **<https://fut-stats-app.vercel.app>**.
+Roteiro do dia em que o Fut Stats vai para o grupo. Pré-requisito: o roteiro de produção do `docs/deploy.md` (R0 a
+R8) feito e conferido, sem erro novo no Sentry. O app de produção fica em **`https://<DOMINIO>`**.
 
 > O endereço **não pode mudar depois**: a instalação e os avisos ficam presos a ele. Trocar obriga todo mundo a
 > reinstalar e ligar os avisos de novo.
 
 ## 1. Antes de chamar o grupo (você, o admin)
 
-- [ ] Entrar em <https://fut-stats-app.vercel.app> com o Google e **criar a pelada** (nome, o seu apelido, a sua posição).
-- [ ] Abrir **Perfil → Elenco** e **conferir os jogadores**: apelido, posição e a **nota inicial** de cada um (a nota inicial
+- [ ] Entrar em `https://<DOMINIO>` com **Entrar com Google** e **Criar pelada** (nome, o seu apelido, a sua posição).
+- [ ] Abrir **Perfil → Elenco** e **conferir os jogadores** (toque num jogador para editar): apelido, posição e a **nota inicial** de cada um (a nota inicial
       pesa na hora de montar os times equilibrados; ajuste antes da primeira rodada).
-- [ ] Gerar o **link de convite** (no **Elenco**, para o admin) e testar abrindo numa aba anônima: aparece o nome da pelada.
-- [ ] Instalar o app **no seu celular** e ligar os avisos (passos abaixo), para ver como o grupo vai ver.
-- [ ] Marcar a **primeira rodada** (dia, hora e local).
+- [ ] Pegar o **link de convite** no **Perfil**, no card de convite do admin (teclas **Copiar link**, **Mandar no WhatsApp** e
+      **Gerar novo link**), e testar abrindo numa aba anônima: aparece o nome da pelada.
+- [ ] Instalar o app **no seu celular** e ligar o interruptor **Avisos neste celular** (passos abaixo), para ver como o grupo vai ver.
+- [ ] Marcar a **primeira rodada** (tecla **Criar rodada**: dia, hora e local).
 - [ ] Abrir o Sentry e confirmar que não há erro novo.
 
 ## 2. Texto pronto para o WhatsApp
 
-> Pessoal, a nossa pelada agora tem app: times equilibrados, notas, ranking e resenhas.
+> Pessoal, a nossa pelada agora tem app (https://<DOMINIO>): times equilibrados, notas, ranking e resenhas.
 >
 > 1. Entre pelo link e confirme seu apelido e posição: LINK-DE-CONVITE
-> 2. **Android:** abra o link no Chrome → menu (⋮) → **Instalar app** (ou **Adicionar à tela inicial**).
+> 2. **Android:** abra o link no Chrome → menu (⋮) → **Instalar app** (ou **Adicionar à tela inicial**); ou, no **Perfil**, a tecla **Instalar**.
 > 3. **iPhone:** abra o link no **Safari** → **Compartilhar** → **Adicionar à Tela de Início**. Sem isso o iPhone
 >    **não recebe os avisos**.
-> 4. Abra o app pelo **ícone** e, em **Perfil → Avisos**, toque em **Ligar** e aceite. Para conferir, toque em **Testar aviso**.
+> 4. Abra o app pelo **ícone** e, no **Perfil**, no card **Avisos**, ligue o interruptor **Avisos neste celular** (tem que mostrar
+>    **Ligado**) e aceite. Para conferir, toque em **Testar aviso**.
 >
 > Qualquer problema, me chama aqui.
 
@@ -35,31 +37,35 @@ R8) feito e conferido, sem erro novo no Sentry. O app de produção fica em **<h
 ### Android (Chrome)
 
 1. Abra o link de convite no **Chrome**, entre com o Google e preencha o apelido e a posição.
-2. Menu **⋮** → **Instalar app** (ou **Adicionar à tela inicial**) → **Instalar**.
+2. Menu **⋮** → **Instalar app** (ou **Adicionar à tela inicial**) → **Instalar**. Também dá pelo **Perfil**, card **Instale o app**,
+   tecla **Instalar**.
 3. Abra o app pelo **ícone** novo na tela inicial.
-4. **Perfil → Avisos → Ligar** e **Permitir** quando o Android perguntar.
+4. **Perfil**, card **Avisos**: ligue o interruptor **Avisos neste celular** (passa a mostrar **Ligado**) e toque em
+   **Permitir** quando o Android perguntar.
 5. Toque em **Testar aviso**: a notificação tem que chegar (com o app aberto ou fechado).
 
 ### iPhone (Safari)
 
 1. Abra o link de convite no **Safari** (não no navegador do WhatsApp nem no Chrome do iPhone), entre com o Google e
    preencha o apelido e a posição.
-2. Toque em **Compartilhar** (o quadrado com a seta) → **Adicionar à Tela de Início** → **Adicionar**.
+2. Toque em **Compartilhar** (o quadrado com a seta) → **Adicionar à Tela de Início** → **Adicionar**. (No **Perfil**, o card
+   **Instale o app** tem a tecla **Instalar**, que mostra esses dois passos.)
 3. Feche o Safari e abra o app pelo **ícone** na tela inicial. **Sem instalar, o iPhone não recebe avisos.**
-4. **Perfil → Avisos → Ligar** e **Permitir** quando o iPhone perguntar.
+4. **Perfil**, card **Avisos**: ligue o interruptor **Avisos neste celular** (passa a mostrar **Ligado**) e toque em
+   **Permitir** quando o iPhone perguntar.
 5. Toque em **Testar aviso**: a notificação tem que chegar.
 
 ## 4. "Não recebo nada" (quem reclamar de aviso)
 
 Siga nesta ordem, com a pessoa:
 
-1. **Testar aviso** (Perfil → Avisos). Chegou? Então o aparelho está certo: o aviso real só sai quando o admin faz a
+1. **Testar aviso** (**Perfil**, card **Avisos**; a tecla só aparece com o interruptor **Ligado**). Chegou? Então o aparelho está certo: o aviso real só sai quando o admin faz a
    ação (marcar rodada, publicar times, abrir votação, sair o resultado).
-2. Não chegou: os avisos estão **ligados**? (Perfil → Avisos mostra "Ligado".) Se não, ligue de novo.
+2. Não chegou: o interruptor **Avisos neste celular** mostra **Ligado**? Se mostra **Desligado**, ligue de novo.
 3. **iPhone:** o app foi **instalado pela tela inicial** (e aberto pelo ícone)? Se abriu pelo Safari, instale (seção 3).
 4. A permissão de notificação está **bloqueada** nos Ajustes do aparelho (ou do navegador)? Libere para o Fut Stats.
 5. O celular está em **Não perturbe** / modo foco? Desligue para testar.
-6. Ainda nada: **Desligar e Ligar de novo** os avisos, e tocar em **Testar aviso**.
+6. Ainda nada: **desligue e ligue de novo** o interruptor **Avisos neste celular** e toque em **Testar aviso**.
 7. Se persistir, anote o aparelho e o sistema e abra o Sentry/log com o horário; mande para o desenvolvedor.
 
 ## 5. Acompanhar as 2 ou 3 primeiras rodadas
