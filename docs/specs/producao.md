@@ -107,7 +107,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 |---|---|---|
 | R1 | Criar o projeto de produção na Vercel com o nome `fut-stats-app` (branch `main`, raiz `apps/web`), com `VITE_SENTRY_DSN` e `VITE_SENTRY_ENVIRONMENT` | o endereço é `fut-stats-app.vercel.app` (o mesmo do `vercel.json` e do `APP_URL`) |
 | R2 | Neon: copiar as duas URLs da branch `prod` (com e sem `-pooler`) | guardadas no gerenciador de senhas |
-| R3 | Render: sincronizar o Blueprint (aparece o serviço `fut-stats-api`, plano gratuito) e colar as variáveis, inclusive **um par VAPID novo, só de produção** (`npx web-push generate-vapid-keys`; o do staging não serve) | deploy "Live" e `GET /api/health` 200 pelo endereço de produção; se o Render der outro endereço que não `fut-stats-api.onrender.com`, o `vercel.json` é corrigido antes da release |
+| R3 | Render: sincronizar o Blueprint (aparece o serviço `fut-stats-api`, plano gratuito) e colar as variáveis, inclusive **um par VAPID novo, só de produção** (`npx web-push generate-vapid-keys`; o do staging não serve) | o serviço aparece e as variáveis ficam salvas; o primeiro deploy só fica "Live" depois do R7 (a `main` ainda não tem o app), quando `GET /api/health` responde 200 pelo endereço de produção; se o Render der outro endereço que não `fut-stats-api.onrender.com`, o `vercel.json` é corrigido antes da release |
 | R4 | Google Cloud: client OAuth novo "Fut Stats produção" com a origem e a callback de produção; publicar o app (sair de "Testing") | login com uma conta que não está na lista de teste |
 | R5 | Sentry: criar a conta e dois projetos (API e web); colar os DSN no Render e na Vercel | a mensagem "API no ar" aparece no Sentry |
 | R6 | GitHub: criar os segredos `PROD_DIRECT_URL` e `BACKUP_PASSPHRASE` e rodar o backup à mão uma vez | artefato gerado; restaurar numa branch descartável do Neon com `restore-db.sh` e conferir |
@@ -252,6 +252,7 @@ valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
   do roteador (`route-error.tsx`), não no limite do topo. Pedaço que sumiu continua como hoje (recarrega uma vez);
   qualquer outro erro de rota mostra a tela de erro geral (C17) e vai para o Sentry. O limite do topo cobre o que
   quebra fora do roteador.
+- **Cache do rewrite:** projeto novo da Vercel honra `Cache-Control` da origem externa; a API não manda `Cache-Control` público em `/api/*` (só ETag). Conferir no R6c que `/api/me` e o `.../stream` não saem com `x-vercel-cache: HIT`.
 - **SSE em produção:** o canal ao vivo passa pelo rewrite da Vercel como no staging; o `: ping` de 20 s
   (`STREAM_HEARTBEAT_MS`) fica abaixo do tempo de espera do proxy da Vercel para origem externa (120 s) e o Render não
   documenta limite para conexão longa. Conferido no staging pelo R6c; se o rewrite segurar o fluxo, o app já cai no
