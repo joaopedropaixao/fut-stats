@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { describe, expect, it } from 'vitest';
-import { PRIVACY_SECTIONS, PRIVACY_UPDATED_AT } from './privacy-content';
+import { CONTACT_EMAIL, PRIVACY_SECTIONS, PRIVACY_UPDATED_AT } from './privacy-content';
 import { PrivacyPage } from './privacy-page';
 
 describe('PrivacyPage', () => {
@@ -15,7 +15,7 @@ describe('PrivacyPage', () => {
     for (const section of PRIVACY_SECTIONS) {
       expect(html).toContain(section.title);
     }
-    expect(html).toContain('[e-mail de contato do dono]');
+    expect(html).toContain(CONTACT_EMAIL);
     expect(html).toContain('href="/"');
   });
 });

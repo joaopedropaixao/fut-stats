@@ -42,6 +42,9 @@ const STATIC_SEGMENTS = new Set([
   'historico',
   'perfil',
   'elenco',
+  'votar',
+  'resultado',
+  'jogadores',
   'dev',
   'erro',
   'erro-na-tela',
@@ -53,6 +56,9 @@ const PARAM_AFTER: Record<string, string> = {
   convite: ':code',
   rodadas: ':roundId',
   elenco: ':membershipId',
+  historico: ':roundId',
+  jogadores: ':membershipId',
+  resenhas: ':postId',
 };
 
 /**

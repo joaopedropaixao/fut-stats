@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { CONTACT_EMAIL, PRIVACY_SECTIONS, PRIVACY_UPDATED_AT } from './privacy-content';
+import {
+  CONTACT_EMAIL,
+  CONTACT_EMAIL_PLACEHOLDER,
+  PRIVACY_SECTIONS,
+  PRIVACY_UPDATED_AT,
+} from './privacy-content';
 
 /** Todo o texto da política numa string só, para conferir o que o C31 pede. */
 const text = PRIVACY_SECTIONS.flatMap((s) => [
@@ -50,8 +55,12 @@ describe('texto da Política de Privacidade (C31)', () => {
     expect(text.toLowerCase()).not.toContain('excluir conta');
   });
 
-  it('o e-mail de contato é um marcador visível até o dono preencher, e a data está no texto', () => {
-    expect(CONTACT_EMAIL).toBe('[e-mail de contato do dono]');
+  it('o e-mail de contato (o marcador visível ou um e-mail de verdade) está no texto, e a data também', () => {
+    // Não prende o valor: o dono troca o marcador pelo e-mail sem quebrar teste.
+    expect(
+      CONTACT_EMAIL === CONTACT_EMAIL_PLACEHOLDER ||
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(CONTACT_EMAIL),
+    ).toBe(true);
     expect(text).toContain(CONTACT_EMAIL);
     expect(PRIVACY_UPDATED_AT).toBe('18 de novembro de 2026');
   });

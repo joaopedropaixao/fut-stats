@@ -1,11 +1,15 @@
 /** Data da última atualização do texto (mudou o texto, muda a data). */
 export const PRIVACY_UPDATED_AT = '18 de novembro de 2026';
 
+/** Marcador do e-mail enquanto o dono não preenche. Com ele, a checagem de deploy barra a release (PR para a `main`). */
+export const CONTACT_EMAIL_PLACEHOLDER = '[e-mail de contato do dono]';
+
 /**
- * PREENCHER (dono, Portão 2): o e-mail de contato que vai na política. Enquanto não for trocado, a página mostra
- * este texto entre colchetes. Único lugar do e-mail no app.
+ * PREENCHER (dono): o e-mail de contato que vai na política, trocando o valor abaixo por um texto entre aspas
+ * (ex.: `export const CONTACT_EMAIL: string = 'voce@exemplo.com';`). Único lugar do e-mail no app; os testes não
+ * dependem do valor.
  */
-export const CONTACT_EMAIL = '[e-mail de contato do dono]';
+export const CONTACT_EMAIL: string = CONTACT_EMAIL_PLACEHOLDER;
 
 export type PrivacySection = {
   id: string;
