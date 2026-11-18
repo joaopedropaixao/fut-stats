@@ -17,6 +17,7 @@ import {
 import { setCurrentGroupId } from '../features/group/use-current-group';
 import { LiveRoundsMount } from '../features/live/live-rounds-mount';
 import { useSession } from '../features/session/use-session';
+import { setMonitoringUser } from './monitoring';
 import { TABS } from './tabs';
 import { useDelayedFlag } from './use-delayed-flag';
 
@@ -74,6 +75,12 @@ export function AppShell() {
     heading.tabIndex = -1;
     heading.focus();
   }, [pathname]);
+
+  // O Sentry sabe quem está logado só pelo id (nada de nome nem email)
+  const userId = session.data?.user.id;
+  useEffect(() => {
+    setMonitoringUser(userId ?? null);
+  }, [userId]);
 
   // Sem sessão, guarda onde a pessoa ia (o link de um aviso, com `?grupo=`) para voltar depois do login
   if (session.data === null) {
