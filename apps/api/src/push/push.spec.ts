@@ -123,9 +123,10 @@ describe('push: rotas', () => {
     const { cookie } = await login();
     await put(cookie, { endpoint: endpointA }).expect(400);
     await put(cookie, { endpoint: 'http://push.example.com/x', keys }).expect(400);
-    await put(cookie, { endpoint: `https://fcm.googleapis.com/fcm/${'a'.repeat(2000)}`, keys }).expect(
-      400,
-    );
+    await put(cookie, {
+      endpoint: `https://fcm.googleapis.com/fcm/${'a'.repeat(2000)}`,
+      keys,
+    }).expect(400);
     await put(cookie, { endpoint: endpointA, keys: { p256dh: '', auth: 'x' } }).expect(400);
     await del(cookie, {}).expect(400);
     expect(await t.prisma.pushSubscription.count()).toBe(0);
@@ -141,7 +142,9 @@ describe('push: rotas', () => {
     await del(mine.cookie, { endpoint: otherEndpoint }).expect(204);
     expect(await t.prisma.pushSubscription.count()).toBe(2);
 
-    await del(mine.cookie, { endpoint: 'https://fcm.googleapis.com/fcm/send/nao-existe' }).expect(204);
+    await del(mine.cookie, { endpoint: 'https://fcm.googleapis.com/fcm/send/nao-existe' }).expect(
+      204,
+    );
     expect(await t.prisma.pushSubscription.count()).toBe(2);
 
     await del(mine.cookie, { endpoint: endpointA }).expect(204);
@@ -184,7 +187,9 @@ describe('push: rotas', () => {
     const gone = 'https://fcm.googleapis.com/fcm/send/sumiu';
     await put(mine.cookie, { endpoint: endpointA, keys }).expect(204);
     await put(mine.cookie, { endpoint: gone, keys }).expect(204);
-    await put(other.cookie, { endpoint: 'https://fcm.googleapis.com/fcm/send/outro', keys }).expect(204);
+    await put(other.cookie, { endpoint: 'https://fcm.googleapis.com/fcm/send/outro', keys }).expect(
+      204,
+    );
     sender.answers.set(gone, 'gone');
 
     const res = await request(server())

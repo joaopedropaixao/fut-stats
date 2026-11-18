@@ -23,7 +23,9 @@ describe('push: desligamento da API', () => {
   afterAll(() => disableVapid());
 
   it('espera o aviso em andamento antes de o Prisma desconectar (a assinatura morta ainda é apagada)', async () => {
-    const t = await createTestApp({ overrides: [{ provide: PushSender, useClass: SlowGoneSender }] });
+    const t = await createTestApp({
+      overrides: [{ provide: PushSender, useClass: SlowGoneSender }],
+    });
     const sender = t.app.get<SlowGoneSender>(PushSender);
     const errors = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     const order: string[] = [];
@@ -38,7 +40,12 @@ describe('push: desligamento da API', () => {
     const user = await createUser(t);
     await addMember(t, user.id, group.id);
     await t.prisma.pushSubscription.create({
-      data: { userId: user.id, endpoint: 'https://fcm.googleapis.com/fcm/send/1', p256dh: 'p', auth: 'a' },
+      data: {
+        userId: user.id,
+        endpoint: 'https://fcm.googleapis.com/fcm/send/1',
+        p256dh: 'p',
+        auth: 'a',
+      },
     });
     const round = await t.prisma.round.create({
       data: { groupId: group.id, scheduledAt: new Date('2026-10-24T12:00:00.000Z') },

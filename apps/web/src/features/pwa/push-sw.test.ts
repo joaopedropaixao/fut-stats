@@ -143,6 +143,16 @@ describe('push-sw.js (C36): toca na notificação', () => {
     expect(scope.clients.openWindow).toHaveBeenCalledExactlyOnceWith(`${ORIGIN}/times?grupo=g1`);
   });
 
+  it('`navigate` devolve null (não navegou): abre a url numa janela nova', async () => {
+    const client: FakeClient = {
+      url: `${ORIGIN}/`,
+      focus: vi.fn(() => Promise.resolve({ navigate: vi.fn(() => Promise.resolve(null)) })),
+    };
+    const { scope, fire } = load([client]);
+    await fire('notificationclick', { notification: notification('/rodadas/r13') });
+    expect(scope.clients.openWindow).toHaveBeenCalledExactlyOnceWith(`${ORIGIN}/rodadas/r13`);
+  });
+
   it('`focus` falha: abre a url mesmo assim, sem erro solto', async () => {
     const client: FakeClient = {
       url: `${ORIGIN}/`,

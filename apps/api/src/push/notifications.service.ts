@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  type OnModuleDestroy,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { notificationRecipients, votingDeadline, type NotificationType } from '@fut-stats/domain';
 import { notificationContent, type PushPayload } from '@fut-stats/shared';
 import { getRequestId } from '../common/request-context';
