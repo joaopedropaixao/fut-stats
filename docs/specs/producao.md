@@ -100,6 +100,8 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C16 | build com `VITE_SENTRY_DSN` | abrir o app e olhar a rede | o Sentry entra por import dinâmico **depois** da primeira tela; o orçamento do JS inicial (`orcamento-de-bundle`) passa sem subir limite | checagem no build + Playwright |
 | C17 | erro de renderização forçado numa tela (rota de teste só em dev) | abrir | tela de erro geral no padrão do app: título pixel "Deu ruim aqui", texto "Já avisamos quem cuida do app. Tente recarregar." e a tecla "Recarregar"; com o Sentry ligado, o erro é enviado com o id do usuário | Playwright |
 | C18 | larguras 320, 375, 390, 430 px e desktop | a tela de erro geral | sem rolagem horizontal nem sobreposição; tecla ≥ 44 px; console só com o erro forçado | Playwright |
+| C31 | sem sessão | abrir `/privacidade` (link discreto no rodapé de `/entrar`) | a Política de Privacidade abre sem login, no visual do app, com: dados guardados (nome, e-mail e foto da conta Google; apelido e bonequinho; presença, times, lances, notas, votos, resenhas, comentários e reações; inscrições de aviso do aparelho), para quê (fazer a pelada funcionar), voto anônimo para os outros jogadores, não vendemos nem compartilhamos salvo os provedores (Google login; Vercel, Render e Neon hospedagem; Sentry erros, sem e-mail nem nome; serviços de push dos navegadores), backup cifrado por 30 dias, como pedir para sair ou apagar os dados (admin da pelada ou e-mail de contato do dono, que o dono preenche: nada inventado) e a data de atualização | Playwright + unitário |
+| C32 | build de produção; 320, 375, 390, 430 px e desktop | `/privacidade` | carrega por `lazy` (fora do JS inicial; orçamento sem subir limite); sem rolagem horizontal; texto legível em 320 px; console limpo | checagem no build + Playwright |
 
 **Roteiro (o que só o dono consegue fazer; o TPL entrega escrito e conferido no staging)**
 
@@ -108,7 +110,7 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | R1 | Criar o projeto de produção na Vercel com o nome `fut-stats-app` (branch `main`, raiz `apps/web`), com `VITE_SENTRY_DSN` e `VITE_SENTRY_ENVIRONMENT` | o endereço é `fut-stats-app.vercel.app` (o mesmo do `vercel.json` e do `APP_URL`) |
 | R2 | Neon: copiar as duas URLs da branch `prod` (com e sem `-pooler`) | guardadas no gerenciador de senhas |
 | R3 | Render: sincronizar o Blueprint (aparece o serviço `fut-stats-api`, plano gratuito) e colar as variáveis, inclusive **um par VAPID novo, só de produção** (`npx web-push generate-vapid-keys`; o do staging não serve) | o serviço aparece e as variáveis ficam salvas; o primeiro deploy só fica "Live" depois do R7 (a `main` ainda não tem o app), quando `GET /api/health` responde 200 pelo endereço de produção; se o Render der outro endereço que não `fut-stats-api.onrender.com`, o `vercel.json` é corrigido antes da release |
-| R4 | Google Cloud: client OAuth novo "Fut Stats produção" com a origem e a callback de produção; publicar o app (sair de "Testing") | login com uma conta que não está na lista de teste |
+| R4 | Google Cloud: client OAuth novo "Fut Stats produção" com a origem (`https://fut-stats-app.vercel.app`) e a callback (`https://fut-stats-app.vercel.app/api/auth/google/callback`); no Branding: domínio autorizado `vercel.app` (o `fut-stats-app.vercel.app` sozinho é recusado), página inicial `https://fut-stats-app.vercel.app` e Política de Privacidade `https://fut-stats-app.vercel.app/privacidade` (só existe depois do R7); publicar o app (sair de "Testing") | login com uma conta que não está na lista de teste |
 | R5 | Sentry: criar a conta e dois projetos (API e web); colar os DSN no Render e na Vercel | a mensagem "API no ar" aparece no Sentry |
 | R6 | GitHub: criar os segredos `PROD_DIRECT_URL` e `BACKUP_PASSPHRASE` e rodar o backup à mão uma vez | artefato gerado; restaurar numa branch descartável do Neon com `restore-db.sh` e conferir |
 | R6b | Despertador: gerar um segredo (`openssl rand -base64 48`), colar como `TICK_SECRET` no Render (produção) e nos segredos do GitHub, criar o segredo `PROD_TICK_URL` (o endereço direto da API de produção no Render + `/api/internal/tick`) e rodar o workflow à mão uma vez | o job fica verde e responde `{ closedVotings: 0 }` |
@@ -213,7 +215,8 @@ Na API e na infraestrutura:
 - Roadmap: marcar "Produção (`main`), Sentry, backup do banco".
 
 ### Tela
-Só a **tela de erro geral** (`apps/web/src/app/error-screen.tsx`): fundo do app, `ErrorState` que já existe com
+A página pública **`/privacidade`** (item novo do dono, 18 nov 2026: o Google só publica o app OAuth com a URL da
+Política de Privacidade no Branding; C31, C32) e a **tela de erro geral** (`apps/web/src/app/error-screen.tsx`): fundo do app, `ErrorState` que já existe com
 título em pixel e a tecla "Recarregar" (`window.location.reload()`). Regras de visual do documento de autonomia
 valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
 
