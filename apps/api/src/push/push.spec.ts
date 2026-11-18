@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import request from 'supertest';
 import { createUser, loginAs } from '../test/auth';
 import {
@@ -179,6 +180,46 @@ describe('push: rotas', () => {
       endpoint: endpointA,
       payload: { type: 'TEST', body: 'Aviso de teste. Está funcionando.' },
     });
+  });
+
+  it('C20: se o serviço de push recusa o teste, responde sent 0 e o motivo fica no log (nunca na resposta)', async () => {
+    const { cookie } = await login();
+    const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    await put(cookie, { endpoint: endpointA, keys }).expect(204);
+    sender.answers.set(endpointA, 'rejected');
+
+    const res = await request(server()).post('/api/push/test').set('Cookie', cookie).expect(200);
+
+    expect(res.body).toEqual({ sent: 0 });
+    expect(logged).toHaveBeenCalledTimes(1);
+    const entry = logged.mock.calls[0]![0] as Record<string, unknown>;
+    expect(entry).toMatchObject({
+      event: 'push-test-failed',
+      name: 'WebPushError',
+      statusCode: 429,
+      body: 'quota exceeded for this endpoint',
+      host: 'fcm.googleapis.com',
+    });
+    expect(JSON.stringify(entry)).not.toContain(endpointA);
+    expect(await t.prisma.pushSubscription.count({ where: { endpoint: endpointA } })).toBe(1);
+    logged.mockRestore();
+  });
+
+  it('C20: erro de rede no teste (AggregateError sem mensagem) registra o code', async () => {
+    const { cookie } = await login();
+    const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    await put(cookie, { endpoint: endpointA, keys }).expect(204);
+    sender.answers.set(endpointA, 'unreachable');
+
+    const res = await request(server()).post('/api/push/test').set('Cookie', cookie).expect(200);
+
+    expect(res.body).toEqual({ sent: 0 });
+    expect(logged.mock.calls[0]![0]).toMatchObject({
+      event: 'push-test-failed',
+      name: 'AggregateError',
+      code: 'ECONNREFUSED',
+    });
+    logged.mockRestore();
   });
 
   it('C20: o teste só vai para os aparelhos do próprio usuário e apaga o que o serviço diz que sumiu', async () => {

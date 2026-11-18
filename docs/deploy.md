@@ -362,5 +362,6 @@ computador recebe.
 | Sintoma | Causa provável |
 |---|---|
 | `/api/push/config` dá `enabled: false` | Falta alguma variável (ou as três) no Render, ou o deploy ainda não terminou |
-| A API não sobe e o log cita `VAPID_*` | Só uma ou duas das três variáveis estão preenchidas |
-| "Testar aviso" diz que enviou e nada chega | iPhone sem o app instalado na tela inicial, permissão bloqueada no navegador, ou o par de chaves foi trocado depois de ligar (desligue e ligue de novo) |
+| A API não sobe e o log cita `VAPID_*` | Só uma ou duas das três variáveis estão preenchidas, ou uma chave está com aspas, espaço, cortada ou trocada (a pública decodifica para 65 bytes, a privada para 32; a mensagem diz qual e o quê conferir, sem mostrar o valor) |
+| Log `push-failed` ou `push-test-failed` | Traz `name`, `statusCode`, `body` (resposta do serviço de push) ou `code` e `errors[]` (rede: `ECONNREFUSED`, `ETIMEDOUT`...), e só o host do aparelho. `push-subscription-gone` com 403 é par de chaves trocado; `push-sent` (debug) com 201 quer dizer que o serviço aceitou |
+| "Testar aviso" diz que enviou e nada chega | iPhone sem o app instalado na tela inicial, permissão bloqueada no navegador, ou o par de chaves foi trocado depois de ligar (desligue e ligue de novo), ou o macOS/Windows com o navegador sem permissão de notificação ou em "Não perturbe" |

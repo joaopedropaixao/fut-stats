@@ -235,6 +235,79 @@ describe('push: avisos da pelada (NotificationsService)', () => {
     ).toBe(1);
   });
 
+  it('C18: o log da falha traz o erro com detalhe (statusCode, body, host), sem o endereço inteiro nem as chaves', async () => {
+    const { group, round } = await setup();
+    const rejected = await member(group.id);
+    sender.answers.set(rejected.endpoints[0]!, 'rejected');
+    const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+
+    await notify('ROUND_CREATED', { groupId: group.id, roundId: round.id, actorId: null });
+
+    expect(logged).toHaveBeenCalledTimes(1);
+    const entry = logged.mock.calls[0]![0] as Record<string, unknown>;
+    expect(entry).toMatchObject({
+      event: 'push-failed',
+      type: 'ROUND_CREATED',
+      name: 'WebPushError',
+      message: 'Received unexpected response code',
+      statusCode: 429,
+      body: 'quota exceeded for this endpoint',
+      host: 'fcm.googleapis.com',
+    });
+    const text = JSON.stringify(entry);
+    expect(text).not.toContain(rejected.endpoints[0]!);
+    expect(text).not.toContain('p256dh');
+    expect(text).not.toContain('auth');
+  });
+
+  it('C18: erro de rede com mensagem vazia (AggregateError) registra o code e os errors[]', async () => {
+    const { group, round } = await setup();
+    const broken = await member(group.id);
+    sender.answers.set(broken.endpoints[0]!, 'unreachable');
+    const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+
+    await notify('ROUND_CREATED', { groupId: group.id, roundId: round.id, actorId: null });
+
+    const entry = logged.mock.calls[0]![0] as Record<string, unknown>;
+    expect(entry).toMatchObject({
+      event: 'push-failed',
+      name: 'AggregateError',
+      message: '',
+      code: 'ECONNREFUSED',
+      errors: [
+        { code: 'ECONNREFUSED', message: 'connect ECONNREFUSED ::1:8443' },
+        { code: 'ECONNREFUSED', message: 'connect ECONNREFUSED 127.0.0.1:8443' },
+      ],
+    });
+  });
+
+  it('C18: endereço guardado que não é de serviço de push conhecido não é chamado: só aviso no log, a linha fica', async () => {
+    const { group, round } = await setup();
+    const stale = await member(group.id);
+    const ok = await member(group.id);
+    await t.prisma.pushSubscription.updateMany({
+      where: { userId: stale.user.id },
+      data: { endpoint: 'https://localhost:8443/push/antigo' },
+    });
+    const failed = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const warned = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
+    await notify('ROUND_CREATED', { groupId: group.id, roundId: round.id, actorId: null });
+
+    const sentTo = sender.sent.map((s) => s.endpoint);
+    expect(sentTo).toContain(ok.endpoints[0]);
+    expect(sentTo).not.toContain('https://localhost:8443/push/antigo');
+    expect(failed).not.toHaveBeenCalled();
+    expect(warned).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'push-endpoint-not-allowed', host: 'localhost:8443' }),
+    );
+    expect(
+      await t.prisma.pushSubscription.count({
+        where: { endpoint: 'https://localhost:8443/push/antigo' },
+      }),
+    ).toBe(1);
+  });
+
   it('C18: falha ao carregar os dados (banco) também só vai para o log', async () => {
     const { group, round } = await setup();
     const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);

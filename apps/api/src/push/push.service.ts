@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   isPushServiceEndpoint,
@@ -9,7 +14,9 @@ import {
 } from '@fut-stats/shared';
 import type { Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
+import { describePushError, endpointHost } from './push-error';
 import { PushSender, type PushTarget } from './push-sender';
+import { getRequestId } from '../common/request-context';
 import { vapidConfig } from './vapid';
 
 /** O texto do aviso de teste (não é de nenhuma pelada: o título é o do app). */
@@ -24,6 +31,8 @@ const TEST_PAYLOAD: PushPayload = {
 /** Assinaturas de push de cada aparelho do usuário. O envio dos avisos da pelada é do `NotificationsService`. */
 @Injectable()
 export class PushService {
+  private readonly logger = new Logger(PushService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly sender: PushSender,
@@ -90,7 +99,14 @@ export class PushService {
       where: { userId },
       select: { endpoint: true, p256dh: true, auth: true },
     });
-    const { sent } = await this.sendToSubscriptions(subscriptions, TEST_PAYLOAD);
+    const { sent, errors } = await this.sendToSubscriptions(subscriptions, TEST_PAYLOAD);
+    // O motivo fica no log (nunca na resposta): o usuário só vê quantos aparelhos receberam.
+    for (const error of errors)
+      this.logger.error({
+        event: 'push-test-failed',
+        requestId: getRequestId(),
+        ...describePushError(error),
+      });
     return { sent };
   }
 
@@ -104,6 +120,15 @@ export class PushService {
   ): Promise<{ sent: number; errors: unknown[] }> {
     const outcomes = await Promise.allSettled(
       subscriptions.map(async (subscription) => {
+        // A API faz o pedido para o endereço guardado: o que não é de um serviço de push conhecido (uma linha de antes
+        // da lista de hosts, ou escrita fora da API) nunca é chamado. A linha fica; só o log avisa.
+        if (!isPushServiceEndpoint(subscription.endpoint)) {
+          this.logger.warn({
+            event: 'push-endpoint-not-allowed',
+            host: endpointHost(subscription.endpoint),
+          });
+          return 'skipped';
+        }
         const outcome = await this.sender.send(subscription, payload);
         if (outcome === 'gone')
           await this.prisma.pushSubscription.deleteMany({

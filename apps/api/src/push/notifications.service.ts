@@ -4,6 +4,7 @@ import { notificationContent, type PushPayload } from '@fut-stats/shared';
 import { getRequestId } from '../common/request-context';
 import { RoundEventsService, type RoundEventType } from '../events/round-events.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { describePushError } from './push-error';
 import { PushService } from './push.service';
 import { PushSender } from './push-sender';
 
@@ -141,7 +142,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       event: 'push-failed',
       requestId,
       type,
-      message: error instanceof Error ? error.message : String(error),
+      ...describePushError(error),
     });
   }
 }

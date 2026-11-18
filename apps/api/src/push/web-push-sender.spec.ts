@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { sendNotification } from 'web-push';
 import type { Env } from '../config/env';
@@ -44,6 +45,29 @@ describe('WebPushSender', () => {
       Object.assign(new Error('Received unexpected response code'), { statusCode }),
     );
     await expect(sender(vapid).send(target, payload)).resolves.toBe('gone');
+  });
+
+  it('"gone" registra o motivo (statusCode, body, host) e nunca o endereço inteiro', async () => {
+    const warned = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    send.mockRejectedValue(
+      Object.assign(new Error('Received unexpected response code'), {
+        name: 'WebPushError',
+        statusCode: 403,
+        body: 'the VAPID credentials in the authorization header do not correspond',
+        endpoint: 'https://fcm.googleapis.com/fcm/send/segredo',
+      }),
+    );
+    await expect(sender(vapid).send(target, payload)).resolves.toBe('gone');
+    const entry = warned.mock.calls[0]![0] as Record<string, unknown>;
+    expect(entry).toMatchObject({
+      event: 'push-subscription-gone',
+      name: 'WebPushError',
+      statusCode: 403,
+      body: 'the VAPID credentials in the authorization header do not correspond',
+      host: 'fcm.googleapis.com',
+    });
+    expect(JSON.stringify(entry)).not.toContain('segredo');
+    warned.mockRestore();
   });
 
   it('outro status e erro de rede lançam', async () => {
