@@ -379,7 +379,7 @@ projeto na Vercel, o seu segredo de sessão, o seu client do Google e o seu par 
 |---|---|---|
 | Branch | `develop` | `main` |
 | App (Vercel) | `fut-stats-three.vercel.app` | **`futstats-app.com.br`** (domínio próprio, registro.br) |
-| API (Render) | `fut-stats-api-staging.onrender.com` | `fut-stats-api.onrender.com` |
+| API (Render) | `fut-stats-api-staging.onrender.com` | `fut-stats-api-2qh1.onrender.com` |
 | Banco (Neon) | branch `dev` | branch `prod` |
 | Sentry | `SENTRY_ENVIRONMENT=staging` | `SENTRY_ENVIRONMENT=production` |
 | Fechar votação vencida | relógio da API (1 min) | despertador do GitHub (30 min); relógio desligado |
@@ -400,7 +400,7 @@ que casa o host inteiro):
 
 | Host | `/api/*` vai para |
 |---|---|
-| `futstats-app.com.br` | produção (`fut-stats-api.onrender.com`) |
+| `futstats-app.com.br` | produção (`fut-stats-api-2qh1.onrender.com`) |
 | `fut-stats-app.vercel.app` e todo host do projeto `fut-stats-app` na Vercel: a URL única de cada deploy (`fut-stats-app-<hash>-<time>.vercel.app`) e os aliases de branch (`fut-stats-app-git-main-<time>.vercel.app`) | produção |
 | hosts do projeto de staging `fut-stats`: `fut-stats-three.vercel.app`, a URL de cada deploy e os previews de branch (`fut-stats-<hash>-…`, `fut-stats-git-<branch>-…`) | staging (`fut-stats-api-staging.onrender.com`) |
 | qualquer outro host | **nenhuma API** (falha fechada: o pedido cai no `index.html` e o app mostra erro, em vez de gravar no banco errado) |
@@ -450,7 +450,7 @@ Segredos do **GitHub** (Settings → Secrets and variables → Actions → **New
 | `PROD_DIRECT_URL` | o backup conecta no banco de produção | a URL **sem** `-pooler` da branch `prod` (a mesma do `DIRECT_URL` de produção) |
 | `BACKUP_PASSPHRASE` | cifra o backup | `openssl rand -base64 48`; **guarde também no gerenciador de senhas**: sem ela o backup não abre |
 | `TICK_SECRET` | o despertador autentica | o **mesmo** valor do `TICK_SECRET` do Render de produção |
-| `PROD_TICK_URL` | o despertador chama a API | `https://fut-stats-api.onrender.com/api/internal/tick` (o endereço **direto** do Render, não o da Vercel) |
+| `PROD_TICK_URL` | o despertador chama a API | `https://fut-stats-api-2qh1.onrender.com/api/internal/tick` (o endereço **direto** do Render, não o da Vercel) |
 
 ## Ordem do roteiro (R0 a R9)
 
@@ -512,10 +512,12 @@ O projeto `fut-stats-app` já existe (branch `main`, raiz `apps/web`). Confira, 
    invalida as assinaturas dos aparelhos. `VAPID_SUBJECT` = `mailto:` com o seu e-mail.
 4. Se o Render pedir cartão ou plano pago, **pare**. O serviço de produção builda a `main`: enquanto a release (R7) não
    acontece, o primeiro deploy dele falha por não achar o app. É esperado; preencha as variáveis agora.
-5. **Conferir o endereço:** no topo da página do serviço aparece a URL; tem que ser
-   `https://fut-stats-api.onrender.com`. Se for outra (ex.: `fut-stats-api-ab12.onrender.com`), me avise: o
-   `vercel.json` e o `PROD_TICK_URL` mudam **antes** da release. Depois do R7 o serviço fica **Live** e
-   <https://fut-stats-api.onrender.com/api/health> responde `{"status":"ok"}`.
+5. **Conferir o endereço:** no topo da página do serviço aparece a URL: é
+   `https://fut-stats-api-2qh1.onrender.com` (o Render pôs um sufixo porque `fut-stats-api.onrender.com` já era de
+   outra conta; o nome do serviço continua `fut-stats-api`). Esse endereço está no `vercel.json` e na checagem de deploy
+   (`PROD_API_HOST` em `scripts/check-deploy-config.mjs`); se um dia mudar, os dois mudam juntos, antes da release.
+   Depois do R7 o serviço fica **Live** e <https://fut-stats-api-2qh1.onrender.com/api/health> responde
+   `{"status":"ok"}`.
 
 > **Horas do plano gratuito:** o Render dá 750 horas por mês para **todos** os serviços gratuitos juntos. Se acabarem,
 > os dois param (inclusive a produção) até o mês seguinte. Por isso o despertador é de 30 em 30 minutos (a produção
@@ -555,7 +557,7 @@ O client **Fut Stats produção** já existe (o dono criou com os endereços de 
 6. **Conferir (depois do R7c, que traz o `TICK_SECRET`):** chame a conferência do Sentry, com o segredo do
    despertador (do gerenciador de senhas) colado no lugar de `SEGREDO`:
    ```sh
-   curl -sS -X POST -H "Authorization: Bearer SEGREDO" https://fut-stats-api.onrender.com/api/internal/sentry-check
+   curl -sS -X POST -H "Authorization: Bearer SEGREDO" https://fut-stats-api-2qh1.onrender.com/api/internal/sentry-check
    ```
    A resposta é `{"sent":true}` e aparece no projeto `fut-stats-api` a mensagem **"Teste do Sentry"** (nível info), com
    o ambiente e o commit do deploy (`release`). `{"sent":false}`: o `SENTRY_DSN` não está no Render de produção. Sem a
@@ -583,7 +585,7 @@ checagem de deploy em modo release e fica **vermelho** enquanto o e-mail for o m
 
 O orquestrador abre o PR `develop` → `main` e mergeia com o seu ok, e cria a tag `v1.0.0`. **Conferir:** o Render de
 produção builda sozinho (as migrations rodam no build, na branch `prod` do Neon), fica **Live** e a Vercel publica o
-app em `https://futstats-app.com.br`. Confira <https://fut-stats-api.onrender.com/api/health> e `https://futstats-app.com.br/api/health`
+app em `https://futstats-app.com.br`. Confira <https://fut-stats-api-2qh1.onrender.com/api/health> e `https://futstats-app.com.br/api/health`
 (os dois com `{"status":"ok"}`) e `https://futstats-app.com.br/privacidade` (para o R4).
 
 ### R7b. GitHub: segredos e o primeiro backup (depois do R7)
@@ -601,7 +603,7 @@ app em `https://futstats-app.com.br`. Confira <https://fut-stats-api.onrender.co
 
 1. Gere o segredo: `openssl rand -base64 48`. Cole como `TICK_SECRET` no Render de **produção** (Environment → Save)
    **e** como segredo `TICK_SECRET` no GitHub (mesmo valor).
-2. Crie o segredo `PROD_TICK_URL` no GitHub: `https://fut-stats-api.onrender.com/api/internal/tick`.
+2. Crie o segredo `PROD_TICK_URL` no GitHub: `https://fut-stats-api-2qh1.onrender.com/api/internal/tick`.
 3. **Actions → Despertador → Run workflow** (branch `main`; só aparece depois do R7). O Render de produção precisa já
    estar **Live** com o `TICK_SECRET` salvo.
 4. **Conferir:** o job fica verde e o log termina com `{"closedVotings":0,"failed":0}`. Se falhar com `401`, os dois

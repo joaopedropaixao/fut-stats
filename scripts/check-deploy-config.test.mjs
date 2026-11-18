@@ -171,7 +171,7 @@ describe('C10: vercel.json', () => {
   const comDominio = () => JSON.parse(swapHost(JSON.stringify(vercel()), realHost, host));
   const comMarcador = () =>
     JSON.parse(swapHost(JSON.stringify(vercel()), realHost, DOMAIN_PLACEHOLDER));
-  const PROD = 'https://fut-stats-api.onrender.com/api/:path*';
+  const PROD = 'https://fut-stats-api-2qh1.onrender.com/api/:path*';
   const STAGING = 'https://fut-stats-api-staging.onrender.com/api/:path*';
 
   it('C10: a configuração de verdade, com o domínio de hoje, com o marcador ou com outro domínio, passa', () => {
