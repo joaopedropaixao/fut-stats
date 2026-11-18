@@ -33,10 +33,21 @@ export const DEMO_TARGET: SeedTarget = {
 
 const ADMIN_RATING = 6;
 
+/** Minúsculas e sem ponto final (`Exemplo.Prod.Invalid.` vira `exemplo.prod.invalid`). */
+function normalizeHost(host: string): string {
+  return host.trim().toLowerCase().replace(/\.+$/, '');
+}
+
+/** O host sem o `-pooler` do primeiro rótulo: o pooler e a conexão direta do Neon são o mesmo banco. */
+function withoutPooler(host: string): string {
+  return host.replace(/^([^.]+?)-pooler(?=\.|$)/, '$1');
+}
+
 /**
  * Trava da demo, antes de abrir o banco: só roda com `ALLOW_DEMO_SEED=staging`, com `DEMO_FORBIDDEN_HOSTS`
- * preenchido (os hosts de produção, separados por vírgula) e com o host do banco fora dessa lista.
- * As mensagens nunca incluem a URL.
+ * preenchido (os hosts de produção, separados por vírgula, cada um só o host) e com o host do banco fora dessa
+ * lista. A comparação ignora maiúsculas, ponto final e a variante `-pooler`. Recusa também uma URL que escolhe
+ * o host por fora (`host=`/`hostaddr=` na query) ou com `%` no host. As mensagens nunca incluem a URL nem os valores.
  */
 export function assertDemoSeedAllowed(
   env: Readonly<Record<string, string | undefined>>,
@@ -45,19 +56,34 @@ export function assertDemoSeedAllowed(
   if (env.ALLOW_DEMO_SEED !== 'staging') {
     throw new Error('A demo só roda com ALLOW_DEMO_SEED=staging');
   }
-  const forbidden = (env.DEMO_FORBIDDEN_HOSTS ?? '')
+  const items = (env.DEMO_FORBIDDEN_HOSTS ?? '')
     .split(',')
-    .map((host) => host.trim().toLowerCase())
-    .filter((host) => host !== '');
-  if (forbidden.length === 0) {
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+  if (items.length === 0) {
     throw new Error('A demo precisa de DEMO_FORBIDDEN_HOSTS (o host do banco de produção)');
   }
-  let host: string;
+  // Cada item é só o host: porta, esquema, usuário, caminho, espaço interno ou `%` mostram que é outra coisa.
+  if (items.some((item) => /[\s:/@?#\\%]/.test(item))) {
+    throw new Error('PROD_DB_HOST deve ser só o host (sem porta, esquema, caminho nem espaço)');
+  }
+  const forbidden = items.map((item) => withoutPooler(normalizeHost(item)));
+
+  let url: URL;
   try {
-    host = new URL(databaseUrl ?? '').hostname.toLowerCase();
+    url = new URL(databaseUrl ?? '');
   } catch {
     throw new Error('DATABASE_URL ausente ou inválida');
   }
+  for (const key of url.searchParams.keys()) {
+    if (['host', 'hostaddr'].includes(key.toLowerCase())) {
+      throw new Error('DATABASE_URL não pode escolher o host por parâmetro (host= ou hostaddr=)');
+    }
+  }
+  if (url.hostname.includes('%')) {
+    throw new Error('O host da DATABASE_URL não pode ter caracteres codificados (%)');
+  }
+  const host = withoutPooler(normalizeHost(url.hostname));
   if (forbidden.includes(host)) {
     throw new Error('O banco é um dos proibidos em DEMO_FORBIDDEN_HOSTS: a demo não roda');
   }

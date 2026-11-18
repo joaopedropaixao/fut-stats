@@ -52,6 +52,85 @@ describe('travas da demo (assertDemoSeedAllowed)', () => {
     }
   });
 
+  it('C2: item que não é host simples (porta, esquema, caminho, usuário, espaço interno) recusa o comando sem ecoar o valor', () => {
+    for (const item of [
+      'exemplo.prod.invalid:5432',
+      'postgresql://exemplo.prod.invalid',
+      'exemplo.prod.invalid/neondb',
+      'user@exemplo.prod.invalid',
+      'exemplo prod.invalid',
+      'exemplo.prod.invalid?x=1',
+    ]) {
+      const env = { ...okEnv, DEMO_FORBIDDEN_HOSTS: `outro.exemplo.invalid,${item}` };
+      let message = '';
+      try {
+        assertDemoSeedAllowed(env, STAGING_URL);
+      } catch (e) {
+        message = (e as Error).message;
+      }
+      expect(message).toContain('PROD_DB_HOST deve ser só o host');
+      expect(message).not.toContain(item);
+    }
+  });
+
+  it('C2: ponto final e maiúsculas no host da URL ou na lista não escapam da trava', () => {
+    const host = 'exemplo.prod.invalid';
+    const env = { ...okEnv, DEMO_FORBIDDEN_HOSTS: host };
+    expect(() => assertDemoSeedAllowed(env, `postgresql://u:p@${host}./db`)).toThrow('proibidos');
+    expect(() => assertDemoSeedAllowed(env, `postgresql://u:p@EXEMPLO.Prod.Invalid/db`)).toThrow(
+      'proibidos',
+    );
+    const listed = { ...okEnv, DEMO_FORBIDDEN_HOSTS: ' Exemplo.PROD.invalid. ' };
+    expect(() => assertDemoSeedAllowed(listed, `postgresql://u:p@${host}/db`)).toThrow('proibidos');
+    expect(() => assertDemoSeedAllowed(env, `postgresql://u:p@${host}.:5432/db`)).toThrow(
+      'proibidos',
+    );
+  });
+
+  it('C2: a variante -pooler do host proibido (e o inverso) também barra', () => {
+    const direct = 'ep-abc.us-east-1.aws.neon.tech';
+    const pooler = 'ep-abc-pooler.us-east-1.aws.neon.tech';
+    expect(() =>
+      assertDemoSeedAllowed(
+        { ...okEnv, DEMO_FORBIDDEN_HOSTS: direct },
+        `postgresql://u:p@${pooler}/db`,
+      ),
+    ).toThrow('proibidos');
+    expect(() =>
+      assertDemoSeedAllowed(
+        { ...okEnv, DEMO_FORBIDDEN_HOSTS: pooler },
+        `postgresql://u:p@${direct}/db`,
+      ),
+    ).toThrow('proibidos');
+    // Outro endpoint (nome parecido) continua passando
+    expect(() =>
+      assertDemoSeedAllowed(
+        { ...okEnv, DEMO_FORBIDDEN_HOSTS: direct },
+        'postgresql://u:p@ep-abcd-pooler.us-east-1.aws.neon.tech/db',
+      ),
+    ).not.toThrow();
+  });
+
+  it('C2: URL com host= ou hostaddr= na query, ou com % no host, recusa sem ecoar a URL', () => {
+    for (const url of [
+      `${STAGING_URL}?host=${FORBIDDEN}`,
+      `${STAGING_URL}?sslmode=require&hostaddr=10.0.0.1`,
+      `${STAGING_URL}?HOST=${FORBIDDEN}`,
+      'postgresql://user:segredo@ep-stg%2D9999.us-east-1.aws.neon.tech/neondb',
+    ]) {
+      let message = '';
+      try {
+        assertDemoSeedAllowed(okEnv, url);
+      } catch (e) {
+        message = (e as Error).message;
+      }
+      expect(message).not.toBe('');
+      expect(message).not.toContain('segredo');
+      expect(message).not.toContain('postgresql');
+      expect(message).not.toContain(FORBIDDEN);
+    }
+  });
+
   it('DATABASE_URL ausente ou inválida recusa sem ecoar o valor', () => {
     expect(() => assertDemoSeedAllowed(okEnv, undefined)).toThrow('DATABASE_URL');
     expect(() => assertDemoSeedAllowed(okEnv, 'isso-nao-e-url')).toThrow(/DATABASE_URL/);
