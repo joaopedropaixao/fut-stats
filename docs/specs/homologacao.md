@@ -86,4 +86,23 @@ Sem mudança no `schema.prisma`.
 - Reserva no login → aprovada com as condições acima e os testes C8, C9, C9b, C9c, C9d.
 
 ## QA
-<Preenchido no fim.>
+2 voltas. Volta 1: todos os cenários aprovados menos C2 (a trava aceitava `PROD_DB_HOST` com porta ou esquema e
+host com ponto final). Corrigido em f96414e, com `-pooler` nos dois sentidos, `host=`/`hostaddr=` na query e `%`
+no host também recusados. Volta 2: **APROVADO**.
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1 marcador | ✅ | unitário + CLI (código 1 antes de abrir o banco) |
+| C2 host proibido | ✅ (volta 2) | 17 casos pela CLI, nenhum imprime URL ou valor |
+| C3 lista vazia | ✅ | unitário + CLI |
+| C4 e-mails inválidos | ✅ | unitário + CLI |
+| C5 demo completa | ✅ | integração + banco da vaga: 23 membros, 9 rodadas, 3 resenhas |
+| C6 outros grupos intactos | ✅ | integração + hash antes e depois de 2 execuções reais |
+| C7 admin com conta | ✅ | integração + execução real |
+| C8 login assume a reserva | ✅ | integração (sessão abre o grupo) |
+| C9, C9b, C9c, C9d | ✅ | integração |
+| C10 guarda do seed de dev | ✅ | unitário + CLI |
+| C11 seis cenários | ✅ | integração |
+
+Raiz: lint, typecheck, test (api 821, web, domain, shared) e build verdes.
+Ressalva não bloqueante: URL com vários hosts (`a,b`) passa pela trava, mas a conexão falha; não chega à produção.
