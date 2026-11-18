@@ -1,0 +1,34 @@
+# Orçamento do bundle: antes (develop @5304341)
+
+## Tabela do check-build.mjs
+Medida                                                 Tamanho (gzip)  Limite
+-----------------------------------------------------  --------------  ------  -
+JS inicial                                                   148.2 kB  150 kB  ✓
+Maior pedaço de rota (assets/voting-area-DYHIUxuH.js)         12.4 kB   40 kB  ✓
+CSS                                                           12.6 kB   25 kB  ✓
+JS total                                                     249.2 kB  400 kB  ✓
+
+
+## JS inicial por pacote (sourcemap, gzip aproximado)
+arquivo assets/index-CFA1AmfH.js  257.3 kB  gzip 80.9 kB
+arquivo assets/button-IT418PpI.js  110.5 kB  gzip 37.0 kB
+arquivo assets/dist-DsJAIhqC.js  99.6 kB  gzip 30.4 kB
+
+JS inicial total: 148.3 kB gzip (3 arquivos)
+
+Top por pacote/pasta (gzip aproximado, kB):
+    60.9  react-dom
+    33.9  react-router
+    24.8  zod
+    13.8  @tanstack/query-core
+     3.3  packages/domain
+     2.2  apps/web/src/components/ui
+     2.0  packages/shared
+     1.8  react
+     1.4  @tanstack/react-query
+     1.0  scheduler
+     0.4  apps/web/src/lib/api.ts
+     0.4  apps/web/src/router.tsx
+     0.4  apps/web/src/app/shell.tsx
+     0.3  apps/web/src/app/chunk-reload.ts
+     0.2  apps/web/src/features/group

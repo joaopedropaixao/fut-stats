@@ -1,0 +1,41 @@
+meta {
+  name: Nome repetido ganha outro slug
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/groups
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+body:json {
+  {
+    "name": "{{groupName}}",
+    "nickname": "Dono",
+    "primaryPosition": "FORWARD"
+  }
+}
+
+tests {
+  test("status 201", function () {
+    expect(res.status).to.equal(201);
+  });
+
+  test("formato do grupo", function () {
+    expect(res.body).to.have.all.keys("id", "name", "slug", "role", "memberCount");
+    expect(res.body.id).to.be.a("string");
+    expect(res.body.slug).to.be.a("string");
+  });
+
+  test("slug diferente do primeiro grupo", function () {
+    expect(res.body.slug).to.not.equal(bru.getVar("groupSlug"));
+    expect(res.body.slug.startsWith(bru.getVar("groupSlug"))).to.equal(true);
+    expect(res.body.id).to.not.equal(bru.getVar("groupId"));
+  });
+}

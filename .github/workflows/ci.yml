@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    # Postgres para os testes de integração. Mesma porta e credenciais do db-test do docker-compose,
+    # então os testes rodam igual no CI e local.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fut_stats_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Usa a versão do campo "packageManager" do package.json
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Os testes de backup e restauração (scripts/) usam pg_dump e psql na versão do Postgres de teste (17).
+      - name: Instalar o cliente do PostgreSQL 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - run: pnpm install --frozen-lockfile
+      - run: node --test .codex/hooks/bridge.test.mjs .harness/*.test.mjs
+      - run: sh .claude/hooks/test.sh
+        env:
+          GIT_AUTHOR_NAME: Fut Stats Tests
+          GIT_AUTHOR_EMAIL: tests@example.invalid
+          GIT_COMMITTER_NAME: Fut Stats Tests
+          GIT_COMMITTER_EMAIL: tests@example.invalid
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build

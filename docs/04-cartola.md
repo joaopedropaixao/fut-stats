@@ -28,7 +28,7 @@
 pontos = nota_da_rodada
        + 3 × gols  + 2 × assistências
        + 1 × vitórias na rodada
-       + 3 se MVP  − 2 se Bola Murcha
+       + 3 se Craque  − 2 se Perna de Pau
        (goleiro: + 2 jogo sem sofrer gol, − 0,5 por gol sofrido)
 capitão: × 1,5
 ```
@@ -43,6 +43,26 @@ novo preço  = max(preço_mínimo, preço + variação)
 
 Os parâmetros (`k`, `fator`, limites) ficam em configuração do grupo e são
 calibrados com os dados das primeiras rodadas.
+
+### Defaults decididos (implementados em `packages/domain/src/cartola`)
+
+| Parâmetro | Default |
+|-----------|---------|
+| Orçamento inicial | C$ 100 |
+| `k` | 0,5 (jogador de C$ 14 "deve" fazer 7 pontos) |
+| `fator` | 0,3 C$ por ponto acima/abaixo do esperado |
+| Limite por rodada | ±10% do preço |
+| Preço mínimo | C$ 3 |
+| Empate | 0 ponto (vitória = 1) |
+| Regras de goleiro | Valem para quem **jogou no gol na partida**, não para a vaga do Cartola |
+| Capitão | × 1,5 no total, inclusive se negativo; capitão que faltou faz 0 |
+| Arredondamento | Pontos e preços com 2 casas |
+
+| Jogou e ficou sem nota (ninguém votou) | Usa a nota de referência do jogador (`Player.rating`) |
+| Posição na escalação | Principal ou secundária do cadastro, sem desconto; vaga de goleiro só para goleiro |
+| Escalado que faltou | 0 pontos para quem escalou; **preço congela** (não valoriza nem desvaloriza) |
+
+A valorização usa os pontos do jogador **sem** o multiplicador de capitão.
 
 ## Riscos e cuidados
 

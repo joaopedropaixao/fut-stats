@@ -1,0 +1,85 @@
+import { useEffect } from 'react';
+import { Link, Navigate, useSearchParams } from 'react-router';
+import { PixelLogo } from '../components/brand/pixel-logo';
+import { ButtonLink } from '../components/ui/button';
+import { GoogleMark } from '../components/ui/google-mark';
+import { Icon } from '../components/ui/icons';
+import { PixelText } from '../components/ui/pixel-text';
+import {
+  clearPendingDestination,
+  isInvitePath,
+  isPendingDestination,
+  savePendingDestination,
+} from '../features/group/invite-code';
+import { useSession } from '../features/session/use-session';
+import { LOGIN_URL } from '../lib/api';
+import { ChalkPitch } from './entrar-e-grupo/chalk';
+
+/**
+ * Entrar no app. Se veio de um convite (`?next=/convite/<código>`) ou do link de um aviso aberto sem sessão
+ * (`?next=/rodadas/...?grupo=...`), guarda o destino e volta para ele depois do login.
+ */
+export function SignInPage() {
+  const session = useSession();
+  const [params] = useSearchParams();
+  const next = params.get('next');
+  const destination = isPendingDestination(next) ? next : null;
+  const invite = isInvitePath(destination);
+  // Voltou para cá sem concluir o login: o destino guardado de antes não vale mais
+  useEffect(() => {
+    if (session.data === null) clearPendingDestination();
+  }, [session.data]);
+  if (session.data) return <Navigate to={destination ?? '/'} replace />;
+
+  return (
+    <main className="relative mx-auto flex min-h-dvh max-w-content flex-col justify-between gap-10 overflow-hidden px-4 pt-14 pb-10">
+      <title>Entrar · Fut Stats</title>
+      <ChalkPitch className="top-30" ballIn />
+      <h1 className="relative">
+        <PixelLogo scale={9} />
+      </h1>
+      <div className="relative flex flex-col gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="flex flex-col">
+            <PixelText size={24}>Bem-vindo,</PixelText>
+            <PixelText size={24}>peladeiro!</PixelText>
+          </h2>
+          <p className="text-base text-text-muted">Faça seu login e não perca a resenha.</p>
+        </div>
+        <div className="flex flex-col gap-4">
+          {invite && (
+            <p className="flex gap-3 bg-success/8 p-4 text-sm shadow-[inset_0_0_0_2px_var(--color-success)]">
+              <Icon name="check" size={20} strokeWidth={2.4} className="shrink-0 text-success" />
+              Você tem um convite. Entre com o Google e a gente te leva direto para ele.
+            </p>
+          )}
+          <ButtonLink
+            href={LOGIN_URL}
+            label="Entrar com Google"
+            mark={<GoogleMark />}
+            block
+            onClick={() => destination && savePendingDestination(destination)}
+          />
+          {/* Só no ambiente local: o Google não funciona aqui, então entra como alguém do banco */}
+          {import.meta.env.DEV && (
+            <Link
+              to="/dev/entrar"
+              onClick={() => destination && savePendingDestination(destination)}
+              className="self-center p-3 text-sm text-text-muted underline"
+            >
+              Entrar como alguém do banco (dev)
+            </Link>
+          )}
+        </div>
+        <footer className="flex justify-center">
+          <Link
+            to="/privacidade"
+            className="inline-flex min-h-11 items-center px-3 text-sm text-text-muted underline"
+          >
+            Política de Privacidade
+          </Link>
+        </footer>
+      </div>
+    </main>
+  );
+}

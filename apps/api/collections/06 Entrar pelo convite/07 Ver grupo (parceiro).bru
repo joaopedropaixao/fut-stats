@@ -1,0 +1,32 @@
+meta {
+  name: Ver grupo (parceiro)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{joinerCookie}}
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("formato do grupo", function () {
+    expect(res.body).to.have.all.keys("id", "name", "slug", "role", "memberCount");
+    expect(res.body.id).to.be.a("string");
+    expect(res.body.slug).to.be.a("string");
+  });
+
+  test("parceiro vê o grupo como PLAYER", function () {
+    expect(res.body.role).to.equal("PLAYER");
+    expect(res.body.memberCount).to.equal(2);
+  });
+}

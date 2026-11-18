@@ -1,0 +1,26 @@
+meta {
+  name: Me do intruso nao lista o grupo
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/api/me
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{outsiderCookie}}
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("intruso não está em grupo nenhum", function () {
+    expect(res.body.user.email).to.equal("intruso@dev.local");
+    expect(res.body.groups).to.eql([]);
+  });
+}

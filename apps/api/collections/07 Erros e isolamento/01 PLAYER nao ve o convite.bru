@@ -1,0 +1,21 @@
+meta {
+  name: PLAYER nao ve o convite
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}/invite
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{joinerCookie}}
+}
+
+tests {
+  test("status 403", function () {
+    expect(res.status).to.equal(403);
+  });
+}

@@ -1,0 +1,157 @@
+/*
+ * Tokens do design system v1.3 do Fut Stats ("Noite de jogo", pixel).
+ * Fonte: docs/design/folha/build.py (folha em docs/design/folha/design-system-v1.3.html).
+ * Base para o tema do Tailwind no apps/web. O fundo padrão é o verde "Gramado";
+ * o tema "Noite" (opção nas configurações) troca só os tokens de fundo pelos *-night.
+ */
+:root {
+  /* Fundo e superfícies: Gramado (padrão) */
+  --color-bg: #0d2717;
+  --color-surface: #143521;
+  --color-surface-raised: #1a3f29;
+  --color-surface-3: #1e472e;
+  --color-border: #2f6444;
+  --color-border-strong: #77a285;
+  --color-track: #09190f;
+  --color-field: #1b4f2d;
+
+  /* Fundo e superfícies: Noite (opção) */
+  --color-bg-night: #0a0f0c;
+  --color-surface-night: #141a16;
+  --color-surface-raised-night: #1e2520;
+  --color-surface-3-night: #262e28;
+  --color-border-night: #2a332d;
+  --color-border-strong-night: #667069;
+
+  /* Texto */
+  --color-text: #f3ead3;
+  --color-text-muted: #cfcab5;
+  --color-disabled: #9db0a2;
+
+  /* Papéis fixos de cor */
+  --color-accent: #facc15; /* só ação (tecla) */
+  --color-accent-pressed: #e0b20a;
+  --color-on-accent: #111111;
+  --color-game: var(--color-accent); /* exceção aprovada: a palavra VS */
+  --color-gold: #e8a93a; /* mérito / recompensa (Craque, líder, aviso de resultado, bloco "?" e moeda) */
+  --color-gold-light: #f4d65e; /* família gold: faixa clara da face do bloco "?" e da moeda */
+  --color-gold-shadow: #8a5a1c; /* família gold: sombra de baixo e da direita; no bloco "usado", a face */
+  --color-silver: #b9c3d1; /* pódio do ranking: 2º lugar (medalha e moldura); nunca o amarelo de ação */
+  --color-silver-light: #e6ecf5; /* família silver: faixa clara da medalha */
+  --color-silver-shadow: #5d6a7d; /* família silver: sombra de baixo e da direita */
+  --color-bronze: #c27a3f; /* pódio do ranking: 3º lugar (medalha e moldura) */
+  --color-bronze-light: #e9a56a; /* família bronze: faixa clara da medalha */
+  --color-bronze-shadow: #6b3a16; /* família bronze: sombra de baixo e da direita */
+  --color-outline: #000000; /* contorno preto fixo da pixel art (não vira cinza no tema Noite) */
+  --color-flop: #c4a07c; /* madeira: Perna de Pau */
+  --color-success: #22c55e; /* vitória, presença confirmada, aviso de presença */
+  --color-danger: #ef4444; /* derrota, perigo, ausência */
+  --color-warning: #fb923c; /* atenção: prazo e aviso da Hora da Resenha */
+  --color-team-white: #ffffff;
+  --color-team-black: #000000;
+
+  /* Bonequinho do jogador: pele (do mais claro ao mais escuro) e cabelo. Nunca hex solto nos componentes. */
+  --color-skin-1: #fbe0cc;
+  --color-skin-2: #f0c09a;
+  --color-skin-3: #d9a07a;
+  --color-skin-4: #a9704c;
+  --color-skin-5: #6f4529;
+  --color-hair-black: #2a2420;
+  --color-hair-black-shade: #120e0c;
+  --color-hair-brown: #6a3f22;
+  --color-hair-brown-shade: #43260f;
+  --color-hair-blond: #f2b705;
+  --color-hair-blond-shade: #c07a00;
+  --color-hair-red: #e8501a;
+  --color-hair-red-shade: #a62d0b;
+  --color-hair-gray: #8896a6;
+  --color-hair-gray-shade: #566474;
+  --color-hair-black-rim: #7a6f66; /* contorno claro do cabelo preto sobre a pele mais escura */
+
+  /* Luz e camadas */
+  --color-floodlight: rgb(214 250 190 / 18%);
+  --color-floodlight-night: rgb(236 244 214 / 16%);
+  --color-highlight: rgb(255 255 255 / 7%);
+  --color-chalk: rgb(255 255 255 / 14%);
+  --color-scrim: rgb(0 0 0 / 62%);
+  --color-shadow: #000000; /* sombra dura do que flutua e da tecla */
+  --color-shadow-night: #2a332d; /* no Noite o preto some no fundo: a sombra vira cinza-escuro */
+
+  /* Fontes: pixel na interface, Chakra Petch no texto corrido e nos campos.
+     Números de jogador usam os dígitos pixel próprios (SVG, grade 6x9), não uma fonte. */
+  --font-pixel: 'Silkscreen', ui-monospace, monospace;
+  --font-sans: 'Chakra Petch', system-ui, sans-serif;
+
+  /* Tamanhos permitidos da Silkscreen (grade de 8px) */
+  --text-pixel-sm: 16px;
+  --text-pixel-md: 24px;
+  --text-pixel-lg: 32px;
+
+  /* Escala do texto corrido (Chakra Petch) */
+  --text-caption: 13px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --leading-body: 1.4;
+
+  /* Espaço */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+  --spacing-14: 56px;
+
+  /* Forma: canto reto em tudo; exceções abaixo */
+  --radius-none: 0;
+  --radius-nav: 20px; /* barra de abas */
+  --radius-nav-pill: 14px; /* aba ativa */
+  --radius-full: 999px; /* avatar, ponto, bolinha do slider, selo de goleiro */
+  --border-width: 2px;
+
+  /* Sombras duras (sem desfoque) */
+  --shadow-card: inset 0 0 0 2px var(--color-border-strong);
+  --shadow-float: inset 0 0 0 2px var(--color-border-strong), 4px 4px 0 var(--color-shadow);
+  --shadow-key: inset 0 0 0 3px #000, 4px 4px 0 var(--color-shadow);
+  --shadow-key-pressed: inset 0 0 0 3px #000; /* e translate(4px, 4px) */
+
+  /* Movimento */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-moment: 400ms; /* grandes momentos: até 2 s no total, sempre com "Pular" */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-pixel: steps(2, jump-none); /* pixel anda em degraus */
+
+  /* Camadas */
+  --z-nav: 10;
+  --z-sheet: 20;
+  --z-toast: 30;
+  --z-drag: 40;
+
+  /* Tamanhos */
+  --touch-min: 44px;
+  --container-mobile: 390px;
+  --container-content: 640px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-moment: 0ms;
+  }
+}
+
+/* Tema Noite: aplicar com [data-theme="night"] na raiz */
+[data-theme='night'] {
+  --color-bg: var(--color-bg-night);
+  --color-surface: var(--color-surface-night);
+  --color-surface-raised: var(--color-surface-raised-night);
+  --color-surface-3: var(--color-surface-3-night);
+  --color-border: var(--color-border-night);
+  --color-border-strong: var(--color-border-strong-night);
+  --color-floodlight: var(--color-floodlight-night);
+  --color-shadow: var(--color-shadow-night);
+}

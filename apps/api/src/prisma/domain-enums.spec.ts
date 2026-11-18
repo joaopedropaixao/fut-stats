@@ -1,0 +1,122 @@
+import {
+  AVATAR_HAIR_COLORS,
+  AVATAR_HAIRS,
+  AUDIT_ACTIONS,
+  AVATAR_SKINS,
+  MATCH_EVENT_TYPES,
+  POSITIONS,
+  POST_REACTIONS,
+  ROLES,
+  FEED_LOG_ACTIONS,
+  ROUND_LOG_ACTIONS,
+  ROUND_STATUSES,
+  TEAMS,
+  VOTING_END_REASONS,
+  type AvatarHair,
+  type AvatarHairColor,
+  type AvatarSkin,
+  type MatchEventType,
+  type Position,
+  type PostReaction,
+  type Role,
+  type AuditAction,
+  type RoundStatus,
+  type Team,
+  type VotingEndReason,
+} from '@fut-stats/domain';
+import {
+  AvatarHair as DbAvatarHair,
+  AvatarHairColor as DbAvatarHairColor,
+  AvatarSkin as DbAvatarSkin,
+  MatchEventType as DbMatchEventType,
+  Position as DbPosition,
+  PostReactionType as DbPostReactionType,
+  Role as DbRole,
+  AuditAction as DbAuditAction,
+  RoundStatus as DbRoundStatus,
+  Team as DbTeam,
+  VotingEndReason as DbVotingEndReason,
+} from '../generated/prisma/enums';
+
+// O Prisma gera os próprios enums a partir do schema. Estes testes garantem que eles continuam
+// iguais aos do domain: se alguém mudar um lado só, o typecheck e o teste quebram.
+type Equals<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+
+const positionTypesMatch: Equals<DbPosition, Position> = true;
+const teamTypesMatch: Equals<DbTeam, Team> = true;
+const roleTypesMatch: Equals<DbRole, Role> = true;
+const auditActionTypesMatch: Equals<DbAuditAction, AuditAction> = true;
+const roundStatusTypesMatch: Equals<DbRoundStatus, RoundStatus> = true;
+const avatarSkinTypesMatch: Equals<DbAvatarSkin, AvatarSkin> = true;
+const avatarHairTypesMatch: Equals<DbAvatarHair, AvatarHair> = true;
+const avatarHairColorTypesMatch: Equals<DbAvatarHairColor, AvatarHairColor> = true;
+const matchEventTypesMatch: Equals<DbMatchEventType, MatchEventType> = true;
+const postReactionTypesMatch: Equals<DbPostReactionType, PostReaction> = true;
+const votingEndReasonTypesMatch: Equals<DbVotingEndReason, VotingEndReason> = true;
+
+describe('enums do banco x domain', () => {
+  it('Position tem os mesmos valores, na mesma ordem', () => {
+    expect(positionTypesMatch).toBe(true);
+    expect(Object.values(DbPosition)).toEqual([...POSITIONS]);
+  });
+
+  it('Team tem os mesmos valores, na mesma ordem', () => {
+    expect(teamTypesMatch).toBe(true);
+    expect(Object.values(DbTeam)).toEqual([...TEAMS]);
+  });
+
+  it('Role tem os mesmos valores, na mesma ordem', () => {
+    expect(roleTypesMatch).toBe(true);
+    expect(Object.values(DbRole)).toEqual([...ROLES]);
+  });
+
+  it('MatchEventType tem os mesmos valores, na mesma ordem', () => {
+    expect(matchEventTypesMatch).toBe(true);
+    expect(Object.values(DbMatchEventType)).toEqual([...MATCH_EVENT_TYPES]);
+  });
+
+  it('C9: VotingEndReason tem os mesmos valores, na mesma ordem (ALL_VOTED, DEADLINE_PASSED, ADMIN_CLOSED)', () => {
+    expect(votingEndReasonTypesMatch).toBe(true);
+    expect(Object.values(DbVotingEndReason)).toEqual([...VOTING_END_REASONS]);
+    expect([...VOTING_END_REASONS]).toEqual(['ALL_VOTED', 'DEADLINE_PASSED', 'ADMIN_CLOSED']);
+  });
+
+  it('C1: as 9 ações da rodada abrem o enum AuditAction do banco, na mesma ordem', () => {
+    expect(ROUND_LOG_ACTIONS).toHaveLength(9);
+    expect(Object.values(DbAuditAction).slice(0, ROUND_LOG_ACTIONS.length)).toEqual([
+      ...ROUND_LOG_ACTIONS,
+    ]);
+  });
+
+  it('C23: ROUND_LOG_ACTIONS + FEED_LOG_ACTIONS são exatamente o enum AuditAction do banco, na mesma ordem', () => {
+    expect(auditActionTypesMatch).toBe(true);
+    expect(FEED_LOG_ACTIONS).toHaveLength(7);
+    expect(Object.values(DbAuditAction)).toEqual([...ROUND_LOG_ACTIONS, ...FEED_LOG_ACTIONS]);
+    expect(Object.values(DbAuditAction)).toEqual([...AUDIT_ACTIONS]);
+  });
+
+  it('RoundStatus tem os mesmos valores, na mesma ordem', () => {
+    expect(roundStatusTypesMatch).toBe(true);
+    expect(Object.values(DbRoundStatus)).toEqual([...ROUND_STATUSES]);
+  });
+
+  it('AvatarSkin tem os mesmos valores, na mesma ordem', () => {
+    expect(avatarSkinTypesMatch).toBe(true);
+    expect(Object.values(DbAvatarSkin)).toEqual([...AVATAR_SKINS]);
+  });
+
+  it('AvatarHair tem os mesmos valores, na mesma ordem', () => {
+    expect(avatarHairTypesMatch).toBe(true);
+    expect(Object.values(DbAvatarHair)).toEqual([...AVATAR_HAIRS]);
+  });
+
+  it('AvatarHairColor tem os mesmos valores, na mesma ordem', () => {
+    expect(avatarHairColorTypesMatch).toBe(true);
+    expect(Object.values(DbAvatarHairColor)).toEqual([...AVATAR_HAIR_COLORS]);
+  });
+
+  it('PostReactionType tem os mesmos valores, na mesma ordem', () => {
+    expect(postReactionTypesMatch).toBe(true);
+    expect(Object.values(DbPostReactionType)).toEqual([...POST_REACTIONS]);
+  });
+});

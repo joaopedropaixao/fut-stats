@@ -1,0 +1,342 @@
+#!/bin/sh
+# Testa os hooks da equipe. Uso: sh .claude/hooks/test.sh
+# Nenhum caso lê um .env de verdade: os hooks só olham o texto do caminho ou do comando.
+
+HOOKS=$(cd "$(dirname "$0")" && pwd)
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+falhas=0
+
+# Repo git temporário numa branch, para os hooks que olham a branch.
+repo_on() {
+  dir="$TMP/repo-$(echo "$1" | tr '/' '-')"
+  if [ ! -d "$dir" ]; then
+    git init -q "$dir"
+    git -C "$dir" checkout -q -b "$1"
+    mkdir -p "$dir/packages/shared/src" "$dir/apps/web"
+  fi
+  echo "$dir"
+}
+
+tool() { jq -nc --arg t "$1" --arg k "$2" --arg v "$3" --arg cwd "${4:-$TMP}" \
+  '{tool_name: $t, tool_input: {($k): $v}, cwd: $cwd, session_id: "teste"}'; }
+bash_cmd() { tool Bash command "$1" "$2"; }
+
+# expect <hook> <exit esperado> <json> [descrição]
+expect() {
+  printf '%s' "$3" | "$HOOKS/$1.sh" >/dev/null 2>"$TMP/stderr"
+  got=$?
+  if [ "$got" = "$2" ]; then
+    echo "ok      $1: ${4:-$3}"
+  else
+    echo "FALHOU  $1: ${4:-$3} (esperado $2, veio $got) $(cat "$TMP/stderr")"
+    falhas=$((falhas + 1))
+  fi
+}
+
+# --- front-sem-shared
+FRONT=$(repo_on feature/a-front)
+BACK=$(repo_on feature/a-back)
+expect front-sem-shared 2 "$(tool Write file_path "$FRONT/packages/shared/src/x.ts")" "Write no shared na -front"
+expect front-sem-shared 2 "$(tool Edit file_path packages/shared/src/x.ts "$FRONT")" "caminho relativo no shared na -front"
+expect front-sem-shared 0 "$(tool Write file_path "$BACK/packages/shared/src/x.ts")" "Write no shared na -back"
+expect front-sem-shared 0 "$(tool Write file_path "$FRONT/apps/web/x.ts")" "Write no web na -front"
+expect front-sem-shared 2 "$(tool Write file_path "$FRONT/packages/shared/src/novo/y.ts" "$BACK")" "arquivo em outro worktree: vale a branch do arquivo"
+
+# --- sem-env
+expect sem-env 2 "$(tool Read file_path apps/api/.env)" "Read .env"
+expect sem-env 2 "$(tool Read file_path apps/api/.env.local)" "Read .env.local"
+expect sem-env 0 "$(tool Read file_path apps/api/.env.example)" "Read .env.example"
+expect sem-env 0 "$(tool Read file_path apps/api/src/config/env.ts)" "Read env.ts"
+expect sem-env 2 "$(tool Grep path apps/api/.env)" "Grep no .env"
+expect sem-env 2 "$(bash_cmd 'cat apps/api/.env')" "cat .env"
+expect sem-env 2 "$(bash_cmd 'grep X .env | head')" "grep .env com pipe"
+expect sem-env 2 "$(bash_cmd 'source apps/api/.env')" "source .env"
+expect sem-env 0 "$(bash_cmd 'echo $DATABASE_URL')" "echo de variável"
+expect sem-env 0 "$(bash_cmd 'node -e "console.log(process.env.X)"')" "process.env"
+expect sem-env 0 "$(bash_cmd 'cat apps/api/.env.example')" "cat .env.example"
+expect sem-env 0 "$(bash_cmd 'cp ../fut-stats/apps/api/.env apps/api/.env')" "cp do .env"
+expect sem-env 0 "$(bash_cmd 'ln -s ../fut-stats/apps/api/.env apps/api/.env')" "ln -s do .env"
+expect sem-env 2 "$(bash_cmd 'cp a/.env b/.env && cat b/.env')" "cp encadeado com cat"
+expect sem-env 2 "$(bash_cmd 'cp a/.env /dev/stdout')" "cp para a saída"
+expect sem-env 0 "$(bash_cmd 'cp /Users/joaopedropaixao/dev/personal/fut-stats/apps/api/.env /Users/joaopedropaixao/orca/workspaces/fut-stats/x/apps/api/.env')" "cp com origem em ~/dev/ (checkout principal)"
+expect sem-env 0 "$(bash_cmd 'cp /Users/joaopedropaixao/dev/personal/fut-stats/.env /Users/joaopedropaixao/orca/workspaces/fut-stats/x/.env')" "cp do .env da raiz"
+expect sem-env 0 "$(bash_cmd 'ln -s /Users/joaopedropaixao/dev/personal/fut-stats/.env /Users/joaopedropaixao/orca/workspaces/fut-stats/x/.env')" "ln -s do .env da raiz (o que as skills mandam)"
+expect sem-env 2 "$(bash_cmd 'ln -s a/.env /dev/fd/1')" "ln -s para /dev/"
+expect sem-env 2 "$(bash_cmd 'cp a/.env b/.env; cat b/.env')" "cp seguido de cat"
+
+# revisão final: buscas recursivas e nomes de várias partes
+expect sem-env 2 "$(bash_cmd 'grep -rn DATABASE_URL apps/api')" "grep -r sem --include lê o .env"
+expect sem-env 2 "$(bash_cmd 'grep -Rl X .')" "grep -R"
+expect sem-env 2 "$(bash_cmd 'grep --recursive X apps')" "grep --recursive"
+expect sem-env 0 "$(bash_cmd 'grep -rn X apps --include=*.ts')" "grep -r com --include"
+expect sem-env 0 "$(bash_cmd 'grep -n X apps/api/src/main.ts')" "grep num arquivo"
+expect sem-env 0 "$(bash_cmd 'git grep -n X')" "git grep (só arquivos versionados)"
+expect sem-env 2 "$(bash_cmd 'rg --no-ignore X')" "rg --no-ignore"
+expect sem-env 2 "$(bash_cmd 'rg -uu X')" "rg -uu"
+expect sem-env 2 "$(bash_cmd 'rg --hidden X')" "rg --hidden"
+expect sem-env 0 "$(bash_cmd 'rg -n X apps')" "rg normal respeita o .gitignore"
+expect sem-env 2 "$(bash_cmd 'cat apps/web/.env.development.local')" ".env de várias partes"
+expect sem-env 2 "$(bash_cmd 'cat apps/api/.env-backup')" ".env-backup"
+
+# modo paralelo: o .env.equipe só tem portas e o banco local, e passa como o .env.example
+expect sem-env 0 "$(tool Read file_path .env.equipe)" "Read .env.equipe"
+expect sem-env 0 "$(tool Write file_path /Users/x/orca/workspaces/fut-stats/placar/.env.equipe)" "Write .env.equipe"
+expect sem-env 0 "$(bash_cmd 'cat /Users/x/orca/workspaces/fut-stats/placar/.env.equipe')" "cat .env.equipe"
+expect sem-env 0 "$(bash_cmd 'grep -h PORT= .env.equipe')" "grep .env.equipe"
+expect sem-env 2 "$(bash_cmd 'cat .env.equipe .env')" ".env.equipe junto com o .env"
+expect sem-env 2 "$(bash_cmd 'cat .env.equipe && cat .env')" ".env.equipe encadeado com o .env"
+expect sem-env 2 "$(bash_cmd 'cat .env.equipe.bak')" ".env.equipe.bak (outro nome)"
+expect sem-env 2 "$(tool Read file_path .env.equipe.local)" "Read .env.equipe.local (outro nome)"
+
+# --- sem-merge
+FEAT=$(repo_on feature/x)
+DEV=$(repo_on develop)
+expect sem-merge 2 "$(bash_cmd 'gh pr merge 40 --squash')" "gh pr merge"
+expect sem-merge 2 "$(bash_cmd 'GH_TOKEN=abc gh pr merge 40')" "gh pr merge com token"
+expect sem-merge 0 "$(bash_cmd 'git merge feature/x-back' "$FEAT")" "merge do TPL na feature"
+expect sem-merge 2 "$(bash_cmd 'git merge feature/x' "$DEV")" "merge estando na develop"
+expect sem-merge 2 "$(bash_cmd 'git push origin develop')" "push para develop"
+expect sem-merge 2 "$(bash_cmd 'git push origin HEAD:main')" "push HEAD:main"
+expect sem-merge 0 "$(bash_cmd 'git push -u origin feature/x')" "push da feature"
+expect sem-merge 0 "$(bash_cmd 'git fetch origin develop && git rebase origin/develop')" "rebase na develop"
+
+# revisão final: merge-base e push sem nome de branch
+expect sem-merge 0 "$(bash_cmd 'git merge-base --is-ancestor origin/feature/a origin/develop' "$DEV")" "merge-base na develop"
+expect sem-merge 2 "$(bash_cmd 'git push' "$DEV")" "push sem argumentos estando na develop"
+expect sem-merge 2 "$(bash_cmd 'git push origin HEAD' "$DEV")" "push HEAD estando na develop"
+expect sem-merge 2 "$(bash_cmd 'git push origin HEAD:refs/heads/main')" "push para refs/heads/main"
+expect sem-merge 2 "$(bash_cmd 'git push origin +develop')" "push forçado +develop"
+expect sem-merge 0 "$(bash_cmd 'git push' "$FEAT")" "push sem argumentos na feature"
+
+# orquestrador (checkout principal) faz o merge do PR; worktree de equipe não
+PRINC="$TMP/principal"
+git init -q "$PRINC" && git -C "$PRINC" checkout -q -b develop
+git -C "$PRINC" -c user.name=t -c user.email=t@t commit -q --allow-empty -m base
+git -C "$PRINC" worktree add -q -b feature/y "$TMP/wt-equipe"
+expect sem-merge 0 "$(bash_cmd 'GH_TOKEN=abc gh pr merge 49 --merge' "$PRINC")" "gh pr merge no checkout principal"
+expect sem-merge 2 "$(bash_cmd 'gh pr merge 49 --merge' "$TMP/wt-equipe")" "gh pr merge num worktree de equipe"
+expect sem-merge 0 "$(bash_cmd "git -C $TMP/wt-equipe push --force-with-lease origin feature/y" "$PRINC")" "push com -C num worktree de feature"
+expect sem-merge 2 "$(bash_cmd "git -C $PRINC push" "$TMP/wt-equipe")" "push com -C apontando para a develop"
+expect sem-merge 2 "$(bash_cmd 'git push origin develop' "$PRINC")" "orquestrador também não dá push na develop"
+expect sem-merge 2 "$(bash_cmd "git -C $TMP/wt-equipe push origin HEAD:main" "$PRINC")" "push -C nomeando a main"
+expect sem-merge 2 "$(bash_cmd 'git merge feature/y' "$PRINC")" "git merge na develop do checkout principal"
+
+# --- commit-sem-ia
+expect commit-sem-ia 2 "$(bash_cmd 'git commit -m "feat: x
+
+Co-Authored-By: Claude <noreply@anthropic.com>"')" "commit com Co-Authored-By"
+expect commit-sem-ia 2 "$(bash_cmd 'git commit -m "feat: x" -m "🤖 Generated with Claude Code"')" "commit com Generated with"
+expect commit-sem-ia 0 "$(bash_cmd 'git commit -m "feat(shared): contrato de x"')" "commit limpo"
+
+# expect_out <hook> <saída esperada> <json> [descrição]
+expect_out() {
+  got=$(printf '%s' "$3" | "$HOOKS/$1.sh" 2>&1)
+  if [ "$got" = "$2" ]; then
+    echo "ok      $1: ${4:-$3}"
+  else
+    echo "FALHOU  $1: ${4:-$3} (esperado '$2', veio '$got')"
+    falhas=$((falhas + 1))
+  fi
+}
+
+# --- prettier (formata .ts; respeita o .prettierignore do repo do arquivo)
+FMT=$(repo_on feature/fmt)
+echo '*.md' >"$FMT/.prettierignore"
+printf 'const a   =  1\n' >"$FMT/x.ts"
+printf '# t\n\n\n\nfim\n' >"$FMT/y.md"
+cp "$FMT/y.md" "$TMP/y.md.antes"
+export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$HOOKS/../.." && pwd)}"
+expect prettier 0 "$(tool Write file_path "$FMT/x.ts")" "formata .ts"
+if [ "$(cat "$FMT/x.ts")" = "const a = 1;" ]; then echo "ok      prettier: x.ts formatado"; else
+  echo "FALHOU  prettier: x.ts não foi formatado: $(cat "$FMT/x.ts")"
+  falhas=$((falhas + 1))
+fi
+expect prettier 0 "$(tool Write file_path "$FMT/y.md")" "md ignorado"
+if cmp -s "$FMT/y.md" "$TMP/y.md.antes"; then echo "ok      prettier: y.md intacto"; else
+  echo "FALHOU  prettier: y.md mudou"
+  falhas=$((falhas + 1))
+fi
+
+# --- status line
+STATUS=$(repo_on feature/status)
+expect_out statusline "feature/status" "{\"workspace\":{\"current_dir\":\"$STATUS\"}}" "só a branch"
+mkdir -p "$STATUS/.claude" && echo "Implement" >"$STATUS/.claude/etapa.local"
+expect_out statusline "feature/status · Implement" "{\"workspace\":{\"current_dir\":\"$STATUS\"}}" "branch e etapa"
+expect_out statusline "" "{\"workspace\":{\"current_dir\":\"$TMP\"}}" "fora de repo git: vazio"
+
+# --- notificação (NOTIFICA_DRY imprime o script em vez de chamar o osascript)
+export NOTIFICA_DRY=1
+expect_out notifica "display notification \"Claude precisa de permissão\" with title \"fut-stats · montar-times\" sound name \"Glass\"" \
+  '{"hook_event_name":"Notification","message":"Claude precisa de permissão","cwd":"/x/montar-times"}' "Notification com mensagem"
+expect_out notifica "display notification \"Esperando você\" with title \"fut-stats · montar-times\" sound name \"Glass\"" \
+  '{"hook_event_name":"Stop","cwd":"/x/montar-times"}' "Stop sem mensagem"
+expect_out notifica "display notification \"diz 'oi'\" with title \"fut-stats · x\" sound name \"Glass\"" \
+  '{"message":"diz \"oi\"","cwd":"/x"}' "aspas na mensagem não quebram o script"
+unset NOTIFICA_DRY
+
+# --- dev-termina-verde (DEV_CHECK_CMD troca a checagem real por um comando de teste)
+# dev_case <descrição> <esperado: vazio ou trecho da saída> <lado> <comando>
+dev_case() {
+  got=$(printf '%s' "$STOP" | TMPDIR="$TMP" DEV_CHECK_CMD="$4" "$HOOKS/dev-termina-verde.sh" "$3" 2>&1)
+  case "$2:$got" in
+    "vazio:") ok=1 ;;
+    vazio:*) ok=0 ;;
+    *) case $got in *"$2"*) ok=1 ;; *) ok=0 ;; esac ;;
+  esac
+  if [ "$ok" = 1 ]; then echo "ok      dev-termina-verde: $1"; else
+    echo "FALHOU  dev-termina-verde: $1 (esperado '$2', veio '$got')"
+    falhas=$((falhas + 1))
+  fi
+}
+TPL=$(repo_on feature/z)
+git -C "$TPL" commit -q --allow-empty -m init
+git -C "$TPL" worktree add -q -b feature/z-back "$TMP/wt-back"
+STOP=$(jq -nc --arg cwd "$TPL" '{hook_event_name: "SubagentStop", session_id: "s1", agent_id: "a1", cwd: $cwd}')
+
+dev_case "verde termina" vazio back true
+dev_case "vermelho bloqueia" '"decision": "block"' back false
+dev_case "2ª vez vermelho" "(2/3)" back false
+dev_case "3ª vez vermelho" "(3/3)" back false
+dev_case "4ª vez vermelho libera (sem loop infinito)" vazio back false
+dev_case "depois de liberar, recomeça" "(1/3)" back false
+dev_case "verde no meio" vazio back true
+dev_case "verde zera o contador" "(1/3)" back false
+dev_case "motivo traz a saída do comando" "saida-do-check" back 'echo saida-do-check; false'
+dev_case "roda no worktree -back, não no cwd do TPL" vazio back 'test "$(basename "$PWD")" = wt-back'
+dev_case "sem worktree -front, roda no cwd" vazio front "test \"\$(pwd -P)\" = \"$(cd "$TPL" && pwd -P)\""
+
+# --- configuração dos agentes (revisão final)
+AGENTS_DIR="$HOOKS/../agents"
+for a in dev-back dev-front; do
+  # O check real (lint + typecheck + jest com Postgres) passa do timeout padrão de hook.
+  if grep -Eq '^[[:space:]]+timeout: (6[0-9]{2}|[7-9][0-9]{2}|[0-9]{4,})$' "$AGENTS_DIR/$a.md"; then
+    echo "ok      $a: hook com timeout >= 600s"
+  else
+    echo "FALHOU  $a: hook sem timeout >= 600s" && falhas=$((falhas + 1))
+  fi
+done
+# Depois de um fix(shared) legítimo, o diff contra o SHA do contrato não vem vazio: o QA olha os commits do front.
+if grep -q 'git log feature/<fatia>-back..HEAD -- packages/shared' "$HOOKS/../../.harness/roles/qa.md"; then
+  echo "ok      qa: confere o shared pelos commits do front"
+else
+  echo "FALHOU  qa: checagem do shared ainda pelo diff contra o SHA do contrato" && falhas=$((falhas + 1))
+fi
+
+# Reservas, limite conjunto e argumentos de lançamento são exercitados em .harness/team.test.mjs.
+# --- modo paralelo (spec 2026-10-30-equipe-paralela.md): as skills precisam carregar o que o spec manda
+SKILLS_DIR="$HOOKS/../skills"
+# skill_diz <arquivo> <trecho> <descrição>
+skill_diz() {
+  if grep -Fq -- "$2" "$SKILLS_DIR/$1/SKILL.md"; then
+    echo "ok      $1: $3"
+  else
+    echo "FALHOU  $1: $3 (falta '$2')" && falhas=$((falhas + 1))
+  fi
+}
+skill_diz lancar-equipe '.env.equipe' "cria o arquivo da equipe"
+skill_diz lancar-equipe 'DIRECT_URL' "põe a DIRECT_URL no arquivo (migration não vai para o banco principal)"
+skill_diz tpl '.env.equipe' "liga o arquivo da equipe nos worktrees do par"
+skill_diz tpl 'seção Banco' "checa o Banco das outras equipes no Portão 1"
+skill_diz tpl 'apague a pasta da sua migration' "refaz a migration no rebase"
+skill_diz mergear 'Espere o ok' "pede o ok do dono antes de mergear"
+skill_diz lider-v1 'perguntas-v1.md' "junta as dúvidas num lote só"
+skill_diz lider-v1 'ondas-v1.md' "monta o plano de ondas"
+skill_diz tpl 'Spec já aprovado pelo líder' "spec do líder pula o research"
+skill_diz tpl 'force-with-lease' "push depois de rebase"
+skill_diz tpl 'Volta de design' "ajuste visual do dono não conta no limite"
+skill_diz mergear 'force-with-lease' "push do rebase com lease"
+skill_diz mergear 'Nunca encadeie a checagem e a remoção' "não apaga worktree sem conferir"
+skill_diz tpl 'skill `mergear`' "TPL aponta o merge para o orquestrador"
+skill_diz tpl 'Antes de cada volta de QA' "checkpoint de rebase e push antes do QA"
+skill_diz tpl 'quadro.sh set' "TPL atualiza o quadro"
+skill_diz mergear 'quadro.sh afetados' "checkpoint de merge avisa as fatias afetadas"
+skill_diz mergear 'checar-atraso.sh' "detector antes de mergear"
+skill_diz lider-v1 'Depende de' "spec do líder grava as dependências"
+skill_diz lancar-equipe 'quadro.sh set' "fatia lançada entra no quadro"
+skill_diz lancar-equipe 'orca worktree create' "cria o worktree pelo Orca"
+skill_diz lancar-equipe '--branch feature/<fatia>' "branch sem o prefixo do Orca"
+skill_diz lancar-equipe 'orca orchestration reply' "responde as perguntas do TPL"
+skill_diz mergear 'orca orchestration send' "aviso de merge pelo Orca"
+skill_diz tpl 'orca orchestration ask' "TPL worker pergunta ao coordenador"
+skill_diz lider-v1 'orca orchestration ask' "líder manda o lote pelo Orca"
+
+# --- coordenação: quadro, detector de atraso e sem push pendente (spec 2026-11-14-autonomia-v1.md)
+SCRIPTS="$HOOKS/../scripts"
+g() { git -c user.name=t -c user.email=t@t "$@"; }
+REMOTO="$TMP/coord-remoto.git"
+COORD="$TMP/coord"
+git init -q --bare "$REMOTO"
+git init -q "$COORD" && git -C "$COORD" checkout -q -b develop
+g -C "$COORD" commit -q --allow-empty -m base
+git -C "$COORD" remote add origin "$REMOTO"
+git -C "$COORD" push -q origin develop
+git -C "$COORD" worktree add -q -b feature/fatia-a "$TMP/coord-a" develop
+git -C "$COORD" worktree add -q -b feature/fatia-b "$TMP/coord-b" develop
+g -C "$TMP/coord-a" commit -q --allow-empty -m "a1"
+git -C "$TMP/coord-a" push -q -u origin feature/fatia-a
+g -C "$TMP/coord-a" commit --amend -q --allow-empty -m "a1 reescrito"   # "rebase" sem push
+g -C "$TMP/coord-b" commit -q --allow-empty -m "b1"                     # nunca enviado
+# a develop anda com o merge da fatia-c, depois da base do spec da fatia-d
+base=$(git -C "$COORD" rev-parse --short HEAD)
+mkdir -p "$COORD/docs/specs"
+printf '| **Status** | aprovado em hoje |\n| **Base** | develop @%s |\n| **Depende de** | fatia-c |\n' "$base" >"$COORD/docs/specs/fatia-d.md"
+git -C "$COORD" add docs && g -C "$COORD" commit -q -m "spec d"
+git -C "$COORD" checkout -q -b feature/fatia-c && g -C "$COORD" commit -q --allow-empty -m c1
+git -C "$COORD" checkout -q develop
+g -C "$COORD" merge -q --no-ff -m "Merge pull request #9 from x/feature/fatia-c" feature/fatia-c
+git -C "$COORD" push -q origin develop && git -C "$COORD" fetch -q origin
+
+saida=$(CHECAR_SEM_FETCH=1 sh "$SCRIPTS/checar-atraso.sh" "$COORD")
+confere() { # confere <trecho> <descrição>
+  if printf '%s' "$saida" | grep -Fq -- "$1"; then echo "ok      checar-atraso: $2"; else
+    echo "FALHOU  checar-atraso: $2 (falta '$1' em: $saida)" && falhas=$((falhas + 1)); fi
+}
+confere "fatia-a: local e remoto divergiram" "rebase sem push (o caso do #49)"
+confere "fatia-b: 1 commits e a branch nunca foi enviada" "commit preso em branch local"
+confere "fatia-a: 3 commits atrás da develop" "branch atrás da develop"
+confere "fatia-d: spec rever, fatia-c entrou" "dependência mergeada depois da base do spec"
+
+# quadro: set, aviso, afetados, rm
+(cd "$TMP/coord-a" && QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" set fatia-a Implement "apps/api/prisma/schema.prisma,packages/shared/src/a.ts")
+(cd "$TMP/coord-b" && QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" set fatia-b "QA volta 1" "apps/web/src/features/b")
+(cd "$COORD" && QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" aviso fatia-b "rebase: #9")
+afet=$(printf 'packages/shared/src/a.ts\nREADME.md\n' | QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" afetados)
+[ "$afet" = "fatia-a" ] && echo "ok      quadro: afetados acha só quem toca no arquivo" ||
+  { echo "FALHOU  quadro: afetados (veio '$afet')"; falhas=$((falhas + 1)); }
+linha=$(QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" show fatia-b | tail -1)
+printf '%s' "$linha" | grep -q "rebase: #9" && printf '%s' "$linha" | grep -q "QA volta 1" &&
+  echo "ok      quadro: show mostra etapa e aviso" || { echo "FALHOU  quadro: show ($linha)"; falhas=$((falhas + 1)); }
+[ "$(cat "$TMP/coord-b/.claude/etapa.local")" = "QA volta 1" ] && echo "ok      quadro: set atualiza a status line" ||
+  { echo "FALHOU  quadro: etapa.local"; falhas=$((falhas + 1)); }
+(cd "$COORD" && QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" rm fatia-a)
+QUADRO_MAIN="$COORD" sh "$SCRIPTS/quadro.sh" show | grep -q "^fatia-a" &&
+  { echo "FALHOU  quadro: rm"; falhas=$((falhas + 1)); } || echo "ok      quadro: rm tira a fatia"
+
+# sem-push-pendente
+stop() { jq -nc --arg cwd "$1" --argjson a "${2:-false}" '{cwd: $cwd, stop_hook_active: $a, session_id: "teste"}'; }
+bloqueia() { printf '%s' "$1" | "$HOOKS/sem-push-pendente.sh" | jq -e '.decision == "block"' >/dev/null 2>&1; }
+bloqueia "$(stop "$TMP/coord-a")" && echo "ok      sem-push-pendente: rebase sem push não para" ||
+  { echo "FALHOU  sem-push-pendente: rebase sem push"; falhas=$((falhas + 1)); }
+bloqueia "$(stop "$TMP/coord-b")" && echo "ok      sem-push-pendente: branch nunca enviada não para" ||
+  { echo "FALHOU  sem-push-pendente: branch nunca enviada"; falhas=$((falhas + 1)); }
+bloqueia "$(stop "$TMP/coord-a" true)" && { echo "FALHOU  sem-push-pendente: stop_hook_active"; falhas=$((falhas + 1)); } ||
+  echo "ok      sem-push-pendente: segunda tentativa libera (sem laço)"
+bloqueia "$(stop "$COORD")" && { echo "FALHOU  sem-push-pendente: checkout principal"; falhas=$((falhas + 1)); } ||
+  echo "ok      sem-push-pendente: checkout principal não é checado"
+git -C "$COORD" worktree add -q -b feature/fatia-a-back "$TMP/coord-ab" develop
+g -C "$TMP/coord-ab" commit -q --allow-empty -m x
+bloqueia "$(stop "$TMP/coord-ab")" && { echo "FALHOU  sem-push-pendente: -back"; falhas=$((falhas + 1)); } ||
+  echo "ok      sem-push-pendente: branch -back é local por desenho"
+git -C "$TMP/coord-a" push -q --force-with-lease origin feature/fatia-a
+bloqueia "$(stop "$TMP/coord-a")" && { echo "FALHOU  sem-push-pendente: depois do push"; falhas=$((falhas + 1)); } ||
+  echo "ok      sem-push-pendente: com push em dia, para"
+
+# --- falha aberta
+for h in front-sem-shared sem-env sem-merge commit-sem-ia prettier statusline notifica sem-push-pendente atraso-ao-iniciar; do
+  expect "$h" 0 "não é json" "entrada inválida libera"
+done
+
+echo
+if [ "$falhas" -gt 0 ]; then echo "$falhas caso(s) falharam"; exit 1; fi
+echo "tudo ok"

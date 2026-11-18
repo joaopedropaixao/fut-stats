@@ -1,0 +1,28 @@
+meta {
+  name: Me (dono)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/me
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("usuário e grupos", function () {
+    expect(res.body).to.have.all.keys("user", "groups");
+    expect(res.body.user.email).to.equal("dono@dev.local");
+    expect(res.body.user).to.have.all.keys("id", "name", "email", "avatarUrl");
+    expect(res.body.groups).to.be.an("array");
+  });
+}

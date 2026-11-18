@@ -1,0 +1,920 @@
+@import 'tailwindcss';
+@import './styles/theme.css';
+
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Gramado à noite com holofote no topo (o tema Noite troca as cores pelos tokens) */
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+    background-image: radial-gradient(
+      320px 260px at 50% 0,
+      var(--color-floodlight) 0,
+      color-mix(in srgb, var(--color-floodlight) 33%, transparent) 260px,
+      transparent 460px
+    );
+    background-repeat: no-repeat;
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-body);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 2px;
+  }
+}
+
+/* Logo da capa: cai do alto em degraus (pixel art anda em degraus, sem suavizar). */
+@keyframes logo-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-48px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-logo-drop {
+  animation: logo-drop 360ms steps(6, end) both;
+}
+
+/* Bola da capa: entra correndo pela esquerda (no sentido do rastro) depois do logo e freia no ponto. */
+@keyframes ball-in {
+  0% {
+    transform: translateX(-360px);
+  }
+  80% {
+    transform: translateX(10px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@utility animate-ball-in {
+  animation: ball-in 700ms steps(14, end) 450ms both;
+}
+
+/* Carimbo da presença: bate na tela em degraus quando a resposta muda. */
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-stamp {
+  animation: stamp 200ms steps(4, end) both;
+}
+
+/* VS dos times (Momento/VS da folha): tudo em degraus, 0,9 s de animação e o quadro final fica parado. */
+@keyframes vs-run {
+  0% {
+    opacity: 0;
+    transform: translateX(var(--vs-from));
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-vs-run {
+  animation: vs-run 150ms steps(3, end) both;
+}
+
+/* Linhas de velocidade: entram junto dos jogadores e somem quando o VS bate */
+@keyframes vs-line {
+  0% {
+    opacity: 0;
+    transform: translateX(var(--vs-from));
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-vs-line {
+  animation: vs-line 450ms steps(5, end) both;
+}
+
+/* Choque: a tela pisca (branco a 55%) e treme */
+@keyframes vs-flash {
+  0% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@utility animate-vs-flash {
+  animation: vs-flash 300ms steps(3, end) both;
+}
+
+@keyframes vs-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-4px, 2px);
+  }
+  40% {
+    transform: translate(4px, -2px);
+  }
+  60% {
+    transform: translate(-2px, -2px);
+  }
+  80% {
+    transform: translate(2px, 2px);
+  }
+}
+
+@utility animate-vs-shake {
+  animation: vs-shake 300ms steps(1, end) both;
+}
+
+/* A palavra VS bate: chega grande e assenta em degraus */
+@keyframes vs-pop {
+  0% {
+    opacity: 0;
+    transform: rotate(-6deg) scale(2.2);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-6deg) scale(1.25);
+  }
+}
+
+@utility animate-vs-pop {
+  animation: vs-pop 150ms steps(3, end) both;
+}
+
+@keyframes vs-settle {
+  0% {
+    transform: rotate(-6deg) scale(1.25);
+  }
+  100% {
+    transform: rotate(-6deg) scale(1);
+  }
+}
+
+@utility animate-vs-settle {
+  animation: vs-settle 150ms steps(2, end) both;
+}
+
+/* Quadro final: aparece em degraus; com reduzir movimento é um fade (única animação que sobra) */
+@keyframes vs-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@utility animate-vs-fade {
+  animation: vs-fade 200ms steps(4, end) both;
+}
+
+/*
+ * Card de grande momento (placar, resultado, "Em jogo", "Hora da Resenha"): contorno de 3px e sombra dura.
+ * É a "borda" que o dono pediu; a sombra vira cinza no tema Noite, pelo --color-shadow.
+ */
+@utility moment-frame {
+  border: 3px solid var(--color-border-strong);
+  box-shadow: 4px 4px 0 var(--color-shadow);
+}
+
+/* Entrada do card em degraus (320 ms): sobe e assenta. `--moment-delay` escalona as peças. */
+@keyframes moment-in {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@utility animate-moment-in {
+  animation: moment-in 320ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* O dígito que mudou bate: chega grande e assenta em 3 degraus (220 ms) */
+@keyframes digit-bump {
+  0% {
+    transform: scale(var(--bump-scale, 1.4));
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@utility animate-digit-bump {
+  display: inline-flex;
+  transform-origin: var(--bump-origin, 50% 100%);
+  animation: digit-bump 220ms steps(3, end) var(--moment-delay, 0ms) both;
+}
+
+/* Linha de lista que entra: desliza da esquerda em degraus */
+@keyframes row-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-row-in {
+  animation: row-in 200ms steps(3, end) var(--moment-delay, 0ms) both;
+}
+
+/* Gaveta: abre em 180 ms e fecha em 100 ms (o dono achou a descida demorada) */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scrim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@utility animate-sheet-up {
+  animation: sheet-up 180ms var(--ease-out) both;
+}
+
+@utility animate-sheet-down {
+  animation: sheet-down 100ms ease-in both;
+}
+
+@utility animate-scrim-in {
+  animation: scrim-in 180ms linear both;
+}
+
+@utility animate-scrim-out {
+  animation: scrim-out 100ms linear both;
+}
+
+/* Menu pequeno (os três pontos da linha do jogador) */
+@keyframes menu-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-menu-in {
+  animation: menu-in 150ms steps(3, end) both;
+}
+
+/* Bolinha de "ao vivo": pisca em dois degraus */
+@keyframes live-blink {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+@utility animate-live-blink {
+  animation: live-blink 900ms steps(1, end) infinite alternate;
+}
+
+/* A virada do rodízio chama atenção por um instante, sem brilho ou movimento contínuo. */
+@keyframes rotation-change {
+  0%,
+  100% {
+    outline: 0 solid transparent;
+  }
+  50% {
+    outline: 3px solid var(--color-warning);
+  }
+}
+
+@utility animate-rotation-change {
+  animation: rotation-change 360ms steps(2, end) 1;
+}
+
+@keyframes rotation-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-rotation-message {
+  animation: rotation-message-in 200ms steps(4, end) both;
+}
+
+/* Confete pixel do YOU WIN: cai em degraus (1,4 s) e some no chão do card */
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, -24px);
+  }
+  1% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 0px), 250px);
+  }
+}
+
+@utility animate-confetti-fall {
+  animation: confetti-fall var(--dur, 1400ms) steps(10, end) var(--moment-delay, 0ms) both;
+}
+
+/* Estrelas pixel: piscam encolhendo e voltando, em dois degraus */
+@keyframes star-twinkle {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.65);
+  }
+}
+
+@utility animate-star-twinkle {
+  animation: star-twinkle 700ms steps(1, end) var(--moment-delay, 0ms) infinite alternate;
+}
+
+/* Bloco "?" dos times: pula e volta em degraus (pixel art anda em degraus), 240 ms. */
+@keyframes block-hop {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@utility animate-block-hop {
+  animation: block-hop 240ms steps(4, end) both;
+}
+
+/*
+ * Moeda do bloco "?": sai de dentro do bloco, sobe em degraus e some (560 ms). O giro é a largura do sprite
+ * em degraus (cheia, meia, fina, meia), 4 voltas de 140 ms. A moeda tem 24px de largura (escala 3).
+ */
+@keyframes coin-rise {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-76px);
+  }
+  99% {
+    opacity: 1;
+    transform: translateY(-76px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-76px);
+  }
+}
+
+@keyframes coin-spin {
+  0% {
+    transform: scaleX(1);
+  }
+  25% {
+    transform: scaleX(0.5);
+  }
+  50% {
+    transform: scaleX(0.125);
+  }
+  75% {
+    transform: scaleX(0.5);
+  }
+}
+
+@utility animate-coin-rise {
+  animation: coin-rise 560ms steps(7, end) both;
+}
+
+@utility animate-coin-spin {
+  animation: coin-spin 140ms steps(1, end) 4;
+}
+
+/* Votos enviados: o bonequinho dá um pulinho de 2 quadros (parado no chão, no ar), sem parar. Reduzir movimento: parado. */
+@keyframes hop {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-12px);
+  }
+}
+
+@utility animate-hop {
+  animation: hop 400ms steps(1, end) infinite alternate;
+}
+
+/* Reduzir movimento: nada anima fora dos tokens de duração (que já vão a 0) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+  }
+}
+
+/* O fade do quadro final é a exceção: reduzir movimento troca os degraus por um fade suave de 200 ms.
+   A entrada dos cards de grande momento também vira só um fade; o confete e as estrelas ficam parados. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-vs-fade,
+  .animate-moment-in {
+    animation-name: vs-fade;
+    animation-duration: 200ms !important;
+    animation-timing-function: linear !important;
+    animation-delay: 0ms !important;
+  }
+
+  .animate-confetti-fall {
+    display: none;
+  }
+
+  .animate-rotation-change {
+    animation: none;
+  }
+
+  .animate-rotation-message {
+    animation: vs-fade 200ms linear both !important;
+  }
+}
+
+/* Texto em pixel (Silkscreen): caixa alta, sem suavizar a borda. Use com text-pixel-sm/md/lg. */
+@utility pixel {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  text-transform: uppercase;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+/* Partes que o navegador desenha também seguem o DS: seleção e cursor de digitação */
+@layer base {
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-accent);
+  }
+}
+
+/*
+ * Pacote do Craque (fatia pacote-do-craque): faixas das cartas e animações do pacote. Tudo em degraus e só
+ * `transform` / `opacity` (reduzir movimento troca por um fade ou deixa parado).
+ */
+
+/* Faixas: bronze, prata e ouro (família do --color-gold). A carta apagada (antes do rosto) usa o escuro. */
+.card-frame {
+  --card-bg: var(--color-surface-3);
+  --card-ink: var(--color-text);
+  --card-ink-2: var(--color-text-muted);
+  background-color: var(--card-bg);
+  color: var(--card-ink);
+}
+
+.card-frame[data-tier='gold'] {
+  --card-bg: linear-gradient(
+    135deg,
+    #f6d77a 0%,
+    #e8a93a 30%,
+    #fbe7a8 55%,
+    #d4f0e6 78%,
+    #e8a93a 100%
+  );
+  --card-ink: #111111;
+  --card-ink-2: #3a2a10;
+}
+
+.card-frame[data-tier='silver'] {
+  --card-bg: linear-gradient(
+    135deg,
+    #f4f7fa 0%,
+    #a9b4bf 30%,
+    #e6ecf1 55%,
+    #c3d3e3 78%,
+    #93a0ad 100%
+  );
+  --card-ink: #111111;
+  --card-ink-2: #28303a;
+}
+
+.card-frame[data-tier='bronze'] {
+  --card-bg: linear-gradient(
+    135deg,
+    #efbf93 0%,
+    #b8703f 30%,
+    #e8b283 55%,
+    #d3a27b 78%,
+    #9a5a2e 100%
+  );
+  --card-ink: #130a03;
+  --card-ink-2: #2d1a0c;
+}
+
+.card-frame[data-tier] {
+  background-image: var(--card-bg);
+}
+
+/*
+ * Palco da carta do Craque (quadro revelado e página do resultado): o gramado à noite com holofote sobre a carta.
+ * Gradiente do verde fundo para o verde do app, cone de luz e um padrão pixel discreto. Só CSS, sem imagem, e
+ * tudo parado (nada anima aqui, então "reduzir movimento" não muda nada).
+ */
+.craque-stage {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(
+      250px 230px at 50% 34%,
+      rgb(255 238 176 / 34%) 0,
+      rgb(232 169 58 / 14%) 60%,
+      transparent 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-bg) 78%, #000) 0%,
+      var(--color-surface-raised) 58%,
+      var(--color-surface-3) 100%
+    );
+}
+
+/* O cone de luz do holofote, do alto até a carta */
+.craque-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 62%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(255 244 200 / 20%) 0%, transparent 100%);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+}
+
+/* O padrão pixel: um tabuleiro de quadradinhos de 4 px, quase invisível */
+.craque-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: conic-gradient(
+    rgb(255 255 255 / 4.5%) 25%,
+    transparent 0 50%,
+    rgb(255 255 255 / 4.5%) 0 75%,
+    transparent 0
+  );
+  background-size: 8px 8px;
+}
+
+/* O Perna de Pau sendo você: depois de cair, a carta balança de leve em degraus (só transform) enquanto a piada dura */
+@keyframes flop-sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-2deg);
+  }
+  75% {
+    transform: rotate(2deg);
+  }
+}
+
+@utility animate-flop-sway {
+  transform-origin: 50% 100%;
+  animation: flop-sway 1000ms steps(4, end) 700ms infinite;
+}
+
+/* O pacote treme: fecha o toque, em degraus que crescem (700 ms) */
+@keyframes pack-shake {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  10% {
+    transform: translate(-3px, 0) rotate(-2deg);
+  }
+  20% {
+    transform: translate(3px, 1px) rotate(2deg);
+  }
+  30% {
+    transform: translate(-4px, -1px) rotate(-3deg);
+  }
+  40% {
+    transform: translate(4px, 1px) rotate(3deg);
+  }
+  50% {
+    transform: translate(-6px, 0) rotate(-4deg);
+  }
+  60% {
+    transform: translate(6px, -1px) rotate(4deg);
+  }
+  70% {
+    transform: translate(-6px, 1px) rotate(-5deg);
+  }
+  80% {
+    transform: translate(6px, 0) rotate(5deg);
+  }
+  90% {
+    transform: translate(-3px, 0) rotate(-2deg);
+  }
+}
+
+@utility animate-pack-shake {
+  animation: pack-shake 700ms steps(1, end) both;
+}
+
+/* Miniatura do início: treme de leve, num laço com pausa (parada com reduzir movimento) */
+@keyframes pack-wobble {
+  0%,
+  60%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  64% {
+    transform: translate(-2px, 0) rotate(-4deg);
+  }
+  72% {
+    transform: translate(2px, 0) rotate(4deg);
+  }
+  80% {
+    transform: translate(-2px, 0) rotate(-3deg);
+  }
+  88% {
+    transform: translate(2px, 0) rotate(3deg);
+  }
+  96% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@utility animate-pack-wobble {
+  animation: pack-wobble 2400ms steps(1, end) infinite;
+}
+
+/* Rasgo: a tampa sai girando em degraus e a luz vaza em faixas (600 ms) */
+@keyframes pack-flap {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    transform: translate(-46px, -64px) rotate(-24deg);
+  }
+}
+
+@utility animate-pack-flap {
+  animation: pack-flap 420ms steps(5, end) both;
+}
+
+@keyframes pack-light {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@utility animate-pack-light {
+  transform-origin: 50% 100%;
+  animation: pack-light 480ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* Flash da revelação: branco que apaga em degraus */
+@keyframes pack-flash {
+  0% {
+    opacity: 0;
+  }
+  1% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@utility animate-pack-flash {
+  animation: pack-flash 280ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* Carta que cai virada (Perna de Pau): despenca, bate no chão e assenta torta */
+@keyframes pack-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-220px) rotate(-28deg);
+  }
+  1% {
+    opacity: 1;
+  }
+  55% {
+    transform: translateY(0) rotate(14deg);
+  }
+  70% {
+    transform: translateY(-14px) rotate(9deg);
+  }
+  100% {
+    transform: translateY(0) rotate(6deg);
+  }
+}
+
+@utility animate-pack-drop {
+  animation: pack-drop 600ms steps(8, end) both;
+}
+
+/* A sua carta: vira de costas para a frente (a largura em degraus, como a moeda) */
+@keyframes pack-flip {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.1) translateY(24px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1) translateY(0);
+  }
+}
+
+@utility animate-pack-flip {
+  animation: pack-flip 420ms steps(5, end) both;
+}
+
+/* Raios de luz atrás da carta: giram em degraus devagar enquanto a carta aparece */
+@keyframes pack-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-pack-burst {
+  animation: pack-burst 360ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* Brilho holográfico na carta do Craque: uma faixa diagonal atravessa em degraus, num laço lento */
+@keyframes holo-sweep {
+  0%,
+  55% {
+    opacity: 0;
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  56% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(260%) skewX(-18deg);
+  }
+}
+
+@utility animate-holo {
+  animation: holo-sweep 3600ms steps(14, end) infinite;
+}
+
+/* Entrada da carta do final: sobe em degraus, uma depois da outra */
+@keyframes final-in {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-final-in {
+  animation: final-in 280ms steps(4, end) var(--moment-delay, 0ms) both;
+}
+
+/* Reduzir movimento: o pacote do início fica parado; as cartas finais entram só com fade; sem brilho */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pack-wobble,
+  .animate-holo,
+  .animate-pack-flash,
+  .animate-pack-burst {
+    animation: none !important;
+  }
+
+  .animate-holo {
+    display: none;
+  }
+
+  .animate-final-in {
+    animation-name: vs-fade;
+    animation-duration: 200ms !important;
+    animation-timing-function: linear !important;
+    animation-delay: 0ms !important;
+  }
+}

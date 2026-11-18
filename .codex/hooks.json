@@ -1,0 +1,53 @@
+{
+  "description": "Proteções compartilhadas do Fut Stats para tarefas no Codex.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/bridge.mjs\" pre",
+            "timeout": 30,
+            "statusMessage": "Conferindo as regras do Fut Stats"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/bridge.mjs\" post",
+            "timeout": 30,
+            "statusMessage": "Formatando os arquivos alterados"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/bridge.mjs\" start",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/bridge.mjs\" stop",
+            "timeout": 900
+          }
+        ]
+      }
+    ]
+  }
+}

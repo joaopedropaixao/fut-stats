@@ -1,0 +1,25 @@
+meta {
+  name: Criar sem sessao
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/groups
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Pelada Sem Dono",
+    "nickname": "Ninguem",
+    "primaryPosition": "DEFENDER"
+  }
+}
+
+tests {
+  test("status 401", function () {
+    expect(res.status).to.equal(401);
+  });
+}

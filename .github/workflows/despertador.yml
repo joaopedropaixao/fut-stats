@@ -1,0 +1,36 @@
+# Despertador: de 30 em 30 minutos chama a API de PRODUÇÃO (direto no Render, não pelo endereço do app) para fechar as
+# votações vencidas e o aviso do resultado sair mesmo com ninguém usando o app. Também acorda a API que o Render põe
+# para dormir. O staging não tem despertador (não precisa de hora certa).
+# Segredos do repositório (Settings > Secrets and variables > Actions): TICK_SECRET (o mesmo do serviço de produção
+# no Render) e PROD_TICK_URL (https://<api-de-producao>.onrender.com/api/internal/tick). Passo a passo em docs/deploy.md.
+# O intervalo está numa linha só (cron abaixo). 30 min e não 15: ver "Decisões" em docs/specs/producao.md.
+name: Despertador
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      # A API pode estar dormindo e levar cerca de 1 minuto para acordar: espera até 2 minutos e tenta mais uma vez
+      # (também se der timeout ou erro de conexão). Qualquer resposta diferente de 200 falha o job
+      # (e o GitHub avisa o dono por e-mail). Sem `-v` nem `set -x`: o segredo nunca vai para o log.
+      - name: Chamar o despertador da API de produção
+        env:
+          TICK_SECRET: ${{ secrets.TICK_SECRET }}
+          PROD_TICK_URL: ${{ secrets.PROD_TICK_URL }}
+        run: |
+          set -eu
+          if [ -z "$TICK_SECRET" ] || [ -z "$PROD_TICK_URL" ]; then
+            echo "Faltam os segredos TICK_SECRET e PROD_TICK_URL (ver docs/deploy.md)." >&2
+            exit 1
+          fi
+          curl --silent --show-error --fail --max-time 120 --retry 1 --retry-all-errors \
+            -X POST -H "Authorization: Bearer $TICK_SECRET" "$PROD_TICK_URL"
+          echo

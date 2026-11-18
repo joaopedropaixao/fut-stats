@@ -1,0 +1,17 @@
+meta {
+  name: Codigo antigo nao vale mais
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/invites/{{oldInviteCode}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 404", function () {
+    expect(res.status).to.equal(404);
+  });
+}

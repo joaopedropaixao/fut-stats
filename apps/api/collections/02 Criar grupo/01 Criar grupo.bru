@@ -1,0 +1,50 @@
+meta {
+  name: Criar grupo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/groups
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+body:json {
+  {
+    "name": "{{groupName}}",
+    "nickname": "  Dono  ",
+    "primaryPosition": "MIDFIELDER"
+  }
+}
+
+vars:post-response {
+  groupId: res.body.id
+  groupSlug: res.body.slug
+}
+
+script:pre-request {
+  bru.setVar("groupName", "Pelada Bruno " + Date.now().toString(36));
+}
+
+tests {
+  test("status 201", function () {
+    expect(res.status).to.equal(201);
+  });
+
+  test("formato do grupo", function () {
+    expect(res.body).to.have.all.keys("id", "name", "slug", "role", "memberCount");
+    expect(res.body.id).to.be.a("string");
+    expect(res.body.slug).to.be.a("string");
+  });
+
+  test("quem cria é admin e único membro", function () {
+    expect(res.body.name).to.equal(bru.getVar("groupName"));
+    expect(res.body.role).to.equal("ADMIN");
+    expect(res.body.memberCount).to.equal(1);
+  });
+}

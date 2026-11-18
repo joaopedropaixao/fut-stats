@@ -1,0 +1,33 @@
+meta {
+  name: Admin usa o proprio convite
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/invites/{{inviteCode}}/join
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+body:json {
+  {
+    "nickname": "Dono",
+    "primaryPosition": "MIDFIELDER"
+  }
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("continua ADMIN", function () {
+    expect(res.body.role).to.equal("ADMIN");
+    expect(res.body.memberCount).to.equal(2);
+  });
+}

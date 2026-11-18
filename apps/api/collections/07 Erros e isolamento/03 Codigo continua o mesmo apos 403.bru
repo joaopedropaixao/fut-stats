@@ -1,0 +1,25 @@
+meta {
+  name: Codigo continua o mesmo apos 403
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/groups/{{groupId}}/invite
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.status).to.equal(200);
+  });
+
+  test("PLAYER não trocou o código", function () {
+    expect(res.body.code).to.equal(bru.getVar("inviteCode"));
+  });
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Trocar convite de outro grupo (intruso)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/groups/{{groupId}}/invite
+  body: none
+  auth: none
+}
+
+headers {
+  Cookie: {{outsiderCookie}}
+}
+
+tests {
+  test("status 404", function () {
+    expect(res.status).to.equal(404);
+  });
+}

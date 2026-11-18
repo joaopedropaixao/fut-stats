@@ -1,0 +1,312 @@
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  canChangeAttendance,
+  isRoundDeletable,
+  isRoundEditable,
+  pickCurrentRound,
+  pickLatestResult,
+  pickVotingRound,
+  RESULT_HIGHLIGHT_DAYS,
+  rankByRating,
+  suggestNextRoundDate,
+  validateAttendanceChange,
+  type RoundActor,
+} from '@fut-stats/domain';
+import {
+  ATTENDANCE_ERROR_LABELS,
+  ROUND_NOT_DELETABLE_LABEL,
+  ROUND_NOT_EDITABLE_LABEL,
+  type AttendanceMember,
+  type CreateRoundInput,
+  type RoundDetail,
+  type RoundList,
+  type RoundPermissions,
+  type RoundSummary,
+  type SetAttendanceInput,
+  type UpdateRoundInput,
+} from '@fut-stats/shared';
+import type { GroupMembership } from '../auth/request';
+import { AVATAR_SELECT, toAvatar } from '../common/avatar';
+import { RoundEventsService } from '../events/round-events.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { RankingService } from '../ranking/ranking.service';
+import { VotingService } from '../voting/voting.service';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Só conta quem confirmou e segue ativo no grupo. */
+const confirmedCount = {
+  _count: {
+    select: { attendances: { where: { confirmed: true, membership: { active: true } } } },
+  },
+} as const;
+
+const summarySelect = {
+  id: true,
+  number: true,
+  scheduledAt: true,
+  location: true,
+  status: true,
+  ...confirmedCount,
+} as const;
+
+type SummaryRow = {
+  id: string;
+  number: number;
+  scheduledAt: Date;
+  location: string | null;
+  status: RoundSummary['status'];
+  _count: { attendances: number };
+};
+
+function toSummary({ _count, scheduledAt, ...round }: SummaryRow): RoundSummary {
+  return { ...round, scheduledAt: scheduledAt.toISOString(), confirmedCount: _count.attendances };
+}
+
+function toActor(membership: GroupMembership): RoundActor {
+  return { id: membership.id, isAdmin: membership.role === 'ADMIN' };
+}
+
+@Injectable()
+export class RoundsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly voting: VotingService,
+    private readonly ranking: RankingService,
+    private readonly events: RoundEventsService,
+  ) {}
+
+  async create(membership: GroupMembership, input: CreateRoundInput): Promise<RoundDetail> {
+    const round = await this.prisma.round.create({
+      data: {
+        groupId: membership.groupId,
+        scheduledAt: new Date(input.scheduledAt),
+        location: input.location,
+      },
+      select: { id: true },
+    });
+    this.events.emit({
+      groupId: membership.groupId,
+      roundId: round.id,
+      type: 'ROUND_CREATED',
+      scopes: ['status'],
+      actorMembershipId: membership.id,
+    });
+    return this.detail(membership, round.id);
+  }
+
+  /**
+   * Próximas (a partir de agora, mais perto primeiro), passadas (mais recente primeiro) e qual é a
+   * rodada da vez (`pickCurrentRound`), para o início não repetir a regra.
+   */
+  async list(groupId: string, now = new Date()): Promise<RoundList> {
+    // Votação com o prazo vencido e ninguém fechou ainda: fecha antes de responder (a API gratuita dorme).
+    await this.voting.closeDueVotings(now, groupId);
+
+    const [upcoming, past, lastCreated, recentlyClosed] = await Promise.all([
+      this.prisma.round.findMany({
+        where: { groupId, scheduledAt: { gte: now } },
+        select: summarySelect,
+        orderBy: { scheduledAt: 'asc' },
+      }),
+      this.prisma.round.findMany({
+        where: { groupId, scheduledAt: { lt: now } },
+        select: summarySelect,
+        orderBy: { scheduledAt: 'desc' },
+      }),
+      // A última rodada que o admin criou dá o dia, a hora e o local da sugestão (não a mais adiante no
+      // calendário: se ele marcou um domingo agora, a próxima sugestão é domingo)
+      this.prisma.round.findFirst({
+        where: { groupId },
+        select: { scheduledAt: true, location: true },
+        // number desempata rodadas criadas no mesmo milissegundo
+        orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
+      }),
+      // Só as que fecharam dentro do destaque do resultado; quem decide qual é a última é o domain
+      this.prisma.round.findMany({
+        where: {
+          groupId,
+          status: 'CLOSED',
+          closedAt: { gt: new Date(now.getTime() - RESULT_HIGHLIGHT_DAYS * DAY_MS) },
+        },
+        select: { id: true, number: true, status: true, closedAt: true },
+      }),
+    ]);
+    const current = pickCurrentRound([...upcoming, ...past], now);
+    const voting = pickVotingRound([...upcoming, ...past]);
+    const lastResult = pickLatestResult(recentlyClosed, now);
+    const suggestedAt = suggestNextRoundDate(lastCreated?.scheduledAt ?? null, now);
+    return {
+      upcoming: upcoming.map(toSummary),
+      past: past.map(toSummary),
+      currentId: current?.id ?? null,
+      suggestion: suggestedAt
+        ? { scheduledAt: suggestedAt.toISOString(), location: lastCreated!.location }
+        : null,
+      votingId: voting?.id ?? null,
+      lastResult: lastResult
+        ? {
+            roundId: lastResult.id,
+            number: lastResult.number,
+            closedAt: lastResult.closedAt!.toISOString(),
+          }
+        : null,
+    };
+  }
+
+  /** A rodada com a lista de presença dos membros ativos: Vou, Não vou e quem não respondeu. */
+  async detail(membership: GroupMembership, roundId: string): Promise<RoundDetail> {
+    const round = await this.prisma.round.findFirst({
+      where: { id: roundId, groupId: membership.groupId },
+      select: summarySelect,
+    });
+    if (!round) throw new NotFoundException();
+
+    const members = await this.prisma.membership.findMany({
+      where: { groupId: membership.groupId, active: true },
+      select: {
+        id: true,
+        nickname: true,
+        photoUrl: true,
+        ...AVATAR_SELECT,
+        primaryPosition: true,
+        isHiredGoalkeeper: true,
+        attendances: { where: { roundId }, select: { confirmed: true, updatedAt: true } },
+      },
+      orderBy: [{ nickname: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    const attendance: RoundDetail['attendance'] = { confirmed: [], declined: [], pending: [] };
+    let myAttendance: boolean | null = null;
+    // Ranking do grupo pela nota de referência (a que o seletor usa), entre os membros ativos
+    const ratings = await this.ranking.referenceRatings(membership.groupId);
+    const ranks = rankByRating(members.map((m) => ({ id: m.id, rating: ratings.get(m.id)! })));
+    for (const { id, attendances, avatarSkin, avatarHair, avatarHairColor, ...member } of members) {
+      const answer = attendances[0]?.confirmed ?? null;
+      if (id === membership.id) myAttendance = answer;
+      const item: AttendanceMember = {
+        membershipId: id,
+        ...member,
+        avatar: toAvatar({ avatarSkin, avatarHair, avatarHairColor }),
+        respondedAt: attendances[0]?.updatedAt.toISOString() ?? null,
+        rating: ratings.get(id)!,
+        rank: ranks.get(id)!,
+      };
+      if (answer === null) attendance.pending.push(item);
+      else (answer ? attendance.confirmed : attendance.declined).push(item);
+    }
+    // Quem vai, na ordem em que confirmou (a lista de chamada da pelada)
+    attendance.confirmed.sort((a, b) => a.respondedAt!.localeCompare(b.respondedAt!));
+    const actor = toActor(membership);
+    const permissions: RoundPermissions = {
+      setOwnAttendance: canChangeAttendance(membership.id, actor, round.status),
+      setAnyAttendance: actor.isAdmin && canChangeAttendance(membership.id, actor, round.status),
+      edit: actor.isAdmin && isRoundEditable(round.status),
+      delete: actor.isAdmin && isRoundDeletable(round.status),
+    };
+    return {
+      ...toSummary(round),
+      myMembershipId: membership.id,
+      permissions,
+      myAttendance,
+      attendance,
+    };
+  }
+
+  /** Muda data/hora e/ou local. Só antes do jogo (`isRoundEditable`). */
+  async update(
+    membership: GroupMembership,
+    roundId: string,
+    input: UpdateRoundInput,
+  ): Promise<RoundDetail> {
+    const round = await this.findRound(membership.groupId, roundId);
+    if (!isRoundEditable(round.status)) {
+      throw new ConflictException({
+        code: 'ROUND_NOT_EDITABLE',
+        message: ROUND_NOT_EDITABLE_LABEL,
+      });
+    }
+    await this.prisma.round.update({
+      where: { id: round.id },
+      data: {
+        scheduledAt: input.scheduledAt === undefined ? undefined : new Date(input.scheduledAt),
+        location: input.location,
+      },
+    });
+    this.events.emit({
+      groupId: membership.groupId,
+      roundId: round.id,
+      type: 'ROUND_UPDATED',
+      scopes: ['status'],
+      actorMembershipId: membership.id,
+    });
+    return this.detail(membership, round.id);
+  }
+
+  /** Apaga a rodada (e as presenças). Só antes do jogo (`isRoundDeletable`). */
+  async remove(membership: GroupMembership, roundId: string): Promise<void> {
+    const round = await this.findRound(membership.groupId, roundId);
+    if (!isRoundDeletable(round.status)) {
+      throw new ConflictException({
+        code: 'ROUND_NOT_DELETABLE',
+        message: ROUND_NOT_DELETABLE_LABEL,
+      });
+    }
+    await this.prisma.round.delete({ where: { id: round.id } });
+    this.events.emit({
+      groupId: membership.groupId,
+      roundId: round.id,
+      type: 'ROUND_DELETED',
+      scopes: ['status'],
+      actorMembershipId: membership.id,
+    });
+  }
+
+  /**
+   * Marca Vou / Não vou de um membro ativo do grupo. Quem pode e até quando é do domínio
+   * (`validateAttendanceChange`): mexer na presença de outro sem ser admin → 403; fora do prazo → 409.
+   */
+  async setAttendance(
+    membership: GroupMembership,
+    roundId: string,
+    membershipId: string,
+    input: SetAttendanceInput,
+  ): Promise<RoundDetail> {
+    const round = await this.findRound(membership.groupId, roundId);
+    const target = await this.prisma.membership.findFirst({
+      where: { id: membershipId, groupId: membership.groupId, active: true },
+      select: { id: true },
+    });
+    if (!target) throw new NotFoundException();
+
+    const [error] = validateAttendanceChange(target.id, toActor(membership), round.status);
+    if (error) {
+      const body = { code: error, message: ATTENDANCE_ERROR_LABELS[error] };
+      throw error === 'NOT_OWN_ATTENDANCE'
+        ? new ForbiddenException(body)
+        : new ConflictException(body);
+    }
+
+    await this.prisma.attendance.upsert({
+      where: { roundId_membershipId: { roundId: round.id, membershipId: target.id } },
+      create: { roundId: round.id, membershipId: target.id, confirmed: input.confirmed },
+      update: { confirmed: input.confirmed },
+    });
+    return this.detail(membership, round.id);
+  }
+
+  /** A rodada, só se for do grupo da rota; senão 404 (não revela rodada de outro grupo). */
+  private async findRound(groupId: string, roundId: string) {
+    const round = await this.prisma.round.findFirst({
+      where: { id: roundId, groupId },
+      select: { id: true, status: true },
+    });
+    if (!round) throw new NotFoundException();
+    return round;
+  }
+}

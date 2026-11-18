@@ -1,0 +1,28 @@
+meta {
+  name: Entrar com codigo antigo
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/invites/{{oldInviteCode}}/join
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{joinerCookie}}
+}
+
+body:json {
+  {
+    "nickname": "Parceiro",
+    "primaryPosition": "WINGER"
+  }
+}
+
+tests {
+  test("status 404", function () {
+    expect(res.status).to.equal(404);
+  });
+}

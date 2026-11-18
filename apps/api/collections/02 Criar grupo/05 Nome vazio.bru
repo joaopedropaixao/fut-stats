@@ -1,0 +1,35 @@
+meta {
+  name: Nome vazio
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/groups
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: {{ownerCookie}}
+}
+
+body:json {
+  {
+    "name": "   ",
+    "nickname": "Dono",
+    "primaryPosition": "DEFENDER"
+  }
+}
+
+tests {
+  test("status 400", function () {
+    expect(res.status).to.equal(400);
+  });
+
+  test("aponta o campo name", function () {
+    expect(res.body.message).to.equal("Dados inválidos");
+    const paths = res.body.issues.map((i) => i.path);
+    expect(paths).to.include("name");
+  });
+}
