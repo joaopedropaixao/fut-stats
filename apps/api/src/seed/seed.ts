@@ -85,8 +85,28 @@ const PLAYED_SCENARIOS: ReadonlySet<SeedScenario> = new Set([
   'encerrada',
 ]);
 
+/** Onde e como o seed escreve: o grupo, os e-mails/googleIds dos fictícios e a guarda. O padrão é o seed de dev. */
+export interface SeedTarget {
+  group: { name: string; slug: string; inviteCode: string };
+  /** Domínio dos e-mails dos jogadores fictícios (`<apelido>@<domínio>`). */
+  emailDomain: string;
+  /** `googleId` dos fictícios a partir do e-mail. */
+  googleIdFor: (email: string) => string;
+  /** Guarda que roda antes de tocar no banco. */
+  assertAllowed: (env: NodeJS.ProcessEnv) => void;
+}
+
+export const DEV_SEED_TARGET: SeedTarget = {
+  group: SEED_GROUP,
+  emailDomain: 'example.com',
+  googleIdFor: (email) => `seed-${email}`,
+  assertAllowed: assertSeedAllowed,
+};
+
 export interface SeedOptions {
   scenario?: SeedScenario;
+  /** Grupo, e-mails e guarda do seed (padrão: o de desenvolvimento). */
+  target?: SeedTarget;
   /** Variáveis de ambiente que decidem se o seed pode rodar (só para testes; padrão `process.env`). */
   env?: NodeJS.ProcessEnv;
   /** "Agora" do seed: as datas das rodadas saem dele. */
@@ -187,22 +207,27 @@ export function assertSeedAllowed(env: NodeJS.ProcessEnv = process.env): void {
 /** Monta o grupo, os membros e as rodadas do seed. Rodar de novo recria só as rodadas deste grupo. */
 export async function seed(
   prisma: PrismaClient,
-  { scenario = DEFAULT_SEED_SCENARIO, now = new Date(), env = process.env }: SeedOptions = {},
+  {
+    scenario = DEFAULT_SEED_SCENARIO,
+    now = new Date(),
+    env = process.env,
+    target = DEV_SEED_TARGET,
+  }: SeedOptions = {},
 ): Promise<SeedSummary> {
-  assertSeedAllowed(env);
+  target.assertAllowed(env);
   const group = await prisma.group.upsert({
-    where: { slug: SEED_GROUP.slug },
+    where: { slug: target.group.slug },
     update: {},
-    create: { ...SEED_GROUP },
+    create: { ...target.group },
   });
 
   const members: SeedMemberRow[] = [];
   for (const [index, member] of MEMBERS.entries()) {
-    const email = emailFor(member.nickname);
+    const email = emailFor(member.nickname, target.emailDomain);
     const user = await prisma.user.upsert({
       where: { email },
       update: { name: member.name },
-      create: { name: member.name, email, googleId: `seed-${email}` },
+      create: { name: member.name, email, googleId: target.googleIdFor(email) },
     });
 
     const data = {
@@ -345,12 +370,12 @@ async function seedPosts(
   return planned.length;
 }
 
-function emailFor(nickname: string): string {
+function emailFor(nickname: string, domain: string): string {
   const slug = nickname
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
-  return `${slug}@example.com`;
+  return `${slug}@${domain}`;
 }
 
 /** Todas as rodadas, da mais antiga à atual, já validadas pelo domínio. */
