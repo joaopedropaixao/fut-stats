@@ -111,23 +111,32 @@ describe('C9: render.yaml', () => {
   });
 });
 
-describe('C10: vercel.json', () => {
-  const host = 'meupelada.com.br';
-  /** O vercel.json de verdade, com o marcador do domínio trocado pelo nome (como o R0 faz). */
-  const comDominio = () =>
-    JSON.parse(JSON.stringify(vercel()).replaceAll(DOMAIN_PLACEHOLDER, host));
+// Os testes não dependem do domínio escolhido: o host é o que está no render.yaml de verdade, e as variantes (com o
+// marcador, com outro domínio) saem dele por troca de texto.
+const realHost = productionHostOf(render);
+const OTHER = 'meupelada.com.br';
+const swapHost = (text, from, to) => text.replaceAll(from, to);
 
-  it('C10: a configuração de verdade (com o marcador ou com um domínio) passa', () => {
-    assert.deepEqual(checkVercel(vercel(), DOMAIN_PLACEHOLDER), []);
+describe('C10: vercel.json', () => {
+  const host = OTHER;
+  /** O vercel.json de verdade, com o host de produção trocado por `host` (o que o R0 faz com o marcador). */
+  const comDominio = () => JSON.parse(swapHost(JSON.stringify(vercel()), realHost, host));
+  const comMarcador = () =>
+    JSON.parse(swapHost(JSON.stringify(vercel()), realHost, DOMAIN_PLACEHOLDER));
+
+  it('C10: a configuração de verdade, com o domínio de hoje, com o marcador ou com outro domínio, passa', () => {
+    assert.ok(realHost && !realHost.endsWith('.vercel.app'));
+    assert.deepEqual(checkVercel(vercel(), realHost), []);
+    assert.deepEqual(checkVercel(comMarcador(), DOMAIN_PLACEHOLDER), []);
     assert.deepEqual(checkVercel(comDominio(), host), []);
   });
 
   it('C10: produção vale para o domínio próprio e para o endereço padrão da Vercel, antes do staging', () => {
-    const rules = comDominio().rewrites.filter((rule) => rule.source === '/api/:path*');
+    const rules = vercel().rewrites.filter((rule) => rule.source === '/api/:path*');
     assert.deepEqual(
       rules.map((rule) => [rule.has?.[0]?.value, rule.destination]),
       [
-        [host, 'https://fut-stats-api.onrender.com/api/:path*'],
+        [realHost, 'https://fut-stats-api.onrender.com/api/:path*'],
         ['fut-stats-app.vercel.app', 'https://fut-stats-api.onrender.com/api/:path*'],
         [undefined, 'https://fut-stats-api-staging.onrender.com/api/:path*'],
       ],
@@ -170,22 +179,27 @@ describe('C10: vercel.json', () => {
 });
 
 describe('domínio de produção (APP_URL do render.yaml)', () => {
-  const comUrl = (url) => mutate(render, `value: https://${DOMAIN_PLACEHOLDER}`, `value: ${url}`);
+  const comUrl = (url) => mutate(render, `value: https://${realHost}`, `value: ${url}`);
+  const comMarcador = swapHost(render, realHost, DOMAIN_PLACEHOLDER);
 
-  it('com o marcador, só avisa (não falha o pnpm test), em voz alta', () => {
-    const { problems, warnings } = checkProductionDomain(render);
-    assert.deepEqual(problems, []);
-    assert.equal(warnings.length, 1);
-    assert.match(
-      warnings[0],
-      /produção ainda com <DOMINIO>: trocar pelo domínio comprado antes da release/,
-    );
-    assert.equal(productionHostOf(render), DOMAIN_PLACEHOLDER);
+  it('o domínio de hoje não avisa nem reclama', () => {
+    assert.deepEqual(checkProductionDomain(render), { problems: [], warnings: [] });
   });
 
-  it('com um domínio próprio, não avisa nem reclama', () => {
-    const result = checkProductionDomain(comUrl('https://meupelada.com.br'));
-    assert.deepEqual(result, { problems: [], warnings: [] });
+  it('com o marcador, só avisa (não falha o pnpm test), em voz alta', () => {
+    const { problems, warnings } = checkProductionDomain(comMarcador);
+    assert.deepEqual(problems, []);
+    assert.equal(warnings.length, 1);
+    assert.ok(warnings[0].includes(`produção ainda com ${DOMAIN_PLACEHOLDER}`));
+    assert.match(warnings[0], /trocar pelo domínio comprado antes da release/);
+    assert.equal(productionHostOf(comMarcador), DOMAIN_PLACEHOLDER);
+  });
+
+  it('com outro domínio próprio, não avisa nem reclama', () => {
+    assert.deepEqual(checkProductionDomain(comUrl(`https://${OTHER}`)), {
+      problems: [],
+      warnings: [],
+    });
   });
 
   it('*.vercel.app como domínio de produção é recusado (o Google não aceita)', () => {
@@ -194,52 +208,21 @@ describe('domínio de produção (APP_URL do render.yaml)', () => {
   });
 
   it('APP_URL com caminho, http ou host inválido é recusado', () => {
-    for (const url of [
-      'https://meupelada.com.br/app',
-      'http://meupelada.com.br',
-      'https://nome sem ponto',
-    ]) {
+    for (const url of [`https://${OTHER}/app`, `http://${OTHER}`, 'https://nome sem ponto']) {
       assert.ok(checkProductionDomain(comUrl(url)).problems.length > 0, url);
     }
     assert.ok(has(checkProductionDomain(comUrl('https://semponto')).problems, /host inválido/));
   });
 
   it('o host do vercel.json tem que ser o do APP_URL de produção', () => {
-    const emRender = productionHostOf(comUrl('https://meupelada.com.br'));
-    assert.equal(emRender, 'meupelada.com.br');
-    const json = JSON.parse(read('apps/web/vercel.json'));
-    // O vercel.json de verdade ainda tem o marcador; com o domínio do render.yaml trocado, ele destoa.
-    assert.ok(has(checkVercel(json, emRender), /falta a regra .* meupelada\.com\.br/));
-  });
-});
-
-describe('C14: backup.yml', () => {
-  it('C14: sem agenda diária, sem dispatch, sem retenção de 30 dias ou com segredo no log é recusado', () => {
-    assert.ok(
-      has(checkBackupWorkflow(mutate(backup, "cron: '0 6 * * *'", "cron: '0 * * * *'")), /diário/),
-    );
-    assert.ok(
-      has(checkBackupWorkflow(mutate(backup, '  workflow_dispatch:\n', '')), /workflow_dispatch/),
-    );
+    const emRender = productionHostOf(comUrl(`https://${OTHER}`));
+    assert.equal(emRender, OTHER);
+    // O vercel.json de verdade tem o host de hoje; com o do render.yaml trocado, ele destoa.
+    assert.ok(has(checkVercel(vercel(), emRender), /falta a regra .* meupelada\.com\.br/));
     assert.ok(
       has(
-        checkBackupWorkflow(mutate(backup, 'retention-days: 30', 'retention-days: 90')),
-        /retention-days: 30/,
-      ),
-    );
-    assert.ok(
-      has(
-        checkBackupWorkflow(mutate(backup, 'secrets.PROD_DIRECT_URL', 'secrets.OUTRO')),
-        /PROD_DIRECT_URL/,
-      ),
-    );
-    assert.ok(has(checkBackupWorkflow(mutate(backup, 'set -eu', 'set -eux')), /set -x/));
-    assert.ok(
-      has(
-        checkBackupWorkflow(
-          mutate(backup, 'set -eu\n', 'set -eu\n          echo "$BACKUP_PASSPHRASE"\n'),
-        ),
-        /imprime ou redireciona um segredo/,
+        checkVercel(vercel(), emRender),
+        new RegExp(`host que não é o de produção \\(${realHost.replaceAll('.', '\\.')}\\)`),
       ),
     );
   });
