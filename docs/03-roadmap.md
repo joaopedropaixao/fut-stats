@@ -52,7 +52,7 @@ abaixo).
 
 ### Próximas prioridades (18 nov 2026)
 Entregues até aqui: as fatias 0 a 16. Falta o roteiro do dono (`docs/deploy.md`, R0–R9), a release e o lançamento (endereço: domínio próprio `futstats-app.com.br`, comprado no
-registro.br; o Google não aceita `vercel.app`) e o lançamento. Ordem:
+registro.br; o Google não aceita `vercel.app`). Ordem:
 
 1. ✅ **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
    antes do `feed` porque ele é a próxima tela grande.
