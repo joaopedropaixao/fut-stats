@@ -55,6 +55,7 @@ tabelas="$(psql "$RESTORE_DATABASE_URL" --no-psqlrc --tuples-only --no-align --q
   erro "não consegui conectar no banco de destino (confira RESTORE_DATABASE_URL)."
 }
 
+limpou=0
 if [ "$tabelas" != "0" ]; then
   if [ "$force" -ne 1 ]; then
     erro "o banco de destino já tem $tabelas tabela(s). Restaure num banco vazio (uma branch nova do Neon) ou use --force para apagar o que há nele."
@@ -63,13 +64,23 @@ if [ "$tabelas" != "0" ]; then
   psql "$RESTORE_DATABASE_URL" --no-psqlrc --quiet -v ON_ERROR_STOP=1 \
     -c 'DROP SCHEMA public CASCADE' -c 'CREATE SCHEMA public' >/dev/null ||
     erro "não consegui limpar o schema public do destino."
+  limpou=1
 fi
 
 echo "Restaurando..." >&2
 if ! gzip -dc "$tmp/dump.sql.gz" | psql "$RESTORE_DATABASE_URL" --no-psqlrc --quiet \
   -v ON_ERROR_STOP=1 --single-transaction >/dev/null 2>"$tmp/psql.err"; then
   cat "$tmp/psql.err" >&2
+  if [ "$limpou" -eq 1 ]; then
+    erro "a restauração falhou. Como você usou --force, o schema public do destino já tinha sido apagado: o destino está vazio ou incompleto. Confira a versão do psql e do servidor e rode de novo."
+  fi
   erro "a restauração falhou e foi desfeita (o destino ficou como estava). Confira a versão do psql e do servidor."
 fi
+
+# Mesmo formato do backup-db.sh ("tabela<TAB>linhas"): compare as duas listas para provar que nada se perdeu.
+echo "Linhas por tabela no destino restaurado:" >&2
+psql "$RESTORE_DATABASE_URL" --no-psqlrc --tuples-only --no-align --quiet -F "$(printf '\t')" -c \
+  "SELECT table_name, (xpath('/row/c/text()', query_to_xml(format('SELECT count(*) AS c FROM %I.%I', table_schema, table_name), false, true, '')))[1]::text FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'" |
+  LC_ALL=C sort >&2
 
 echo "Restauração concluída." >&2

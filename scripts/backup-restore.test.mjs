@@ -161,6 +161,20 @@ function countsOf(url) {
 const backupOf = (url, dir, vars = {}) =>
   run('sh', [BACKUP], { DIRECT_URL: url, BACKUP_PASSPHRASE: PASSPHRASE, BACKUP_DIR: dir, ...vars });
 
+/** As linhas "tabela<TAB>n" que o script imprime depois do título, como objeto. */
+function manifestOf(stderr, title) {
+  const lines = stderr.split('\n');
+  const start = lines.findIndex((line) => line.startsWith(title));
+  assert.notEqual(start, -1, `faltou o bloco "${title}" na saída`);
+  const counts = {};
+  for (const line of lines.slice(start + 1)) {
+    const match = /^(\S+)\t(\d+)$/.exec(line);
+    if (!match) break;
+    counts[match[1]] = Number(match[2]);
+  }
+  return counts;
+}
+
 const restoreOf = (file, vars) => run('sh', [RESTORE, ...file], vars);
 
 describe('backup e restauração do banco', { skip: skipReason ?? false }, () => {
@@ -213,6 +227,12 @@ describe('backup e restauração do banco', { skip: skipReason ?? false }, () =>
     assert.ok(Object.keys(expected).length >= 10, 'o seed deveria povoar várias tabelas');
     assert.ok(expected.Membership > 0 && expected.Round > 0);
     assert.deepEqual(countsOf(target.url), expected);
+    // A conferência que o dono faz: a lista impressa no backup (contada no próprio dump) e a impressa na restauração
+    // são iguais, e batem com o banco de origem.
+    const noBackup = manifestOf(backup.stderr, 'Linhas por tabela neste backup:');
+    const noDestino = manifestOf(restored.stderr, 'Linhas por tabela no destino restaurado:');
+    assert.deepEqual(noBackup, expected);
+    assert.deepEqual(noDestino, noBackup);
   });
 
   describe('C13: falhas com mensagem clara e código diferente de zero', () => {
@@ -264,6 +284,7 @@ describe('backup e restauração do banco', { skip: skipReason ?? false }, () =>
       assert.equal(result.status, 0, result.stderr);
       assert.deepEqual(countsOf(target.url), countsOf(seededDatabase().url));
       assert.equal(psql(target.url, "SELECT to_regclass('public.ja_existia') IS NULL"), 't');
+      assert.match(result.stderr, /--force, apagando tudo do schema public/);
     });
 
     it('C13: variável faltando em cada script diz qual é', () => {
