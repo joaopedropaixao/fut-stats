@@ -70,39 +70,101 @@ export class GoogleAuthService {
   }
 
   /**
-   * O googleId é a chave; nome, e-mail e foto vêm sempre do Google (atualizados a cada login). Sem User com esse
-   * googleId, uma reserva da pelada de demonstração (`googleId` `pendente:`) com o mesmo e-mail (normalizado) é
-   * assumida: ganha o googleId real. O e-mail já chega verificado pelo Google (`check`).
+   * O googleId é a chave; nome, e-mail (normalizado: minúsculas, sem espaço) e foto vêm sempre do Google. O caminho
+   * normal é uma consulta só. Se o e-mail já é de outro User (P2002), o único caso que segue é a reserva de admin da
+   * pelada de demonstração (`googleId` `pendente:`): ver `claimReservation`. O e-mail já chega verificado (`check`).
    */
   private async upsertUser({ googleId, email, name, avatarUrl }: GoogleProfile): Promise<string> {
-    const existing = await this.prisma.user.findUnique({
-      where: { googleId },
-      select: { id: true },
-    });
-    if (!existing) {
-      const reserved = await this.prisma.user.findFirst({
-        where: {
-          email: { equals: email.trim().toLowerCase(), mode: 'insensitive' },
-          googleId: { startsWith: PENDING_GOOGLE_ID_PREFIX },
-        },
+    const normalized = email.trim().toLowerCase();
+    try {
+      const user = await this.prisma.user.upsert({
+        where: { googleId },
+        create: { googleId, email: normalized, name, avatarUrl },
+        update: { email: normalized, name, avatarUrl },
         select: { id: true },
       });
-      if (reserved) {
-        await this.prisma.user.update({
+      return user.id;
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const claimed = await this.claimReservation({
+          googleId,
+          email: normalized,
+          name,
+          avatarUrl,
+        });
+        if (claimed) return claimed;
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Quem tem o e-mail é uma reserva (`pendente:`)? Então ela cede, numa transação só:
+   * - sem User com esse googleId: a reserva vira o User (googleId real, nome e foto do Google, marcador some);
+   * - com User real (que trocou de e-mail para este): as memberships da reserva passam para ele (se já for membro do
+   *   grupo, ganha o papel ADMIN da reserva e a duplicada fica inativa) e a reserva é apagada (ou, se sobrou membership
+   *   duplicada com histórico, aposentada com e-mail e googleId que ninguém assume).
+   * Devolve o id do User que loga, ou null se o e-mail não é de uma reserva (a recusa segue como antes).
+   */
+  private async claimReservation({
+    googleId,
+    email,
+    name,
+    avatarUrl,
+  }: Pick<GoogleProfile, 'googleId' | 'name' | 'avatarUrl'> & { email: string }): Promise<
+    string | null
+  > {
+    return this.prisma.$transaction(async (tx) => {
+      const reserved = await tx.user.findUnique({
+        where: { email },
+        select: { id: true, googleId: true },
+      });
+      if (!reserved || !reserved.googleId.startsWith(PENDING_GOOGLE_ID_PREFIX)) return null;
+
+      const real = await tx.user.findUnique({ where: { googleId }, select: { id: true } });
+      if (!real) {
+        await tx.user.update({
           where: { id: reserved.id },
           data: { googleId, email, name, avatarUrl },
         });
         return reserved.id;
       }
-    }
 
-    const user = await this.prisma.user.upsert({
-      where: { googleId },
-      create: { googleId, email, name, avatarUrl },
-      update: { email, name, avatarUrl },
-      select: { id: true },
+      const memberships = await tx.membership.findMany({
+        where: { userId: reserved.id },
+        select: { id: true, groupId: true, role: true },
+      });
+      for (const membership of memberships) {
+        const mine = await tx.membership.findUnique({
+          where: { userId_groupId: { userId: real.id, groupId: membership.groupId } },
+          select: { id: true, role: true },
+        });
+        if (!mine) {
+          await tx.membership.update({ where: { id: membership.id }, data: { userId: real.id } });
+        } else {
+          if (membership.role === 'ADMIN' && mine.role !== 'ADMIN') {
+            await tx.membership.update({
+              where: { id: mine.id },
+              data: { role: 'ADMIN', active: true },
+            });
+          }
+          await tx.membership.update({ where: { id: membership.id }, data: { active: false } });
+        }
+      }
+
+      const leftover = await tx.membership.count({ where: { userId: reserved.id } });
+      if (leftover === 0) {
+        await tx.user.delete({ where: { id: reserved.id } });
+      } else {
+        // Sobrou só a membership duplicada (inativa) que tem histórico: a reserva sai do caminho do e-mail e do marcador.
+        await tx.user.update({
+          where: { id: reserved.id },
+          data: { email: `cedida-${reserved.id}@demo.invalid`, googleId: `cedida:${reserved.id}` },
+        });
+      }
+      await tx.user.update({ where: { id: real.id }, data: { email, name, avatarUrl } });
+      return real.id;
     });
-    return user.id;
   }
 }
 
