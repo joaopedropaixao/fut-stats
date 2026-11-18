@@ -165,7 +165,7 @@ Na API e na infraestrutura:
 - **Sentry na API:** `@sentry/node` (ou `@sentry/nestjs`, o que a versão atual recomendar para Nest), iniciado no
   `main.ts` antes do `NestFactory` só quando há `SENTRY_DSN`. O filtro global de exceção de
   `auditoria-da-rodada` passa a capturar o que for 5xx ou não tratado, com as tags do contexto do pedido
-  (`requestId`, `groupId`) e `user: { id }`. `sendDefaultPii: false`; um `beforeSend` remove cookies e cabeçalhos.
+  (`requestId`, `groupId`) e `user: { id }`. `dataCollection` fechado (no `@sentry/*` 11 o `sendDefaultPii` deu lugar ao `dataCollection`, que por padrão coleta tudo): sem IP, cookies, cabeçalhos, corpo, query nem variáveis locais; um `beforeSend` deixa só `user: { id }` e as tags. No painel, "Prevent Storing of IP Addresses" ligado (R5).
   Sem rastreamento de desempenho (`tracesSampleRate: 0`).
 - **Sentry no web:** `@sentry/react` por `import()` em `apps/web/src/app/monitoring.ts`, chamado depois da primeira
   renderização e só com `VITE_SENTRY_DSN`. Um limite de erro (`ErrorBoundary`) no topo da árvore mostra a tela de
