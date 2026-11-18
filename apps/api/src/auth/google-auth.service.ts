@@ -3,6 +3,7 @@ import { generateCodeVerifier, generateState } from 'arctic';
 import { timingSafeEqual } from 'node:crypto';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PENDING_GOOGLE_ID_PREFIX } from './pending-google-id';
 import { GoogleOAuthClient, type GoogleProfile } from './google-oauth.client';
 
 /** O que a callback recebeu: a query do Google e o que a ida guardou nos cookies. */
@@ -68,8 +69,33 @@ export class GoogleAuthService {
     }
   }
 
-  /** O googleId é a chave; nome, e-mail e foto vêm sempre do Google (atualizados a cada login). */
+  /**
+   * O googleId é a chave; nome, e-mail e foto vêm sempre do Google (atualizados a cada login). Sem User com esse
+   * googleId, uma reserva da pelada de demonstração (`googleId` `pendente:`) com o mesmo e-mail (normalizado) é
+   * assumida: ganha o googleId real. O e-mail já chega verificado pelo Google (`check`).
+   */
   private async upsertUser({ googleId, email, name, avatarUrl }: GoogleProfile): Promise<string> {
+    const existing = await this.prisma.user.findUnique({
+      where: { googleId },
+      select: { id: true },
+    });
+    if (!existing) {
+      const reserved = await this.prisma.user.findFirst({
+        where: {
+          email: { equals: email.trim().toLowerCase(), mode: 'insensitive' },
+          googleId: { startsWith: PENDING_GOOGLE_ID_PREFIX },
+        },
+        select: { id: true },
+      });
+      if (reserved) {
+        await this.prisma.user.update({
+          where: { id: reserved.id },
+          data: { googleId, email, name, avatarUrl },
+        });
+        return reserved.id;
+      }
+    }
+
     const user = await this.prisma.user.upsert({
       where: { googleId },
       create: { googleId, email, name, avatarUrl },
