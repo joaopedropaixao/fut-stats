@@ -1,3 +1,4 @@
+import { generateVapidKeys } from '../test/vapid-keys';
 import { validateEnv } from './env';
 
 const DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/fut_stats';
@@ -91,5 +92,119 @@ describe('validateEnv', () => {
     expect(validateEnv({ ...valid, APP_URL: 'https://fut-stats-three.vercel.app/' }).APP_URL).toBe(
       'https://fut-stats-three.vercel.app',
     );
+  });
+
+  describe('VAPID (avisos push)', () => {
+    const keys = generateVapidKeys();
+    const vapid = {
+      VAPID_PUBLIC_KEY: keys.publicKey,
+      VAPID_PRIVATE_KEY: keys.privateKey,
+      VAPID_SUBJECT: 'mailto:dono@example.com',
+    };
+
+    it('C8: as três juntas passam e a API sobe com push ligado', () => {
+      expect(validateEnv({ ...valid, ...vapid })).toMatchObject(vapid);
+    });
+
+    it('C8: nenhuma das três passa e deixa o push desligado', () => {
+      const env = validateEnv(valid);
+      expect(env.VAPID_PUBLIC_KEY).toBeUndefined();
+      expect(env.VAPID_PRIVATE_KEY).toBeUndefined();
+      expect(env.VAPID_SUBJECT).toBeUndefined();
+    });
+
+    it('C8: valores vazios (o .env.example) valem como ausentes', () => {
+      const env = validateEnv({
+        ...valid,
+        VAPID_PUBLIC_KEY: '',
+        VAPID_PRIVATE_KEY: '',
+        VAPID_SUBJECT: '',
+      });
+      expect(env.VAPID_PUBLIC_KEY).toBeUndefined();
+    });
+
+    it.each(['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT'] as const)(
+      'C8: só duas das três (sem %s) não sobe e diz qual falta',
+      (missing) => {
+        const partial = { ...vapid, [missing]: undefined };
+        expect(() => validateEnv({ ...valid, ...partial })).toThrow(new RegExp(missing));
+      },
+    );
+
+    it('C8: só uma das três não sobe e diz quais faltam', () => {
+      expect(() => validateEnv({ ...valid, VAPID_PUBLIC_KEY: keys.publicKey })).toThrow(
+        /VAPID_PRIVATE_KEY[\s\S]*VAPID_SUBJECT/,
+      );
+    });
+
+    describe('formato das chaves (sem imprimir o valor)', () => {
+      const withKey = (name: 'VAPID_PUBLIC_KEY' | 'VAPID_PRIVATE_KEY', value: string) => ({
+        ...valid,
+        ...vapid,
+        [name]: value,
+      });
+
+      it.each([
+        ['aspas em volta', `"${keys.publicKey}"`, /VAPID_PUBLIC_KEY.*aspas/],
+        ['espaço no fim', `${keys.publicKey} `, /VAPID_PUBLIC_KEY.*espaço/],
+        ['preenchimento "="', `${keys.publicKey}=`, /VAPID_PUBLIC_KEY.*base64url/],
+        ['base64 comum (+ e /)', 'ab+/cd'.padEnd(87, 'a'), /VAPID_PUBLIC_KEY.*base64url/],
+        ['cortada', keys.publicKey.slice(0, 80), /VAPID_PUBLIC_KEY.*decodifica para/],
+        ['32 bytes (é a privada)', keys.privateKey, /VAPID_PUBLIC_KEY.*65/],
+      ])('a pública recusa: %s', (_caso, value, message) => {
+        expect(() => validateEnv(withKey('VAPID_PUBLIC_KEY', value))).toThrow(message);
+      });
+
+      it('a pública de 65 bytes que não começa com 0x04 não é um ponto P-256', () => {
+        const compressed = Buffer.concat([Buffer.from([0x03]), Buffer.alloc(64, 7)]);
+        expect(() =>
+          validateEnv(withKey('VAPID_PUBLIC_KEY', compressed.toString('base64url'))),
+        ).toThrow(/VAPID_PUBLIC_KEY.*0x04/);
+      });
+
+      it.each([
+        ['aspas em volta', `'${keys.privateKey}'`, /VAPID_PRIVATE_KEY.*aspas/],
+        [
+          'espaço no meio',
+          `${keys.privateKey.slice(0, 10)} ${keys.privateKey.slice(10)}`,
+          /espaço/,
+        ],
+        ['a pública no lugar', keys.publicKey, /VAPID_PRIVATE_KEY.*decodifica para 65 bytes.*32/],
+        ['cortada', keys.privateKey.slice(0, 20), /VAPID_PRIVATE_KEY.*decodifica para/],
+      ])('a privada recusa: %s', (_caso, value, message) => {
+        expect(() => validateEnv(withKey('VAPID_PRIVATE_KEY', value))).toThrow(message);
+      });
+
+      it('a mensagem de erro nunca traz o valor da chave', () => {
+        const secret = `"${keys.privateKey}"`;
+        let message = '';
+        try {
+          validateEnv(withKey('VAPID_PRIVATE_KEY', secret));
+        } catch (error) {
+          message = (error as Error).message;
+        }
+        expect(message).toMatch(/VAPID_PRIVATE_KEY/);
+        expect(message).not.toContain(keys.privateKey);
+      });
+
+      it('o contato recusa aspas e espaço', () => {
+        expect(() =>
+          validateEnv({ ...valid, ...vapid, VAPID_SUBJECT: '"mailto:dono@example.com"' }),
+        ).toThrow(/VAPID_SUBJECT/);
+        expect(() =>
+          validateEnv({ ...valid, ...vapid, VAPID_SUBJECT: 'mailto:dono@example.com ' }),
+        ).toThrow(/VAPID_SUBJECT/);
+      });
+    });
+
+    it('C8: o contato precisa ser mailto: ou https', () => {
+      expect(() => validateEnv({ ...valid, ...vapid, VAPID_SUBJECT: 'dono@example.com' })).toThrow(
+        /VAPID_SUBJECT/,
+      );
+      expect(
+        validateEnv({ ...valid, ...vapid, VAPID_SUBJECT: 'https://example.com/contato' })
+          .VAPID_SUBJECT,
+      ).toBe('https://example.com/contato');
+    });
   });
 });

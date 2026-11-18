@@ -54,6 +54,8 @@ export const feedAlertSchema = z.object({
     /** VOTING. */
     voted: z.boolean().optional(),
   }),
+  /** Só no RESULT: a rodada tem Craque com nota, então o resultado chega como pacote (mesma regra do `hasPack` do web). */
+  hasPack: z.boolean().optional(),
 });
 
 // --- Resenhas ---

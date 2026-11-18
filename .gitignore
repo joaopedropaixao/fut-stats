@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# Service worker de dev gerado pelo vite-plugin-pwa (apps/web)
+dev-dist/
 build/
 .turbo/
 coverage/

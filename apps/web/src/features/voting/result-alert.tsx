@@ -4,13 +4,12 @@ import { Icon } from '../../components/ui/icons';
 import { PixelText } from '../../components/ui/pixel-text';
 import { RouteButton } from '../rounds/route-button';
 import { PackMini } from './pack-mini';
-import { hasPack } from '../pack/deck';
-import { useResult } from './queries';
 
 type ResultAlertProps = {
-  groupId: string;
   roundId: string;
   number: number;
+  /** Vem do aviso da API (`hasPack`): a rodada tem Craque com nota. Sem o campo, o card não promete pacote. */
+  hasPack?: boolean;
 };
 
 /**
@@ -19,12 +18,10 @@ type ResultAlertProps = {
  * em miniatura treme de leve em degraus (parado com "reduzir movimento"). Depois de aberto (por rodada e por
  * jogador) o Feed troca este card pela linha do resultado.
  * Rodada sem votos não tem pacote: a tecla diz "Ver resultado" e o ícone do pacote fica no lugar da miniatura.
+ * O Feed não busca o resultado para saber disso: o aviso da API já diz (`hasPack`).
  */
-export function ResultAlert({ groupId, roundId, number }: ResultAlertProps) {
+export function ResultAlert({ roundId, number, hasPack: pack = false }: ResultAlertProps) {
   const to = `/rodadas/${roundId}/resultado`;
-  const result = useResult(groupId, roundId);
-  // Enquanto não sabe (ou sem votos), o card não promete pacote
-  const pack = result.data ? hasPack(result.data) : false;
   return (
     <AlertFrame tone="RESULT" label="O resultado saiu">
       <AlertBand tone="RESULT" nowrap>

@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { feedAlerts, RESULT_HIGHLIGHT_DAYS } from '@fut-stats/domain';
+import {
+  feedAlerts,
+  RESULT_HIGHLIGHT_DAYS,
+  roundHasPack,
+  type PackCandidate,
+} from '@fut-stats/domain';
 import type { FeedAlert } from '@fut-stats/shared';
 import type { GroupMembership } from '../auth/request';
 import { PrismaService } from '../prisma/prisma.service';
@@ -38,7 +43,8 @@ export class FeedService {
     if (alerts.length === 0) return [];
     const roundIds = alerts.map((alert) => alert.roundId);
 
-    const [teamRows, attendanceRows, voteRows] = await Promise.all([
+    const resultRoundIds = alerts.filter((a) => a.type === 'RESULT').map((a) => a.roundId);
+    const [teamRows, attendanceRows, voteRows, packRoundIds] = await Promise.all([
       this.prisma.teamPlayer.findMany({
         where: { membershipId: membership.id, roundId: { in: roundIds } },
         select: { roundId: true, team: true },
@@ -51,6 +57,7 @@ export class FeedService {
         where: { voterId: membership.id, roundId: { in: roundIds } },
         select: { roundId: true },
       }),
+      this.roundsWithPack(resultRoundIds),
     ]);
     const teamOf = new Map(teamRows.map((row) => [row.roundId, row.team]));
     const attendanceOf = new Map(attendanceRows.map((row) => [row.roundId, row.confirmed]));
@@ -75,8 +82,27 @@ export class FeedService {
         case 'VOTING':
           return { ...base, me: { played: teamOf.has(roundId), voted: voted.has(roundId) } };
         case 'RESULT':
-          return { ...base, me: {} };
+          return { ...base, me: {}, hasPack: packRoundIds.has(roundId) };
       }
     });
+  }
+
+  /**
+   * Das rodadas, as que têm pacote (`roundHasPack` do domain, a mesma regra do pacote no web). Só os Craques entram na
+   * consulta: é o que a regra olha. Sem rodada, nem consulta.
+   */
+  private async roundsWithPack(roundIds: string[]): Promise<Set<string>> {
+    if (roundIds.length === 0) return new Set();
+    const rows = await this.prisma.teamPlayer.findMany({
+      where: { roundId: { in: roundIds }, isMvp: true },
+      select: { roundId: true, isMvp: true, roundScore: true },
+    });
+    const byRound = new Map<string, PackCandidate[]>();
+    for (const row of rows) {
+      const list = byRound.get(row.roundId) ?? [];
+      list.push({ isMvp: row.isMvp, score: row.roundScore });
+      byRound.set(row.roundId, list);
+    }
+    return new Set([...byRound].filter(([, players]) => roundHasPack(players)).map(([id]) => id));
   }
 }

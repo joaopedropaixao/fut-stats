@@ -13,3 +13,6 @@ process.env.APP_URL = 'http://localhost:5173';
 process.env.VOTING_CLOSER_INTERVAL_MS = '0';
 // Pulso do canal ao vivo curto, para o teste não esperar 20 s (os leitores do fluxo ignoram comentários).
 process.env.STREAM_HEARTBEAT_MS = '300';
+// Push desligado por padrão: as chaves VAPID do arquivo de ambiente local (o dono liga o push no dev) não podem vazar
+// para os testes. Vazio, e não apagado: o ambiente vence o arquivo; os testes de push ligam com `enableVapid()`.
+for (const key of ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT']) process.env[key] = '';

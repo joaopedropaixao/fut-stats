@@ -83,6 +83,7 @@ describe('feed: avisos', () => {
         roundNumber: closed.number,
         scheduledAt: closed.scheduledAt.toISOString(),
         me: {},
+        hasPack: false,
       },
       {
         type: 'VOTING',
@@ -199,6 +200,47 @@ describe('feed: avisos', () => {
     expect(await t.prisma.round.findUniqueOrThrow({ where: { id: round.id } })).toMatchObject({
       status: 'CLOSED',
     });
+  });
+
+  it('C41: o RESULT traz hasPack true quando há Craque com nota e false na rodada fechada sem votos; os outros tipos não trazem o campo', async () => {
+    const { group, member, cookie } = await setup();
+    const now = Date.now();
+    const withVotes = await createRound(group.id, 'CLOSED', new Date(now - 3 * DAY_MS), {
+      closedAt: new Date(now - DAY_MS),
+    });
+    await t.prisma.teamPlayer.create({
+      data: {
+        roundId: withVotes.id,
+        membershipId: member.id,
+        team: 'WHITE',
+        position: 'MIDFIELDER',
+        isMvp: true,
+        roundScore: 8.5,
+      },
+    });
+    const next = await createRound(group.id, 'SCHEDULED', new Date(now + 5 * DAY_MS));
+
+    const res = await get(group.id, cookie).expect(200);
+    const byType = Object.fromEntries(res.body.map((a: { type: string }) => [a.type, a]));
+    expect(byType.RESULT).toMatchObject({ roundId: withVotes.id, hasPack: true });
+    expect(byType.PRESENCE).toMatchObject({ roundId: next.id });
+    expect(byType.PRESENCE).not.toHaveProperty('hasPack');
+
+    // Sem votos: o jogador não tem nota (nem Craque), então o resultado chega sem pacote
+    await t.prisma.teamPlayer.update({
+      where: { roundId_membershipId: { roundId: withVotes.id, membershipId: member.id } },
+      data: { isMvp: false, roundScore: null },
+    });
+    const noVotes = await get(group.id, cookie).expect(200);
+    expect(noVotes.body.find((a: { type: string }) => a.type === 'RESULT').hasPack).toBe(false);
+
+    // Craque marcado mas sem nota não vale pacote
+    await t.prisma.teamPlayer.update({
+      where: { roundId_membershipId: { roundId: withVotes.id, membershipId: member.id } },
+      data: { isMvp: true, roundScore: null },
+    });
+    const noScore = await get(group.id, cookie).expect(200);
+    expect(noScore.body.find((a: { type: string }) => a.type === 'RESULT').hasPack).toBe(false);
   });
 
   it('C24: não membro, membro inativo e usuário de outro grupo recebem 404', async () => {

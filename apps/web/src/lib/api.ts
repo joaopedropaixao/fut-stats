@@ -133,5 +133,15 @@ export async function apiPostNoContent(path: string, body?: unknown): Promise<vo
   await send('POST', path, body);
 }
 
+/** PUT com corpo JSON que responde sem corpo (204), como `PUT /push/subscriptions`. */
+export async function apiPutNoContent(path: string, body: unknown): Promise<void> {
+  await send('PUT', path, body);
+}
+
+/** DELETE com corpo JSON que responde sem corpo (204), como `DELETE /push/subscriptions`. */
+export async function apiDeleteNoContent(path: string, body: unknown): Promise<void> {
+  await send('DELETE', path, body);
+}
+
 /** Endereço do login com Google (redireciona para fora do app, então é navegação de página inteira). */
 export const LOGIN_URL = '/api/auth/google';

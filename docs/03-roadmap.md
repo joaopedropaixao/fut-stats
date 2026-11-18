@@ -46,7 +46,7 @@ abaixo).
 | 11 ✅ | `pacote-do-craque` | Front | `votacao` | **Onda 4.** Grande momento: o resultado chega como pacote, que rasga e revela as cartas do Craque (com walkout), do Perna de Pau e a sua (bronze/prata/ouro pela nota), com Compartilhar (fatia nova, 14 nov 2026; reforço 15 nov) |
 | 12 ✅ | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
 | 13 ✅ | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Onda 6, junto do lançamento** (decisão do dono, 15 nov 2026). SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
-| 14 | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado. Pendência do `pacote-do-craque` (15 nov 2026): o início passa a saber do pacote novo por aviso empurrado (push/SSE) em vez do `GET .../voting/result` que o card do início faz hoje |
+| 14 ✅ | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado, como ouvinte do sinal único de eventos da rodada (da `jogo-ao-vivo`). Pendência do `pacote-do-craque` resolvida (17 nov 2026): o aviso `RESULT` do Feed traz `hasPack` e o card do início não chama mais `GET .../voting/result`; a novidade chega pelo push `RESULT_OUT` (app fechado) e pelo SSE da `jogo-ao-vivo` (app aberto) |
 | 15 | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 15 em 15 minutos para a votação fechar na hora). Depois, a release e **lançar para a pelada** |
 | 16 ✅ | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
 
@@ -124,7 +124,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 ## Fase 4: Feed e lançamento do MVP 🚀
 - [x] Feed de notícias/resenhas (admin cria), reações e comentários
 - [x] Cards de alerta (times publicados, votação aberta) (votação aberta e resultado já no início, pela `votacao` e o `pacote-do-craque`; o resto vem no `feed`)
-- [ ] PWA instalável + Web Push
+- [x] PWA instalável + Web Push
 - [ ] Produção (`main`), Sentry, backup do banco
 - [ ] **Lançar para a pelada**, coletar feedback em 2–3 rodadas
 

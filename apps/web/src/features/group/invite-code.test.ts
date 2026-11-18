@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { extractInviteCode, inviteUrl, isInvitePath, whatsappShareUrl } from './invite-code';
+import {
+  extractInviteCode,
+  inviteUrl,
+  isInvitePath,
+  whatsappShareUrl,
+  isPendingDestination,
+  isReturnPath,
+} from './invite-code';
 
 describe('extractInviteCode', () => {
   it.each([
@@ -33,5 +40,28 @@ describe('links', () => {
     expect(wa.startsWith('https://wa.me/?text=')).toBe(true);
     expect(decodeURIComponent(wa.split('text=')[1]!)).toContain('Pelada do Zé');
     expect(decodeURIComponent(wa.split('text=')[1]!)).toContain(link);
+  });
+});
+
+describe('isReturnPath (link de aviso aberto sem sessão)', () => {
+  it('aceita caminho interno com ?grupo=', () => {
+    expect(isReturnPath('/rodadas/r13/resultado?grupo=g1')).toBe(true);
+    expect(isReturnPath('/times?grupo=g1')).toBe(true);
+    expect(isPendingDestination('/convite/abc123')).toBe(true);
+  });
+
+  it('recusa outro site, o próprio /entrar, /api, a raiz e lixo', () => {
+    for (const path of [
+      '//evil.com/x',
+      'https://evil.com',
+      '/entrar',
+      '/entrar?next=/x',
+      '/api/auth/logout',
+      '/',
+      '/x y',
+      '',
+      null,
+    ])
+      expect(isReturnPath(path), String(path)).toBe(false);
   });
 });

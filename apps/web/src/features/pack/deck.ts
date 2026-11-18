@@ -1,4 +1,10 @@
-import { cardTier, type CardTier, type ResultPlayer, type RoundResult } from '@fut-stats/shared';
+import {
+  cardTier,
+  roundHasPack,
+  type CardTier,
+  type ResultPlayer,
+  type RoundResult,
+} from '@fut-stats/shared';
 import { flopPhrase, impactPhrase } from './impact-phrase';
 
 export type PackCardKind = 'craque' | 'flop' | 'mine';
@@ -46,9 +52,9 @@ function card(kind: PackCardKind, player: ResultPlayer, result: RoundResult): Pa
  * votou), o pacote não existe: lista vazia.
  */
 export function buildDeck(result: RoundResult): PackCard[] {
+  if (!hasPack(result)) return [];
   const myId = result.me.membershipId;
   const craques = result.mvps.flatMap((p) => card('craque', p, result) ?? []);
-  if (craques.length === 0) return [];
   const flops = result.flops.flatMap((p) => card('flop', p, result) ?? []);
   const deck = [...craques, ...flops];
   const mine = result.me.played ? result.players.find((p) => p.membershipId === myId) : undefined;
@@ -59,7 +65,7 @@ export function buildDeck(result: RoundResult): PackCard[] {
   return deck;
 }
 
-/** O pacote existe se há Craque. */
+/** O pacote existe se há Craque com nota: a regra do domain (`roundHasPack`), a mesma do aviso do Feed. */
 export function hasPack(result: RoundResult): boolean {
-  return buildDeck(result).length > 0;
+  return roundHasPack(result.mvps.map((player) => ({ isMvp: true, score: player.score })));
 }

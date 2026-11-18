@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { cn } from '../../lib/cn';
-import { Icon } from './icons';
+import { Icon, Spinner } from './icons';
 import { PixelText } from './pixel-text';
 
 type SwitchProps = {
@@ -9,7 +9,11 @@ type SwitchProps = {
   onCheckedChange: (checked: boolean) => void;
   /** Travado: o estado aparece, não muda, e o `hint` diz por quê (cadeado, não só cor). */
   disabled?: boolean;
+  /** Esperando a resposta: o botão não responde ao toque e a bolinha vira a rodinha. */
+  loading?: boolean;
   hint?: string;
+  /** Com `loading`: escreve isto (com a rodinha) no lugar de Ligado/Desligado, para a espera não parecer "desligado". */
+  loadingLabel?: string;
   className?: string;
 };
 
@@ -22,7 +26,9 @@ export function Switch({
   checked,
   onCheckedChange,
   disabled,
+  loading,
   hint,
+  loadingLabel,
   className,
 }: SwitchProps) {
   const labelId = useId();
@@ -36,8 +42,17 @@ export function Switch({
           id={labelId}
           className={cn('flex items-center gap-1.5', checked ? 'text-success' : 'text-text-muted')}
         >
-          <Icon name={checked ? 'check' : 'x'} size={14} strokeWidth={3} />
-          <PixelText>{checked ? 'Ligado' : 'Desligado'}</PixelText>
+          {loading && loadingLabel ? (
+            <>
+              <Spinner size={14} />
+              <PixelText>{loadingLabel}</PixelText>
+            </>
+          ) : (
+            <>
+              <Icon name={checked ? 'check' : 'x'} size={14} strokeWidth={3} />
+              <PixelText>{checked ? 'Ligado' : 'Desligado'}</PixelText>
+            </>
+          )}
         </span>
         {hint && (
           <p id={hintId} className="flex items-start gap-1.5 text-caption text-text-muted">
@@ -52,7 +67,8 @@ export function Switch({
         aria-checked={checked}
         aria-label={label}
         aria-describedby={hint ? `${labelId} ${hintId}` : labelId}
-        disabled={disabled}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
         onClick={() => onCheckedChange(!checked)}
         className="flex h-12 w-20 shrink-0 items-center justify-center disabled:opacity-60"
       >
@@ -83,7 +99,13 @@ export function Switch({
               'transition-[left] duration-(--duration-normal) ease-out',
               checked ? 'left-10' : 'left-1',
             )}
-          />
+          >
+            {loading && (
+              <span className="absolute inset-0 flex items-center justify-center text-[#000]">
+                <Spinner size={16} />
+              </span>
+            )}
+          </span>
         </span>
       </button>
     </div>

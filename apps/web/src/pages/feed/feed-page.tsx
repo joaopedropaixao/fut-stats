@@ -9,6 +9,7 @@ import { PostCard } from '../../features/feed/post-card';
 import { useAlerts, usePosts } from '../../features/feed/queries';
 import { useFlashNotice } from '../../features/group/flash';
 import { useCurrentGroup } from '../../features/group/use-current-group';
+import { DeviceLines } from '../../features/pwa/device-lines';
 import { RouteButton } from '../../features/rounds/route-button';
 import { hasOpenedResult } from '../../features/voting/result-opened';
 
@@ -94,6 +95,8 @@ function Alerts({ groupId, isAdmin, me }: { groupId: string; isAdmin: boolean; m
           ))}
         </ul>
       )}
+      {/* Do aparelho, não da pelada: sempre depois dos avisos de rodada e fora da prioridade deles */}
+      <DeviceLines firstIndex={lines.length + 1} />
     </div>
   );
 }

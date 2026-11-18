@@ -10,9 +10,9 @@
 | **Modo** | Par |
 | **Parte de** | — (o manifesto, os ícones e o service worker do `vite-plugin-pwa` já estão na `develop`) |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @1c65574 (checkpoint de início em 17 nov 2026: entraram perfil-jogador #62, ajustes-tela-do-jogo #63, historico #64, votacao #66, ranking #67, rodizio-reservas #68, pacote-do-craque #69, polimento-v1 #72, feed #74 e auditoria-da-rodada #73) |
 | **Depende de** | feed, votacao, perfil-jogador |
-| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/notifications, packages/domain/src/index.ts, packages/shared/src/push.ts, packages/shared/src/index.ts, apps/api/src/push, apps/api/src/rounds/rounds.service.ts, apps/api/src/lineups/lineups.service.ts, apps/api/src/match/match.service.ts, apps/api/src/voting, apps/api/src/config/env.ts, apps/api/src/app.module.ts, apps/api/package.json, pnpm-lock.yaml, .env.example, render.yaml, apps/web/vite.config.ts, apps/web/public/push-sw.js, apps/web/src/features/pwa, apps/web/src/features/feed, apps/web/src/pages/perfil, apps/web/src/features/group/use-current-group.ts, apps/web/src/app/shell.tsx |
+| **Toca em** | apps/api/prisma/schema.prisma, packages/domain/src/notifications, packages/domain/src/index.ts, packages/shared/src/push.ts, packages/shared/src/index.ts, apps/api/src/push, apps/api/src/events (só o cherry-pick do sinal da jogo-ao-vivo), apps/api/src/feed, packages/shared/src/feed.ts, apps/api/src/config/env.ts, apps/api/src/app.module.ts, apps/api/package.json, pnpm-lock.yaml, .env.example, render.yaml, apps/web/vite.config.ts, apps/web/public/push-sw.js, apps/web/src/features/pwa, apps/web/src/features/feed, apps/web/src/features/voting/result-alert.tsx, apps/web/src/pages/feed, apps/web/src/pages/perfil, apps/web/src/features/group/use-current-group.ts, apps/web/src/app/shell.tsx |
 
 ## Produto
 
@@ -113,6 +113,13 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | C39 | reduzir movimento; carregando; erro ao assinar | cards | sem animação; interruptor em carregando; "Não deu para ativar agora. Tente de novo." | Playwright |
 | C40 | larguras 320, 375, 390, 430 px e desktop | Perfil com os dois cards, a gaveta do iPhone, o Feed com as duas linhas | sem rolagem horizontal, sem sobreposição, sem texto cortado; interruptor com área de 80 × 48; no desktop, coluna centralizada. Checagem automática passa. Console sem erros no fluxo real | Playwright |
 
+**Pendência do `pacote-do-craque` (resposta do dono em 17 nov 2026: opção A)**
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C41 | rodada fechada com votos (há Craque com nota); rodada fechada sem votos | `GET .../feed/alerts` | o aviso `RESULT` traz `hasPack: true`; o da rodada sem votos traz `hasPack: false`; os outros tipos não trazem o campo | integração |
+| C42 | Feed com o aviso grande "O resultado saiu", com e sem pacote | abrir o Feed | com pacote: miniatura do pacote e "Abrir pacote"; sem: ícone e "Ver resultado"; **nenhum** `GET .../voting/result` na rede ao abrir o Feed | Playwright |
+
 **Em aparelho real (o Playwright não recebe push de verdade):** o TPL deixa no PR um roteiro curto para o dono
 conferir no staging depois do merge: instalar no Android e no iPhone, ligar os avisos, "Testar aviso" com o app
 fechado, e tocar no aviso.
@@ -130,7 +137,14 @@ com `packages/domain/src/notifications`.
 | `DELETE` | `/push/subscriptions` | logado | `PushUnsubscribeInput` | 204 | 400; 401 |
 | `POST` | `/push/test` | logado | — | `PushTestResult` | 401 |
 
-Nenhuma rota existente muda de forma: criar rodada, publicar, abrir e fechar a votação só ganham o envio depois de
+**`GET .../feed/alerts` (aditivo):** o `feedAlertSchema` em `packages/shared/src/feed.ts` ganha
+`hasPack: z.boolean().optional()`, que só vem no tipo `RESULT`: `true` se a rodada tem um Craque com nota
+(`TeamPlayer.isMvp` com `roundScore` não nulo; mesma regra do `hasPack` de `features/pack/deck.ts`). O
+`ResultAlert` do Feed passa a usar esse campo e deixa de chamar `GET .../voting/result` (pendência do
+`pacote-do-craque`; saber na hora que o resultado saiu fica com o push `RESULT_OUT` com o app fechado e com a
+`jogo-ao-vivo` com o app aberto). Mudança só aditiva: a `jogo-ao-vivo` pode mexer no Feed para recarregar avisos.
+
+Nenhuma outra rota existente muda de forma: criar rodada, publicar, abrir e fechar a votação só ganham o envio depois de
 gravar.
 
 ```ts
@@ -188,9 +202,16 @@ Na API (`apps/api/src/push`):
   e a interface `PushSender` com a implementação `WebPushSender` (biblioteca `web-push`). Os testes de integração
   trocam o provider `PushSender` por um gravador (não é mock de banco: é a fronteira com o serviço de push de
   fora).
-- `notify` é chamado **depois de gravar**, sem `await` na resposta (erro tratado e registrado): em `rounds.create`,
-  `lineups.publish`, `match.openVoting` e no método único de fechar de `voting`. Carrega o grupo, a rodada e os
-  destinatários (`notificationRecipients`), busca as assinaturas dos usuários deles e envia com TTL de 12 h.
+- **Sinal único de eventos da rodada** (decisão do dono, 17 nov 2026): a `pwa-e-push` **não** põe gancho nos
+  services de `rounds`, `lineups`, `match` e `voting`. A `jogo-ao-vivo` (dona do sinal) cria o módulo
+  `apps/api/src/events` (`RoundEventsService` sobre `EventEmitter`) e dispara, depois do commit, em todas as escritas
+  (no mesmo lugar do `AuditService`), o evento `{ groupId, roundId, type, scopes, actorMembershipId | null }`,
+  incluindo `ROUND_CREATED`. Esta fatia faz `git cherry-pick` desse commit (`feat(api): sinal único de eventos da
+  rodada`; some no rebase final por ser o mesmo patch) e o `NotificationsService` vira **ouvinte**: rodada
+  marcada → `ROUND_CREATED`; times publicados → `TEAMS_PUBLISHED` (despublicar não avisa); votação aberta →
+  `VOTING_OPENED`; votação fechada (admin, último voto, prazo, relógio) → `RESULT_OUT`, uma vez por fechamento
+  (C16). O ator vem do `actorMembershipId`. O envio não espera nem falha a escrita; erro vai para o log com o
+  `requestId`. O push não grava no `AuditLog`.
 - Variáveis novas, **as três ou nenhuma**, em `src/config/env.ts`, `.env.example` e `render.yaml` (`sync: false`):
   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:` do dono). Como gerar: `npx web-push
   generate-vapid-keys`, documentado em `docs/deploy.md`. Chave nunca em commit.
@@ -203,7 +224,9 @@ Regras de visual do documento de autonomia valem como critério.
   `apps/web/public/push-sw.js` trata `push` (valida o conteúdo e chama `showNotification`) e `notificationclick`
   (foca ou abre). A lógica fica em funções puras no mesmo arquivo, testadas pelo Vitest importando o arquivo. Se
   o `importScripts` não servir na versão instalada do plugin, trocar para `injectManifest` com o mesmo
-  comportamento (decisão do TPL, registrada no spec).
+  comportamento (decisão do TPL, registrada no spec). **Registro (17 nov 2026):** o `importScripts` funcionou no `generateSW` do
+  vite-plugin-pwa 2.0.0; o `push-sw.js` fica fora do pré-cache (`globIgnores`) e o `check-build` confere que o `sw.js`
+  o importa. O `install-prompt.ts` (guarda o `beforeinstallprompt` desde a partida) entra no JS inicial: 119,0 de 150 kB.
 - **`features/pwa/`:** `use-install.ts` (guarda o `beforeinstallprompt`, detecta iPhone e `standalone`),
   `use-push.ts` (suporte, permissão, assinar, cancelar, estado do servidor), `install-card.tsx`,
   `push-card.tsx`, `ios-install-sheet.tsx`. Decisão de "o que mostrar" numa função pura com teste
@@ -218,6 +241,13 @@ Regras de visual do documento de autonomia valem como critério.
   limpa o parâmetro da URL.
 - **Sair:** o logout do Perfil cancela a assinatura antes de chamar `/auth/logout`.
 - Ícones pixel novos (sino, celular com seta) em `pixel-sprite-maps.ts`. Sem dependência nova no web.
+- **Orçamento do JS inicial** (118,4 de 150 kB depois do `polimento-v1`, `apps/web/scripts/check-build.mjs`): o
+  registro do service worker, o `use-push` e o pedido de permissão ficam fora do pedaço inicial (só no Perfil e nas
+  linhas do Feed, que são áreas `lazy`). O `AppShell` (inicial) só lê `?grupo=` e não importa valor de
+  `@fut-stats/shared`.
+- **Linhas do Feed:** o Feed (#74) é a home; as linhas de instalar e de avisos têm o visual da `AlertLine` (que
+  hoje recebe um `FeedAlert`: componente irmão ou `AlertLine` generalizada, decisão do DEV) com o "✕" de dispensar.
+  Nenhuma tecla amarela nelas: o amarelo fica só na tecla de ação do aviso grande.
 
 **Álbum** (`docs/design/prints/pwa-e-push/`): um print por cenário de tela (C22–C34, C39) a 390 px, mais um print
 de uma notificação real no Android e no iPhone (do roteiro em aparelho real, anexado pelo dono ou pelo TPL se
@@ -234,6 +264,8 @@ tiver aparelho); `perfil-320`, `feed-320`, `perfil-desktop`.
 - Envio sem esperar e sem falhar a ação — aviso é cortesia.
 - `importScripts` em vez de reescrever o service worker — mantém o que já funciona (cache e atualização).
 - `?grupo=` na URL do aviso — o aviso pode ser de outra pelada do usuário.
+- Push como ouvinte do sinal único de eventos da rodada (da `jogo-ao-vivo`), sem gancho próprio nos services — decisão do dono (17 nov 2026): um disparo depois do commit, vários ouvintes (SSE, push e, no futuro, um serviço de notificação próprio).
+- `hasPack` no aviso `RESULT` do Feed, e o card sem o `GET .../voting/result` — pendência do `pacote-do-craque`, opção A do dono (17 nov 2026); sem o service worker avisar a janela aberta (isso é da `jogo-ao-vivo`).
 
 ## Fora do escopo
 - Lembretes agendados ("a votação fecha em 2 h", "falta você confirmar"). O despertador de `producao` só garante
@@ -249,4 +281,30 @@ tiver aparelho); `perfil-320`, `feed-320`, `perfil-desktop`.
   resultado saiu (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**Veredito: APROVADO na volta 1** (17 nov 2026), contra o back e o front juntos (front rebaseado sobre o back, sobre a
+develop 1c65574). `pnpm lint && pnpm typecheck && pnpm test && pnpm build` verdes no worktree (API 664 testes, web 78
+arquivos); JS inicial 119,0 de 150 kB; o `check-build` confere que o `sw.js` importa o `push-sw.js`. O QA conferiu
+os destinatários ao vivo com o `web-push` real entregando num receptor HTTPS local (times, votação aberta e
+resultado chegaram aos escalados, sem o admin que causou; publicar com 409 não enviou nada).
+
+| Cenário | Resultado | Evidência |
+|---|---|---|
+| C1–C5 | ok | `packages/domain/src/notifications/recipients.test.ts` |
+| C6, C7 | ok | `apps/api/src/push/push.spec.ts`, `notifications.spec.ts`; ao vivo enabled true/false |
+| C8 | ok | `apps/api/src/config/env.spec.ts` (diz qual variável falta) |
+| C9–C13 | ok | `push.spec.ts`; ao vivo: PUT 204, `http` 400, DELETE de outro usuário não apaga, 401 nas 4 rotas |
+| C14–C19 | ok | `apps/api/src/push/push-actions.spec.ts`, `notifications.spec.ts` (inativo e admin fora; relógio e último voto uma vez só; 410 apaga; erro de rede com `requestId`; 409 não envia) |
+| C20 | ok | `push.spec.ts`; ao vivo `{sent:1}` e `{sent:0}` |
+| C21 | ok | `packages/shared/src/push.test.ts` |
+| C22–C24 | ok | Playwright: card grande momento, "Instalar" chama `prompt()`; gaveta do iPhone; some em `standalone` |
+| C25, C33 | ok | linhas depois dos avisos de rodada, ✕ 44×44, dispensa de 14 dias; seta para o Perfil |
+| C26–C31 | ok | permissão só no toque; PUT/POST/DELETE reais; bloqueado sem pedir de novo; iPhone sem instalar |
+| C32 | ok | sem `PushManager`; servidor desligado: sem card e sem linha |
+| C34 | ok | `DELETE /push/subscriptions` antes de `POST /auth/logout` |
+| C35, C36 | ok | `apps/web/src/features/pwa/push-sw.test.ts` (lê o `public/push-sw.js` real) |
+| C37 | ok | `?grupo=` troca a pelada e limpa a URL; id alheio ignorado |
+| C38 | ok | `check-build` + build servido: SW controla a página, reabre sem rede |
+| C39 | ok | carregando (`aria-busy`), erro, reduzir movimento |
+| C40 | ok | 320/375/390/430/1280 sem rolagem, sobreposição nem corte; interruptor 80×48; console sem erros |
+| C41 | ok | `apps/api/src/feed/feed.spec.ts`; ao vivo `hasPack` true/false, PRESENCE sem o campo |
+| C42 | ok | "Abrir pacote"/"Ver resultado"; nenhum `voting/result` ao abrir o Feed |

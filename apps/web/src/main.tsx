@@ -9,11 +9,14 @@ import { RouterProvider } from 'react-router/dom';
 import './index.css';
 import { clearReloadMark, reloadOnPreloadError } from './app/chunk-reload';
 import { preloadWhenReady } from './app/preload';
+import { captureInstallPrompt } from './features/pwa/install-prompt';
 import { createQueryClient } from './lib/query-client';
 import { applyBackground } from './lib/theme';
 import { router } from './router';
 
 applyBackground();
+// O navegador oferece a instalação uma vez, logo ao abrir: guarda para o card do Perfil e a linha do Feed
+captureInstallPrompt();
 const queryClient = createQueryClient();
 
 // Pedaço que sumiu: recarrega uma vez, já na tela pedida (a navegação em andamento, se houver)

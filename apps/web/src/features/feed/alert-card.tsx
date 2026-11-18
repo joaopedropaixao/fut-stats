@@ -25,7 +25,9 @@ type AlertCardProps = {
 export function AlertCard({ groupId, alert, me }: AlertCardProps) {
   switch (alert.type) {
     case 'RESULT':
-      return <ResultAlert groupId={groupId} roundId={alert.roundId} number={alert.roundNumber} />;
+      return (
+        <ResultAlert roundId={alert.roundId} number={alert.roundNumber} hasPack={alert.hasPack} />
+      );
     case 'VOTING':
       return <VotingCard groupId={groupId} roundId={alert.roundId} />;
     case 'TEAMS_PUBLISHED':

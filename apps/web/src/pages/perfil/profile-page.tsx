@@ -12,6 +12,9 @@ import { InviteCard } from '../../features/group/invite-card';
 import { useMember } from '../../features/group/members';
 import { PlayerCard } from '../../features/group/player-card';
 import { setCurrentGroupId, useCurrentGroup } from '../../features/group/use-current-group';
+import { InstallCard } from '../../features/pwa/install-card';
+import { PushCard } from '../../features/pwa/push-card';
+import { unsubscribeDevice } from '../../features/pwa/unsubscribe-device';
 import { PlayerStats } from '../../features/ranking/player-stats';
 import { usePlayerProfile } from '../../features/ranking/queries';
 import { RouteButton } from '../../features/rounds/route-button';
@@ -23,7 +26,8 @@ type MyGroup = MeResponse['groups'][number];
 
 /**
  * Perfil: a figurinha do jogador (bonequinho, apelido, posição, selos e "VOCÊ"), editar perfil, o Elenco (admin),
- * as peladas, o convite do admin e sair. Nenhuma tecla amarela: o "Sair" não é a ação principal.
+ * os cards do aparelho (instalar o app e avisos), as peladas, o convite do admin e sair. A única tecla amarela é a
+ * "Instalar" do card de instalar (some com o app instalado): o "Sair" não é a ação principal.
  */
 export function ProfilePage() {
   const { data, group, groups } = useCurrentGroup();
@@ -34,7 +38,11 @@ export function ProfilePage() {
   // As estatísticas da minha participação (as mesmas da figurinha de qualquer jogador)
   const stats = usePlayerProfile(group?.id ?? '', group?.membershipId);
   const logout = useMutation({
-    mutationFn: () => apiPostNoContent('/auth/logout'),
+    // Os avisos deste aparelho saem antes: quem entrar depois aqui não recebe o aviso de outra pessoa
+    mutationFn: async () => {
+      await unsubscribeDevice();
+      await apiPostNoContent('/auth/logout');
+    },
     onSuccess: () => {
       queryClient.clear();
       queryClient.setQueryData(sessionQueryKey, null);
@@ -95,6 +103,10 @@ export function ProfilePage() {
               />
             )}
           </div>
+          {/* Do aparelho: instalar o app e os avisos (cada um some quando não se aplica) */}
+          <InstallCard />
+          <PushCard delay={120} />
+
           {stats.isError ? (
             <ErrorState
               title="Não deu para carregar as suas estatísticas"

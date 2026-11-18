@@ -314,3 +314,54 @@ Com o consent screen em **Testing**, só entra quem estiver na lista de test use
 | `Access blocked ... has not completed the Google verification process` | O e-mail não está nos test users (6.3) |
 | `Error 401: invalid_client` | `GOOGLE_CLIENT_ID` ou `GOOGLE_CLIENT_SECRET` errado/com espaço sobrando. Cole de novo e redeploy |
 | `/api/me` dá 401 depois do login | Cookie de sessão não ficou: abra tudo pelo endereço da Vercel (não pelo do Render) |
+
+---
+
+## 7. Avisos push (VAPID)
+
+Os avisos (rodada marcada, times, votação, resultado) saem pelo Web Push e a API assina cada envio com um par de
+chaves **VAPID**. São três variáveis, **as três juntas ou nenhuma**:
+
+| Variável | O que é |
+|---|---|
+| `VAPID_PUBLIC_KEY` | Chave pública. O app a pede em `GET /api/push/config`, então o front não ganha variável de build |
+| `VAPID_PRIVATE_KEY` | Chave privada: **segredo**, só no painel do Render e no arquivo de ambiente da raiz |
+| `VAPID_SUBJECT` | Seu contato para o serviço de push: `mailto:voce@exemplo.com` (ou um `https://`) |
+
+> **Sem as três, o push fica desligado:** `GET /api/push/config` diz `{ "enabled": false }`, o app esconde o card
+> de avisos e nenhuma ação tenta enviar. **Só uma ou duas** das três: a API não sobe e o erro diz qual falta.
+> Trocar o par invalida todas as assinaturas (cada pessoa liga os avisos de novo): gere uma vez e guarde.
+
+### 7.1 Gerar o par
+
+```
+npx web-push generate-vapid-keys
+```
+
+Saem duas linhas, **Public Key** e **Private Key**. Copie sem espaço sobrando. Nunca cole a privada em commit, PR
+ou chat.
+
+### 7.2 Render (staging)
+
+1. <https://dashboard.render.com> → **`fut-stats-api-staging`** → **Environment**.
+2. Adicione `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` (o `render.yaml` já declara as três com
+   `sync: false`, então o Render pede os valores).
+3. **Save, rebuild, and deploy** e espere ficar **Live**.
+
+### 7.3 Local
+
+Preencha as três no arquivo de ambiente da raiz (o `.env.example` mostra os nomes, vazios). Para os avisos
+chegarem no celular de verdade o endereço precisa ser `https` (use o staging); em `localhost` o navegador do
+computador recebe.
+
+### 7.4 Testar
+
+1. Abra o app instalado, **Perfil → Avisos → ligar**, e toque em **Testar aviso**.
+2. Com o app fechado, peça para o admin criar uma rodada: o aviso chega sem abrir o app.
+
+| Sintoma | Causa provável |
+|---|---|
+| `/api/push/config` dá `enabled: false` | Falta alguma variável (ou as três) no Render, ou o deploy ainda não terminou |
+| A API não sobe e o log cita `VAPID_*` | Só uma ou duas das três variáveis estão preenchidas, ou uma chave está com aspas, espaço, cortada ou trocada (a pública decodifica para 65 bytes, a privada para 32; a mensagem diz qual e o quê conferir, sem mostrar o valor) |
+| Log `push-failed` ou `push-test-failed` | Traz `name`, `statusCode`, `body` (resposta do serviço de push) ou `code` e `errors[]` (rede: `ECONNREFUSED`, `ETIMEDOUT`...), e só o host do aparelho. `push-subscription-gone` com 403 é par de chaves trocado; `push-sent` (debug) com 201 quer dizer que o serviço aceitou |
+| "Testar aviso" diz que enviou e nada chega | iPhone sem o app instalado na tela inicial, permissão bloqueada no navegador, ou o par de chaves foi trocado depois de ligar (desligue e ligue de novo), ou o macOS/Windows com o navegador sem permissão de notificação ou em "Não perturbe" |

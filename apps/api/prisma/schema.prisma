@@ -128,7 +128,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships Membership[]
+  memberships       Membership[]
+  pushSubscriptions PushSubscription[]
 }
 
 /// Uma pelada. Só entra quem tem o link de convite.
@@ -405,4 +406,22 @@ model AuditLog {
   @@index([postId, createdAt])
   @@index([requestId])
   @@index([actorId, createdAt])
+}
+
+/// Um aparelho de um usuário que recebe avisos (Web Push). O `endpoint` identifica o aparelho: se outro usuário entra
+/// no mesmo aparelho, a linha passa para ele. O serviço de push dizer 404/410 apaga a linha. Vale para todas as
+/// peladas do usuário.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

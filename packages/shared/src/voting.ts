@@ -124,6 +124,7 @@ export {
   cardTier,
   DEFAULT_CARD_TIER_CUTS,
   RESULT_HIGHLIGHT_DAYS,
+  roundHasPack,
   VOTING_END_REASONS,
 } from '@fut-stats/domain';
-export type { CardTier, CardTierCuts } from '@fut-stats/domain';
+export type { CardTier, CardTierCuts, PackCandidate } from '@fut-stats/domain';
