@@ -1,6 +1,6 @@
 import type * as SentryReact from '@sentry/react';
 import { describe, expect, it, vi } from 'vitest';
-import { createMonitoring, scrubEvent } from './monitoring';
+import { createMonitoring, scrubEvent, scrubPath } from './monitoring';
 
 function fakeSentry() {
   return {
@@ -45,6 +45,7 @@ describe('createMonitoring', () => {
       dsn: 'https://k@o.ingest.sentry.io/1',
       environment: 'staging',
       tracesSampleRate: 0,
+      maxBreadcrumbs: 0,
     });
     expect(options.dataCollection).toEqual({
       userInfo: false,
@@ -131,7 +132,7 @@ describe('scrubEvent', () => {
     } as unknown as SentryReact.ErrorEvent;
     const out = scrubEvent(event)!;
     expect(out.user).toEqual({ id: 'u1' });
-    expect(out.request).toEqual({ url: 'https://x/' });
+    expect(out.request).toEqual({ url: '/' });
   });
 
   it('sem id, tira o usuário todo', () => {
@@ -144,5 +145,36 @@ describe('scrubEvent', () => {
       exception: { values: [{ value: 'Failed to fetch dynamically imported module: /a.js' }] },
     } as unknown as SentryReact.ErrorEvent;
     expect(scrubEvent(event)).toBeNull();
+  });
+});
+
+describe('scrubPath e o endereço do evento', () => {
+  it('troca o código do convite e os ids pelo nome do parâmetro e tira query e hash', () => {
+    expect(scrubPath('https://app.exemplo.test/convite/AB12CD?x=1#y')).toBe('/convite/:code');
+    expect(scrubPath('http://localhost:5273/rodadas/cmwm8sslw01mbtdss50pus07g/jogo')).toBe(
+      '/rodadas/:roundId/jogo',
+    );
+    expect(scrubPath('/elenco/cmwm8ss5i000btdssx58c2lih')).toBe('/elenco/:membershipId');
+    expect(scrubPath('/rodadas/nova')).toBe('/rodadas/nova');
+    expect(scrubPath('/?grupo=cmwm8ss4k0000tdssi1x3pzbc')).toBe('/');
+    expect(scrubPath('/privacidade')).toBe('/privacidade');
+    // caminho desconhecido: nada passa como está
+    expect(scrubPath('/algo/novo/123')).toBe('/:id/:id/:id');
+  });
+
+  it('o evento sai sem breadcrumbs, sem query e com o caminho genérico (convite)', () => {
+    const event = {
+      breadcrumbs: [{ category: 'navigation', data: { to: '/convite/AB12CD' } }],
+      request: {
+        url: 'https://app.exemplo.test/convite/AB12CD?grupo=g1',
+        query_string: 'grupo=g1',
+      },
+      transaction: '/convite/AB12CD',
+    } as unknown as SentryReact.ErrorEvent;
+    const out = scrubEvent(event)!;
+    expect(out.breadcrumbs).toBeUndefined();
+    expect(out.request).toEqual({ url: '/convite/:code' });
+    expect(out.transaction).toBe('/convite/:code');
+    expect(JSON.stringify(out)).not.toContain('AB12CD');
   });
 });
