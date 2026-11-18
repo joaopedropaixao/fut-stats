@@ -12,6 +12,8 @@ type SwitchProps = {
   /** Esperando a resposta: o botão não responde ao toque e a bolinha vira a rodinha. */
   loading?: boolean;
   hint?: string;
+  /** Com `loading`: escreve isto (com a rodinha) no lugar de Ligado/Desligado, para a espera não parecer "desligado". */
+  loadingLabel?: string;
   className?: string;
 };
 
@@ -26,6 +28,7 @@ export function Switch({
   disabled,
   loading,
   hint,
+  loadingLabel,
   className,
 }: SwitchProps) {
   const labelId = useId();
@@ -39,8 +42,17 @@ export function Switch({
           id={labelId}
           className={cn('flex items-center gap-1.5', checked ? 'text-success' : 'text-text-muted')}
         >
-          <Icon name={checked ? 'check' : 'x'} size={14} strokeWidth={3} />
-          <PixelText>{checked ? 'Ligado' : 'Desligado'}</PixelText>
+          {loading && loadingLabel ? (
+            <>
+              <Spinner size={14} />
+              <PixelText>{loadingLabel}</PixelText>
+            </>
+          ) : (
+            <>
+              <Icon name={checked ? 'check' : 'x'} size={14} strokeWidth={3} />
+              <PixelText>{checked ? 'Ligado' : 'Desligado'}</PixelText>
+            </>
+          )}
         </span>
         {hint && (
           <p id={hintId} className="flex items-start gap-1.5 text-caption text-text-muted">

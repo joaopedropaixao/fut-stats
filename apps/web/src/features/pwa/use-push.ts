@@ -16,6 +16,7 @@ import {
   type PushStateInput,
 } from './push-state';
 import { logPushError } from './push-log';
+import { PushTimeoutError, SUBSCRIBE_TIMEOUT_MS, withTimeout } from './push-timeout';
 import { sameServerKey, subscribeWithKey } from './push-subscription';
 
 /** Quanto esperar o service worker ficar pronto ao ligar (sem service worker registrado o `ready` nunca responde). */
@@ -62,8 +63,10 @@ export type UsePush = {
   permission: PushPermission;
   /** Ligando ou desligando. */
   busy: boolean;
-  /** A última tentativa de ligar ou desligar falhou. */
-  failed: 'enable' | 'disable' | null;
+  /** O que está em andamento: o interruptor escreve "Ligando…" ou "Desligando…" no lugar do estado. */
+  pending: 'enable' | 'disable' | null;
+  /** A última tentativa de ligar ou desligar falhou (`enable-timeout`: o navegador demorou demais para assinar). */
+  failed: 'enable' | 'enable-timeout' | 'disable' | null;
   testStatus: PushTestStatus;
   /** Chame só no toque da pessoa: é aqui que o navegador pergunta pela permissão. */
   enable: () => void;
@@ -76,7 +79,10 @@ export type UsePush = {
  * (`GET /push/config`). Nunca pede permissão sozinho. `sync` (só o Perfil): quem já tem assinatura no navegador a
  * reenvia ao abrir, para o servidor ligá-la a quem está logado agora (o aparelho pode ter trocado de conta).
  */
-export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
+export function usePush({
+  sync = false,
+  subscribeTimeoutMs = SUBSCRIBE_TIMEOUT_MS,
+}: { sync?: boolean; subscribeTimeoutMs?: number } = {}): UsePush {
   const config = useQuery({
     queryKey: configKey,
     queryFn: ({ signal }) => apiGet('/push/config', pushConfigSchema, { signal }),
@@ -89,6 +95,8 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
   const [failed, setFailed] = useState<UsePush['failed']>(null);
   // O endereço que o servidor já recebeu nesta visita (ligar já o registra; não reenviar)
   const registered = useRef<string | null>(null);
+  // Qual tentativa de ligar é a atual: uma assinatura que chega depois do tempo limite só é desfeita se ninguém tentou de novo
+  const attempt = useRef(0);
   const [testStatus, setTestStatus] = useState<PushTestStatus>('idle');
 
   useEffect(() => {
@@ -135,10 +143,16 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
       setPermission(result);
       if (result !== 'granted') return null;
       const registration = await readyRegistration();
-      // Reaproveita a assinatura do navegador só se ela é da chave VAPID atual; de chave velha, desfaz e assina de novo
-      const { subscription: created, fresh } = await subscribeWithKey(
-        registration.pushManager,
-        publicKey,
+      const mine = ++attempt.current;
+      // Reaproveita a assinatura do navegador só se ela é da chave VAPID atual; de chave velha, desfaz e assina de novo.
+      // O navegador pode levar dezenas de segundos; passado o limite a tela avisa, e a assinatura que chegar depois é desfeita.
+      const { subscription: created, fresh } = await withTimeout(
+        subscribeWithKey(registration.pushManager, publicKey),
+        subscribeTimeoutMs,
+        (late) => {
+          if (late.fresh && attempt.current === mine)
+            void late.subscription.unsubscribe().catch(() => undefined);
+        },
       );
       try {
         await apiPutNoContent('/push/subscriptions', toInput(created));
@@ -159,7 +173,7 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
     },
     onError: (error) => {
       logPushError('enable', error);
-      setFailed('enable');
+      setFailed(error instanceof PushTimeoutError ? 'enable-timeout' : 'enable');
     },
   });
 
@@ -205,6 +219,7 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
     enableLine: showEnablePushLine(input),
     permission,
     busy: enableMutation.isPending || disableMutation.isPending,
+    pending: enableMutation.isPending ? 'enable' : disableMutation.isPending ? 'disable' : null,
     failed,
     testStatus,
     enable: () => {

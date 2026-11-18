@@ -15,8 +15,11 @@ const TEST_TEXT: Record<Exclude<PushTestStatus, 'idle' | 'sending'>, string> = {
 
 const FAILED_TEXT: Record<NonNullable<UsePush['failed']>, string> = {
   enable: 'Não deu para ativar agora. Tente de novo.',
+  'enable-timeout': 'O navegador demorou para ligar os avisos. Tente de novo.',
   disable: 'Não deu para desativar agora. Tente de novo.',
 };
+
+const PENDING_TEXT = { enable: 'Ligando…', disable: 'Desligando…', none: undefined } as const;
 
 const BELL_MARK = (
   <span className="inline-flex size-14 shrink-0 items-center justify-center bg-bg text-text shadow-[inset_0_0_0_2px_var(--color-border-strong)]">
@@ -62,6 +65,7 @@ export function PushCard({ delay = 0 }: { delay?: number }) {
               label="Avisos neste celular"
               checked={state === 'on'}
               loading={push.busy || state === 'checking'}
+              loadingLabel={PENDING_TEXT[push.pending ?? 'none']}
               disabled={state === 'blocked'}
               hint={
                 state === 'blocked'
