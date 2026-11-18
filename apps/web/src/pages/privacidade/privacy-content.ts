@@ -9,7 +9,7 @@ export const CONTACT_EMAIL_PLACEHOLDER = '[e-mail de contato do dono]';
  * (ex.: `export const CONTACT_EMAIL: string = 'voce@exemplo.com';`). Único lugar do e-mail no app; os testes não
  * dependem do valor.
  */
-export const CONTACT_EMAIL: string = CONTACT_EMAIL_PLACEHOLDER;
+export const CONTACT_EMAIL: string = 'jp.gubert@gmail.com';
 
 export type PrivacySection = {
   id: string;

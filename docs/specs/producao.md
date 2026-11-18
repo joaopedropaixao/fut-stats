@@ -315,6 +315,10 @@ valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
 - Cartola e pagamentos.
 
 ## Perguntas respondidas pelo dono
+- Portão 2 (18 nov 2026): o texto da Política de Privacidade foi aprovado sem mudanças, e o e-mail de contato público
+  da página (`CONTACT_EMAIL`) é `jp.gubert@gmail.com`.
+- Portão 2 (18 nov 2026): o despertador fica de 30 em 30 minutos e o relógio interno fica desligado em produção, para
+  economizar o plano gratuito. O horário dos avisos volta a ser pensado com o futuro serviço de notificação.
 - Meta de custo zero, Render gratuito inclusive em produção, Sentry gratuito (`docs/02-arquitetura.md`).
 - P8 · Login em produção? → Publicar o app do Google: qualquer conta entra (14 nov 2026).
 - P8 · Onde guardar o backup? → Arquivo cifrado, 30 dias, no GitHub Actions (14 nov 2026).
