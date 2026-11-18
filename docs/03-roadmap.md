@@ -51,8 +51,9 @@ abaixo).
 | 16 ✅ | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
 
 ### Próximas prioridades (18 nov 2026)
-Entregues até aqui: as fatias 0 a 16. Falta o roteiro do dono (`docs/deploy.md`, R0–R9), a release e o lançamento (endereço: domínio próprio `futstats-app.com.br`, comprado no
-registro.br; o Google não aceita `vercel.app`). Ordem:
+Entregues até aqui: as fatias 0 a 16. **Release `v1.0.0` no ar em 18 nov 2026** (PR #80, tag `v1.0.0`) em
+<https://futstats-app.com.br>: o dono entrou, instalou o app no celular e criou a pelada. Falta do roteiro do dono
+(`docs/deploy.md`): R7b (segredos e primeiro backup) e R7c (despertador). Ordem:
 
 1. ✅ **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
    antes do `feed` porque ele é a próxima tela grande.
@@ -61,7 +62,8 @@ registro.br; o Google não aceita `vercel.app`). Ordem:
    cima (o model virou `AuditLog` e passou a cobrir as escritas do feed).
 3. ✅ **`jogo-ao-vivo`** (Par), ✅ **`pwa-e-push`** (Par) e ✅ **`producao`** (Back), que coloca a `main` no
    ar no domínio próprio (`futstats-app.com.br`).
-4. **Lançar para a pelada** e coletar feedback em 2–3 rodadas. O `docs/lancamento.md` explica como instalar o app
+4. **Lançar para a pelada** (em andamento): primeiro os admins testam e dão feedback (semana de 18 nov 2026),
+   depois os jogadores, na pelada do domingo seguinte. Coletar feedback em 2–3 rodadas. O `docs/lancamento.md` explica como instalar o app
    no Android e no **iPhone** (no Safari: Compartilhar → Adicionar à Tela de Início; sem instalar, o iPhone não
    recebe avisos). A ideia é todo mundo ter o app com ícone na tela, como um app da loja.
 5. Depois do lançamento: os ajustes do feedback, as ideias abaixo, Cartola (Fase 5) e pagamentos (Fase 6).
