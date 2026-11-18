@@ -105,12 +105,16 @@ describe('pushSubscriptionInputSchema', () => {
   const keys = { p256dh: 'abc', auth: 'def' };
   it('aceita o JSON do navegador e recusa http, endpoint grande e corpo sem keys', () => {
     expect(
-      pushSubscriptionInputSchema.safeParse({ endpoint: 'https://fcm.googleapis.com/fcm/send/x', keys })
-        .success,
+      pushSubscriptionInputSchema.safeParse({
+        endpoint: 'https://fcm.googleapis.com/fcm/send/x',
+        keys,
+      }).success,
     ).toBe(true);
     expect(
-      pushSubscriptionInputSchema.safeParse({ endpoint: 'http://fcm.googleapis.com/fcm/send/x', keys })
-        .success,
+      pushSubscriptionInputSchema.safeParse({
+        endpoint: 'http://fcm.googleapis.com/fcm/send/x',
+        keys,
+      }).success,
     ).toBe(false);
     expect(
       pushSubscriptionInputSchema.safeParse({
@@ -119,7 +123,8 @@ describe('pushSubscriptionInputSchema', () => {
       }).success,
     ).toBe(false);
     expect(
-      pushSubscriptionInputSchema.safeParse({ endpoint: 'https://fcm.googleapis.com/fcm/send/x' }).success,
+      pushSubscriptionInputSchema.safeParse({ endpoint: 'https://fcm.googleapis.com/fcm/send/x' })
+        .success,
     ).toBe(false);
   });
 });
@@ -146,6 +151,9 @@ describe('isPushServiceEndpoint', () => {
       'https://user:pass@fcm.googleapis.com/fcm/send/abc',
       'https://evilpush.apple.com/x',
       'https://fcm.googleapis.com.evil.com/x',
+      'https://fcm.googleapis.com./x',
+      'https://[::1]/x',
+      'https://fcm.googleapis.com\\@evil.com/x',
       'http://fcm.googleapis.com/fcm/send/abc',
       'não é url',
     ])

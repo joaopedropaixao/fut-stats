@@ -23,16 +23,16 @@ const PUSH_SERVICE_HOST_SUFFIXES = [
   '.notify.windows.com',
 ] as const;
 
-/** O endereço é https, na porta padrão, sem usuário e senha, e de um serviço de push conhecido. */
+/**
+ * O endereço é https, na porta padrão, sem usuário e senha, e de um serviço de push conhecido. Lê a autoridade com uma
+ * expressão (o shared não depende do `URL` do navegador nem do Node): qualquer `@`, `:` ou caractere fora de um nome de
+ * host recusa.
+ */
 export function isPushServiceEndpoint(endpoint: string): boolean {
-  let url: URL;
-  try {
-    url = new URL(endpoint);
-  } catch {
-    return false;
-  }
-  if (url.protocol !== 'https:' || url.port !== '' || url.username || url.password) return false;
-  const host = url.hostname.toLowerCase();
+  const match = /^https:\/\/([^/?#]*)(?:[/?#]|$)/i.exec(endpoint);
+  if (!match) return false;
+  const host = match[1]!.toLowerCase();
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host)) return false;
   return (
     (PUSH_SERVICE_HOSTS as readonly string[]).includes(host) ||
     PUSH_SERVICE_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))
