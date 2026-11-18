@@ -278,6 +278,12 @@ function secretLeaks(text, secrets) {
     problems.push('liga o eco dos comandos (`set -x`), que imprimiria os segredos');
   }
   if (/\bcurl\b[^\n]*\s(-v|--verbose|-vv)\b/.test(text)) problems.push('usa curl --verbose');
+  // `bash -x`, `sh -eux`, `shell: bash -x {0}` e `defaults.run.shell` com -x ligam o eco dos comandos.
+  if (/\b(ba|z)?sh\s+(-\w*x\w*|-o\s+xtrace)\b/.test(text)) {
+    problems.push(
+      'usa um shell com -x (`bash -x`, `shell:` ou `defaults.run.shell`), que imprimiria os segredos',
+    );
+  }
   if (/^\s*(-\s*run:\s*)?(printenv|env)\s*([|>]|$)/m.test(text))
     problems.push('imprime o ambiente');
   if (/ACTIONS_STEP_DEBUG|ACTIONS_RUNNER_DEBUG/.test(text))
@@ -288,6 +294,11 @@ function secretLeaks(text, secrets) {
     const code = line.replace(/^\s*#.*$/, '');
     if (/secrets\.\w+/.test(code) && !asValue.test(code)) {
       problems.push(`usa segredo direto no comando (passe por env:): ${line.trim()}`);
+    }
+    if (
+      secrets.some((name) => new RegExp(`\\b(printenv|env)\\s+(\\S+\\s+)*${name}\\b`).test(code))
+    ) {
+      problems.push(`imprime o valor de um segredo (printenv/env): ${line.trim()}`);
     }
     const mentions = secrets.some((name) => new RegExp(`\\$(\\{${name}\\}|${name}\\b)`).test(code));
     if (mentions && printing.test(code)) {
