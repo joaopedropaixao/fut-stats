@@ -440,8 +440,8 @@ padrão (`main`) e a API de produção só existe depois da release.
 
 ### R0. Domínio próprio (registro.br + Vercel)
 
-1. **Comprar o domínio** em <https://registro.br> (`.com.br`, cerca de R$ 40 por ano). Escolha o nome, pague e espere
-   ele ficar ativo.
+1. **Comprar o domínio** em <https://registro.br> (`.com.br`, cerca de R$ 40 por ano). **Feito:** o dono comprou
+   `futstats-app.com.br` em 18 nov 2026, e o DNS fica nos servidores do próprio registro.br (a recomendação do passo 3).
 2. **Vercel:** projeto `fut-stats-app` → **Settings → Domains → Add Existing** → digite o domínio (`futstats-app.com.br`). A
    Vercel oferece adicionar também o `www`: aceite (`www.futstats-app.com.br`). No `www`, escolha **Redirect to `futstats-app.com.br`**
    (assim o `www` leva ao nome principal; não precisa de regra no `vercel.json`).

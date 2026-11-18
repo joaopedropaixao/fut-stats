@@ -51,8 +51,8 @@ abaixo).
 | 16 ✅ | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
 
 ### Próximas prioridades (18 nov 2026)
-Entregues até aqui: as fatias 0 a 14 e 16. Falta só a `producao` (endereço: domínio próprio `.com.br`, a comprar no registro.br
-com o marcador `futstats-app.com.br`; o Google não aceita `vercel.app`) e o lançamento. Ordem:
+Entregues até aqui: as fatias 0 a 14 e 16. Falta só a `producao` (endereço: domínio próprio `futstats-app.com.br`, comprado no
+registro.br; o Google não aceita `vercel.app`) e o lançamento. Ordem:
 
 1. ✅ **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
    antes do `feed` porque ele é a próxima tela grande.

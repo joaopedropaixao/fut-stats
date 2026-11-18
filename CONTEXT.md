@@ -989,9 +989,9 @@ resultado; um dia da semana fixo no texto; pedir permissão sem toque; deixar o 
 **O que é:** a operação do ambiente de produção (`main` + Neon `prod`), separada do staging. Não tem regra de negócio:
 não mexe em `packages/domain`. Spec: `docs/specs/producao.md`; passo a passo do dono: `docs/deploy.md`.
 
-**Endereço:** domínio próprio `.com.br` (o Google não aceita `*.vercel.app` como domínio autorizado), escrito como `futstats-app.com.br` no
-`render.yaml`, no `vercel.json` e nos docs até ser comprado; o `scripts/check-deploy-config.mjs` avisa enquanto o marcador existir
-e confere que o host do `vercel.json` é o do `APP_URL` de produção. O `fut-stats-app.vercel.app` (endereço padrão do projeto)
+**Endereço:** domínio próprio `.com.br` (o Google não aceita `*.vercel.app` como domínio autorizado), `futstats-app.com.br` (comprado no registro.br em 18 nov 2026), escrito no
+`render.yaml`, no `vercel.json` e nos docs; o `scripts/check-deploy-config.mjs` confere que o host do `vercel.json` é o do
+`APP_URL` de produção e que não é `*.vercel.app`. O `fut-stats-app.vercel.app` (endereço padrão do projeto)
 continua indo para a API de produção.
 
 **Despertador (`apps/api/src/internal`):** `POST /api/internal/tick`, `Authorization: Bearer <TICK_SECRET>`, sem sessão
