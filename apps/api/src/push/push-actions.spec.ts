@@ -130,6 +130,30 @@ describe('push: avisos disparados pelas ações da rodada', () => {
       await settle();
       expect(sender.sent).toHaveLength(0);
     });
+
+    it('editar e apagar a rodada (ROUND_UPDATED e ROUND_DELETED no sinal) não avisam ninguém', async () => {
+      const { group, admin } = await world();
+      const created = await request(server())
+        .post(`/api/groups/${group.id}/rounds`)
+        .set('Cookie', admin.cookie)
+        .send({ scheduledAt: '2026-10-24T12:00:00.000Z', location: 'Quadra' })
+        .expect(201);
+      await settle();
+      sender.reset();
+
+      await request(server())
+        .patch(base(group.id, created.body.id))
+        .set('Cookie', admin.cookie)
+        .send({ location: 'Outra quadra' })
+        .expect(200);
+      await request(server())
+        .delete(base(group.id, created.body.id))
+        .set('Cookie', admin.cookie)
+        .expect(204);
+      await settle();
+
+      expect(sender.sent).toHaveLength(0);
+    });
   });
 
   describe('publicar os times', () => {
