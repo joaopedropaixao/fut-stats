@@ -246,6 +246,12 @@ describe('C14 e C26: segredo nunca vai para o log (QA volta 1)', () => {
     ['tee do segredo', '          printf %s "$TICK_SECRET" | tee /tmp/x'],
     ['redirecionamento do segredo', '          echo x; true "$TICK_SECRET" > /tmp/segredo'],
     ['set -x', '          set -x'],
+    ['printenv com o nome do segredo', '          printenv TICK_SECRET'],
+    ['env com o nome do segredo', '          env | grep BACKUP_PASSPHRASE'],
+    ['printenv de um segredo numa linha só', '      - run: printenv BACKUP_PASSPHRASE'],
+    ['shell: bash -x num passo', '      - shell: bash -x {0}\n        run: true'],
+    ['bash -x chamando o script', '          bash -x scripts/backup-db.sh'],
+    ['defaults.run.shell com -x', '    defaults:\n      run:\n        shell: bash -eux {0}'],
     ['bash -x via xtrace', '          set -o xtrace'],
   ];
   const withLine = (text, line) => text.replace(/\n    steps:\n/, `\n    steps:\n${line}\n`);
