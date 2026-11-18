@@ -207,4 +207,51 @@ describe('validateEnv', () => {
       ).toBe('https://example.com/contato');
     });
   });
+  describe('Sentry e despertador (produção)', () => {
+    const DSN = 'https://abc123@o1.ingest.sentry.io/42';
+
+    it('C2: SENTRY_DSN é opcional; vazio (o .env.example) vale como ausente', () => {
+      expect(validateEnv(valid).SENTRY_DSN).toBeUndefined();
+      expect(validateEnv({ ...valid, SENTRY_DSN: '' }).SENTRY_DSN).toBeUndefined();
+      expect(validateEnv({ ...valid, SENTRY_DSN: DSN }).SENTRY_DSN).toBe(DSN);
+    });
+
+    it('C2: SENTRY_DSN que não é URL não sobe e diz qual variável, sem imprimir o valor', () => {
+      const bad = 'isto-nao-e-uma-url-segredo';
+      let message = '';
+      try {
+        validateEnv({ ...valid, SENTRY_DSN: bad });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message).toMatch(/SENTRY_DSN/);
+      expect(message).not.toContain(bad);
+    });
+
+    it('C2: SENTRY_ENVIRONMENT é opcional e aceita texto', () => {
+      expect(validateEnv(valid).SENTRY_ENVIRONMENT).toBeUndefined();
+      expect(validateEnv({ ...valid, SENTRY_ENVIRONMENT: 'staging' }).SENTRY_ENVIRONMENT).toBe(
+        'staging',
+      );
+    });
+
+    it('C23: TICK_SECRET é opcional; vazio vale como ausente', () => {
+      expect(validateEnv(valid).TICK_SECRET).toBeUndefined();
+      expect(validateEnv({ ...valid, TICK_SECRET: '' }).TICK_SECRET).toBeUndefined();
+    });
+
+    it('C23: TICK_SECRET com 32 caracteres passa; com 31 a API não sobe, sem imprimir o valor', () => {
+      expect(validateEnv({ ...valid, TICK_SECRET: 's'.repeat(32) }).TICK_SECRET).toBe(
+        's'.repeat(32),
+      );
+      let message = '';
+      try {
+        validateEnv({ ...valid, TICK_SECRET: 's'.repeat(31) });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message).toMatch(/TICK_SECRET/);
+      expect(message).not.toContain('s'.repeat(31));
+    });
+  });
 });
