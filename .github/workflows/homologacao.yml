@@ -1,0 +1,79 @@
+# Preparar homologação: monta a "Pelada de Demonstração" no STAGING (banco da branch dev do Neon) e deixa os e-mails
+# passados como admins dela, para o dono e os admins testarem o app antes do domingo. Só roda a partir da `develop`.
+# Apaga e recria SÓ o grupo `pelada-demo`; os outros grupos do staging ficam como estão. Nunca toca na produção:
+# usa só o segredo do staging e o comando recusa se o host do banco estiver em DEMO_FORBIDDEN_HOSTS (o de produção).
+# Segredo do repositório: STAGING_DIRECT_URL (URL da branch dev do Neon, sem -pooler).
+# Variável do repositório: PROD_DB_HOST (só o host da branch prod do Neon, sem -pooler; não é segredo).
+# Passo a passo em docs/deploy.md ("Homologação"). Sem migration: o deploy do Render já cuida disso.
+name: Preparar homologação
+
+on:
+  workflow_dispatch:
+    inputs:
+      admins:
+        description: 'E-mails dos admins, separados por vírgula (ex.: ana@gmail.com,bia@gmail.com)'
+        required: true
+        type: string
+      cenario:
+        description: 'Estado da rodada atual da demonstração'
+        required: true
+        type: choice
+        default: agendada
+        options:
+          - agendada
+          - times
+          - em-jogo
+          - resenha
+          - votacao
+          - encerrada
+
+permissions:
+  contents: read
+
+# Duas execuções ao mesmo tempo apagariam e recriariam o mesmo grupo uma por cima da outra.
+concurrency:
+  group: homologacao
+  cancel-in-progress: false
+
+jobs:
+  preparar:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # Usa a versão do campo "packageManager" do package.json
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # O comando usa o domain (dist) e o client do Prisma (gerado), que o turbo monta antes do build da API.
+      - name: Preparar o código do comando
+        run: pnpm exec turbo run build --filter=@fut-stats/api
+
+      # Sem `-v`, `set -x` nem eco do ambiente: a URL do banco nunca vai para o log. Os inputs entram por variável de
+      # ambiente (nunca interpolados no script), então um e-mail com aspas ou `$()` não vira comando.
+      - name: Montar a pelada de demonstração
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DIRECT_URL }}
+          ALLOW_DEMO_SEED: staging
+          DEMO_FORBIDDEN_HOSTS: ${{ vars.PROD_DB_HOST }}
+          ADMINS: ${{ inputs.admins }}
+          CENARIO: ${{ inputs.cenario }}
+        run: |
+          set -eu
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Falta o segredo STAGING_DIRECT_URL (ver docs/deploy.md, seção Homologação)." >&2
+            exit 1
+          fi
+          if [ -z "$DEMO_FORBIDDEN_HOSTS" ]; then
+            echo "Falta a variável PROD_DB_HOST (o host da branch prod do Neon; ver docs/deploy.md, seção Homologação)." >&2
+            exit 1
+          fi
+          pnpm --filter @fut-stats/api db:demo -- --admins="$ADMINS" --cenario="$CENARIO"
