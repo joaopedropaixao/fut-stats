@@ -47,20 +47,20 @@ abaixo).
 | 12 ✅ | `feed` | Par | — | **Onda 5.** A tela inicial vira o Feed: avisos (um grande por vez), resenhas do admin, reações e comentários |
 | 13 ✅ | `jogo-ao-vivo` | Par | `auditoria-da-rodada` | **Onda 6, junto do lançamento** (decisão do dono, 15 nov 2026). SSE (`GET .../rounds/:roundId/stream`) com `EventEmitter` na API, disparado depois do commit, no lugar do polling no jogo, no rodízio e na votação |
 | 14 ✅ | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado, como ouvinte do sinal único de eventos da rodada (da `jogo-ao-vivo`). Pendência do `pacote-do-craque` resolvida (17 nov 2026): o aviso `RESULT` do Feed traz `hasPack` e o card do início não chama mais `GET .../voting/result`; a novidade chega pelo push `RESULT_OUT` (app fechado) e pelo SSE da `jogo-ao-vivo` (app aberto) |
-| 15 | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 15 em 15 minutos para a votação fechar na hora). Depois, a release e **lançar para a pelada** |
+| 15 ✅ | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 30 em 30 minutos para a votação fechar no prazo). Depois, a release e **lançar para a pelada** |
 | 16 ✅ | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
 
 ### Próximas prioridades (18 nov 2026)
-Entregues até aqui: as fatias 0 a 14 e 16. Falta só a `producao` (endereço decidido: `fut-stats-app.vercel.app`,
-P8, 17 nov 2026) e o lançamento. Ordem:
+Entregues até aqui: as fatias 0 a 16. Falta o roteiro do dono (`docs/deploy.md`, R0–R9), a release e o lançamento (endereço: domínio próprio `futstats-app.com.br`, comprado no
+registro.br; o Google não aceita `vercel.app`). Ordem:
 
 1. ✅ **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
    antes do `feed` porque ele é a próxima tela grande.
 2. ✅ **`auditoria-da-rodada`** (Back) e **`feed`** (Par), em paralelo. As duas mexem no `schema.prisma`
    (`RoundLog` e `Post`/`PostReaction`/`PostComment`): o `feed` entrou primeiro e a auditoria refez a migration por
    cima (o model virou `AuditLog` e passou a cobrir as escritas do feed).
-3. ✅ **`jogo-ao-vivo`** (Par) e ✅ **`pwa-e-push`** (Par); falta a **`producao`** (Back), que coloca a `main` no
-   ar em `fut-stats-app.vercel.app`.
+3. ✅ **`jogo-ao-vivo`** (Par), ✅ **`pwa-e-push`** (Par) e ✅ **`producao`** (Back), que coloca a `main` no
+   ar no domínio próprio (`futstats-app.com.br`).
 4. **Lançar para a pelada** e coletar feedback em 2–3 rodadas. O `docs/lancamento.md` explica como instalar o app
    no Android e no **iPhone** (no Safari: Compartilhar → Adicionar à Tela de Início; sem instalar, o iPhone não
    recebe avisos). A ideia é todo mundo ter o app com ícone na tela, como um app da loja.
@@ -138,7 +138,7 @@ Roda **em paralelo** com a Fase 0 e o backend da Fase 1. **Bloqueia apenas a imp
 - [x] Feed de notícias/resenhas (admin cria), reações e comentários
 - [x] Cards de alerta (times publicados, votação aberta) (votação aberta e resultado já no início, pela `votacao` e o `pacote-do-craque`; o resto vem no `feed`)
 - [x] PWA instalável + Web Push
-- [ ] Produção (`main`), Sentry, backup do banco
+- [x] Produção (`main`), Sentry, backup do banco
 - [ ] **Lançar para a pelada**, coletar feedback em 2–3 rodadas
 
 ## Fase 5: Cartola (v1.1)

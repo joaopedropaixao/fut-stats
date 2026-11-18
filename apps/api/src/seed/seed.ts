@@ -87,6 +87,8 @@ const PLAYED_SCENARIOS: ReadonlySet<SeedScenario> = new Set([
 
 export interface SeedOptions {
   scenario?: SeedScenario;
+  /** Variáveis de ambiente que decidem se o seed pode rodar (só para testes; padrão `process.env`). */
+  env?: NodeJS.ProcessEnv;
   /** "Agora" do seed: as datas das rodadas saem dele. */
   now?: Date;
 }
@@ -171,11 +173,23 @@ interface PlannedVote extends RoundVote {
   at: Date;
 }
 
+/**
+ * O seed é só de desenvolvimento: só roda com `NODE_ENV` `development` ou `test`, antes de tocar no banco. Sem
+ * `NODE_ENV` também recusa, porque a API trata a falta dele como produção (o `render.yaml` não define `NODE_ENV`), igual
+ * ao `DevModule` e ao `resolveRequestId`.
+ */
+export function assertSeedAllowed(env: NodeJS.ProcessEnv = process.env): void {
+  if (env.NODE_ENV !== 'development' && env.NODE_ENV !== 'test') {
+    throw new Error('O seed não roda em produção');
+  }
+}
+
 /** Monta o grupo, os membros e as rodadas do seed. Rodar de novo recria só as rodadas deste grupo. */
 export async function seed(
   prisma: PrismaClient,
-  { scenario = DEFAULT_SEED_SCENARIO, now = new Date() }: SeedOptions = {},
+  { scenario = DEFAULT_SEED_SCENARIO, now = new Date(), env = process.env }: SeedOptions = {},
 ): Promise<SeedSummary> {
+  assertSeedAllowed(env);
   const group = await prisma.group.upsert({
     where: { slug: SEED_GROUP.slug },
     update: {},

@@ -2,6 +2,7 @@ import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@ne
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env';
 import { VotingService } from './voting.service';
+import { reportBackgroundError } from '../common/monitoring';
 
 /**
  * O relógio da API: de tempos em tempos, fecha as votações com o prazo vencido (`closeDueVotings`, todos os
@@ -43,6 +44,7 @@ export class VotingCloser implements OnModuleInit, OnModuleDestroy {
         'Falha ao fechar votações vencidas',
         error instanceof Error ? error.stack : String(error),
       );
+      reportBackgroundError(error, { source: 'voting-closer' });
     } finally {
       this.running = false;
     }

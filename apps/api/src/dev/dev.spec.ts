@@ -59,14 +59,17 @@ describe('login de desenvolvimento', () => {
   });
 
   describe('fora de development', () => {
-    it.each(['test', 'production', undefined])('NODE_ENV=%s não registra as rotas', async (env) => {
-      const t = await createTestApp({ imports: [DevModule.forEnvironment(env)] });
-      try {
-        await request(t.app.getHttpServer()).get('/api/dev/users').expect(404);
-        await request(t.app.getHttpServer()).post('/api/dev/login/qualquer').expect(404);
-      } finally {
-        await t.app.close();
-      }
-    });
+    it.each(['test', 'production', undefined])(
+      'C6: NODE_ENV=%s não registra as rotas de dev (404)',
+      async (env) => {
+        const t = await createTestApp({ imports: [DevModule.forEnvironment(env)] });
+        try {
+          await request(t.app.getHttpServer()).get('/api/dev/users').expect(404);
+          await request(t.app.getHttpServer()).post('/api/dev/login/qualquer').expect(404);
+        } finally {
+          await t.app.close();
+        }
+      },
+    );
   });
 });

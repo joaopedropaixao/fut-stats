@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { SESSION_COOKIE, SessionService } from '../src/auth/session.service';
 import { validateEnv, type Env } from '../src/config/env';
+import { createInactiveGroup } from '../src/dev/dev-inactive-group';
 import { removeLeftoverDevGroups } from '../src/dev/dev-leftovers';
 import { GroupsService } from '../src/groups/groups.service';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -72,21 +73,11 @@ async function main(): Promise<void> {
     // Grupos só de dev e sem rodada; apaga antes o registro e as resenhas deles (chaves Restrict).
     const leftoverIds = await removeLeftoverDevGroups(prisma, devIds);
 
-    const inactiveGroup = await groups.create(ids.owner, {
-      name: 'Pelada Inativa',
-      nickname: 'Dono',
-      primaryPosition: 'MIDFIELDER',
-    });
-    const ownerMembership = { id: '', groupId: inactiveGroup.id, role: 'ADMIN' as const };
-    const { code: inactiveInviteCode } = await groups.getInvite(ownerMembership);
-    await groups.join(ids.inactive, inactiveInviteCode, {
-      nickname: 'Inativo',
-      primaryPosition: 'DEFENDER',
-    });
-    await prisma.membership.update({
-      where: { userId_groupId: { userId: ids.inactive, groupId: inactiveGroup.id } },
-      data: { active: false },
-    });
+    const { group: inactiveGroup, inviteCode: inactiveInviteCode } = await createInactiveGroup(
+      prisma,
+      groups,
+      { owner: ids.owner, inactive: ids.inactive },
+    );
 
     const cookie = (userId: string) => `${SESSION_COOKIE}=${sessions.sign(userId)}`;
     const vars = {

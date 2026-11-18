@@ -6,6 +6,27 @@
   "rewrites": [
     {
       "source": "/api/:path*",
+      "has": [{ "type": "host", "value": "futstats-app.com.br" }],
+      "destination": "https://fut-stats-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "has": [{ "type": "host", "value": "fut-stats-app.vercel.app" }],
+      "destination": "https://fut-stats-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "has": [{ "type": "host", "value": "^fut-stats-app-[a-z0-9-]+\\.vercel\\.app$" }],
+      "destination": "https://fut-stats-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "has": [{ "type": "host", "value": "fut-stats-three.vercel.app" }],
+      "destination": "https://fut-stats-api-staging.onrender.com/api/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "has": [{ "type": "host", "value": "^fut-stats-[a-z0-9-]+\\.vercel\\.app$" }],
       "destination": "https://fut-stats-api-staging.onrender.com/api/:path*"
     },
     { "source": "/(.*)", "destination": "/index.html" }

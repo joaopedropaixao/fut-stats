@@ -14,11 +14,20 @@ import {
   type RoundTeams,
   type Team,
 } from '@fut-stats/domain';
+import { spawnSync } from 'node:child_process';
+import { resolve } from 'node:path';
 import request from 'supertest';
 import { createGroup, loginAs } from '../test/auth';
+import { TEST_DATABASE_URL } from '../test/database-url';
 import { createTestApp, resetDatabase, type TestApp } from '../test/test-app';
 import { SEED_GROUP } from './seed-data';
-import { parseSeedScenario, seed, SEED_SCENARIOS, type SeedScenario } from './seed';
+import {
+  assertSeedAllowed,
+  parseSeedScenario,
+  seed,
+  SEED_SCENARIOS,
+  type SeedScenario,
+} from './seed';
 
 const NOW = new Date('2026-10-24T15:10:00Z');
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -607,5 +616,48 @@ describe('seed de desenvolvimento', () => {
     expect(parseSeedScenario(['--cenario=votacao'])).toBe('votacao');
     expect(parseSeedScenario(['--cenario', 'encerrada'])).toBe('encerrada');
     expect(() => parseSeedScenario(['--cenario=inexistente'])).toThrow(SEED_SCENARIOS.join(', '));
+  });
+  describe('C7: nunca em produção', () => {
+    const REFUSAL = 'O seed não roda em produção';
+
+    it('C7: seed() com NODE_ENV=production recusa e não escreve nada no banco', async () => {
+      await expect(seed(t.prisma, { env: { NODE_ENV: 'production' } })).rejects.toThrow(REFUSAL);
+
+      expect(await t.prisma.group.count()).toBe(0);
+      expect(await t.prisma.user.count()).toBe(0);
+      expect(await t.prisma.round.count()).toBe(0);
+    });
+
+    it('C7: assertSeedAllowed só deixa development e test (sem NODE_ENV é produção, como na API)', () => {
+      expect(() => assertSeedAllowed({ NODE_ENV: 'production' })).toThrow(REFUSAL);
+      expect(() => assertSeedAllowed({})).toThrow(REFUSAL);
+      expect(() => assertSeedAllowed({ NODE_ENV: '' })).toThrow(REFUSAL);
+      expect(() => assertSeedAllowed({ NODE_ENV: 'staging' })).toThrow(REFUSAL);
+      expect(() => assertSeedAllowed({ NODE_ENV: 'development' })).not.toThrow();
+      expect(() => assertSeedAllowed({ NODE_ENV: 'test' })).not.toThrow();
+    });
+
+    it('C7: seed() sem NODE_ENV (o Render não define) recusa e não escreve nada no banco', async () => {
+      await expect(seed(t.prisma, { env: {} })).rejects.toThrow(REFUSAL);
+
+      expect(await t.prisma.group.count()).toBe(0);
+      expect(await t.prisma.user.count()).toBe(0);
+    });
+
+    it('C7: o comando `prisma/seed.ts` com NODE_ENV=production sai com código 1, diz o motivo e não toca no banco', async () => {
+      const apiRoot = resolve(__dirname, '../..');
+      const result = spawnSync(resolve(apiRoot, 'node_modules/.bin/tsx'), ['prisma/seed.ts'], {
+        cwd: apiRoot,
+        env: { ...process.env, NODE_ENV: 'production', DATABASE_URL: TEST_DATABASE_URL },
+        encoding: 'utf8',
+        timeout: 30_000,
+      });
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(REFUSAL);
+      expect(result.stdout).not.toContain('Seed ok');
+      expect(await t.prisma.group.count()).toBe(0);
+      expect(await t.prisma.user.count()).toBe(0);
+    }, 40_000);
   });
 });

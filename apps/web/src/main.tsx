@@ -8,7 +8,10 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 import './index.css';
 import { clearReloadMark, reloadOnPreloadError } from './app/chunk-reload';
+import { ErrorBoundary } from './app/error-boundary';
+import { startMonitoring } from './app/monitoring';
 import { preloadWhenReady } from './app/preload';
+import { monitorSession } from './features/session/monitor-session';
 import { captureInstallPrompt } from './features/pwa/install-prompt';
 import { createQueryClient } from './lib/query-client';
 import { applyBackground } from './lib/theme';
@@ -18,6 +21,8 @@ applyBackground();
 // O navegador oferece a instalação uma vez, logo ao abrir: guarda para o card do Perfil e a linha do Feed
 captureInstallPrompt();
 const queryClient = createQueryClient();
+// O Sentry sabe quem está logado (só o id) em qualquer tela
+monitorSession(queryClient);
 
 // Pedaço que sumiu: recarrega uma vez, já na tela pedida (a navegação em andamento, se houver)
 reloadOnPreloadError(() => {
@@ -38,8 +43,13 @@ preloadWhenReady(router);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );
+
+// O Sentry (só com VITE_SENTRY_DSN) entra depois da primeira renderização e fora do JS inicial
+requestAnimationFrame(() => setTimeout(startMonitoring, 0));

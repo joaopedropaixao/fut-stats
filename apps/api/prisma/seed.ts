@@ -10,12 +10,15 @@
 // As rodadas passadas já vêm com votos e resultado gravado, fechadas de jeitos diferentes (todos votaram, prazo, admin).
 // Rodar: pnpm --filter @fut-stats/api db:seed -- --cenario=em-jogo   (sem --cenario: agendada)
 // Também cria 3 resenhas de exemplo no Feed (uma sem título, uma longa com quebra de linha), com reações e comentários.
+// Nunca roda com NODE_ENV=production (recusa e sai com código 1).
 // Pode rodar de novo: atualiza os membros e recria só as rodadas e as resenhas desse grupo. A lógica fica em src/seed.
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
-import { parseSeedScenario, seed } from '../src/seed/seed';
+import { assertSeedAllowed, parseSeedScenario, seed } from '../src/seed/seed';
 
 async function main(): Promise<void> {
+  // Antes de qualquer conexão: em produção o comando não chega nem a abrir o banco.
+  assertSeedAllowed();
   const scenario = parseSeedScenario(process.argv.slice(2));
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),

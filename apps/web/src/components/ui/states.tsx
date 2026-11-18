@@ -1,3 +1,4 @@
+import { cn } from '../../lib/cn';
 import { Button } from './button';
 import { Icon } from './icons';
 import { PixelText } from './pixel-text';
@@ -7,28 +8,54 @@ type ErrorStateProps = {
   message: string;
   onRetry?: () => void;
   retrying?: boolean;
+  /** Rótulo da tecla (padrão: "Tentar de novo"). */
+  retryLabel?: string;
+  /**
+   * Tela inteira de erro (`app/error-screen.tsx`): card de grande momento (contorno grosso, sombra dura, entrada
+   * em degraus) e título em pixel. O padrão é o bloco de erro dentro de uma tela.
+   */
+  screen?: boolean;
 };
 
 /** Erro com "Tentar de novo": o título diz o que falhou, a mensagem diz o que fazer. */
-export function ErrorState({ title, message, onRetry, retrying }: ErrorStateProps) {
+export function ErrorState({
+  title,
+  message,
+  onRetry,
+  retrying,
+  retryLabel = 'Tentar de novo',
+  screen,
+}: ErrorStateProps) {
   return (
     <div
       role="alert"
-      className="flex flex-col gap-3 bg-danger/8 p-4 shadow-[inset_0_0_0_2px_var(--color-danger)]"
+      className={cn(
+        'flex flex-col gap-3',
+        screen
+          ? 'animate-moment-in border-[3px] border-danger bg-surface-raised p-5 shadow-[4px_4px_0_var(--color-shadow)]'
+          : 'bg-danger/8 p-4 shadow-[inset_0_0_0_2px_var(--color-danger)]',
+      )}
     >
       <div className="flex gap-3">
         <Icon name="alert" size={22} strokeWidth={2.2} className="shrink-0 text-[#f87171]" />
-        <div className="flex flex-col gap-0.5">
-          <p className="text-base font-semibold">{title}</p>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          {screen ? (
+            <PixelText as="h1" size={24} wrap>
+              {title}
+            </PixelText>
+          ) : (
+            <p className="text-base font-semibold">{title}</p>
+          )}
           <p className="text-sm text-text-muted">{message}</p>
         </div>
       </div>
       {onRetry && (
         <Button
-          variant="outline"
-          size={44}
+          variant={screen ? 'primary' : 'outline'}
+          size={screen ? 56 : 44}
+          block={screen}
           icon="redo"
-          label="Tentar de novo"
+          label={retryLabel}
           loading={retrying}
           onClick={onRetry}
         />

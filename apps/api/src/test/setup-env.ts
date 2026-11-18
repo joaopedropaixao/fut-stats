@@ -16,3 +16,6 @@ process.env.STREAM_HEARTBEAT_MS = '300';
 // Push desligado por padrão: as chaves VAPID do arquivo de ambiente local (o dono liga o push no dev) não podem vazar
 // para os testes. Vazio, e não apagado: o ambiente vence o arquivo; os testes de push ligam com `enableVapid()`.
 for (const key of ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT']) process.env[key] = '';
+// Idem para o Sentry e o despertador: o que o arquivo de ambiente local tiver não pode ligá-los nos testes. Os testes
+// que precisam deles trocam o transporte do Sentry e importam o `InternalModule.forEnvironment(segredo)`.
+for (const key of ['SENTRY_DSN', 'SENTRY_ENVIRONMENT', 'TICK_SECRET']) process.env[key] = '';

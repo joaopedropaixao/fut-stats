@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { Injectable, Logger } from '@nestjs/common';
+import { reportBackgroundError } from '../common/monitoring';
 
 /** O que mudou na rodada, para quem busca o dado de novo: o jogo, a votação ou a etapa. */
 export type RoundEventScope = 'match' | 'voting' | 'status';
@@ -65,6 +66,12 @@ export class RoundEventsService {
         `Falha ao sinalizar ${event.type} na rodada ${event.roundId}`,
         error instanceof Error ? error.stack : String(error),
       );
+      reportBackgroundError(error, {
+        source: 'round-event-emit',
+        groupId: event.groupId,
+        roundId: event.roundId,
+        tags: { type: event.type },
+      });
     }
   }
 
@@ -91,6 +98,12 @@ export class RoundEventsService {
         this.logger.warn(
           `Ouvinte de ${event.type} falhou: ${error instanceof Error ? error.message : String(error)}`,
         );
+        reportBackgroundError(error, {
+          source: 'round-event-listener',
+          groupId: event.groupId,
+          roundId: event.roundId,
+          tags: { type: event.type },
+        });
       }
     };
     this.emitter.on(name, safe);
