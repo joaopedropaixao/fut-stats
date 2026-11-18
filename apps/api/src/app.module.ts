@@ -6,11 +6,13 @@ import { AuthModule } from './auth/auth.module';
 import { validateEnv } from './config/env';
 import { envFilePaths } from './config/env-files';
 import { DevModule } from './dev/dev.module';
+import { RoundEventsModule } from './events/round-events.module';
 import { FeedModule } from './feed/feed.module';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
 import { HistoryModule } from './history/history.module';
 import { LineupsModule } from './lineups/lineups.module';
+import { LiveModule } from './live/live.module';
 import { MatchModule } from './match/match.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RankingModule } from './ranking/ranking.module';
@@ -37,6 +39,8 @@ import { VotingModule } from './voting/voting.module';
     RankingModule,
     FeedModule,
     AuditModule,
+    RoundEventsModule,
+    LiveModule,
     DevModule.forEnvironment(),
   ],
 })

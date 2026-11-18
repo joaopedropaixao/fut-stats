@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation, useNavigation } from 'react-router';
 import { ErrorState, SkeletonList } from '../components/ui/states';
 import { TabBar } from '../components/ui/tab-bar';
 import { peekPendingDestination } from '../features/group/invite-code';
+import { LiveRoundsMount } from '../features/live/live-rounds-mount';
 import { useSession } from '../features/session/use-session';
 import { TABS } from './tabs';
 import { useDelayedFlag } from './use-delayed-flag';
@@ -58,6 +59,7 @@ export function AppShell() {
         />
       )}
       {ready && (loadingScreen ? <SkeletonList rows={3} /> : <Outlet />)}
+      {ready && <LiveRoundsMount />}
     </ShellFrame>
   );
 }

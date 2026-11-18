@@ -9,24 +9,27 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiDeleteJson, apiGet, apiPost, apiPut } from '../../lib/api';
 import { historyKey } from '../history/history-key';
+import { useChannelMode } from '../live/channel-mode';
 import { refreshRounds, roundKey } from '../rounds/queries';
 import { matchRefreshInterval } from './refresh-interval';
 
 const matchPath = (groupId: string, roundId: string) =>
   `/groups/${groupId}/rounds/${roundId}/match`;
-const matchKey = (groupId: string, roundId: string) =>
+export const matchKey = (groupId: string, roundId: string) =>
   [...roundKey(groupId, roundId), 'match'] as const;
 
 /**
- * O jogo da rodada. Em jogo (15 s) e na Resenha (5 s), atualiza sozinho: quem acompanha vê os lances dos outros.
+ * O jogo da rodada. Em jogo e na Resenha, atualiza sozinho: quem acompanha vê os lances dos outros. Com o canal ao
+ * vivo conectado, o aviso da API dispara a busca (60 s de segurança); sem ele, 15 s em jogo e 5 s na Resenha.
  * Ao voltar para a aba, também atualiza na hora.
  */
 export function useMatch(groupId: string, roundId: string | undefined) {
+  const channel = useChannelMode(roundId);
   return useQuery({
     queryKey: matchKey(groupId, roundId ?? ''),
     queryFn: ({ signal }) => apiGet(matchPath(groupId, roundId ?? ''), matchViewSchema, { signal }),
     enabled: roundId !== undefined,
-    refetchInterval: (query) => matchRefreshInterval(query.state.data?.status),
+    refetchInterval: (query) => matchRefreshInterval(query.state.data?.status, channel),
     refetchOnWindowFocus: true,
   });
 }

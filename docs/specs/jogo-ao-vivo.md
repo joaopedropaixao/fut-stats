@@ -5,13 +5,13 @@
 
 | | |
 |---|---|
-| **Fatia** | `jogo-ao-vivo` (onda 5) |
+| **Fatia** | `jogo-ao-vivo` (onda 6) |
 | **Modo** | Par |
 | **Parte de** | `auditoria-da-rodada` (os pontos de escrita da rodada já passam por um lugar só) |
 | **Status** | aprovado em 2026-11-14 |
-| **Base** | develop @1021769 |
+| **Base** | develop @1c65574 (revisado em 2026-11-17: entraram #62–#69, #72, #73, #74) |
 | **Depende de** | auditoria-da-rodada, votacao, rodizio-reservas |
-| **Toca em** | packages/shared/src/live.ts, packages/shared/src/index.ts, apps/api/src/live, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/config/env.ts, .env.example, apps/web/src/features/live, apps/web/src/features/match/queries.ts, apps/web/src/features/match/refresh-interval.ts, apps/web/src/features/voting, apps/web/src/app/shell.tsx |
+| **Toca em** | packages/shared/src/live.ts, packages/shared/src/index.ts, apps/api/src/events, apps/api/src/live, apps/api/src/rounds/rounds.service.ts, apps/api/src/rounds/rounds.module.ts, apps/api/src/match, apps/api/src/lineups/lineups.service.ts, apps/api/src/voting, apps/api/src/app.module.ts, apps/api/src/config/env.ts, .env.example, apps/web/src/features/live, apps/web/src/features/match/queries.ts, apps/web/src/features/match/refresh-interval.ts, apps/web/src/features/voting/queries.ts, apps/web/src/app/shell.tsx, docs/02-arquitetura.md (apps/web/vite.config.ts só se o proxy segurar o fluxo; avisar a `pwa-e-push`, que também mexe nele) |
 
 ## Produto
 
@@ -34,7 +34,7 @@ Nenhuma regra de negócio nova. Regras técnicas do canal:
 
 | Escrita | `scopes` |
 |---|---|
-| publicar / despublicar times | `status` |
+| marcar, editar ou apagar a rodada; publicar / despublicar times | `status` |
 | começar o jogo, finalizar, abrir a votação | `match`, `status` |
 | placar, lançar e apagar lance, ligar e parar o rodízio | `match` |
 | votar (novo ou editado) | `voting` |
@@ -68,15 +68,15 @@ Cada cenário tem um id. Os testes levam o id no nome.
 | Id | Dado | Quando | Então | Teste |
 |---|---|---|---|---|
 | C13 | B na tela do jogo, Resenha | A lança um gol | aparece em B em até 2 s (antes: até 5 s) | Playwright |
-| C14 | B no início com "Times publicados" | A começa o jogo; depois finaliza com 3x2 | B passa para "Em jogo" e depois para "Hora da Resenha" com o placar, em até 2 s cada, sem recarregar | Playwright |
+| C14 | B no início (Feed) com o card de times publicados | A começa o jogo; depois finaliza com 3x2 | B passa para o aviso "Jogo em andamento" e depois para "Hora da Resenha" com o placar, em até 2 s cada, sem recarregar | Playwright |
 | C15 | B na tela do jogo, em jogo | A liga o rodízio | o card do rodízio aparece em B em até 2 s | Playwright |
 | C16 | B em "Votos enviados" | outro jogador vota | o medidor de B sobe em até 2 s | Playwright |
-| C17 | B votando | A encerra a votação | B vê "A votação fechou" ao tentar enviar e o início mostra "O resultado saiu" em até 2 s | Playwright |
+| C17 | B votando | A encerra a votação | B vê "A votação fechou" ao tentar enviar e o início (Feed) mostra "O resultado saiu" em até 2 s | Playwright |
 | C18 | canal conectado | contar pedidos de B em 60 s parado na Resenha | no máximo 1 pedido de segurança da visão do jogo (antes: 12) | Playwright |
 | C19 | canal derrubado (rota do stream abortada no Playwright) | A lança um gol | aparece em B pelo modo antigo, em até 5 s na Resenha (15 s em jogo e na votação) | Playwright |
 | C20 | canal volta | esperar a nova tentativa | B reconecta, busca tudo uma vez e volta ao tempo real | Playwright |
 | C21 | B esconde a aba | olhar a rede | a conexão fecha; ao voltar, reconecta e atualiza na hora | Playwright |
-| C22 | rodada sem nada ao vivo (`SCHEDULED`, `CLOSED`) ou sem rodada | abrir o app | nenhuma conexão de stream aberta | Playwright |
+| C22 | rodada encerrada (`CLOSED`) ou sem rodada; rodada agendada que não é a da vez | abrir o app | nenhuma conexão de stream aberta (a da vez agendada abre: é por onde chegam os times publicados) | Playwright |
 | C23 | qualquer tela, canal conectado e depois derrubado | olhar | nada muda no visual e nenhum aviso de erro aparece para a pessoa; console sem erros de JavaScript (falha de rede do stream não é erro de JS) | Playwright |
 | C24 | larguras 320, 375, 390, 430 px e desktop | telas do jogo e da votação recebendo atualização | a atualização não desloca o layout nem cria sobreposição (os dígitos "batem" no lugar) | Playwright |
 
@@ -107,7 +107,7 @@ export const roundStreamEventSchema = z.object({
 export type RoundStreamEvent = z.infer<typeof roundStreamEventSchema>;
 
 /** Etapas em que vale manter o canal aberto. */
-export const LIVE_ROUND_STATUSES = ['TEAMS_PUBLISHED', 'IN_PROGRESS', 'POST_MATCH', 'VOTING'] as const;
+export const LIVE_ROUND_STATUSES = ['SCHEDULED', 'TEAMS_PUBLISHED', 'IN_PROGRESS', 'POST_MATCH', 'VOTING'] as const;
 ```
 
 Nenhuma rota existente muda.
@@ -119,36 +119,69 @@ Sem mudança.
 Sem mudança (canal é infraestrutura; não há regra de negócio).
 
 Na API:
-- **`apps/api/src/live`:** `RoundEventsService` com um `EventEmitter` do Node (`setMaxListeners(0)`):
-  `emit(groupId, roundId, scopes)` e `subscribe(groupId, roundId, listener): () => void`. `LiveController` com o
+- **Sinal único de eventos da rodada (decisão do dono, 17 nov 2026):** `apps/api/src/events`, com
+  `RoundEventsService` sobre um `EventEmitter` do Node (`setMaxListeners(0)`). Toda escrita da rodada dispara **uma
+  vez, depois do commit**, `RoundEvent = { groupId, roundId, type, scopes, actorMembershipId | null }` (`type` com os
+  nomes da `AuditAction` onde existem, mais `ROTATION_STARTED/STOPPED`, `VOTE_CAST`, `ROUND_UPDATED`/`ROUND_DELETED` (review do PR #75) e **`ROUND_CREATED`**
+  (rodada marcada, `scopes: ['status']`, que o push precisa)). Quem precisa **ouve**: o SSE desta fatia e o push da
+  `pwa-e-push`. Esta fatia é a dona do sinal: ele entra num commit isolado, aplicável sobre a develop
+  (`feat(api): sinal único de eventos da rodada`), que a `pwa-e-push` traz por cherry-pick. Nada sensível no evento
+  (voto nunca).
+- **`apps/api/src/live`:** só abre para rodada em `LIVE_ROUND_STATUSES` (encerrada → 404) e liga o `close` antes de
+  conferir a rodada (cliente que desiste no meio não deixa ouvinte nem pulso). Só um ouvinte do sinal (`subscribe(groupId, roundId, listener): () => void`), que
+  repassa `{ scopes, at }`. `LiveController` com o
   `GET` (`@GroupMember()`, confere que a rodada é do grupo antes de abrir o fluxo; `@Sse()` do Nest ou a resposta
   na mão, o que der os cabeçalhos certos). Cancelar a inscrição no `close` da requisição.
 - **Avisar depois de gravar:** cada service chama `events.emit(...)` **depois** que o `withRoundLock` (ou a
-  transação) resolve, nunca dentro. Pontos: `match.service` (start, score, finish, open-voting, lances, rodízio),
-  `lineups.service` (publish, unpublish), `voting` (votar, fechar pelos três caminhos). Erro ao avisar é
-  registrado no log e engolido: nunca derruba a escrita.
-- **Cobertura:** o teste de C3 percorre a mesma lista de rotas de escrita do teste de cobertura de
-  `auditoria-da-rodada` (mais votar e rodízio).
+  transação) resolve, nunca dentro. São os mesmos pontos que já gravam `AuditLog` (`audit.record`/`recordForMember`
+  dentro da transação), mais o rodízio, que não grava registro:
+  - `match.service`: `start`, `finish`, `openVoting` (`match`+`status`); `setScore`, `launchEvent`, `removeEvent`,
+    `startRotation`, `stopRotation` (`match`);
+  - `lineups.service`: `transition` (publicar/despublicar, `status`). O `$transaction` de salvar o rascunho dos times
+    em `SCHEDULED` não avisa (fora de `LIVE_ROUND_STATUSES`, ninguém está ouvindo);
+  - `voting.service`: `submitVote` → `voting`, ou `voting`+`status` quando o último voto fecha (o `closeRound` roda
+    na mesma transação do voto); `close` (admin) e `closeDueVotings` → `voting`+`status`, uma vez por rodada que
+    **de fato** fechou (o `withRoundLock` devolve `true`). O `closeDueVotings` hoje roda em quatro portas: o relógio
+    (`VotingCloser`), `GET feed/alerts`, a lista de rodadas (`rounds.service`) e as leituras da votação
+    (`view`/`result`); avisar dentro dele cobre todas.
+  Erro ao avisar é registrado no log e engolido: nunca derruba a escrita. O `emit` é síncrono e barato; cada ouvinte
+  escreve na própria resposta dentro de `try/catch` (C11).
+- **Cobertura:** o teste de C3 percorre a mesma lista de rotas de escrita de
+  `apps/api/src/audit/audit-coverage.spec.ts` (só as da rodada; o feed fica fora), mais votar e rodízio.
 - **Um processo só:** o emissor vive na memória. Serve enquanto a API roda numa instância (Render gratuito). Com
   mais de uma instância, trocar o emissor por `LISTEN/NOTIFY` do Postgres, sem mudar o contrato (fica anotado no
   `docs/02-arquitetura.md`).
-- `STREAM_HEARTBEAT_MS` em `src/config/env.ts` e no `.env.example`. Sem dependência nova.
+- `STREAM_HEARTBEAT_MS` em `src/config/env.ts` e no `.env.example` (uma linha em cada, perto de
+  `VOTING_CLOSER_INTERVAL_MS`; a `pwa-e-push` também mexe nos dois). Sem dependência nova.
+- **Cruzamento com `pwa-e-push` (vaga 2):** ela é a dona de `schema.prisma` e `pnpm-lock.yaml` nesta onda; esta
+  fatia não mexe em nenhum dos dois. As duas mexem em `app.module.ts`, `shared/src/index.ts`, `env.ts`,
+  `.env.example`, `shell.tsx` e nos services de `match`, `lineups` e `voting`: uma linha por módulo/variável e um
+  `emit` logo depois do `await` da transação, para o rebase ser trivial.
 
 ### Tela
 Sem mudança visual. Regra 7 do documento de autonomia (sem sobreposição) vale para as telas que passam a se
 atualizar sozinhas.
 - **`features/live/use-round-stream.ts`:** abre um `EventSource` para a rodada, valida cada mensagem com
   `roundStreamEventSchema` e invalida as consultas pelo escopo:
-  - `match` → a visão do jogo (`matchKey`);
-  - `voting` → a visão da votação e o resultado;
-  - `status` → o detalhe da rodada, os times (`lineup`) e a lista de rodadas **por prefixo** (`roundsKey(groupId)`
-    sem `exact`), que leva junto os avisos do Feed.
-  Ao (re)conectar, invalida os três escopos (pode ter perdido aviso). A lógica de estado (conectado, tentando,
-  modo antigo) é uma máquina pura com teste (`stream-state.ts`): 3 falhas seguidas em 1 min → modo antigo por
-  60 s, depois tenta de novo.
+  - `match` → a visão do jogo (`matchKey`); o histórico (`historyKey`) só na troca de etapa e na Resenha, nunca
+    por placar ou lance em jogo;
+  - `voting` → a visão da votação e o resultado; `voting` + `status` (a votação fechou) → também o histórico, o
+    ranking e as figurinhas;
+  - `status` → tudo **desta rodada** por prefixo (`roundKey(groupId, roundId)`: detalhe, times, jogo, votação),
+    mais a lista de rodadas e os avisos do Feed (exatos).
+  O que é do grupo (lista, avisos, histórico, ranking) é pedido sem cancelar a busca em andamento: com dois canais,
+  o segundo aviso entra na busca do primeiro. Ao (re)conectar, invalida os três escopos (pode ter perdido aviso).
+  A lógica de estado (conectado, tentando, modo antigo) é uma máquina pura com teste (`stream-state.ts`): 3 falhas
+  seguidas em 1 min → modo antigo por 60 s, depois tenta de novo. O `ready` só zera as falhas se a conexão ficar
+  de pé por 30 s (`STABLE_MS`): conexão que abre e cai logo não fica num laço de reconexão.
 - **`features/live/live-rounds.tsx`:** montado no `AppShell`. Lê a lista de rodadas e mantém o canal aberto para
   a rodada da vez e para a rodada em votação (no máximo 2 conexões), só em `LIVE_ROUND_STATUSES` e com a aba
-  visível. Assim toda tela se beneficia sem cada uma abrir o seu.
+  visível. Assim toda tela se beneficia sem cada uma abrir o seu. Desde `feed` (#74) o início é o Feed: os avisos
+  (`alertsKey`, sob `roundsKey`) entram no prefixo do `status`. Cuidado com o JS inicial (118,4 kB de 150, #72):
+  o `shell` está no caminho inicial, então `live-rounds` não traz import de valor de `@fut-stats/shared` (o
+  `roundStreamEventSchema` e o Zod ficam num chunk carregado depois, ou a checagem do evento é escrita à mão no
+  web com o tipo vindo por `import type`; `LIVE_ROUND_STATUSES` pode ser copiado como constante local com teste
+  que confere contra o shared).
 - **Intervalos:** `matchRefreshInterval` e o intervalo da votação recebem o estado do canal: conectado → 60 s
   (rede de segurança); modo antigo → os valores de hoje (15 s / 5 s / 15 s). `refetchOnWindowFocus` continua.
 - Em dev, o proxy do Vite já repassa `/api/` (conferir que não segura o fluxo; se segurar, ajustar o proxy).
@@ -171,6 +204,13 @@ um item para ligar o stream direto no domínio da API.
   estar certo.
 - Emissor na memória — uma instância só; o caminho para crescer fica anotado.
 - Depois de `auditoria-da-rodada` e `votacao` — todos os pontos de escrita já existem e estão listados num teste.
+- Sinal único de eventos da rodada (dono, 17 nov 2026) — `jogo-ao-vivo` e `pwa-e-push` iam pôr, cada uma, um gancho
+  "depois de gravar" nos mesmos services; um sinal só, com vários ouvintes, evita a duplicação e o conflito.
+- **Visão do dono (depois do lançamento):** um serviço de notificação próprio (p.ex.
+  `fut-stats-app-notification-service`) que ouve a API por canal aberto e centraliza tudo: manda os aparelhos se
+  atualizarem, envia as notificações e, no futuro, webhooks para fora. O sinal único desta onda é a costura: quando o
+  serviço existir, ele vira o ouvinte, sem mexer nos pontos de escrita. Feed e presença ao vivo ficam para essa
+  próxima rodada.
 
 ## Fora do escopo
 - Presença e Feed (resenhas, reações, comentários) em tempo real.
@@ -183,4 +223,36 @@ um item para ligar o stream direto no domínio da API.
 - P14 · Tempo real depois de `votacao` (onda 5)? → Sim (14 nov 2026).
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**2 voltas. VEREDITO: APROVADO** (17 nov 2026). Volta 1: os 24 cenários passaram, reprovada só pelo `prettier --check`
+em `packages/shared/src/live.ts` (corrigido em `ca8c393`, só formatação). Volta 2: aprovada.
+
+| Id | Resultado | Evidência |
+|---|---|---|
+| C1 | ✅ | `live.spec.ts`: 200, `text/event-stream`, `no-cache, no-transform`, `X-Accel-Buffering: no`, `event: ready` primeiro, `retry: 3000` |
+| C2 | ✅ | dois membros recebem `{ scopes: ['match'], at }` em < 1 s; o evento passa no `roundStreamEventSchema` |
+| C3 | ✅ | rotas lidas dos decorators (match, lineups, voting) + votar + rodízio; um aviso por escrita com os escopos da tabela; último voto `voting`+`status` |
+| C4 | ✅ | 409, 403, 404 e voto inválido não avisam |
+| C5 | ✅ | outra rodada do grupo e outro grupo não chegam |
+| C6 | ✅ | `closeDueVotings` avisa `voting`+`status` só quando fecha de fato |
+| C7 | ✅ | `: ping` com o pulso baixado a 300 ms no teste |
+| C8 | ✅ | `listenerCount` volta ao que era, inclusive depois de 30 conexões |
+| C9 | ✅ | 401 sem sessão; 404 para outro grupo, inativo, rodada de outro grupo e inexistente, sem abrir fluxo |
+| C10 | ✅ | 50 conexões recebem; a escrita responde em < 1,5 s |
+| C11 | ✅ | ouvinte que lança e conexão cortada não derrubam a escrita nem os outros |
+| C12 | ✅ | o evento só tem `at` e `scopes`; o `VOTE_CAST` do sinal sai sem autor |
+| C13 | ✅ | gol de A aparece em B em ~0,1 s |
+| C14 | ✅ | começar: 40 ms; finalizar 3x2 → "Hora da Resenha": 48 ms, sem recarregar |
+| C15 | ✅ | card do rodízio em B em 49 ms |
+| C16 | ✅ | medidor 9 → 10 de 16 em 40 ms |
+| C17 | ✅ | "A votação fechou" ao enviar; Feed mostra "O resultado saiu" em 33 ms |
+| C18 | ✅ | 60 s parado na Resenha: **1 pedido** (antes: 12) |
+| C19 | ✅ | stream abortado: modo antigo a cada 5 s na Resenha; gol em 1,07 s |
+| C20 | ✅ | reconecta ao fim do minuto do modo antigo, busca uma vez e para o polling; lance seguinte em 331 ms |
+| C21 | ✅ | aba escondida fecha as conexões; ao voltar reconecta e atualiza na hora |
+| C22 | ✅ | `SCHEDULED`, `CLOSED` e sem rodada: nenhuma conexão (antes do review; a da vez agendada passou a abrir) |
+| C23 | ✅ | nada muda no visual com o canal derrubado; nenhum erro de JS no console |
+| C24 | ✅ | 320/375/390/430/1280 no jogo, Resenha e votação recebendo atualização: sem rolagem horizontal nem sobreposição desta fatia |
+
+Checagens: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` verde na raiz (api 649, web 635, domain 498,
+shared 4); JS inicial 117,9 kB de 150 (o canal vem num pedaço tardio de 2,3 kB); sem `schema.prisma`, lockfile ou
+dependência nova; o sinal (`c1adba2` + `9569ebb`) aplica limpo sobre a develop.

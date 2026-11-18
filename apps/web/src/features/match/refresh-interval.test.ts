@@ -20,3 +20,21 @@ describe('matchRefreshInterval (C64)', () => {
     expect(matchRefreshInterval(undefined)).toBe(false);
   });
 });
+
+describe('matchRefreshInterval com o canal ao vivo (jogo-ao-vivo)', () => {
+  it('conectado, em jogo e na Resenha só confere a cada 60 s (rede de segurança)', () => {
+    expect(matchRefreshInterval('IN_PROGRESS', 'live')).toBe(60_000);
+    expect(matchRefreshInterval('POST_MATCH', 'live')).toBe(60_000);
+  });
+
+  it('modo antigo (ou sem canal) mantém 15 s em jogo e 5 s na Resenha', () => {
+    expect(matchRefreshInterval('IN_PROGRESS', 'polling')).toBe(15_000);
+    expect(matchRefreshInterval('POST_MATCH', 'polling')).toBe(5_000);
+    expect(matchRefreshInterval('IN_PROGRESS')).toBe(15_000);
+  });
+
+  it('nos outros status não há consulta periódica, com ou sem canal', () => {
+    expect(matchRefreshInterval('VOTING', 'live')).toBe(false);
+    expect(matchRefreshInterval(undefined, 'live')).toBe(false);
+  });
+});

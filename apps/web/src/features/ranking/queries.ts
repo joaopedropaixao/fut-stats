@@ -4,8 +4,10 @@ import { apiGet } from '../../lib/api';
 
 // As chaves ficam sob ['group', groupId], como as do resto: trocar o perfil, o elenco ou o grupo refaz o ranking.
 export const rankingKey = (groupId: string) => ['group', groupId, 'ranking'] as const;
+/** Todas as figurinhas do grupo (prefixo de `playerProfileKey`). */
+export const playerStatsPrefix = (groupId: string) => ['group', groupId, 'player-stats'] as const;
 export const playerProfileKey = (groupId: string, membershipId: string) =>
-  ['group', groupId, 'player-stats', membershipId] as const;
+  [...playerStatsPrefix(groupId), membershipId] as const;
 
 /** O ranking do grupo inteiro (geral, por posição e goleiros vêm na mesma resposta; trocar de aba não espera a rede). */
 export function useRanking(groupId: string) {
