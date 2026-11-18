@@ -40,6 +40,15 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      # Os testes de backup e restauração (scripts/) usam pg_dump e psql na versão do Postgres de teste (17).
+      - name: Instalar o cliente do PostgreSQL 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
       - run: pnpm install --frozen-lockfile
       - run: node --test .codex/hooks/bridge.test.mjs .harness/*.test.mjs
       - run: sh .claude/hooks/test.sh

@@ -1,0 +1,52 @@
+# Backup diário do banco de PRODUÇÃO (Neon, branch prod): dump cifrado com gpg e guardado 30 dias como artefato do
+# GitHub Actions. Cifrado porque o repositório é de portfólio: sem a BACKUP_PASSPHRASE o arquivo não serve para ninguém.
+# Segredos do repositório (Settings > Secrets and variables > Actions): PROD_DIRECT_URL (a URL SEM "-pooler" da branch
+# prod do Neon) e BACKUP_PASSPHRASE. Restaurar: docs/deploy.md ("Como restaurar um backup").
+# O GitHub desliga agendamentos de repositório sem atividade por 60 dias: um commit ou "Enable workflow" religa.
+# Falha do job chega por e-mail do GitHub ao dono.
+name: Backup do banco
+
+on:
+  schedule:
+    # 06:00 UTC = 03:00 no horário de Brasília (madrugada).
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # O pg_dump precisa ter a mesma versão principal do servidor (Neon: 17). O repositório oficial do PostgreSQL (PGDG)
+      # tem o cliente 17; o que vem no runner pode ser mais velho.
+      - name: Instalar o cliente do PostgreSQL 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      # Sem `set -x` e sem eco: as variáveis de ambiente com segredo nunca vão para o log.
+      - name: Gerar o backup cifrado
+        id: backup
+        env:
+          DIRECT_URL: ${{ secrets.PROD_DIRECT_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          BACKUP_DIR: ${{ runner.temp }}
+        run: |
+          set -eu
+          file="$(sh scripts/backup-db.sh)"
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: backup-banco-producao
+          path: ${{ steps.backup.outputs.file }}
+          retention-days: 30
+          if-no-files-found: error
