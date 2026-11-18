@@ -7,16 +7,13 @@ import { annotateRequestContext, getRequestContext, getRequestId } from './reque
 /** Só no log de pedido: o corpo do 400 de validação não ganha campo novo. */
 const VALIDATION_ERROR_CODE = 'VALIDATION_FAILED';
 
-/** Status de um erro de HTTP que não é `HttpException` (ex.: corpo grande demais no body-parser). */
+/**
+ * Status de um erro de HTTP que não é `HttpException` (ex.: corpo grande demais no body-parser), que o Nest trata
+ * como o status dele; `undefined` se não é um erro desses.
+ */
 function httpErrorStatus(exception: unknown): number | undefined {
   const { statusCode, message } = (exception ?? {}) as { statusCode?: unknown; message?: unknown };
   return typeof statusCode === 'number' && typeof message === 'string' ? statusCode : undefined;
-}
-
-/** Erro de HTTP que não é `HttpException` (ex.: corpo grande demais no body-parser): o Nest trata como o status dele. */
-function isHttpError(exception: unknown): boolean {
-  const { statusCode, message } = (exception ?? {}) as { statusCode?: unknown; message?: unknown };
-  return typeof statusCode === 'number' && typeof message === 'string';
 }
 
 /** Código do erro para o log de pedido: o `code` do corpo (ex.: `NOT_OWN_COMMENT`); validação do Zod = `VALIDATION_FAILED`. */
@@ -47,14 +44,14 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
   private readonly errorLogger = new Logger('Exceptions');
 
   override catch(exception: unknown, host: ArgumentsHost): void {
-    if (exception instanceof HttpException || isHttpError(exception)) {
+    const status =
+      exception instanceof HttpException ? exception.getStatus() : httpErrorStatus(exception);
+    if (status !== undefined) {
       if (exception instanceof HttpException) {
         const errorCode = errorCodeOf(exception);
         if (errorCode) annotateRequestContext({ errorCode });
       }
-      const status =
-        exception instanceof HttpException ? exception.getStatus() : httpErrorStatus(exception);
-      if (status !== undefined && status >= 500) reportToMonitoring(exception);
+      if (status >= 500) reportToMonitoring(exception);
       super.catch(exception, host);
       return;
     }
