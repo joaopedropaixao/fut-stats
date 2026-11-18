@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import request from 'supertest';
-import { createUser } from '../test/auth';
+import { DEMO_GROUP, seedDemo } from '../seed/demo';
+import { addMember, createGroup, createUser } from '../test/auth';
 import { createTestApp, resetDatabase, type TestApp } from '../test/test-app';
 import {
   LOGIN_ERROR_REDIRECT,
@@ -308,6 +309,277 @@ describe('login com Google', () => {
         const users = await t.prisma.user.findMany();
         expect(users).toHaveLength(1);
         expect(users[0]).toMatchObject({ id: other.id, googleId: other.googleId });
+      });
+    });
+
+    describe('reserva de admin da pelada de demonstração (googleId "pendente:")', () => {
+      const RESERVED_EMAIL = 'nova.admin@gmail.com';
+      const SEED_TIMEOUT_MS = 30_000;
+
+      /** Roda a demo com um e-mail sem conta: sai uma reserva + membership ADMIN. */
+      async function reserve(email = RESERVED_EMAIL) {
+        await seedDemo(t.prisma, { admins: [email], now: new Date('2026-10-24T15:10:00Z') });
+        const user = await t.prisma.user.findFirstOrThrow({
+          where: { googleId: { startsWith: 'pendente:' } },
+        });
+        return user;
+      }
+
+      it(
+        'C8: o primeiro login com o e-mail da reserva assume a reserva e entra como admin da demo',
+        async () => {
+          const reserved = await reserve();
+          expect(reserved.googleId).toBe(`pendente:${RESERVED_EMAIL}`);
+          const usersBefore = await t.prisma.user.count();
+
+          const res = await login(
+            profile({ googleId: 'google-sub-nova', email: RESERVED_EMAIL, name: 'Nova Admin' }),
+          );
+
+          expect(res.status).toBe(302);
+          expect(res.headers.location).not.toContain('login=erro');
+          // Mesmo User (a membership continua nele), sem User novo; o marcador some.
+          expect(await t.prisma.user.count()).toBe(usersBefore);
+          const user = await t.prisma.user.findUniqueOrThrow({ where: { id: reserved.id } });
+          expect(user).toMatchObject({
+            googleId: 'google-sub-nova',
+            email: RESERVED_EMAIL,
+            name: 'Nova Admin',
+            avatarUrl: 'https://lh3.googleusercontent.com/a/foto',
+          });
+          expect(
+            await t.prisma.user.count({ where: { googleId: { startsWith: 'pendente:' } } }),
+          ).toBe(0);
+
+          const group = await t.prisma.group.findUniqueOrThrow({
+            where: { slug: DEMO_GROUP.slug },
+          });
+          const membership = await t.prisma.membership.findFirstOrThrow({
+            where: { groupId: group.id, userId: reserved.id },
+          });
+          expect(membership.role).toBe('ADMIN');
+          const session = findCookie(res, SESSION_COOKIE)!;
+          await request(server())
+            .get(`/api/groups/${group.id}`)
+            .set('Cookie', session.split(';')[0]!)
+            .expect(200);
+        },
+        SEED_TIMEOUT_MS,
+      );
+
+      it('C8: depois de assumir, o segundo login é normal (mesmo googleId, sem duplicar)', async () => {
+        await t.prisma.user.create({
+          data: {
+            email: RESERVED_EMAIL,
+            name: 'nova.admin',
+            googleId: `pendente:${RESERVED_EMAIL}`,
+          },
+        });
+        const p = profile({ googleId: 'google-sub-nova', email: RESERVED_EMAIL });
+        await login(p);
+        await login(p);
+
+        const users = await t.prisma.user.findMany();
+        expect(users).toHaveLength(1);
+        expect(users[0]!.googleId).toBe('google-sub-nova');
+      });
+
+      it('C9: outra conta Google com e-mail diferente não assume a reserva (a reserva fica igual)', async () => {
+        const reserved = await t.prisma.user.create({
+          data: {
+            email: RESERVED_EMAIL,
+            name: 'nova.admin',
+            googleId: `pendente:${RESERVED_EMAIL}`,
+          },
+        });
+
+        const res = await login(
+          profile({ googleId: 'google-sub-outro', email: 'outro@gmail.com' }),
+        );
+
+        expect(res.status).toBe(302);
+        const after = await t.prisma.user.findUniqueOrThrow({ where: { id: reserved.id } });
+        expect(after).toMatchObject({
+          googleId: `pendente:${RESERVED_EMAIL}`,
+          email: RESERVED_EMAIL,
+        });
+        const outro = await t.prisma.user.findUniqueOrThrow({
+          where: { googleId: 'google-sub-outro' },
+        });
+        expect(outro.id).not.toBe(reserved.id);
+      });
+
+      it('C9b: mesmo e-mail com email_verified=false recusa e a reserva fica intacta', async () => {
+        const reserved = await t.prisma.user.create({
+          data: {
+            email: RESERVED_EMAIL,
+            name: 'nova.admin',
+            googleId: `pendente:${RESERVED_EMAIL}`,
+          },
+        });
+
+        const res = await login(
+          profile({ googleId: 'google-sub-fake', email: RESERVED_EMAIL, emailVerified: false }),
+        );
+
+        expect(res.status).toBe(302);
+        expect(res.headers.location).toContain('login=erro');
+        expect(findCookie(res, SESSION_COOKIE)).toBeUndefined();
+        const users = await t.prisma.user.findMany();
+        expect(users).toHaveLength(1);
+        expect(users[0]).toMatchObject({
+          id: reserved.id,
+          googleId: `pendente:${RESERVED_EMAIL}`,
+          name: 'nova.admin',
+          avatarUrl: null,
+        });
+      });
+
+      it(
+        'C9c: e-mail da lista com maiúsculas e espaço vira reserva em minúsculas e o login minúsculo assume',
+        async () => {
+          const reserved = await reserve('  Nova.Admin@Gmail.com ');
+          expect(reserved.email).toBe(RESERVED_EMAIL);
+
+          const res = await login(profile({ googleId: 'google-sub-nova', email: RESERVED_EMAIL }));
+
+          expect(res.headers.location).not.toContain('login=erro');
+          const user = await t.prisma.user.findUniqueOrThrow({ where: { id: reserved.id } });
+          expect(user.googleId).toBe('google-sub-nova');
+        },
+        SEED_TIMEOUT_MS,
+      );
+
+      it('C9c: o Google devolvendo o e-mail com maiúsculas também assume a reserva', async () => {
+        const reserved = await t.prisma.user.create({
+          data: {
+            email: RESERVED_EMAIL,
+            name: 'nova.admin',
+            googleId: `pendente:${RESERVED_EMAIL}`,
+          },
+        });
+
+        await login(profile({ googleId: 'google-sub-nova', email: 'Nova.Admin@Gmail.com' }));
+
+        const users = await t.prisma.user.findMany();
+        expect(users).toHaveLength(1);
+        expect(users[0]).toMatchObject({ id: reserved.id, googleId: 'google-sub-nova' });
+      });
+
+      it('C8: o login normal (sem reserva) faz só o upsert, sem abrir transação', async () => {
+        const spy = jest.spyOn(t.prisma, '$transaction');
+        try {
+          await login(profile());
+          await login(profile());
+          expect(spy).not.toHaveBeenCalled();
+        } finally {
+          spy.mockRestore();
+        }
+      });
+
+      it('C8: usuário real que trocou de e-mail para o da reserva: a reserva cede, as memberships passam para ele e o login segue', async () => {
+        const group = await createGroup(t);
+        const reserved = await t.prisma.user.create({
+          data: {
+            email: RESERVED_EMAIL,
+            name: 'nova.admin',
+            googleId: `pendente:${RESERVED_EMAIL}`,
+          },
+        });
+        const reservedMembership = await addMember(t, reserved.id, group.id, {
+          role: 'ADMIN',
+          nickname: 'Nova',
+        });
+        const real = await t.prisma.user.create({
+          data: { email: 'antigo@gmail.com', name: 'Nova Real', googleId: 'google-sub-real' },
+        });
+
+        const res = await login(
+          profile({ googleId: 'google-sub-real', email: RESERVED_EMAIL, name: 'Nova Real' }),
+        );
+
+        expect(res.headers.location).not.toContain('login=erro');
+        expect(findCookie(res, SESSION_COOKIE)).toBeDefined();
+        expect(await t.prisma.user.findUnique({ where: { id: reserved.id } })).toBeNull();
+        expect(await t.prisma.user.findUniqueOrThrow({ where: { id: real.id } })).toMatchObject({
+          email: RESERVED_EMAIL,
+          googleId: 'google-sub-real',
+        });
+        const moved = await t.prisma.membership.findUniqueOrThrow({
+          where: { id: reservedMembership.id },
+        });
+        expect(moved).toMatchObject({ userId: real.id, role: 'ADMIN', active: true });
+      });
+
+      it('C8: se o usuário real já é membro do grupo da reserva, vira ADMIN sem duplicar (a duplicada fica inativa)', async () => {
+        const group = await createGroup(t);
+        const reserved = await t.prisma.user.create({
+          data: {
+            email: RESERVED_EMAIL,
+            name: 'nova.admin',
+            googleId: `pendente:${RESERVED_EMAIL}`,
+          },
+        });
+        const reservedMembership = await addMember(t, reserved.id, group.id, {
+          role: 'ADMIN',
+          nickname: 'Nova',
+        });
+        const real = await t.prisma.user.create({
+          data: { email: 'antigo@gmail.com', name: 'Nova Real', googleId: 'google-sub-real' },
+        });
+        const mine = await addMember(t, real.id, group.id, { nickname: 'Novinha' });
+
+        const res = await login(profile({ googleId: 'google-sub-real', email: RESERVED_EMAIL }));
+
+        expect(res.headers.location).not.toContain('login=erro');
+        expect(
+          await t.prisma.membership.findUniqueOrThrow({ where: { id: mine.id } }),
+        ).toMatchObject({
+          userId: real.id,
+          role: 'ADMIN',
+          active: true,
+        });
+        expect(
+          await t.prisma.membership.findUniqueOrThrow({ where: { id: reservedMembership.id } }),
+        ).toMatchObject({ active: false });
+        // Ninguém mais assume essa reserva nem fica com o e-mail dela
+        expect(
+          await t.prisma.user.count({ where: { googleId: { startsWith: 'pendente:' } } }),
+        ).toBe(0);
+        expect(await t.prisma.user.findUniqueOrThrow({ where: { id: real.id } })).toMatchObject({
+          email: RESERVED_EMAIL,
+        });
+        expect(
+          await t.prisma.membership.count({ where: { groupId: group.id, active: true } }),
+        ).toBe(1);
+      });
+
+      it('C9: e-mail de um User normal (sem reserva) continua recusando, sem mexer em ninguém', async () => {
+        const other = await createUser(t, { email: 'fulano@gmail.com' });
+        const res = await login(
+          profile({ googleId: 'google-sub-outro', email: 'fulano@gmail.com' }),
+        );
+        expect(res.headers.location).toContain('login=erro');
+        expect(await t.prisma.user.count()).toBe(1);
+        expect((await t.prisma.user.findUniqueOrThrow({ where: { id: other.id } })).googleId).toBe(
+          other.googleId,
+        );
+      });
+
+      it('C9d: sem reserva o login é o de sempre (novo e existente), e quem tem outro Google continua recusado', async () => {
+        // Novo
+        const first = await login(profile());
+        expect(first.headers.location).not.toContain('login=erro');
+        expect(await t.prisma.user.count()).toBe(1);
+        // Existente (mesmo googleId)
+        await login(profile({ name: 'Fulano Novo' }));
+        const users = await t.prisma.user.findMany();
+        expect(users).toHaveLength(1);
+        expect(users[0]!.name).toBe('Fulano Novo');
+        // Outro Google com o e-mail de um User normal (googleId sem o prefixo): recusa, como hoje
+        const refused = await login(profile({ googleId: 'google-sub-outro' }));
+        expect(refused.headers.location).toContain('login=erro');
+        expect((await t.prisma.user.findMany())[0]!.googleId).toBe('google-sub-123');
       });
     });
   });

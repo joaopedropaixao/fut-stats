@@ -1033,6 +1033,37 @@ branch descartável do Neon antes do lançamento.
 `NODE_ENV`** (a API trata a falta como produção e o `render.yaml` não define), recusa ("O seed não roda em produção",
 código 1, antes de tocar no banco); as rotas `/api/dev/*` não existem em produção.
 
+### Homologação: pelada de demonstração e reserva de admin ✅
+
+O staging serve de ambiente de teste dos admins. O workflow manual **Preparar homologação** (`.github/workflows/homologacao.yml`,
+só na `develop`) roda `pnpm --filter @fut-stats/api db:demo -- --admins=a@x.com,b@y.com [--cenario=...]` (`prisma/demo.ts`,
+lógica em `src/seed/demo.ts`) contra o banco do staging.
+
+- **Pelada de Demonstração** (`slug` `pelada-demo`, convite `convite-demo`): os 21 jogadores fictícios do seed de dev
+  (e-mails `<apelido>@demo.invalid`, `googleId` `demo-<e-mail>`), 8 rodadas passadas completas, resenhas e a rodada atual no
+  cenário pedido (mesmos cenários do seed: `agendada` padrão, `times`, `em-jogo`, `resenha`, `votacao`, `encerrada`).
+- **Rodar de novo apaga só esse grupo** (resenhas, rodadas, auditoria, membros e o grupo) e recria; nenhum outro grupo
+  e nenhum `User` é apagado. Jogador nunca é apagado no app: o reset é um comando explícito, só da demonstração.
+- **Admins da lista:** quem já tem `User` (e-mail comparado em minúsculas, sem espaço) ganha uma membership `ADMIN`
+  (apelido = primeiro nome, Meia, nota 6; se o apelido já existir no grupo, ganha um número no fim). Quem nunca entrou
+  ganha uma **reserva**: um `User` com `googleId` `pendente:<e-mail>` (nome = parte local do e-mail) e a membership `ADMIN`.
+- **Reserva assumida no login** (`GoogleAuthService`): se não há `User` com o `googleId` que o Google devolveu, mas há um
+  de `googleId` começando com `pendente:` e o mesmo e-mail (normalizado) **e o Google diz `email_verified=true`**, o login
+  grava o `googleId` real, o e-mail, o nome e a foto nesse mesmo `User` (o marcador some). Só reservas com o prefixo são
+  assumidas; e-mail diferente ou não verificado não assume nada (a reserva fica intacta); `User` normal com outro Google
+  continua recusado ("e-mail já pertence a outro usuário"). Sem reserva o login é igual. O método roda em produção também,
+  mas lá a reserva só existiria se o comando rodasse na produção, o que as travas barram.
+- **Admins na rodada atual:** os admins da lista são criados junto dos fictícios, antes de montar as rodadas: entram na
+  rodada atual confirmados e escalados (na `votacao`, entre os que ainda não votaram) e não aparecem nas rodadas passadas;
+  cabem até 6 (2 meias titulares e 4 reservas, porque eles são todos meias sem posição secundária); a formação é conferida com o `balanceTeams` e, se falta vaga, saem primeiro os fictícios das posições que os admins cobrem (meia e ala). Admins além do limite continuam ADMIN da demo, mas ficam fora da rodada atual (o comando diz quantos); a rodada nunca falha. E-mail `@demo.invalid` na lista é recusado. O e-mail da reserva
+  é gravado normalizado (minúsculas, sem espaço) e achado por igualdade exata; o login grava o e-mail normalizado.
+- **Reserva vs. usuário real que trocou de e-mail:** se o login com um `googleId` real esbarra no e-mail de uma reserva
+  (P2002), a reserva cede em transação: as memberships dela passam para o User real (se ele já é membro do grupo, vira
+  ADMIN e a duplicada fica inativa) e a reserva é apagada; se sobrou a membership duplicada (inativa, com histórico), a reserva não é apagada: é aposentada, com e-mail `cedida-<id>@demo.invalid` e `googleId` `cedida:<id>`, que ninguém assume. O caminho normal do login continua uma consulta só.
+- **Travas do comando** (antes de abrir o banco; as mensagens nunca incluem a URL): `ALLOW_DEMO_SEED` precisa ser `staging`;
+  `DEMO_FORBIDDEN_HOSTS` (hosts de produção, vírgula; no workflow vem da variável `PROD_DB_HOST`) não pode estar vazio; o
+  host do `DATABASE_URL` (minúsculas, sem ponto final, ignorando a variante `-pooler`) não pode estar na lista; cada item da lista é só um host; a URL precisa de um nome de host (vazio, vários hosts e IP literal são recusados), sem `host=`/`hostaddr=` na query nem `%` no host. O `NODE_ENV` do seed de dev (`assertSeedAllowed`) não muda.
+
 **Evite:** dar ao despertador outra tarefa que não seja fechar votação vencida (lembretes e rodízio precisam de precisão que
 o agendamento do GitHub não tem); aceitar o segredo fora do cabeçalho `Authorization`; mandar 4xx, dado pessoal ou corpo de
 pedido para o Sentry; ligar `VOTING_CLOSER_INTERVAL_MS` em produção; usar o `x-request-id` do cliente em produção;

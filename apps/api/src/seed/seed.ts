@@ -3,6 +3,8 @@
 // Quem chama pela linha de comando é `prisma/seed.ts`.
 import {
   balanceTeams,
+  MAX_RESERVES_PER_TEAM,
+  PLAYERS_PER_TEAM,
   opponentOf,
   roundPlayerIds,
   roundResults,
@@ -85,8 +87,41 @@ const PLAYED_SCENARIOS: ReadonlySet<SeedScenario> = new Set([
   'encerrada',
 ]);
 
+/** Admin de verdade que entra no grupo do seed (a demo): jogador de meio, nota 6, confirmado na rodada atual. */
+export interface ExtraAdmin {
+  userId: string;
+  nickname: string;
+}
+
+const EXTRA_ADMIN_RATING = 6;
+
+/** Onde e como o seed escreve: o grupo, os e-mails/googleIds dos fictícios e a guarda. O padrão é o seed de dev. */
+export interface SeedTarget {
+  group: { name: string; slug: string; inviteCode: string };
+  /** Domínio dos e-mails dos jogadores fictícios (`<apelido>@<domínio>`). */
+  emailDomain: string;
+  /** `googleId` dos fictícios a partir do e-mail. */
+  googleIdFor: (email: string) => string;
+  /** Guarda que roda antes de tocar no banco. */
+  assertAllowed: (env: NodeJS.ProcessEnv) => void;
+  /**
+   * Admins reais, criados junto dos fictícios (antes de montar as rodadas) para entrarem na rodada atual: confirmados,
+   * escalados e, na votação, entre quem ainda não votou. Nas rodadas passadas não entram. Só o grupo novo (a demo).
+   */
+  extraAdmins?: readonly ExtraAdmin[];
+}
+
+export const DEV_SEED_TARGET: SeedTarget = {
+  group: SEED_GROUP,
+  emailDomain: 'example.com',
+  googleIdFor: (email) => `seed-${email}`,
+  assertAllowed: assertSeedAllowed,
+};
+
 export interface SeedOptions {
   scenario?: SeedScenario;
+  /** Grupo, e-mails e guarda do seed (padrão: o de desenvolvimento). */
+  target?: SeedTarget;
   /** Variáveis de ambiente que decidem se o seed pode rodar (só para testes; padrão `process.env`). */
   env?: NodeJS.ProcessEnv;
   /** "Agora" do seed: as datas das rodadas saem dele. */
@@ -100,6 +135,10 @@ export interface SeedSummary {
   members: number;
   rounds: number;
   posts: number;
+  /** Admins reais criados (`SeedTarget.extraAdmins`); 0 no seed de dev. */
+  extraAdmins: number;
+  /** Desses, quantos ficaram fora da rodada atual por falta de vaga na formação (continuam ADMIN do grupo). */
+  extraAdminsOutOfRound: number;
 }
 
 const MINUTE_MS = 60 * 1000;
@@ -187,22 +226,27 @@ export function assertSeedAllowed(env: NodeJS.ProcessEnv = process.env): void {
 /** Monta o grupo, os membros e as rodadas do seed. Rodar de novo recria só as rodadas deste grupo. */
 export async function seed(
   prisma: PrismaClient,
-  { scenario = DEFAULT_SEED_SCENARIO, now = new Date(), env = process.env }: SeedOptions = {},
+  {
+    scenario = DEFAULT_SEED_SCENARIO,
+    now = new Date(),
+    env = process.env,
+    target = DEV_SEED_TARGET,
+  }: SeedOptions = {},
 ): Promise<SeedSummary> {
-  assertSeedAllowed(env);
+  target.assertAllowed(env);
   const group = await prisma.group.upsert({
-    where: { slug: SEED_GROUP.slug },
+    where: { slug: target.group.slug },
     update: {},
-    create: { ...SEED_GROUP },
+    create: { ...target.group },
   });
 
   const members: SeedMemberRow[] = [];
   for (const [index, member] of MEMBERS.entries()) {
-    const email = emailFor(member.nickname);
+    const email = emailFor(member.nickname, target.emailDomain);
     const user = await prisma.user.upsert({
       where: { email },
       update: { name: member.name },
-      create: { name: member.name, email, googleId: `seed-${email}` },
+      create: { name: member.name, email, googleId: target.googleIdFor(email) },
     });
 
     const data = {
@@ -229,7 +273,37 @@ export async function seed(
     });
   }
 
-  const rounds = planRounds(members, scenario, now);
+  const pastMembers = [...members];
+  const extraAdmins = target.extraAdmins ?? [];
+  for (const [index, extra] of extraAdmins.entries()) {
+    // `create` (não upsert): o grupo da demo é novo, então cada admin entra uma vez e sem tocar em quem já era membro.
+    const membership = await prisma.membership.create({
+      data: {
+        userId: extra.userId,
+        groupId: group.id,
+        role: 'ADMIN',
+        nickname: extra.nickname,
+        primaryPosition: 'MIDFIELDER',
+        secondaryPositions: [],
+        initialRating: EXTRA_ADMIN_RATING,
+        ...fromAvatar(seedAvatarFor(MEMBERS.length + index)),
+      },
+    });
+    members.push({
+      id: membership.id,
+      nickname: membership.nickname,
+      role: membership.role,
+      primaryPosition: membership.primaryPosition,
+      secondaryPositions: membership.secondaryPositions,
+      rating: membership.initialRating,
+    });
+  }
+
+  const rounds = planRounds(pastMembers, members, scenario, now);
+  const currentAttendances = rounds[rounds.length - 1]!.attendances;
+  const extraIdsInRound = members
+    .filter((m) => !pastMembers.includes(m))
+    .filter((m) => currentAttendances.some((a) => a.membershipId === m.id && a.confirmed)).length;
 
   // O trigger numera na ordem de criação: apaga as rodadas do grupo e recria da mais antiga à atual.
   await prisma.$transaction(
@@ -284,6 +358,8 @@ export async function seed(
     groupName: group.name,
     scenario,
     members: members.length,
+    extraAdmins: extraAdmins.length,
+    extraAdminsOutOfRound: extraAdmins.length - extraIdsInRound,
     rounds: rounds.length,
     posts,
   };
@@ -345,16 +421,17 @@ async function seedPosts(
   return planned.length;
 }
 
-function emailFor(nickname: string): string {
+function emailFor(nickname: string, domain: string): string {
   const slug = nickname
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
-  return `${slug}@example.com`;
+  return `${slug}@${domain}`;
 }
 
 /** Todas as rodadas, da mais antiga à atual, já validadas pelo domínio. */
 function planRounds(
+  pastMembers: readonly SeedMemberRow[],
   members: readonly SeedMemberRow[],
   scenario: SeedScenario,
   now: Date,
@@ -368,12 +445,17 @@ function planRounds(
 
   PAST_ROUNDS.forEach((plan, i) => {
     const scheduledAt = new Date(current.getTime() - (PAST_ROUNDS.length - i) * WEEK_MS);
-    const round = planPastRound(plan, i, scheduledAt, members, history, random, voteRandom);
+    const round = planPastRound(plan, i, scheduledAt, pastMembers, history, random, voteRandom);
     if (round.teams) history.push({ ...round.teams, score: round.score });
     rounds.push(round);
   });
 
-  rounds.push(planCurrentRound(scenario, current, now, members, history, random, voteRandom));
+  // Só a rodada atual conta com os admins reais (os que não estão em `pastMembers`).
+  const pastIds = new Set(pastMembers.map((m) => m.id));
+  const extraNicknames = members.filter((m) => !pastIds.has(m.id)).map((m) => m.nickname);
+  rounds.push(
+    planCurrentRound(scenario, current, now, members, extraNicknames, history, random, voteRandom),
+  );
   return rounds;
 }
 
@@ -456,12 +538,17 @@ function planCurrentRound(
   scheduledAt: Date,
   now: Date,
   members: readonly SeedMemberRow[],
+  extraNicknames: readonly string[],
   history: readonly PastRound[],
   random: RandomFn,
   voteRandom: RandomFn,
 ): PlannedRound {
   const label = `rodada atual (${scenario})`;
-  const attendances = planAttendance(CURRENT_ROUND, members, label);
+  const attendances = fitToCapacity(
+    planAttendance(CURRENT_ROUND, members, label),
+    members,
+    extraNicknames,
+  );
   const round: PlannedRound = {
     scheduledAt,
     createdAt: new Date(Math.min(scheduledAt.getTime() - 5 * DAY_MS, now.getTime())),
@@ -539,7 +626,7 @@ function planCurrentRound(
         openedAt,
         now,
         0.55,
-        DEV_WITHOUT_VOTE,
+        new Set([...DEV_WITHOUT_VOTE, ...extraNicknames]),
         voteRandom,
       );
       return { ...withGame, status: state.status, votingOpenedAt: openedAt, votes };
@@ -581,6 +668,88 @@ function planAttendance(
     });
   }
   return attendances;
+}
+
+/** Quantos jogadores de linha cabem na rodada: 2 times × (titulares de linha + reservas). */
+const LINE_CAPACITY = 2 * (PLAYERS_PER_TEAM - 1 + MAX_RESERVES_PER_TEAM);
+/** Titulares de linha por posição nos dois times juntos (1-2-3-1: 2 zagueiros, 2 alas, 1 meio, 1 atacante, cada). */
+const LINE_STARTERS: Readonly<Record<Exclude<Position, 'GOALKEEPER'>, number>> = {
+  DEFENDER: 4,
+  WINGER: 4,
+  MIDFIELDER: 2,
+  FORWARD: 2,
+};
+/** Quem sai primeiro quando falta vaga: as posições que os admins (todos meias) já cobrem. */
+const KEEP_ORDER: readonly Position[] = ['DEFENDER', 'FORWARD', 'WINGER', 'MIDFIELDER'];
+
+/**
+ * Admins reais (todos meias, sem posição secundária) entram na rodada atual junto dos fictícios, mas a rodada comporta
+ * só 18 e a formação precisa fechar. Se tudo cabe e fecha, nada muda (e o seed de dev nunca passa daqui). Senão:
+ * os admins ficam (os 2 primeiros de titulares como meia e os outros de reserva, até 6), os fictícios ficam pelas
+ * posições que ainda faltam (zagueiros, alas, atacantes, o meio que sobrar) e, nas vagas que restam, saem primeiro os
+ * das posições que os admins cobrem. Admins além do limite continuam ADMIN do grupo, mas ficam fora da rodada. A rodada
+ * nunca falha: a viabilidade é conferida com o próprio `balanceTeams`.
+ */
+function fitToCapacity(
+  attendances: PlannedRound['attendances'],
+  members: readonly SeedMemberRow[],
+  extraNicknames: readonly string[],
+): PlannedRound['attendances'] {
+  const byId = new Map(members.map((m) => [m.id, m]));
+  const extras = new Set(extraNicknames);
+  const confirmed = attendances.filter((a) => a.confirmed).map((a) => byId.get(a.membershipId)!);
+  const admins = confirmed.filter((m) => extras.has(m.nickname));
+  if (admins.length === 0) return attendances;
+
+  const feasible = (rows: readonly SeedMemberRow[]) =>
+    balanceTeams(
+      rows.map((m) => ({
+        id: m.id,
+        primaryPosition: m.primaryPosition,
+        secondaryPositions: m.secondaryPositions,
+        rating: m.rating,
+      })),
+      [],
+      { random: () => 0 },
+    ).ok;
+  const apply = (keep: readonly SeedMemberRow[]) => {
+    const keepIds = new Set(keep.map((m) => m.id));
+    const confirmedIds = new Set(confirmed.map((m) => m.id));
+    return attendances.filter(
+      (a) => !confirmedIds.has(a.membershipId) || keepIds.has(a.membershipId),
+    );
+  };
+
+  if (confirmed.length <= 2 * (PLAYERS_PER_TEAM + MAX_RESERVES_PER_TEAM) && feasible(confirmed)) {
+    return attendances;
+  }
+
+  const goalkeepers = confirmed.filter(
+    (m) => !extras.has(m.nickname) && m.primaryPosition === 'GOALKEEPER',
+  );
+  const line = confirmed.filter(
+    (m) => !extras.has(m.nickname) && m.primaryPosition !== 'GOALKEEPER',
+  );
+  // Meias: 2 vagas de titular e as de reserva (os admins não têm posição secundária para jogar de ala).
+  const maxAdmins = LINE_STARTERS.MIDFIELDER + 2 * MAX_RESERVES_PER_TEAM;
+  for (let k = Math.min(admins.length, maxAdmins); k >= 1; k--) {
+    const chosenAdmins = admins.slice(0, k);
+    const starters: SeedMemberRow[] = [];
+    for (const [position, count] of Object.entries(LINE_STARTERS) as [Position, number][]) {
+      const need = position === 'MIDFIELDER' ? Math.max(0, count - k) : count;
+      starters.push(...line.filter((m) => m.primaryPosition === position).slice(0, need));
+    }
+    const rest = line
+      .filter((m) => !starters.includes(m))
+      .sort(
+        (a, b) => KEEP_ORDER.indexOf(a.primaryPosition) - KEEP_ORDER.indexOf(b.primaryPosition),
+      );
+    const room = Math.max(0, LINE_CAPACITY - k - starters.length);
+    const keep = [...goalkeepers, ...chosenAdmins, ...starters, ...rest.slice(0, room)];
+    if (feasible(keep)) return apply(keep);
+  }
+  // Nem com 1 admin a formação fecha: sem admins na rodada (fictícios como no seed de dev)
+  return apply([...goalkeepers, ...line]);
 }
 
 function confirmedIds(attendances: PlannedRound['attendances']): string[] {
