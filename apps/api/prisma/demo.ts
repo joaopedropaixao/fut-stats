@@ -27,7 +27,10 @@ async function main(): Promise<void> {
     console.log(
       `Demo ok: "${summary.groupName}", cenário ${summary.scenario}: ${summary.members} membros ` +
         `(${admins.length} admins: ${summary.adminsExisting} já com conta, ${summary.adminsReserved} reservados), ` +
-        `${summary.rounds} rodadas, ${summary.posts} resenhas.`,
+        `${summary.rounds} rodadas, ${summary.posts} resenhas.` +
+        (summary.extraAdminsOutOfRound > 0
+          ? ` ${summary.extraAdminsOutOfRound} admins ficaram fora da rodada atual (sem vaga na formação), mas são admins da pelada.`
+          : ''),
     );
   } finally {
     await prisma.$disconnect();

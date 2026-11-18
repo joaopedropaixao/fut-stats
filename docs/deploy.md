@@ -673,7 +673,7 @@ O staging usa o par próprio de avisos, diferente do de produção.
 4. **Conferir:** o job fica verde e o log termina com `Demo ok: "Pelada de Demonstração" ...`. O log nunca mostra a URL do banco.
 
 - Os admins da lista entram na **rodada atual** como confirmados e escalados (na `votacao`, ainda sem votar); nas rodadas
-  passadas não aparecem. Com mais admins do que cabe na rodada (18 jogadores), saem confirmados fictícios de linha.
+  passadas não aparecem. Na rodada cabem até 6 admins (a formação 1-2-3-1 e o limite de 18 jogadores; todos entram como meia): os que passarem disso continuam admins da demonstração, mas ficam fora da rodada atual, e o log do job diz quantos.
 - **Se o job falhar no meio**, basta rodar o workflow de novo: a demonstração é apagada e recriada do zero (não é uma
   transação só, então uma falha pode deixar a demo incompleta até a próxima execução). Os outros grupos não são tocados.
 - **Rodar de novo recria só a demonstração** (zera o que os admins fizeram nela e volta ao cenário escolhido). Quem já

@@ -536,6 +536,55 @@ describe('pelada de demonstração (seedDemo)', () => {
     DEMO_TIMEOUT_MS,
   );
 
+  describe.each([7, 20])('C11: com %i admins', (count) => {
+    it.each(SEED_SCENARIOS)(
+      'cenário %s: a rodada atual não falha, todos são ADMIN da demo e os que cabem entram escalados',
+      async (scenario) => {
+        const emails = Array.from({ length: count }, (_, i) => `admin${i + 1}@x.com`);
+        const summary = await seedDemo(t.prisma, { admins: emails, scenario, now: NOW });
+
+        const group = await demoGroup();
+        const admins = await t.prisma.membership.findMany({
+          where: { groupId: group.id, user: { email: { in: emails } } },
+        });
+        expect(admins).toHaveLength(count);
+        expect(admins.every((m) => m.role === 'ADMIN' && m.active)).toBe(true);
+
+        const rounds = await t.prisma.round.findMany({
+          where: { groupId: group.id },
+          orderBy: { number: 'asc' },
+          include: { attendances: true, teamPlayers: true, votes: true },
+        });
+        expect(rounds).toHaveLength(9);
+        const current = rounds[8]!;
+        expect(current.status).toBe(EXPECTED_STATUS[scenario]);
+
+        const adminIds = new Set(admins.map((m) => m.id));
+        const inRound = current.attendances.filter(
+          (a) => a.confirmed && adminIds.has(a.membershipId),
+        );
+        expect(inRound.length).toBeGreaterThanOrEqual(1);
+        // Meias: 2 titulares + 4 reservas
+        expect(inRound.length).toBeLessThanOrEqual(6);
+        expect(summary.extraAdmins).toBe(count);
+        expect(summary.extraAdminsOutOfRound).toBe(count - inRound.length);
+        expect(summary.extraAdminsOutOfRound).toBeGreaterThanOrEqual(count - 6);
+
+        if (scenario !== 'agendada') {
+          const inTeams = current.teamPlayers.filter((p) => adminIds.has(p.membershipId));
+          expect(inTeams.map((p) => p.membershipId).sort()).toEqual(
+            inRound.map((a) => a.membershipId).sort(),
+          );
+          expect(current.teamPlayers.length).toBeLessThanOrEqual(18);
+        }
+        if (scenario === 'votacao') {
+          expect(current.votes.some((v) => adminIds.has(v.voterId))).toBe(false);
+        }
+      },
+      DEMO_TIMEOUT_MS * 2,
+    );
+  });
+
   it(
     'C6: o seed de dev não muda com a parametrização (sem admins reais, nada de extra)',
     async () => {

@@ -1055,11 +1055,11 @@ lógica em `src/seed/demo.ts`) contra o banco do staging.
   mas lá a reserva só existiria se o comando rodasse na produção, o que as travas barram.
 - **Admins na rodada atual:** os admins da lista são criados junto dos fictícios, antes de montar as rodadas: entram na
   rodada atual confirmados e escalados (na `votacao`, entre os que ainda não votaram) e não aparecem nas rodadas passadas;
-  se passarem de 18 confirmados, saem fictícios de linha. E-mail `@demo.invalid` na lista é recusado. O e-mail da reserva
+  cabem até 6 (2 meias titulares e 4 reservas, porque eles são todos meias sem posição secundária); a formação é conferida com o `balanceTeams` e, se falta vaga, saem primeiro os fictícios das posições que os admins cobrem (meia e ala). Admins além do limite continuam ADMIN da demo, mas ficam fora da rodada atual (o comando diz quantos); a rodada nunca falha. E-mail `@demo.invalid` na lista é recusado. O e-mail da reserva
   é gravado normalizado (minúsculas, sem espaço) e achado por igualdade exata; o login grava o e-mail normalizado.
 - **Reserva vs. usuário real que trocou de e-mail:** se o login com um `googleId` real esbarra no e-mail de uma reserva
   (P2002), a reserva cede em transação: as memberships dela passam para o User real (se ele já é membro do grupo, vira
-  ADMIN e a duplicada fica inativa) e a reserva é apagada. O caminho normal do login continua uma consulta só.
+  ADMIN e a duplicada fica inativa) e a reserva é apagada; se sobrou a membership duplicada (inativa, com histórico), a reserva não é apagada: é aposentada, com e-mail `cedida-<id>@demo.invalid` e `googleId` `cedida:<id>`, que ninguém assume. O caminho normal do login continua uma consulta só.
 - **Travas do comando** (antes de abrir o banco; as mensagens nunca incluem a URL): `ALLOW_DEMO_SEED` precisa ser `staging`;
   `DEMO_FORBIDDEN_HOSTS` (hosts de produção, vírgula; no workflow vem da variável `PROD_DB_HOST`) não pode estar vazio; o
   host do `DATABASE_URL` (minúsculas, sem ponto final, ignorando a variante `-pooler`) não pode estar na lista; cada item da lista é só um host; a URL precisa de um nome de host (vazio, vários hosts e IP literal são recusados), sem `host=`/`hostaddr=` na query nem `%` no host. O `NODE_ENV` do seed de dev (`assertSeedAllowed`) não muda.

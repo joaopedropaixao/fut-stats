@@ -137,6 +137,8 @@ export interface SeedSummary {
   posts: number;
   /** Admins reais criados (`SeedTarget.extraAdmins`); 0 no seed de dev. */
   extraAdmins: number;
+  /** Desses, quantos ficaram fora da rodada atual por falta de vaga na formação (continuam ADMIN do grupo). */
+  extraAdminsOutOfRound: number;
 }
 
 const MINUTE_MS = 60 * 1000;
@@ -298,6 +300,10 @@ export async function seed(
   }
 
   const rounds = planRounds(pastMembers, members, scenario, now);
+  const currentAttendances = rounds[rounds.length - 1]!.attendances;
+  const extraIdsInRound = members
+    .filter((m) => !pastMembers.includes(m))
+    .filter((m) => currentAttendances.some((a) => a.membershipId === m.id && a.confirmed)).length;
 
   // O trigger numera na ordem de criação: apaga as rodadas do grupo e recria da mais antiga à atual.
   await prisma.$transaction(
@@ -353,6 +359,7 @@ export async function seed(
     scenario,
     members: members.length,
     extraAdmins: extraAdmins.length,
+    extraAdminsOutOfRound: extraAdmins.length - extraIdsInRound,
     rounds: rounds.length,
     posts,
   };
@@ -663,37 +670,86 @@ function planAttendance(
   return attendances;
 }
 
+/** Quantos jogadores de linha cabem na rodada: 2 times × (titulares de linha + reservas). */
+const LINE_CAPACITY = 2 * (PLAYERS_PER_TEAM - 1 + MAX_RESERVES_PER_TEAM);
+/** Titulares de linha por posição nos dois times juntos (1-2-3-1: 2 zagueiros, 2 alas, 1 meio, 1 atacante, cada). */
+const LINE_STARTERS: Readonly<Record<Exclude<Position, 'GOALKEEPER'>, number>> = {
+  DEFENDER: 4,
+  WINGER: 4,
+  MIDFIELDER: 2,
+  FORWARD: 2,
+};
+/** Quem sai primeiro quando falta vaga: as posições que os admins (todos meias) já cobrem. */
+const KEEP_ORDER: readonly Position[] = ['DEFENDER', 'FORWARD', 'WINGER', 'MIDFIELDER'];
+
 /**
- * A rodada comporta 2 × (titulares + reservas) confirmados. Se os admins reais passarem disso, sai quem é de linha dos
- * fictícios (do último para o primeiro), sem resposta; só depois os admins reais. Sem admins reais (seed de dev) nada muda.
+ * Admins reais (todos meias, sem posição secundária) entram na rodada atual junto dos fictícios, mas a rodada comporta
+ * só 18 e a formação precisa fechar. Se tudo cabe e fecha, nada muda (e o seed de dev nunca passa daqui). Senão:
+ * os admins ficam (os 2 primeiros de titulares como meia e os outros de reserva, até 6), os fictícios ficam pelas
+ * posições que ainda faltam (zagueiros, alas, atacantes, o meio que sobrar) e, nas vagas que restam, saem primeiro os
+ * das posições que os admins cobrem. Admins além do limite continuam ADMIN do grupo, mas ficam fora da rodada. A rodada
+ * nunca falha: a viabilidade é conferida com o próprio `balanceTeams`.
  */
 function fitToCapacity(
   attendances: PlannedRound['attendances'],
   members: readonly SeedMemberRow[],
   extraNicknames: readonly string[],
 ): PlannedRound['attendances'] {
-  const capacity = 2 * (PLAYERS_PER_TEAM + MAX_RESERVES_PER_TEAM);
   const byId = new Map(members.map((m) => [m.id, m]));
   const extras = new Set(extraNicknames);
-  let excess = attendances.filter((a) => a.confirmed).length - capacity;
-  if (excess <= 0) return attendances;
+  const confirmed = attendances.filter((a) => a.confirmed).map((a) => byId.get(a.membershipId)!);
+  const admins = confirmed.filter((m) => extras.has(m.nickname));
+  if (admins.length === 0) return attendances;
 
-  const dropped = new Set<string>();
-  const droppable = (pickExtras: boolean) =>
-    [...attendances].reverse().filter((a) => {
-      const member = byId.get(a.membershipId)!;
-      return (
-        a.confirmed &&
-        member.primaryPosition !== 'GOALKEEPER' &&
-        extras.has(member.nickname) === pickExtras
-      );
-    });
-  for (const a of [...droppable(false), ...droppable(true)]) {
-    if (excess <= 0) break;
-    dropped.add(a.membershipId);
-    excess--;
+  const feasible = (rows: readonly SeedMemberRow[]) =>
+    balanceTeams(
+      rows.map((m) => ({
+        id: m.id,
+        primaryPosition: m.primaryPosition,
+        secondaryPositions: m.secondaryPositions,
+        rating: m.rating,
+      })),
+      [],
+      { random: () => 0 },
+    ).ok;
+  const apply = (keep: readonly SeedMemberRow[]) => {
+    const keepIds = new Set(keep.map((m) => m.id));
+    const confirmedIds = new Set(confirmed.map((m) => m.id));
+    return attendances.filter(
+      (a) => !confirmedIds.has(a.membershipId) || keepIds.has(a.membershipId),
+    );
+  };
+
+  if (confirmed.length <= 2 * (PLAYERS_PER_TEAM + MAX_RESERVES_PER_TEAM) && feasible(confirmed)) {
+    return attendances;
   }
-  return attendances.filter((a) => !dropped.has(a.membershipId));
+
+  const goalkeepers = confirmed.filter(
+    (m) => !extras.has(m.nickname) && m.primaryPosition === 'GOALKEEPER',
+  );
+  const line = confirmed.filter(
+    (m) => !extras.has(m.nickname) && m.primaryPosition !== 'GOALKEEPER',
+  );
+  // Meias: 2 vagas de titular e as de reserva (os admins não têm posição secundária para jogar de ala).
+  const maxAdmins = LINE_STARTERS.MIDFIELDER + 2 * MAX_RESERVES_PER_TEAM;
+  for (let k = Math.min(admins.length, maxAdmins); k >= 1; k--) {
+    const chosenAdmins = admins.slice(0, k);
+    const starters: SeedMemberRow[] = [];
+    for (const [position, count] of Object.entries(LINE_STARTERS) as [Position, number][]) {
+      const need = position === 'MIDFIELDER' ? Math.max(0, count - k) : count;
+      starters.push(...line.filter((m) => m.primaryPosition === position).slice(0, need));
+    }
+    const rest = line
+      .filter((m) => !starters.includes(m))
+      .sort(
+        (a, b) => KEEP_ORDER.indexOf(a.primaryPosition) - KEEP_ORDER.indexOf(b.primaryPosition),
+      );
+    const room = Math.max(0, LINE_CAPACITY - k - starters.length);
+    const keep = [...goalkeepers, ...chosenAdmins, ...starters, ...rest.slice(0, room)];
+    if (feasible(keep)) return apply(keep);
+  }
+  // Nem com 1 admin a formação fecha: sem admins na rodada (fictícios como no seed de dev)
+  return apply([...goalkeepers, ...line]);
 }
 
 function confirmedIds(attendances: PlannedRound['attendances']): string[] {
