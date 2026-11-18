@@ -12,6 +12,7 @@ import { FeedModule } from './feed/feed.module';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
 import { HistoryModule } from './history/history.module';
+import { InternalModule } from './internal/internal.module';
 import { LineupsModule } from './lineups/lineups.module';
 import { LiveModule } from './live/live.module';
 import { MatchModule } from './match/match.module';
@@ -46,6 +47,7 @@ import { VotingModule } from './voting/voting.module';
     LiveModule,
     PushModule,
     DevModule.forEnvironment(),
+    InternalModule.forEnvironment(),
   ],
 })
 export class AppModule {}
