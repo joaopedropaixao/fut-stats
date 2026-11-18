@@ -84,6 +84,17 @@ export const envSchema = z
           'VAPID_SUBJECT: use mailto:voce@exemplo.com ou https://seu-site (sem aspas e sem espaço)',
         ),
     ),
+    /**
+     * Sentry da API (Render). Sem DSN o Sentry nem é iniciado. Passo a passo em docs/deploy.md.
+     * `SENTRY_ENVIRONMENT` (`staging` ou `production`) etiqueta os eventos; sem ele vale `NODE_ENV`.
+     */
+    SENTRY_DSN: optional(z.url({ protocol: /^https?$/ })),
+    SENTRY_ENVIRONMENT: optional(z.string().min(1)),
+    /**
+     * Segredo do despertador (`POST /api/internal/tick`, `Authorization: Bearer`). Só na produção: sem ele a rota
+     * não existe (404). Mínimo de 32 caracteres; gerar com `openssl rand -base64 48`.
+     */
+    TICK_SECRET: optional(z.string().min(32)),
   })
   .superRefine((env, ctx) => {
     const set = VAPID_KEYS.filter((key) => env[key] !== undefined);

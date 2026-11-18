@@ -19,9 +19,14 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 
 const storage = new AsyncLocalStorage<RequestContext>();
 
-/** O `x-request-id` recebido se for seguro de pôr em log e cabeçalho; senão, um UUID novo. */
-export function resolveRequestId(incoming: unknown): string {
-  return typeof incoming === 'string' && REQUEST_ID_PATTERN.test(incoming)
+/**
+ * O `x-request-id` recebido se for seguro de pôr em log e cabeçalho; senão, um UUID novo. Só em `development` e `test`
+ * (QA, Bruno) o do cliente vale: em produção, e sem `NODE_ENV` (que a API trata como produção), o id é sempre do
+ * servidor, porque ele vai para o registro da rodada e para a tag do Sentry e ninguém de fora escolhe o que entra lá.
+ */
+export function resolveRequestId(incoming: unknown, env: NodeJS.ProcessEnv = process.env): string {
+  const trustClient = env.NODE_ENV === 'development' || env.NODE_ENV === 'test';
+  return trustClient && typeof incoming === 'string' && REQUEST_ID_PATTERN.test(incoming)
     ? incoming
     : randomUUID();
 }

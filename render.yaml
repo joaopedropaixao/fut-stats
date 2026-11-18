@@ -1,4 +1,6 @@
-# Blueprint do Render: API de staging (plano free), deploy automático a cada push na develop.
+# Blueprint do Render: duas APIs (plano free), uma por ambiente, cada uma com deploy automático na sua branch:
+#   fut-stats-api-staging  → develop (Neon dev)
+#   fut-stats-api          → main    (Neon prod)
 # Passo a passo em docs/deploy.md.
 services:
   - type: web
@@ -55,3 +57,76 @@ services:
         sync: false
       - key: VAPID_SUBJECT
         sync: false
+      # Sentry da API (projeto "fut-stats-api" no Sentry). Sem o DSN o Sentry nem é iniciado. Passo a passo em docs/deploy.md.
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: staging
+
+  - type: web
+    name: fut-stats-api
+    runtime: node
+    plan: free
+    # Mais perto do Brasil entre as regiões do Render; o banco do Neon deve ficar em us-east-1 também.
+    region: virginia
+    branch: main
+    autoDeployTrigger: commit
+    # Versão do Node vem do .nvmrc; o pnpm, do campo "packageManager" (via corepack).
+    # O /usr/bin do Render é só leitura: o corepack cria o atalho do pnpm em .render-bin e ela vai na frente do PATH.
+    # O turbo builda só a api e o que ela usa (shared, domain).
+    # No fim, aplica as migrations no Neon (o plano free não tem pre-deploy command). Usa a DIRECT_URL.
+    buildCommand: mkdir -p .render-bin && corepack enable --install-directory .render-bin && export PATH="$PWD/.render-bin:$PATH" && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@fut-stats/api && pnpm --filter @fut-stats/api db:deploy
+    # Sobe direto com o node (o PATH do build não vale aqui).
+    startCommand: cd apps/api && node dist/main.js
+    healthCheckPath: /api/health
+    # Só redeploya quando muda algo que afeta a API (mudança só no front não acorda o Render).
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/**
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - .nvmrc
+        - render.yaml
+    envVars:
+      # Connection string do Neon (branch prod). O Render pede o valor ao criar o Blueprint.
+      - key: DATABASE_URL
+        sync: false
+      # Conexão direta do Neon (sem "-pooler"), só para as migrations do build.
+      - key: DIRECT_URL
+        sync: false
+      # Segredo que assina o JWT da sessão. O Render gera um valor aleatório na criação; trocar desloga todo mundo.
+      - key: JWT_SECRET
+        generateValue: true
+      # Client OAuth do Google (projeto fut-stats no Google Cloud). Valores colados à mão no painel do Render.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # Endereço do app no navegador (a Vercel, que repassa /api/* para cá). A callback do Google sai daqui
+      # e tem que bater com a cadastrada no Google Cloud.
+      - key: APP_URL
+        value: https://fut-stats-app.vercel.app
+      # Avisos push (Web Push): as três juntas ou nenhuma (sem elas o push fica desligado). Gerar o par com
+      # `npx web-push generate-vapid-keys`; o subject é o contato do dono (mailto:). Passo a passo em docs/deploy.md.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      # Sentry da API (projeto "fut-stats-api" no Sentry). Sem o DSN o Sentry nem é iniciado. Passo a passo em docs/deploy.md.
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: production
+      # Despertador (só produção): segredo do POST /api/internal/tick, que o GitHub Actions chama de 30 em 30 minutos
+      # (.github/workflows/despertador.yml). Gerar com `openssl rand -base64 48` e colar aqui e nos segredos do GitHub.
+      - key: TICK_SECRET
+        sync: false
+      # Em produção quem fecha a votação vencida é o despertador: o relógio interno (1 min) manteria o Neon gratuito
+      # sempre acordado. 0 desliga o relógio. O staging segue com o relógio.
+      - key: VOTING_CLOSER_INTERVAL_MS
+        value: '0'

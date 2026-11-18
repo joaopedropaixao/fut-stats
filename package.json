@@ -10,7 +10,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint && prettier --check .",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "node scripts/check-deploy-config.mjs && node --test scripts/*.test.mjs && turbo run test",
     "format": "prettier --write ."
   },
   "devDependencies": {

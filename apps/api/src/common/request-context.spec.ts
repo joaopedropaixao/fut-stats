@@ -84,6 +84,67 @@ describe('requestId e log de pedido', () => {
     expect(anonymous.headers[REQUEST_ID_HEADER]).not.toBe(authenticated.headers[REQUEST_ID_HEADER]);
   });
 
+  describe('C27/C28: o id do cliente só vale fora de produção', () => {
+    /** Roda o pedido com `NODE_ENV` trocado (lido a cada pedido) e põe o valor de volta. */
+    async function withNodeEnv<T>(nodeEnv: string | undefined, run: () => Promise<T>): Promise<T> {
+      const before = process.env.NODE_ENV;
+      if (nodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = nodeEnv;
+      try {
+        return await run();
+      } finally {
+        process.env.NODE_ENV = before;
+      }
+    }
+
+    it('C27: em produção o x-request-id válido do cliente é ignorado: a resposta e o log trazem um UUID novo', async () => {
+      const lines = captureRequestLogs();
+      const response = await withNodeEnv('production', () =>
+        request(server()).get('/api/me').set(REQUEST_ID_HEADER, 'abc-123_DEF45'),
+      );
+
+      // /api/me sem sessão: 401, mas a linha de log do pedido existe (o health não loga).
+      expect(response.status).toBe(401);
+      expect(response.headers[REQUEST_ID_HEADER]).toMatch(UUID);
+      expect(response.headers[REQUEST_ID_HEADER]).not.toBe('abc-123_DEF45');
+      const logged = lines().map((line) => line.requestId);
+      expect(logged).toContain(response.headers[REQUEST_ID_HEADER]);
+      expect(logged).not.toContain('abc-123_DEF45');
+    });
+
+    it('C27: em produção o erro 500 devolve no corpo o id do servidor, nunca o do cliente', async () => {
+      const response = await withNodeEnv('production', () =>
+        request(server())
+          .get('/api/request-context-probe/boom')
+          .set(REQUEST_ID_HEADER, 'abc-123_DEF45'),
+      );
+      expect(response.status).toBe(500);
+      expect(response.body.requestId).toMatch(UUID);
+      expect(response.body.requestId).toBe(response.headers[REQUEST_ID_HEADER]);
+    });
+
+    it('C27: sem NODE_ENV vale produção (o padrão da API): o id do cliente é ignorado', () => {
+      expect(resolveRequestId('abc-123_DEF45', {})).toMatch(UUID);
+      expect(resolveRequestId('abc-123_DEF45', { NODE_ENV: 'production' })).toMatch(UUID);
+      expect(resolveRequestId('abc-123_DEF45', { NODE_ENV: 'staging' })).toMatch(UUID);
+    });
+
+    it.each(['development', 'test'])(
+      'C28: em %s o valor válido recebido é usado',
+      async (nodeEnv) => {
+        const response = await withNodeEnv(nodeEnv, () =>
+          request(server()).get('/api/health').set(REQUEST_ID_HEADER, 'abc-123_DEF45'),
+        );
+        expect(response.headers[REQUEST_ID_HEADER]).toBe('abc-123_DEF45');
+        expect(resolveRequestId('abc-123_DEF45', { NODE_ENV: nodeEnv })).toBe('abc-123_DEF45');
+      },
+    );
+
+    it('C28: fora de produção o valor inválido segue ignorado', () => {
+      expect(resolveRequestId('abc 123', { NODE_ENV: 'development' })).toMatch(UUID);
+    });
+  });
+
   it('C16: x-request-id válido volta igual na resposta', async () => {
     const response = await request(server())
       .get('/api/health')

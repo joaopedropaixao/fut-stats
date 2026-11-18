@@ -48,11 +48,15 @@ produção). Só considerar o Railway se a API "dormindo" incomodar de verdade o
 
 ### Ambientes
 
-| Branch | Ambiente | Banco |
-|--------|----------|-------|
-| `develop` | staging (preview) | Neon branch `dev` |
-| `main` | produção | Neon branch `prod` |
-| `feature/*` | preview da Vercel por PR | Neon branch `dev` |
+| Ambiente | Branch | Web (Vercel) | API (Render, free) | Banco (Neon) | Sentry | Despertador e backup |
+|----------|--------|--------------|--------------------|--------------|--------|----------------------|
+| staging | `develop` | `fut-stats-three.vercel.app` | `fut-stats-api-staging` | branch `dev` | `SENTRY_ENVIRONMENT=staging` | nenhum; o relógio interno fecha votações (1 min) |
+| produção | `main` | `fut-stats-app.vercel.app` | `fut-stats-api` | branch `prod` | `SENTRY_ENVIRONMENT=production` | despertador de 30 em 30 min (GitHub Actions) e backup diário cifrado; relógio interno desligado |
+| preview | `feature/*` | endereço do PR (Vercel) | a do staging | branch `dev` | — | — |
+
+Nada é compartilhado entre staging e produção: cada um tem o seu serviço, o seu banco, o segredo de sessão, o client do
+Google e o par VAPID. O `render.yaml` e o `apps/web/vercel.json` são os mesmos nas duas branches; a diferença está nas
+variáveis de cada painel e na regra de `/api/*` por endereço. Passo a passo: `docs/deploy.md`.
 
 ### Tempo real: sinal único de eventos da rodada e canal ao vivo
 

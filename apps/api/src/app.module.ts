@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { MonitoringModule } from './common/monitoring.module';
 import { validateEnv } from './config/env';
 import { envFilePaths } from './config/env-files';
 import { DevModule } from './dev/dev.module';
@@ -11,6 +12,7 @@ import { FeedModule } from './feed/feed.module';
 import { GroupsModule } from './groups/groups.module';
 import { HealthModule } from './health/health.module';
 import { HistoryModule } from './history/history.module';
+import { InternalModule } from './internal/internal.module';
 import { LineupsModule } from './lineups/lineups.module';
 import { LiveModule } from './live/live.module';
 import { MatchModule } from './match/match.module';
@@ -28,6 +30,7 @@ import { VotingModule } from './voting/voting.module';
       envFilePath: envFilePaths(resolve(process.cwd(), '../..')),
       validate: validateEnv,
     }),
+    MonitoringModule,
     PrismaModule,
     AuthModule,
     GroupsModule,
@@ -44,6 +47,7 @@ import { VotingModule } from './voting/voting.module';
     LiveModule,
     PushModule,
     DevModule.forEnvironment(),
+    InternalModule.forEnvironment(),
   ],
 })
 export class AppModule {}
