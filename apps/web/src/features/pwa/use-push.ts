@@ -15,9 +15,10 @@ import {
   type PushState,
   type PushStateInput,
 } from './push-state';
+import { logPushError } from './push-log';
 import { sameServerKey, subscribeWithKey } from './push-subscription';
 
-/** Quanto esperar o service worker ficar pronto ao ligar (em dev ele não existe e o `ready` nunca responde). */
+/** Quanto esperar o service worker ficar pronto ao ligar (sem service worker registrado o `ready` nunca responde). */
 const READY_TIMEOUT_MS = 10_000;
 
 const configKey = ['push', 'config'] as const;
@@ -121,7 +122,7 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
       }
       const parsed = pushSubscriptionInputSchema.safeParse(current.toJSON());
       if (parsed.success) await apiPutNoContent('/push/subscriptions', parsed.data);
-    })().catch(() => undefined);
+    })().catch((error: unknown) => logPushError('sync', error));
     return () => {
       cancelled = true;
     };
@@ -156,7 +157,10 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
     onSuccess: (created) => {
       if (created) setSubscription(created);
     },
-    onError: () => setFailed('enable'),
+    onError: (error) => {
+      logPushError('enable', error);
+      setFailed('enable');
+    },
   });
 
   const disableMutation = useMutation({
@@ -169,7 +173,10 @@ export function usePush({ sync = false }: { sync?: boolean } = {}): UsePush {
       setTestStatus('idle');
     },
     onSuccess: () => setSubscription(null),
-    onError: () => setFailed('disable'),
+    onError: (error) => {
+      logPushError('disable', error);
+      setFailed('disable');
+    },
   });
 
   const testMutation = useMutation({
