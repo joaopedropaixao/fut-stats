@@ -294,4 +294,25 @@ valem (responsivo, alvo de 44 px, palavras). Sem outra mudança visual.
   "Testar aviso" como primeiro passo de quem diz "não recebo nada" e um texto curto pronto para o WhatsApp.
 
 ## QA
-<Preenchido no fim: tabela final do QA, número de voltas e veredito.>
+**2 voltas, APROVADO na volta 2** (HEAD 663de1f, 18 nov 2026). A volta 1 reprovou em 4 pontos, todos do back: nomes da
+UI errados no `lancamento.md`, restauração do backup que não funcionava como escrita, R6/R6b antes da release e
+`- run: echo ${{ secrets.X }}` passando na checagem. A volta 2 conferiu as 4 falhas resolvidas e os cenários novos.
+
+| Id | Resultado | Evidência |
+|---|---|---|
+| C1–C5 | ✅ | `common/monitoring.spec.ts` (sem DSN nada sobe; evento só com `environment`, tags `requestId`/`groupId` e `user.id`; 4xx sem evento; "API no ar"); `config/env.spec.ts` (DSN inválido) |
+| C6 | ✅ | `dev/dev.spec.ts`; build de produção ao vivo: `/api/dev/users` 404 |
+| C7 | ✅ | `seed/seed.spec.ts`: o comando real com `NODE_ENV=production` sai 1, sem gravar |
+| C8 | ✅ | `health/health.controller.spec.ts`: 200 com o banco fora |
+| C9, C10, C14, C26 | ✅ | `scripts/check-deploy-config.test.mjs` + 41 mutações do QA (segredo impresso de várias formas, ordem das regras, host ≠ `APP_URL`, `*.vercel.app`); domínio real sem aviso |
+| C11–C13 | ✅ | `scripts/backup-restore.test.mjs` + scripts reais: arquivo cifrado sem nome de tabela legível; restauração em banco vazio e em schema-only com `--force`, `diff` das contagens vazio; senha errada, variável faltando e destino com tabelas saem 1 |
+| C15, C16 | ✅ | sem DSN nada do Sentry no `dist` nem na rede; com DSN o pedaço chega depois da primeira pintura; JS inicial 120,2 kB de 150 (limite sem mudança) |
+| C17, C18 | ✅ | "Deu ruim aqui" em `/dev/erro` e `/dev/erro-na-tela`; 320/375/390/430/1280 sem rolagem nem sobreposição; tecla de 56 px |
+| C19–C25, C30 | ✅ | `internal/internal.spec.ts` (fecha só a vencida, push `RESULT_OUT` uma vez, concorrência, 401 sem dizer o motivo, 404 sem `TICK_SECRET`, sessão não vale, mesmo caminho do relógio) |
+| C27, C28 | ✅ | `common/request-context.spec.ts`; ao vivo: produção devolve UUID novo, dev devolve o recebido |
+| C29 | ✅ | `dev/dev-inactive-group.spec.ts` (falhava antes com `reading 'skin'`); `collections/dev-session.ts` real cria a "Pelada Inativa" |
+| C31, C32 | ✅ | `/privacidade` sem sessão, texto item a item; pedaço lazy de ~1,4 kB; link no rodapé de `/entrar` com 44 px; 5 larguras sem rolagem; console limpo |
+
+Checagens: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` verdes na raiz. Observações que não reprovaram:
+formas exóticas de imprimir segredo (`export -p`, `declare -p`, `curl --trace-ascii`), cobertas em parte depois da volta
+2; o aviso `HydrateFallback` em `/dev/erro` (rota só de dev).
