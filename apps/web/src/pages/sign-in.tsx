@@ -8,18 +8,23 @@ import { PixelText } from '../components/ui/pixel-text';
 import {
   clearPendingDestination,
   isInvitePath,
+  isPendingDestination,
   savePendingDestination,
 } from '../features/group/invite-code';
 import { useSession } from '../features/session/use-session';
 import { LOGIN_URL } from '../lib/api';
 import { ChalkPitch } from './entrar-e-grupo/chalk';
 
-/** Entrar no app. Se veio de um convite (`?next=/convite/<código>`), guarda o destino e volta para ele. */
+/**
+ * Entrar no app. Se veio de um convite (`?next=/convite/<código>`) ou do link de um aviso aberto sem sessão
+ * (`?next=/rodadas/...?grupo=...`), guarda o destino e volta para ele depois do login.
+ */
 export function SignInPage() {
   const session = useSession();
   const [params] = useSearchParams();
   const next = params.get('next');
-  const destination = isInvitePath(next) ? next : null;
+  const destination = isPendingDestination(next) ? next : null;
+  const invite = isInvitePath(destination);
   // Voltou para cá sem concluir o login: o destino guardado de antes não vale mais
   useEffect(() => {
     if (session.data === null) clearPendingDestination();
@@ -42,7 +47,7 @@ export function SignInPage() {
           <p className="text-base text-text-muted">Faça seu login e não perca a resenha.</p>
         </div>
         <div className="flex flex-col gap-4">
-          {destination && (
+          {invite && (
             <p className="flex gap-3 bg-success/8 p-4 text-sm shadow-[inset_0_0_0_2px_var(--color-success)]">
               <Icon name="check" size={20} strokeWidth={2.4} className="shrink-0 text-success" />
               Você tem um convite. Entre com o Google e a gente te leva direto para ele.
@@ -57,7 +62,11 @@ export function SignInPage() {
           />
           {/* Só no ambiente local: o Google não funciona aqui, então entra como alguém do banco */}
           {import.meta.env.DEV && (
-            <Link to="/dev/entrar" className="self-center p-3 text-sm text-text-muted underline">
+            <Link
+              to="/dev/entrar"
+              onClick={() => destination && savePendingDestination(destination)}
+              className="self-center p-3 text-sm text-text-muted underline"
+            >
               Entrar como alguém do banco (dev)
             </Link>
           )}

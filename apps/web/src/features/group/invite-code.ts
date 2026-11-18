@@ -1,4 +1,4 @@
-/** Onde o app guarda o convite que a pessoa estava abrindo antes de ir logar no Google. */
+/** Onde o app guarda o convite (ou a tela de um aviso) que a pessoa estava abrindo antes de ir logar. */
 const PENDING_KEY = 'fut-stats:destino-pos-login';
 
 /**
@@ -17,6 +17,24 @@ export function isInvitePath(path: string | null | undefined): path is string {
   return !!path && /^\/convite\/[\w-]+$/.test(path);
 }
 
+/**
+ * Destino dentro do app para voltar depois do login (o link de um aviso push aberto sem sessão, com `?grupo=`): só
+ * caminho interno, sem `//` (outro site), sem voltar para o próprio /entrar e sem /api.
+ */
+export function isReturnPath(path: string | null | undefined): path is string {
+  return (
+    !!path &&
+    /^\/(?!\/)[\w\-/.?=&%]*$/.test(path) &&
+    !/^\/(entrar|api)(\/|\?|$)/.test(path) &&
+    path !== '/'
+  );
+}
+
+/** Destino que vale guardar para depois do login: um convite ou um caminho interno do app. */
+export function isPendingDestination(path: string | null | undefined): path is string {
+  return isInvitePath(path) || isReturnPath(path);
+}
+
 /** Guarda o destino antes de sair para o Google. */
 export function savePendingDestination(path: string): void {
   try {
@@ -30,7 +48,7 @@ export function savePendingDestination(path: string): void {
 export function peekPendingDestination(): string | null {
   try {
     const path = sessionStorage.getItem(PENDING_KEY);
-    return isInvitePath(path) ? path : null;
+    return isPendingDestination(path) ? path : null;
   } catch {
     return null;
   }
