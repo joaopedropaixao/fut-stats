@@ -58,7 +58,7 @@ export const router = createBrowserRouter([
     children: [
       {
         // Erro de uma tela (pedaço que não veio) aparece no lugar dela, com as abas ainda na tela
-        errorElement: <RouteError />,
+        errorElement: <RouteError embedded />,
         children: [
           // Cada aba aponta para a página dela; aba sem página ainda fica no placeholder.
           ...TABS.map((tab) => TAB_PAGES[tab.to] ?? placeholderRoute(tab)),
@@ -70,6 +70,17 @@ export const router = createBrowserRouter([
           ...rankingRoutes,
           ...profileEditRoutes,
           ...rosterRoutes,
+          // Erro de renderização de propósito, dentro do AppShell (com as abas). Só em dev.
+          ...(import.meta.env.DEV
+            ? [
+                {
+                  path: '/dev/erro-na-tela',
+                  lazy: async () => ({
+                    Component: (await import('./pages/dev/dev-error')).DevErrorPage,
+                  }),
+                },
+              ]
+            : []),
         ],
       },
     ],
@@ -98,6 +109,12 @@ export const router = createBrowserRouter([
           lazy: async () => ({
             Component: (await import('./pages/dev/components-showcase')).ComponentsShowcasePage,
           }),
+        },
+        {
+          // Erro de renderização de propósito, fora do AppShell
+          path: '/dev/erro',
+          lazy: async () => ({ Component: (await import('./pages/dev/dev-error')).DevErrorPage }),
+          errorElement: <RouteError />,
         },
       ]
     : []),
