@@ -7,6 +7,9 @@ import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   checkAll,
+  checkProductionDomain,
+  productionHostOf,
+  DOMAIN_PLACEHOLDER,
   checkBackupWorkflow,
   checkDespertadorWorkflow,
   checkRender,
@@ -31,7 +34,12 @@ const has = (problems, pattern) => problems.some((problem) => pattern.test(probl
 
 describe('arquivos de verdade', () => {
   it('C9 C10 C14 C26: a configuração do repositório passa nas checagens', () => {
-    assert.deepEqual(checkAll(ROOT), []);
+    const { problems, warnings } = checkAll(ROOT);
+    assert.deepEqual(problems, []);
+    // Enquanto o domínio não foi comprado o marcador gera um aviso (e só ele); depois da troca, nenhum.
+    assert.ok(
+      warnings.length === 0 || (warnings.length === 1 && warnings[0].includes(DOMAIN_PLACEHOLDER)),
+    );
   });
 });
 
@@ -83,19 +91,12 @@ describe('C9: render.yaml', () => {
     assert.ok(has(checkRender(vazado), /GOOGLE_CLIENT_SECRET tem valor escrito/));
   });
 
-  it('C9: variável obrigatória faltando, endereço errado e branch trocada são recusados', () => {
+  it('C9: variável obrigatória faltando e branch trocada são recusados', () => {
     const semDsn = mutate(render, '      - key: SENTRY_DSN\n        sync: false\n', '');
     assert.ok(has(checkRender(semDsn), /falta a variável SENTRY_DSN/));
 
     const semVapid = mutate(render, '      - key: VAPID_SUBJECT\n        sync: false\n', '');
     assert.ok(has(checkRender(semVapid), /falta a variável VAPID_SUBJECT/));
-
-    const url = mutate(
-      render,
-      'value: https://fut-stats-app.vercel.app',
-      'value: https://outro.vercel.app',
-    );
-    assert.ok(has(checkRender(url), /APP_URL deve ser https:\/\/fut-stats-app\.vercel\.app/));
 
     const branch = mutate(render, 'branch: main', 'branch: develop');
     assert.ok(has(checkRender(branch), /produção deve buildar a branch main/));
@@ -111,26 +112,104 @@ describe('C9: render.yaml', () => {
 });
 
 describe('C10: vercel.json', () => {
-  it('C10: sem a regra por host, com destino trocado ou com o index.html fora do fim é recusado', () => {
-    const semHost = vercel();
-    delete semHost.rewrites[0].has;
-    assert.ok(has(checkVercel(semHost), /type host/));
+  const host = 'meupelada.com.br';
+  /** O vercel.json de verdade, com o marcador do domínio trocado pelo nome (como o R0 faz). */
+  const comDominio = () =>
+    JSON.parse(JSON.stringify(vercel()).replaceAll(DOMAIN_PLACEHOLDER, host));
 
-    const destino = vercel();
+  it('C10: a configuração de verdade (com o marcador ou com um domínio) passa', () => {
+    assert.deepEqual(checkVercel(vercel(), DOMAIN_PLACEHOLDER), []);
+    assert.deepEqual(checkVercel(comDominio(), host), []);
+  });
+
+  it('C10: produção vale para o domínio próprio e para o endereço padrão da Vercel, antes do staging', () => {
+    const rules = comDominio().rewrites.filter((rule) => rule.source === '/api/:path*');
+    assert.deepEqual(
+      rules.map((rule) => [rule.has?.[0]?.value, rule.destination]),
+      [
+        [host, 'https://fut-stats-api.onrender.com/api/:path*'],
+        ['fut-stats-app.vercel.app', 'https://fut-stats-api.onrender.com/api/:path*'],
+        [undefined, 'https://fut-stats-api-staging.onrender.com/api/:path*'],
+      ],
+    );
+  });
+
+  it('C10: sem a regra de um dos hosts, com destino trocado ou com o index.html fora do fim é recusado', () => {
+    const semDominio = comDominio();
+    semDominio.rewrites.splice(0, 1);
+    assert.ok(
+      has(checkVercel(semDominio, host), /esperava as regras|falta a regra .* host meupelada/),
+    );
+
+    const semVercelApp = comDominio();
+    semVercelApp.rewrites.splice(1, 1);
+    assert.ok(
+      has(checkVercel(semVercelApp, host), /esperava as regras|fut-stats-app\.vercel\.app/),
+    );
+
+    const hostDiferente = comDominio();
+    assert.ok(has(checkVercel(hostDiferente, 'outro.com.br'), /falta a regra .* outro\.com\.br/));
+    assert.ok(has(checkVercel(hostDiferente, 'outro.com.br'), /host que não é o de produção/));
+
+    const semHas = comDominio();
+    delete semHas.rewrites[0].has;
+    assert.ok(has(checkVercel(semHas, host), /um único type host/));
+
+    const destino = comDominio();
     destino.rewrites[0].destination = 'https://fut-stats-api-staging.onrender.com/api/:path*';
-    assert.ok(has(checkVercel(destino), /\/api de produção deve ir para/));
+    assert.ok(has(checkVercel(destino, host), /\/api de produção deve ir para/));
 
-    const hostErrado = vercel();
-    hostErrado.rewrites[0].has[0].value = 'fut-stats-three.vercel.app';
-    assert.ok(has(checkVercel(hostErrado), /type host/));
-
-    const indexNoMeio = vercel();
+    const indexNoMeio = comDominio();
     indexNoMeio.rewrites.reverse();
-    assert.ok(has(checkVercel(indexNoMeio), /index\.html deve ser a última/));
+    assert.ok(has(checkVercel(indexNoMeio, host), /index\.html deve ser a última/));
 
-    const stagingComCondicao = vercel();
-    stagingComCondicao.rewrites[1].has = [{ type: 'host', value: 'x' }];
-    assert.ok(has(checkVercel(stagingComCondicao), /staging não pode ter condição/));
+    const stagingComCondicao = comDominio();
+    stagingComCondicao.rewrites[2].has = [{ type: 'host', value: 'x' }];
+    assert.ok(has(checkVercel(stagingComCondicao, host), /staging não pode ter condição/));
+  });
+});
+
+describe('domínio de produção (APP_URL do render.yaml)', () => {
+  const comUrl = (url) => mutate(render, `value: https://${DOMAIN_PLACEHOLDER}`, `value: ${url}`);
+
+  it('com o marcador, só avisa (não falha o pnpm test), em voz alta', () => {
+    const { problems, warnings } = checkProductionDomain(render);
+    assert.deepEqual(problems, []);
+    assert.equal(warnings.length, 1);
+    assert.match(
+      warnings[0],
+      /produção ainda com <DOMINIO>: trocar pelo domínio comprado antes da release/,
+    );
+    assert.equal(productionHostOf(render), DOMAIN_PLACEHOLDER);
+  });
+
+  it('com um domínio próprio, não avisa nem reclama', () => {
+    const result = checkProductionDomain(comUrl('https://meupelada.com.br'));
+    assert.deepEqual(result, { problems: [], warnings: [] });
+  });
+
+  it('*.vercel.app como domínio de produção é recusado (o Google não aceita)', () => {
+    const { problems } = checkProductionDomain(comUrl('https://fut-stats-app.vercel.app'));
+    assert.ok(has(problems, /\*\.vercel\.app/));
+  });
+
+  it('APP_URL com caminho, http ou host inválido é recusado', () => {
+    for (const url of [
+      'https://meupelada.com.br/app',
+      'http://meupelada.com.br',
+      'https://nome sem ponto',
+    ]) {
+      assert.ok(checkProductionDomain(comUrl(url)).problems.length > 0, url);
+    }
+    assert.ok(has(checkProductionDomain(comUrl('https://semponto')).problems, /host inválido/));
+  });
+
+  it('o host do vercel.json tem que ser o do APP_URL de produção', () => {
+    const emRender = productionHostOf(comUrl('https://meupelada.com.br'));
+    assert.equal(emRender, 'meupelada.com.br');
+    const json = JSON.parse(read('apps/web/vercel.json'));
+    // O vercel.json de verdade ainda tem o marcador; com o domínio do render.yaml trocado, ele destoa.
+    assert.ok(has(checkVercel(json, emRender), /falta a regra .* meupelada\.com\.br/));
   });
 });
 
@@ -160,10 +239,49 @@ describe('C14: backup.yml', () => {
         checkBackupWorkflow(
           mutate(backup, 'set -eu\n', 'set -eu\n          echo "$BACKUP_PASSPHRASE"\n'),
         ),
-        /imprime um segredo/,
+        /imprime ou redireciona um segredo/,
       ),
     );
   });
+});
+
+describe('C14 e C26: segredo nunca vai para o log (QA volta 1)', () => {
+  const leaks = [
+    [
+      '- run: de uma linha com secrets.BACKUP_PASSPHRASE',
+      '      - run: echo "${{ secrets.BACKUP_PASSPHRASE }}"',
+    ],
+    ['- run: de uma linha com secrets.TICK_SECRET', '      - run: echo ${{ secrets.TICK_SECRET }}'],
+    [
+      'secrets.X dentro de um bloco run',
+      '      - run: |\n          curl -H "x: ${{ secrets.TICK_SECRET }}" https://x',
+    ],
+    ['echo do $TICK_SECRET', '          echo "$TICK_SECRET"'],
+    ['echo da ${BACKUP_PASSPHRASE}', '          echo ${BACKUP_PASSPHRASE}'],
+    ['printf do segredo', '          printf "%s" "$TICK_SECRET"'],
+    ['cat do segredo', '          cat <<< "$BACKUP_PASSPHRASE"'],
+    ['tee do segredo', '          printf %s "$TICK_SECRET" | tee /tmp/x'],
+    ['redirecionamento do segredo', '          echo x; true "$TICK_SECRET" > /tmp/segredo'],
+    ['set -x', '          set -x'],
+    ['bash -x via xtrace', '          set -o xtrace'],
+  ];
+  const withLine = (text, line) => text.replace(/\n    steps:\n/, `\n    steps:\n${line}\n`);
+
+  for (const [name, text, check] of [
+    ['backup.yml', backup, checkBackupWorkflow],
+    ['despertador.yml', despertador, checkDespertadorWorkflow],
+  ]) {
+    for (const [what, line] of leaks) {
+      it(`${name}: ${what} é recusado`, () => {
+        const mutated = withLine(text, line);
+        assert.notEqual(mutated, text);
+        assert.ok(check(mutated).length > 0, `deveria recusar: ${line.trim()}`);
+      });
+    }
+    it(`${name}: o arquivo de verdade (segredo só em env: e usado como variável) passa`, () => {
+      assert.deepEqual(check(text), []);
+    });
+  }
 });
 
 describe('C26: despertador.yml', () => {
@@ -203,7 +321,7 @@ describe('C26: despertador.yml', () => {
         checkDespertadorWorkflow(
           mutate(despertador, 'set -eu\n', 'set -eu\n          echo "$TICK_SECRET"\n'),
         ),
-        /imprime um segredo/,
+        /imprime ou redireciona um segredo/,
       ),
     );
     assert.ok(
