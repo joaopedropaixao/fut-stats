@@ -93,7 +93,7 @@ describe('push-sw.js (C36): toca na notificação', () => {
   const notification = (url?: string) => ({ close: vi.fn(), data: url ? { url } : undefined });
 
   it('com o app aberto: foca a janela e navega para a url', async () => {
-    const navigated = vi.fn(() => Promise.resolve());
+    const navigated = vi.fn(() => Promise.resolve({ url: `${ORIGIN}/rodadas/r13` }));
     const client: FakeClient = {
       url: `${ORIGIN}/ranking`,
       focus: vi.fn(() => Promise.resolve({ navigate: navigated })),
@@ -129,6 +129,28 @@ describe('push-sw.js (C36): toca na notificação', () => {
     const { scope, fire } = load([client]);
     await fire('notificationclick', { notification: notification('/times') });
     expect(scope.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/times`);
+  });
+
+  it('`navigate` rejeita (janela que o service worker não controla): abre a url numa janela nova', async () => {
+    const client: FakeClient = {
+      url: `${ORIGIN}/`,
+      focus: vi.fn(() =>
+        Promise.resolve({ navigate: vi.fn(() => Promise.reject(new TypeError('not controlled'))) }),
+      ),
+    };
+    const { scope, fire } = load([client]);
+    await fire('notificationclick', { notification: notification('/times?grupo=g1') });
+    expect(scope.clients.openWindow).toHaveBeenCalledExactlyOnceWith(`${ORIGIN}/times?grupo=g1`);
+  });
+
+  it('`focus` falha: abre a url mesmo assim, sem erro solto', async () => {
+    const client: FakeClient = {
+      url: `${ORIGIN}/`,
+      focus: vi.fn(() => Promise.reject(new Error('InvalidAccessError'))),
+    };
+    const { scope, fire } = load([client]);
+    await fire('notificationclick', { notification: notification('/rodadas/r13') });
+    expect(scope.clients.openWindow).toHaveBeenCalledExactlyOnceWith(`${ORIGIN}/rodadas/r13`);
   });
 
   it('notificação sem url nos dados abre o início', async () => {

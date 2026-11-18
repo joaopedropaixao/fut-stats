@@ -83,18 +83,31 @@ function onNotificationClick(scope, event) {
   var url = new URL(safePushUrl(data && data.url), scope.location.origin).href;
   event.notification.close();
   event.waitUntil(
-    scope.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
-      var action = pickClickAction(list, scope.location.origin);
-      if (action.kind === 'open') return scope.clients.openWindow(url);
-      var client = list[action.index];
-      return client.focus().then(function (focused) {
-        var target = focused || client;
-        // Navegador sem `navigate` na janela: abre a `url` numa janela nova em vez de ficar parado
-        return typeof target.navigate === 'function'
-          ? target.navigate(url)
-          : scope.clients.openWindow(url);
-      });
-    }),
+    scope.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then(function (list) {
+        var action = pickClickAction(list, scope.location.origin);
+        if (action.kind === 'open') return scope.clients.openWindow(url);
+        var client = list[action.index];
+        return client
+          .focus()
+          .then(function (focused) {
+            var target = focused || client;
+            // Navegador sem `navigate` na janela: abre a `url` numa janela nova em vez de ficar parado
+            if (typeof target.navigate !== 'function') return scope.clients.openWindow(url);
+            // `navigate` rejeita numa janela que este service worker não controla (aberta antes dele, por exemplo)
+            return target.navigate(url).then(function (navigated) {
+              return navigated || scope.clients.openWindow(url);
+            });
+          })
+          .catch(function () {
+            return scope.clients.openWindow(url);
+          });
+      })
+      .catch(function () {
+        // Tocar no aviso nunca fica sem resposta: na pior das hipóteses, abre o app na tela do aviso
+        return scope.clients.openWindow(url);
+      }),
   );
 }
 
