@@ -131,6 +131,34 @@ describe('travas da demo (assertDemoSeedAllowed)', () => {
     }
   });
 
+  it('C2: host vazio (`postgresql://u:p@/neondb`), vários hosts e IP literal (v4/v6, com e sem colchetes) recusam sem ecoar a URL', () => {
+    const cases: [string, string][] = [
+      // `new URL` já recusa o formato com usuário e host vazio (cai em "inválida")
+      ['postgresql://u:segredo@/neondb', 'DATABASE_URL'],
+      ['postgresql:///neondb', 'precisa de um host'],
+      ['postgresql://u:segredo@ep-a.neon.tech,ep-b.neon.tech/neondb', 'mais de um host'],
+      ['postgresql://u:segredo@10.0.0.5/neondb', 'IP'],
+      ['postgresql://u:segredo@127.0.0.1:5432/neondb', 'IP'],
+      ['postgresql://u:segredo@[::1]/neondb', 'IP'],
+      ['postgresql://u:segredo@[2001:db8::1]:5432/neondb', 'IP'],
+      ['postgresql://u:segredo@2130706433/neondb', 'IP'],
+      ['postgresql://u:segredo@0x7f.1/neondb', 'IP'],
+    ];
+    for (const [url, motivo] of cases) {
+      let message = '';
+      try {
+        assertDemoSeedAllowed(okEnv, url);
+      } catch (e) {
+        message = (e as Error).message;
+      }
+      expect(message).toContain(motivo);
+      expect(message).not.toContain('segredo');
+      expect(message).not.toContain('neondb');
+    }
+    // Nome de host (inclusive `localhost`, o do banco local) continua passando
+    expect(() => assertDemoSeedAllowed(okEnv, 'postgresql://u:p@localhost:5432/db')).not.toThrow();
+  });
+
   it('DATABASE_URL ausente ou inválida recusa sem ecoar o valor', () => {
     expect(() => assertDemoSeedAllowed(okEnv, undefined)).toThrow('DATABASE_URL');
     expect(() => assertDemoSeedAllowed(okEnv, 'isso-nao-e-url')).toThrow(/DATABASE_URL/);
@@ -167,6 +195,15 @@ describe('--admins (parseDemoAdmins)', () => {
     );
     expect(() => parseDemoAdmins(['--admins=a@'])).toThrow('E-mail inválido: "a@"');
     expect(() => parseDemoAdmins(['--admins=a b@x.com'])).toThrow('E-mail inválido');
+  });
+});
+
+describe('--admins com e-mail de fictício', () => {
+  it('C4: e-mail @demo.invalid na lista de admins é recusado (não promove jogador fictício)', () => {
+    expect(() => parseDemoAdmins(['--admins=ok@x.com,carlao@demo.invalid'])).toThrow(
+      'jogador fictício',
+    );
+    expect(() => parseDemoAdmins(['--admins=Carlao@DEMO.invalid'])).toThrow('jogador fictício');
   });
 });
 
@@ -431,6 +468,79 @@ describe('pelada de demonstração (seedDemo)', () => {
       expect(rounds).toHaveLength(9);
       expect(rounds.slice(0, 8).every((r) => r.status === 'CLOSED')).toBe(true);
       expect(rounds[8]!.status).toBe(EXPECTED_STATUS[scenario]);
+    },
+    DEMO_TIMEOUT_MS,
+  );
+
+  it.each(SEED_SCENARIOS)(
+    'C11: cenário %s coloca os admins na rodada atual (confirmados e escalados; na votação, ainda sem votar), e fora das passadas',
+    async (scenario) => {
+      const emails = ['ana@x.com', 'bia@y.com'];
+      await seedDemo(t.prisma, { admins: emails, scenario, now: NOW });
+
+      const group = await demoGroup();
+      const admins = await t.prisma.membership.findMany({
+        where: { groupId: group.id, user: { email: { in: emails } } },
+      });
+      expect(admins).toHaveLength(2);
+      const rounds = await t.prisma.round.findMany({
+        where: { groupId: group.id },
+        orderBy: { number: 'asc' },
+        include: { attendances: true, teamPlayers: true, votes: true },
+      });
+      const current = rounds[8]!;
+      const past = rounds.slice(0, 8);
+
+      for (const admin of admins) {
+        expect(current.attendances).toContainEqual(
+          expect.objectContaining({ membershipId: admin.id, confirmed: true }),
+        );
+        if (scenario !== 'agendada') {
+          expect(current.teamPlayers.map((p) => p.membershipId)).toContain(admin.id);
+        }
+        if (scenario === 'votacao') {
+          expect(current.votes.map((v) => v.voterId)).not.toContain(admin.id);
+          expect(current.votes.length).toBeGreaterThan(0);
+        }
+        for (const round of past) {
+          expect(round.attendances.map((a) => a.membershipId)).not.toContain(admin.id);
+          expect(round.teamPlayers.map((p) => p.membershipId)).not.toContain(admin.id);
+        }
+      }
+    },
+    DEMO_TIMEOUT_MS,
+  );
+
+  it(
+    'C11: com mais admins do que cabe na rodada, todos os admins entram e sai gente de linha dos fictícios (times válidos)',
+    async () => {
+      const emails = ['a1@x.com', 'a2@x.com', 'a3@x.com', 'a4@x.com', 'a5@x.com'];
+      await seedDemo(t.prisma, { admins: emails, scenario: 'times', now: NOW });
+
+      const group = await demoGroup();
+      const admins = await t.prisma.membership.findMany({
+        where: { groupId: group.id, user: { email: { in: emails } } },
+      });
+      const current = await t.prisma.round.findFirstOrThrow({
+        where: { groupId: group.id },
+        orderBy: { number: 'desc' },
+        include: { attendances: true, teamPlayers: true },
+      });
+      expect(admins).toHaveLength(5);
+      expect(current.status).toBe('TEAMS_PUBLISHED');
+      const inTeams = current.teamPlayers.map((p) => p.membershipId);
+      for (const admin of admins) expect(inTeams).toContain(admin.id);
+      expect(inTeams).toHaveLength(18);
+      expect(current.attendances.filter((a) => a.confirmed)).toHaveLength(18);
+    },
+    DEMO_TIMEOUT_MS,
+  );
+
+  it(
+    'C6: o seed de dev não muda com a parametrização (sem admins reais, nada de extra)',
+    async () => {
+      const summary = await seed(t.prisma, { now: NOW, env: { NODE_ENV: 'test' } });
+      expect(summary).toMatchObject({ members: 21, rounds: 9, extraAdmins: 0 });
     },
     DEMO_TIMEOUT_MS,
   );

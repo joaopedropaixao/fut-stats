@@ -1,14 +1,17 @@
 // Pelada de demonstração do staging (homologação dos admins). Reusa o seed de dev com outro grupo, outros e-mails
 // fictícios e uma guarda própria, e acrescenta os admins reais (ou uma reserva para quem ainda não entrou).
 // Quem chama pela linha de comando é `prisma/demo.ts`; o workflow "Preparar homologação" chama esse comando.
-import { NICKNAME_MAX_LENGTH } from '@fut-stats/domain';
+import { isIP } from 'node:net';
+import { isNicknameTaken, NICKNAME_MAX_LENGTH } from '@fut-stats/domain';
 import { z } from 'zod';
 import { PENDING_GOOGLE_ID_PREFIX } from '../auth/pending-google-id';
 import type { PrismaClient } from '../generated/prisma/client';
+import { MEMBERS } from './seed-data';
 import {
   DEFAULT_SEED_SCENARIO,
   parseSeedScenario,
   seed,
+  type ExtraAdmin,
   type SeedScenario,
   type SeedSummary,
   type SeedTarget,
@@ -31,8 +34,6 @@ export const DEMO_TARGET: SeedTarget = {
   assertAllowed: () => undefined,
 };
 
-const ADMIN_RATING = 6;
-
 /** Minúsculas e sem ponto final (`Exemplo.Prod.Invalid.` vira `exemplo.prod.invalid`). */
 function normalizeHost(host: string): string {
   return host.trim().toLowerCase().replace(/\.+$/, '');
@@ -41,6 +42,27 @@ function normalizeHost(host: string): string {
 /** O host sem o `-pooler` do primeiro rótulo: o pooler e a conexão direta do Neon são o mesmo banco. */
 function withoutPooler(host: string): string {
   return host.replace(/^([^.]+?)-pooler(?=\.|$)/, '$1');
+}
+
+/**
+ * O banco do staging é sempre um host do Neon, um nome. Recusa host vazio (o `pg` cairia no `PGHOST` ou no localhost),
+ * vários hosts (`a,b`) e IP literal (v4 ou v6, com ou sem colchetes), que burlariam a lista de hosts proibidos.
+ */
+function assertNamedHost(hostname: string): void {
+  if (hostname === '') throw new Error('A DATABASE_URL precisa de um host (está vazio)');
+  if (hostname.includes(',')) throw new Error('A DATABASE_URL não pode ter mais de um host');
+  const bare = hostname.replace(/^\[|\]$/g, '');
+  // `isIP` pega v4 e v6; o resto numérico (decimal, hexadecimal) também é endereço, não nome.
+  if (
+    isIP(bare) !== 0 ||
+    bare.includes(':') ||
+    /^(0x[0-9a-f]*|\d+)$/i.test(bare.split('.').pop()!)
+  ) {
+    throw new Error('A DATABASE_URL precisa de um nome de host, não de um IP');
+  }
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.?$/i.test(bare)) {
+    throw new Error('O host da DATABASE_URL tem caracteres inválidos');
+  }
 }
 
 /**
@@ -83,6 +105,7 @@ export function assertDemoSeedAllowed(
   if (url.hostname.includes('%')) {
     throw new Error('O host da DATABASE_URL não pode ter caracteres codificados (%)');
   }
+  assertNamedHost(url.hostname);
   const host = withoutPooler(normalizeHost(url.hostname));
   if (forbidden.includes(host)) {
     throw new Error('O banco é um dos proibidos em DEMO_FORBIDDEN_HOSTS: a demo não roda');
@@ -107,8 +130,16 @@ export function parseDemoAdmins(argv: readonly string[]): string[] {
   }
   for (const email of emails) {
     if (!emailSchema.safeParse(email).success) throw new Error(`E-mail inválido: "${email}"`);
+    assertRealAdminEmail(email);
   }
   return [...new Set(emails)];
+}
+
+/** E-mail de jogador fictício não vira admin (seria promover um fictício por colisão de e-mail). */
+function assertRealAdminEmail(email: string): void {
+  if (email.endsWith(`@${DEMO_EMAIL_DOMAIN}`)) {
+    throw new Error(`E-mail inválido para admin: "${email}" é de um jogador fictício da demo`);
+  }
 }
 
 /** Lê `--cenario=` (o mesmo do seed de dev). */
@@ -122,40 +153,34 @@ export interface DemoOptions {
 }
 
 export interface DemoSummary extends SeedSummary {
-  /** Admins que já tinham conta e ganharam a membership. */
+  /** Admins que já tinham conta. */
   adminsExisting: number;
-  /** Admins sem conta: ficam com uma reserva até o primeiro login com Google. */
+  /** Admins sem conta (ou ainda só com a reserva): ficam com a reserva até o primeiro login com Google. */
   adminsReserved: number;
 }
 
 /**
  * Recria só o grupo `pelada-demo` e devolve o resumo. Os usuários (inclusive os reais) continuam existindo.
- * Sem trava aqui: quem chama pela linha de comando passa antes por `assertDemoSeedAllowed`.
+ * Os admins entram junto dos fictícios, antes de montar as rodadas: na rodada atual ficam confirmados e escalados
+ * (e, na votação, entre os que ainda não votaram). Sem trava aqui: quem chama pela linha de comando passa antes por
+ * `assertDemoSeedAllowed`. Se falhar no meio, rodar de novo recria tudo (a demo não é atômica).
  */
 export async function seedDemo(
   prisma: PrismaClient,
   { admins, scenario = DEFAULT_SEED_SCENARIO, now = new Date() }: DemoOptions,
 ): Promise<DemoSummary> {
   const emails = [...new Set(admins.map(normalizeEmail))];
+  emails.forEach(assertRealAdminEmail);
 
   await resetDemoGroup(prisma);
-  const summary = await seed(prisma, { scenario, now, target: DEMO_TARGET });
-
-  const taken = new Set(
-    (
-      await prisma.membership.findMany({
-        where: { groupId: summary.groupId },
-        select: { nickname: true },
-      })
-    ).map((m) => nicknameKey(m.nickname)),
-  );
 
   let adminsExisting = 0;
   let adminsReserved = 0;
+  const nicknames: string[] = MEMBERS.map((m) => m.nickname);
+  const extraAdmins: ExtraAdmin[] = [];
   for (const email of emails) {
-    let user = await prisma.user.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' } },
-    });
+    // E-mail normalizado e comparação exata (a coluna é única): sem ambiguidade entre variantes de caixa.
+    let user = await prisma.user.findUnique({ where: { email } });
     if (user) {
       // Reserva de uma rodada anterior (a pessoa ainda não entrou) continua contando como reservada.
       if (user.googleId.startsWith(PENDING_GOOGLE_ID_PREFIX)) adminsReserved++;
@@ -167,30 +192,17 @@ export async function seedDemo(
       });
       adminsReserved++;
     }
-
-    const nickname = uniqueNickname(firstName(user.name), taken);
-    taken.add(nicknameKey(nickname));
-    await prisma.membership.upsert({
-      where: { userId_groupId: { userId: user.id, groupId: summary.groupId } },
-      update: { role: 'ADMIN', active: true },
-      create: {
-        userId: user.id,
-        groupId: summary.groupId,
-        role: 'ADMIN',
-        nickname,
-        primaryPosition: 'MIDFIELDER',
-        secondaryPositions: [],
-        initialRating: ADMIN_RATING,
-      },
-    });
+    const nickname = uniqueNickname(firstName(user.name), nicknames);
+    nicknames.push(nickname);
+    extraAdmins.push({ userId: user.id, nickname });
   }
 
-  return {
-    ...summary,
-    members: summary.members + emails.length,
-    adminsExisting,
-    adminsReserved,
-  };
+  const summary = await seed(prisma, {
+    scenario,
+    now,
+    target: { ...DEMO_TARGET, extraAdmins },
+  });
+  return { ...summary, adminsExisting, adminsReserved };
 }
 
 /** Apaga só o grupo da demo, na ordem das chaves: resenhas, rodadas, auditoria, membros e o grupo. */
@@ -221,16 +233,12 @@ function firstName(name: string): string {
   return nickname === '' ? 'Admin' : nickname;
 }
 
-function nicknameKey(nickname: string): string {
-  return nickname.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
-
-/** O apelido é único no grupo (sem diferenciar maiúscula nem acento): repetido ganha um número no fim. */
-function uniqueNickname(base: string, taken: ReadonlySet<string>): string {
-  if (!taken.has(nicknameKey(base))) return base;
+/** O apelido é único no grupo (sem diferenciar maiúscula nem acento, regra do domain): repetido ganha um número no fim. */
+function uniqueNickname(base: string, taken: readonly string[]): string {
+  if (!isNicknameTaken(base, taken)) return base;
   for (let n = 2; ; n++) {
     const suffix = String(n);
     const candidate = base.slice(0, NICKNAME_MAX_LENGTH - suffix.length) + suffix;
-    if (!taken.has(nicknameKey(candidate))) return candidate;
+    if (!isNicknameTaken(candidate, taken)) return candidate;
   }
 }
