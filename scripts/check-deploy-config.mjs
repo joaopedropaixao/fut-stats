@@ -216,7 +216,12 @@ export const UNKNOWN_SAMPLE_HOSTS = [
   'fut-stats.example.com',
 ];
 
-const PROD_API = `https://${PROD_SERVICE}.onrender.com/api/:path*`;
+/**
+ * Endereço real da API de produção no Render. O nome do serviço é `fut-stats-api`, mas o Render deu o endereço com sufixo
+ * (`fut-stats-api.onrender.com` já era de outra conta): o sufixo não entra no `render.yaml`, só aqui e no `vercel.json`.
+ */
+export const PROD_API_HOST = 'fut-stats-api-2qh1.onrender.com';
+const PROD_API = `https://${PROD_API_HOST}/api/:path*`;
 const STAGING_API = `https://${STAGING_SERVICE}.onrender.com/api/:path*`;
 
 /**
