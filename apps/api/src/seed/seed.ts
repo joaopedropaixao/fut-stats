@@ -173,9 +173,15 @@ interface PlannedVote extends RoundVote {
   at: Date;
 }
 
-/** O seed é só de desenvolvimento: com `NODE_ENV=production` recusa, antes de tocar no banco. */
+/**
+ * O seed é só de desenvolvimento: só roda com `NODE_ENV` `development` ou `test`, antes de tocar no banco. Sem
+ * `NODE_ENV` também recusa, porque a API trata a falta dele como produção (o `render.yaml` não define `NODE_ENV`), igual
+ * ao `DevModule` e ao `resolveRequestId`.
+ */
 export function assertSeedAllowed(env: NodeJS.ProcessEnv = process.env): void {
-  if (env.NODE_ENV === 'production') throw new Error('O seed não roda em produção');
+  if (env.NODE_ENV !== 'development' && env.NODE_ENV !== 'test') {
+    throw new Error('O seed não roda em produção');
+  }
 }
 
 /** Monta o grupo, os membros e as rodadas do seed. Rodar de novo recria só as rodadas deste grupo. */

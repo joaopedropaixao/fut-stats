@@ -7,6 +7,7 @@ import type { GroupMembership } from '../auth/request';
 import type { Env } from '../config/env';
 import { RoundEventsService, type RoundEvent } from '../events/round-events.service';
 import { LiveService } from './live.service';
+import { reportBackgroundError } from '../common/monitoring';
 
 /** Quanto tempo o navegador espera antes de reconectar sozinho (campo `retry` do SSE). */
 const RETRY_MS = 3000;
@@ -68,6 +69,11 @@ export class LiveController implements OnModuleDestroy {
         this.logger.warn(
           `Falha ao escrever no canal: ${error instanceof Error ? error.message : String(error)}`,
         );
+        reportBackgroundError(error, {
+          source: 'live-write',
+          groupId: membership.groupId,
+          roundId,
+        });
       }
     };
 

@@ -628,11 +628,20 @@ describe('seed de desenvolvimento', () => {
       expect(await t.prisma.round.count()).toBe(0);
     });
 
-    it('C7: assertSeedAllowed só recusa production (development e test passam)', () => {
+    it('C7: assertSeedAllowed só deixa development e test (sem NODE_ENV é produção, como na API)', () => {
       expect(() => assertSeedAllowed({ NODE_ENV: 'production' })).toThrow(REFUSAL);
+      expect(() => assertSeedAllowed({})).toThrow(REFUSAL);
+      expect(() => assertSeedAllowed({ NODE_ENV: '' })).toThrow(REFUSAL);
+      expect(() => assertSeedAllowed({ NODE_ENV: 'staging' })).toThrow(REFUSAL);
       expect(() => assertSeedAllowed({ NODE_ENV: 'development' })).not.toThrow();
       expect(() => assertSeedAllowed({ NODE_ENV: 'test' })).not.toThrow();
-      expect(() => assertSeedAllowed({})).not.toThrow();
+    });
+
+    it('C7: seed() sem NODE_ENV (o Render não define) recusa e não escreve nada no banco', async () => {
+      await expect(seed(t.prisma, { env: {} })).rejects.toThrow(REFUSAL);
+
+      expect(await t.prisma.group.count()).toBe(0);
+      expect(await t.prisma.user.count()).toBe(0);
     });
 
     it('C7: o comando `prisma/seed.ts` com NODE_ENV=production sai com código 1, diz o motivo e não toca no banco', async () => {

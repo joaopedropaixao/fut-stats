@@ -1,3 +1,5 @@
+import { reportBackgroundError } from '../common/monitoring';
+
 /** O corpo da resposta do serviço de push que vale guardar no log (costuma ser uma frase ou um JSON curto). */
 const BODY_MAX = 300;
 
@@ -44,4 +46,27 @@ function describeOne(error: unknown, depth: number): Record<string, unknown> {
  */
 export function describePushError(error: unknown): Record<string, unknown> {
   return describeOne(error, 0);
+}
+
+/**
+ * Manda ao Sentry uma falha de envio de push sem o endereço do aparelho nem o corpo da resposta: um erro novo com o
+ * nome e a mensagem do original e as tags `statusCode`, `code` e `host` (o serviço de push, não o aparelho).
+ */
+export function reportPushError(
+  error: unknown,
+  context: { source: string; requestId?: string | null; tags?: Record<string, string | number> },
+): void {
+  const detail = describePushError(error);
+  const safe = new Error(String(detail.message || detail.code || 'falha no envio do push'));
+  safe.name = String(detail.name ?? 'Error');
+  reportBackgroundError(safe, {
+    source: context.source,
+    requestId: context.requestId,
+    tags: {
+      ...context.tags,
+      statusCode: typeof detail.statusCode === 'number' ? detail.statusCode : undefined,
+      code: typeof detail.code === 'string' ? detail.code : undefined,
+      host: typeof detail.host === 'string' ? detail.host : undefined,
+    },
+  });
 }

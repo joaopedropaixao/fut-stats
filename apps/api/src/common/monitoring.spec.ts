@@ -11,7 +11,9 @@ import {
   initMonitoring,
   isMonitoringOn,
   monitoringOptionsFromEnv,
+  reportBackgroundError,
   scrubEvent,
+  sendMonitoringCheck,
 } from './monitoring';
 import { REQUEST_ID_HEADER } from './request-context';
 
@@ -80,6 +82,9 @@ describe('Sentry da API', () => {
         monitoringOptionsFromEnv({ SENTRY_DSN: DSN, SENTRY_ENVIRONMENT: 'production' }),
       ).toEqual({ dsn: DSN, environment: 'production' });
       expect(monitoringOptionsFromEnv({}).environment).toBe('production');
+      // O commit do deploy no Render vira o `release` de cada evento.
+      expect(monitoringOptionsFromEnv({ RENDER_GIT_COMMIT: 'abc123' }).release).toBe('abc123');
+      expect(monitoringOptionsFromEnv({ RENDER_GIT_COMMIT: '' }).release).toBeUndefined();
     });
   });
 
@@ -116,6 +121,9 @@ describe('Sentry da API', () => {
         requestId: expect.stringMatching(UUID),
       });
       expect(isMonitoringOn()).toBe(false);
+      // Erro de fundo e conferência também viram no-op.
+      expect(() => reportBackgroundError(new Error('x'), { source: 'teste' })).not.toThrow();
+      expect(sendMonitoringCheck()).toBe(false);
     });
   });
 
@@ -248,18 +256,22 @@ describe('Sentry da API', () => {
       expect(recorder.events).toEqual([]);
     });
 
-    it('C5: ao subir, a API manda uma mensagem info "API no ar" com o ambiente', async () => {
+    it('C5: subir a API não manda nada; a conferência é a mensagem "Teste do Sentry", só quando pedida', async () => {
       recorder.reset();
       const other = await createTestApp();
       await flushMonitoring();
       await other.app.close();
+      expect(recorder.events).toEqual([]);
 
+      expect(sendMonitoringCheck()).toBe(true);
+      await flushMonitoring();
       expect(recorder.messages).toHaveLength(1);
       expect(recorder.messages[0]).toMatchObject({
-        message: 'API no ar',
+        message: 'Teste do Sentry',
         level: 'info',
         environment: 'staging',
       });
+      expect(recorder.messages[0]?.exception).toBeUndefined();
       expect(recorder.errors).toHaveLength(0);
     });
   });

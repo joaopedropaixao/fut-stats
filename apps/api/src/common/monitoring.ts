@@ -20,6 +20,8 @@ export interface MonitoringOptions {
   /** Sem DSN o Sentry não é iniciado. */
   dsn: string | undefined;
   environment: string;
+  /** O commit do deploy (`RENDER_GIT_COMMIT` no Render): cada evento diz de qual deploy veio. */
+  release?: string;
   /** Só para testes: troca o envio pela rede (um gravador). */
   transport?: NodeOptions['transport'];
 }
@@ -29,6 +31,7 @@ export function monitoringOptionsFromEnv(env: NodeJS.ProcessEnv): MonitoringOpti
   return {
     dsn: env.SENTRY_DSN || undefined,
     environment: env.SENTRY_ENVIRONMENT || env.NODE_ENV || 'production',
+    release: env.RENDER_GIT_COMMIT || undefined,
   };
 }
 
@@ -56,12 +59,18 @@ export function scrubEvent<T extends ErrorEvent>(event: T): T {
  * já não liga o OpenTelemetry por padrão; o plano gratuito do Render, com 512 MB, não precisa do resto: o desempenho já
  * tem `durationMs` no log de pedido). Sem dados pessoais e sem rastreamento de desempenho.
  */
-export function initMonitoring({ dsn, environment, transport }: MonitoringOptions): boolean {
+export function initMonitoring({
+  dsn,
+  environment,
+  release,
+  transport,
+}: MonitoringOptions): boolean {
   if (!dsn) return false;
   const Sentry = loadSdk();
   Sentry.init({
     dsn,
     environment,
+    ...(release ? { release } : {}),
     // Equivale ao antigo `sendDefaultPii: false` (o @sentry/nestjs 11 trocou a opção por `dataCollection`): nada de
     // usuário automático, cookie, cabeçalho, corpo, query, variáveis locais nem linhas de código no evento.
     dataCollection: {
@@ -113,10 +122,46 @@ export function captureServerError(error: unknown, context: ErrorContext): void 
   });
 }
 
-/** Mensagem info "API no ar" (uma por subida): prova no Sentry que o deploy novo está ligado. */
-export function announceStartup(): void {
+/** De onde veio um erro que não passou por um pedido HTTP (o relógio, o despertador, o push, o canal ao vivo). */
+export interface BackgroundErrorContext {
+  /** Quem falhou, curto e fixo (ex.: `voting-close`, `push-send`, `live-write`): vira a tag `source`. */
+  source: string;
+  groupId?: string;
+  roundId?: string;
+  /** O pedido que disparou o trabalho, se houve um. */
+  requestId?: string | null;
+  /** Outras tags sem dado pessoal (ex.: `statusCode`, `host` do serviço de push). */
+  tags?: Record<string, string | number | undefined>;
+}
+
+/**
+ * Manda ao Sentry um erro de trabalho em segundo plano, que o filtro HTTP não vê: a falha some no log se ninguém
+ * olhar, e às vezes deixa estado preso (uma votação que não fecha). No-op com o Sentry desligado. Nunca lança.
+ */
+export function reportBackgroundError(error: unknown, context: BackgroundErrorContext): void {
   if (!sdk?.isInitialized()) return;
-  sdk.captureMessage('API no ar', 'info');
+  const tags: Record<string, string> = { source: context.source };
+  if (context.groupId) tags.groupId = context.groupId;
+  if (context.roundId) tags.roundId = context.roundId;
+  if (context.requestId) tags.requestId = context.requestId;
+  for (const [key, value] of Object.entries(context.tags ?? {})) {
+    if (value !== undefined) tags[key] = String(value);
+  }
+  try {
+    sdk.captureException(error, { tags });
+  } catch {
+    // Monitorar nunca derruba quem chamou.
+  }
+}
+
+/**
+ * Mensagem info "Teste do Sentry", só quando o dono pede (`POST /api/internal/sentry-check`, R5): prova que o Sentry
+ * do deploy está ligado sem gastar cota a cada partida a frio do Render. Devolve se o Sentry estava ligado.
+ */
+export function sendMonitoringCheck(): boolean {
+  if (!sdk?.isInitialized()) return false;
+  sdk.captureMessage('Teste do Sentry', 'info');
+  return true;
 }
 
 /** Espera os eventos pendentes saírem (antes de desligar, e nos testes). */

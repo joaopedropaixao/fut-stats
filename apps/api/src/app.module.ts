@@ -3,7 +3,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
-import { MonitoringModule } from './common/monitoring.module';
 import { validateEnv } from './config/env';
 import { envFilePaths } from './config/env-files';
 import { DevModule } from './dev/dev.module';
@@ -30,7 +29,6 @@ import { VotingModule } from './voting/voting.module';
       envFilePath: envFilePaths(resolve(process.cwd(), '../..')),
       validate: validateEnv,
     }),
-    MonitoringModule,
     PrismaModule,
     AuthModule,
     GroupsModule,

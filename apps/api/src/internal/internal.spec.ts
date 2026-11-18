@@ -90,8 +90,8 @@ describe('despertador: POST /api/internal/tick', () => {
 
       const res = await tick().set('Authorization', bearer).expect(200);
 
-      expect(tickResultSchema.parse(res.body)).toEqual({ closedVotings: 1 });
-      expect(res.body).toEqual({ closedVotings: 1 });
+      expect(tickResultSchema.parse(res.body)).toEqual({ closedVotings: 1, failed: 0 });
+      expect(res.body).toEqual({ closedVotings: 1, failed: 0 });
       const closed = await t.prisma.round.findUniqueOrThrow({ where: { id: due.round.id } });
       expect(closed.status).toBe('CLOSED');
       expect(await roundStatus(fresh.round.id)).toBe('VOTING');
@@ -111,7 +111,7 @@ describe('despertador: POST /api/internal/tick', () => {
         .set('Authorization', bearer)
         .send({ closedVotings: 99, groupId: 'outro' })
         .expect(200);
-      expect(res.body).toEqual({ closedVotings: 1 });
+      expect(res.body).toEqual({ closedVotings: 1, failed: 0 });
     });
 
     it('C20: o aviso do resultado (RESULT_OUT) sai para os ativos do grupo, uma vez só', async () => {
@@ -132,7 +132,7 @@ describe('despertador: POST /api/internal/tick', () => {
       // Um segundo tick não repete o aviso.
       const again = await tick().set('Authorization', bearer).expect(200);
       await settle();
-      expect(again.body).toEqual({ closedVotings: 0 });
+      expect(again.body).toEqual({ closedVotings: 0, failed: 0 });
       expect(sender.sent).toHaveLength(due.members.length);
     });
 
@@ -143,7 +143,7 @@ describe('despertador: POST /api/internal/tick', () => {
       const res = await tick().set('Authorization', bearer).expect(200);
       await settle();
 
-      expect(res.body).toEqual({ closedVotings: 0 });
+      expect(res.body).toEqual({ closedVotings: 0, failed: 0 });
       expect(await t.prisma.auditLog.count()).toBe(0);
       expect(sender.sent).toHaveLength(0);
       expect(await t.prisma.round.findUniqueOrThrow({ where: { id: fresh.round.id } })).toEqual(
@@ -153,7 +153,7 @@ describe('despertador: POST /api/internal/tick', () => {
 
     it('C21: sem nenhuma rodada também devolve 0', async () => {
       const res = await tick().set('Authorization', bearer).expect(200);
-      expect(res.body).toEqual({ closedVotings: 0 });
+      expect(res.body).toEqual({ closedVotings: 0, failed: 0 });
     });
 
     describe('C22: sem o segredo certo é 401, sem dizer o motivo e sem fechar nada', () => {
@@ -282,7 +282,7 @@ describe('despertador: POST /api/internal/tick', () => {
 
       const res = await tick().set('Authorization', bearer).expect(200);
 
-      expect(res.body).toEqual({ closedVotings: 2 });
+      expect(res.body).toEqual({ closedVotings: 2, failed: 0 });
       expect(await roundStatus(a.round.id)).toBe('CLOSED');
       expect(await roundStatus(b.round.id)).toBe('CLOSED');
     });

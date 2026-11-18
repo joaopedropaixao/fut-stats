@@ -1,3 +1,5 @@
+// Primeiro de tudo: os arquivos de ambiente no process.env, antes de o AppModule ser montado (ver load-env.ts).
+import './load-env';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';

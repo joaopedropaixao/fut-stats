@@ -42,6 +42,8 @@ import {
 import { AuditService } from '../audit/audit.service';
 import type { GroupMembership } from '../auth/request';
 import { AVATAR_SELECT, toAvatar } from '../common/avatar';
+import { reportBackgroundError } from '../common/monitoring';
+import { getRequestId } from '../common/request-context';
 import { RoundEventsService } from '../events/round-events.service';
 import type { Position } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
@@ -373,9 +375,21 @@ export class VotingService {
    * Fecha as votações com o prazo vencido (ou com todos os ativos já votados): o relógio da API, quem abre o
    * app depois do prazo e, em produção, o despertador chamam este mesmo método. Sem `groupId`, varre todos os
    * grupos (sem sessão). Cada rodada fecha na própria trava e transação; uma que falhe não impede as outras.
-   * Devolve quantas fechou.
+   * Devolve quantas fechou (quem quer saber das falhas usa `closeDueVotingsReport`).
    */
   async closeDueVotings(now = new Date(), groupId?: string): Promise<number> {
+    return (await this.closeDueVotingsReport(now, groupId)).closed;
+  }
+
+  /**
+   * O mesmo que `closeDueVotings`, contando também as rodadas vencidas que **não** fecharam por erro. Cada falha vai
+   * para o log e para o Sentry (`source: voting-close`): em produção o despertador é o único fechador agendado e uma
+   * falha calada deixaria a rodada em votação para sempre.
+   */
+  async closeDueVotingsReport(
+    now = new Date(),
+    groupId?: string,
+  ): Promise<{ closed: number; failed: number }> {
     const rounds = await this.prisma.round.findMany({
       where: { status: 'VOTING', ...(groupId ? { groupId } : {}) },
       select: {
@@ -390,6 +404,7 @@ export class VotingService {
     });
 
     let closed = 0;
+    let failed = 0;
     for (const candidate of rounds) {
       if (!votingCloseReason(now, votingStateOf(candidate))) continue;
       try {
@@ -417,13 +432,20 @@ export class VotingService {
           });
         }
       } catch (error) {
+        failed += 1;
         this.logger.error(
           `Não consegui fechar a votação da rodada ${candidate.id}`,
           error instanceof Error ? error.stack : String(error),
         );
+        reportBackgroundError(error, {
+          source: 'voting-close',
+          groupId: candidate.groupId,
+          roundId: candidate.id,
+          requestId: getRequestId(),
+        });
       }
     }
-    return closed;
+    return { closed, failed };
   }
 
   /**

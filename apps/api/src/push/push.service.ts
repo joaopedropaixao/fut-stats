@@ -14,7 +14,7 @@ import {
 } from '@fut-stats/shared';
 import type { Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
-import { describePushError, endpointHost } from './push-error';
+import { describePushError, endpointHost, reportPushError } from './push-error';
 import { PushSender, type PushTarget } from './push-sender';
 import { getRequestId } from '../common/request-context';
 import { vapidConfig } from './vapid';
@@ -101,12 +101,14 @@ export class PushService {
     });
     const { sent, errors } = await this.sendToSubscriptions(subscriptions, TEST_PAYLOAD);
     // O motivo fica no log (nunca na resposta): o usuário só vê quantos aparelhos receberam.
-    for (const error of errors)
+    for (const error of errors) {
       this.logger.error({
         event: 'push-test-failed',
         requestId: getRequestId(),
         ...describePushError(error),
       });
+      reportPushError(error, { source: 'push-test', requestId: getRequestId() });
+    }
     return { sent };
   }
 
