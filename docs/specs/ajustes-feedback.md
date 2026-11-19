@@ -7,7 +7,7 @@
 | **Fatia** | `ajustes-feedback` (#17 da Trilha) |
 | **Modo** | Front |
 | **Parte de** | — |
-| **Status** | aprovado em 19 nov 2026 |
+| **Status** | aprovado em 19 nov 2026 (itens 1 a 4); itens 5 e 6 esperando o Portão 1 |
 | **Base** | develop @23f7acd |
 | **Depende de** | — |
 | **Toca em** | apps/web/src/features/lineup/generate-block.tsx, apps/web/src/features/lineup/lineup-builder.tsx, apps/web/src/features/pack (pack-cards, share-card só se a carta do Perna de Pau mudar no canvas: não muda), apps/web/src/features/voting (player-card, flop-card), apps/web/src/index.css, apps/web/index.html, docs/lancamento.md, docs/03-roadmap.md |
@@ -59,6 +59,39 @@ servidor acordando), nada de mudar o algoritmo nem de cron externo. O ping de 14
 | C12 | build | `pnpm build` | o JS inicial continua dentro do orçamento (`orcamento-de-bundle`); a moldura é CSS/SVG no chunk lazy do pacote e do resultado, sem imagem nova | build (check do orçamento) |
 | C13 | `apps/web/index.html` | build | tem `<meta name="color-scheme" content="light dark">` e o CSS mantém `color-scheme: dark` no `html` (a meta é uma tentativa para o Samsung Internet; quem confirma é o jogador) | unitário (lê o `index.html`) |
 | C14 | qualquer tela, modo escuro do sistema, Chrome desktop | olhar | as cores não mudam (fundo `#0d2717`, superfícies `#143521`) | Playwright (`colorScheme: 'dark'`) |
+
+#### Itens 5 e 6 (pedidos do dono depois da primeira entrega; proposta para o Portão 1)
+
+**Item 5, tela de servidor iniciando.** Research: a primeira chamada à API é o `GET /api/me` do `AppShell` (`useSession`).
+Enquanto ela não volta, hoje aparece só um esqueleto; se der erro (depois das 2 retentativas do TanStack para rede e 5xx),
+aparece "Não deu para abrir o app". O shell do PWA vem da Vercel na hora, então quem espera é o `/me`. Medido em 19 nov 2026:
+com a produção dormindo, o `/api/me` pelo proxy da Vercel levou **32,6 s** e respondeu normal (401, sem 502/504). A tela
+de entrar não espera o `/me` (renderiza na hora), e o convite tem a própria espera.
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C15 | o `/me` responde em menos de 3 s | abre o app | o app abre direto, sem a tela de servidor (nada pisca) | Playwright |
+| C16 | o `/me` ainda não respondeu aos 3 s | espera | tela cheia "Servidor iniciando..." com a bola pixel quicando em degraus e "Já já a pelada abre.", sem a barra de abas (`role="status"`) | Playwright (`/api/me` atrasado) |
+| C17 | ainda esperando aos 10 s | espera | entra o aviso "Pode levar até 1 min na primeira vez" (borda dourada, `aria-live`), o mesmo tom do aviso do Gerar times | Playwright |
+| C18 | a tela de servidor está aberta | o `/me` responde | a tela some e o app abre onde a pessoa ia (ou vai para /entrar sem sessão) | Playwright |
+| C19 | o `/me` falhou (depois das retentativas) ou passou de 90 s sem resposta | — | estado de erro "O servidor não respondeu" + "Tentar de novo"; tocar refaz o pedido e volta para "Servidor iniciando"; sem repetir sozinho em loop | Playwright + unitário dos limiares |
+| C20 | Reduzir movimento ligado | tela de servidor | bola parada no chão; os textos e o aviso aparecem iguais | Playwright |
+| C21 | /entrar, /convite/:código e /dev/entrar | abrir com a API lenta | nenhuma delas mostra a tela de servidor (seguem como hoje) | Playwright |
+| C22 | build | `pnpm build` | o JS inicial continua dentro do orçamento (a tela vai no pedaço inicial: SVG pixel com a bola que já existe, sem imagem nova) | build |
+
+**Item 6, carta do Craque com moldura própria.** Mesma regra do Perna de Pau: a carta do Craque tem moldura e fundo
+próprios para qualquer nota, e a faixa (`cardTier`) vira o selo no canto de cima.
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C23 | Craque com nota 5,8 / 7,2 / 9,1 | abre o pacote | a mesma moldura do Craque nas três; só o selo muda (BRONZE / PRATA / OURO, na cor da faixa) | Playwright (três notas) + unitário |
+| C24 | walkout do Craque | revelar | as pistas seguem iguais (time, posição, nota subindo); a carta fica apagada até o rosto e a moldura do Craque acende no flash, junto com o selo | Playwright |
+| C25 | página do resultado | olhar o card do Craque | a mesma moldura e o mesmo selo | Playwright |
+| C26 | o Craque sou eu | abrir o pacote | moldura do Craque + o contorno creme da carta especial + VOCÊ na tira; o selo desce e não encosta no VOCÊ; "Sua carta" não repete | Playwright |
+| C27 | "Sua carta" (não sou o Craque) e a figurinha do ranking | olhar | sem mudança: seguem a faixa pela nota | Playwright |
+| C28 | Compartilhar a carta do Craque | tocar | o PNG sai com a moldura do Craque e o selo da faixa (proposta, depende do dono) | unitário (canvas) |
+| C29 | leitor de tela | revelar o Craque | o anúncio segue com a faixa por escrito ("..., nota 9,1, ouro"); a decoração fica em `aria-hidden` | Playwright |
+| C30 | 320 a 430 px e desktop | pacote e resultado | sem rolagem horizontal, sem decoração sobre texto; o pacote continua lazy | Playwright + build |
 
 ## Técnico
 
