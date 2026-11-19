@@ -7,6 +7,16 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /*
+   * Sinal para o modo escuro forçado do Samsung Internet: a página já é escura (a meta color-scheme do index.html
+   * também diz isso), então o navegador não deve escurecer de novo. Não é garantido em todas as versões.
+   */
+  @media (prefers-color-scheme: dark) {
+    html {
+      color-scheme: dark;
+    }
+  }
+
   /* Gramado à noite com holofote no topo (o tema Noite troca as cores pelos tokens) */
   body {
     min-height: 100dvh;
