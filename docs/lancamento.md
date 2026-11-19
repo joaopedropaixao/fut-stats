@@ -68,7 +68,49 @@ Siga nesta ordem, com a pessoa:
 6. Ainda nada: **desligue e ligue de novo** o interruptor **Avisos neste celular** e toque em **Testar aviso**.
 7. Se persistir, anote o aparelho e o sistema e abra o Sentry/log com o horário; mande para o desenvolvedor.
 
-## 5. Acompanhar as 2 ou 3 primeiras rodadas
+## 5. Quais e-mails entram
+
+O login do Fut Stats é **só pelo Google**: entra quem tem uma **conta Google**. Isso não quer dizer que o e-mail
+precise ser Gmail:
+
+- **Gmail:** entra direto.
+- **Outro e-mail (Yahoo, Hotmail, Outlook etc.):** entra se ele foi usado para criar uma conta Google. A pessoa entra
+  com esse mesmo e-mail e a senha da conta Google dela.
+- **Quem não tem conta Google** pode criar uma com o e-mail que já usa: em `accounts.google.com`, **Criar conta** e,
+  na hora de escolher o e-mail, **Usar meu endereço de e-mail atual**. Leva uns minutos e não precisa de Gmail.
+
+Se alguém não conseguir entrar, pergunte primeiro com qual e-mail a pessoa tentou e se ele é de uma conta Google.
+
+Texto pronto para mandar no grupo:
+
+> Pessoal, o login do app é pelo Google. Se você tem Gmail, é só entrar. Se o seu e-mail é de outro lugar (Yahoo,
+> Hotmail, Outlook...), dá para usar o mesmo e-mail: entre em accounts.google.com, toque em **Criar conta** e escolha
+> **Usar meu endereço de e-mail atual**. Depois é só voltar no link do app e tocar em **Entrar com Google**. Qualquer
+> dúvida, me chama aqui.
+
+## 6. Cores estranhas no Samsung Internet (modo escuro)
+
+**Sintoma:** no Samsung Internet com o celular (ou o navegador) em modo escuro, as cores do app aparecem diferentes do
+normal: fundo mais apagado, textos e superfícies com tom estranho.
+
+**Causa:** o Samsung Internet tem um modo escuro que escurece de novo as páginas que ele acha que são claras. O Fut
+Stats já é escuro, e o navegador pode escurecer o que já está escuro.
+
+**O que o app já faz:** avisa ao navegador que a página é escura (`<meta name="color-scheme" content="light dark">` no
+`index.html` e `color-scheme: dark` no CSS, inclusive dentro de `prefers-color-scheme: dark`). Isso pode resolver, mas
+**não é garantido**: o comportamento muda de uma versão do Samsung Internet para outra e não existe um jeito de o site
+desligar o escurecimento por conta própria.
+
+**O que o jogador pode fazer** (os nomes dos menus podem variar com a versão do navegador):
+
+1. No Samsung Internet, desligue o modo escuro **para sites**: menu **≡** → **Configurações** → **Aparência** (ou
+   **Temas**, ou **Modo escuro**) e deixe o escurecimento de páginas desligado. Em algumas versões há também um atalho no
+   próprio menu **≡**, **Modo claro** / **Modo escuro**, que alterna isso.
+2. Ou abra o app pelo **Chrome**, que não escurece de novo a página.
+
+Se a cor continuar estranha mesmo assim, anote o aparelho, a versão do Samsung Internet e mande um print.
+
+## 7. Acompanhar as 2 ou 3 primeiras rodadas
 
 | Quando | O que conferir |
 |---|---|
@@ -82,7 +124,7 @@ Siga nesta ordem, com a pessoa:
 
 Depois da 3ª rodada, decida com o grupo o que melhorar e abra os itens no roadmap.
 
-## 6. Onde anotar o retorno do grupo
+## 8. Onde anotar o retorno do grupo
 
 Anote tudo num lugar só: uma lista no próprio WhatsApp do admin ("Fut Stats: retorno") ou uma nota no celular, com data,
 quem falou, aparelho e o que aconteceu. Para cada rodada, três linhas: **o que funcionou**, **o que travou ou
