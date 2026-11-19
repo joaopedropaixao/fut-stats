@@ -481,6 +481,79 @@
   animation: coin-spin 140ms steps(1, end) 4;
 }
 
+/*
+ * Gerar times, gerando (loop em degraus): o bloco "?" bate em dois quadros (A sobe, B assenta, ~500 ms), a moeda sobe
+ * em loop e as reticências do "Gerando" aparecem uma a uma (1 -> 2 -> 3 pontos). Só transform e opacity. Reduzir
+ * movimento tira todas (o bloco para, a moeda some e ficam as 3 reticências).
+ */
+@keyframes block-bump {
+  0% {
+    transform: translateY(-6px);
+  }
+  50%,
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@utility animate-block-bump {
+  animation: block-bump 500ms steps(1, end) infinite;
+}
+
+/* A moeda do loop sobe menos (56 px, como no desenho): a de 76 px do toque passaria por cima do card de cima. */
+@keyframes coin-pop {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  70%,
+  99% {
+    opacity: 1;
+    transform: translateY(-56px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-56px);
+  }
+}
+
+@utility animate-coin-loop {
+  animation: coin-pop 1000ms steps(8, end) infinite;
+}
+
+@utility animate-coin-spin-loop {
+  animation: coin-spin 140ms steps(1, end) infinite;
+}
+
+@keyframes dot-2 {
+  0% {
+    opacity: 0;
+  }
+  33.3%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes dot-3 {
+  0%,
+  66.6% {
+    opacity: 0;
+  }
+  66.7%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@utility animate-dot-2 {
+  animation: dot-2 1500ms steps(1, end) infinite;
+}
+
+@utility animate-dot-3 {
+  animation: dot-3 1500ms steps(1, end) infinite;
+}
+
 /* Votos enviados: o bonequinho dá um pulinho de 2 quadros (parado no chão, no ar), sem parar. Reduzir movimento: parado. */
 @keyframes hop {
   0% {
