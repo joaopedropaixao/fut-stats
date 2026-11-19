@@ -500,7 +500,8 @@ function FinalCard({ card, number, delay }: { card: PackCard; number: number; de
       style={style}
       className={cn(
         'animate-final-in flex max-w-full flex-col items-center gap-4',
-        card.kind === 'flop' ? 'w-60' : 'w-48',
+        // O pé torto sai 18 px para fora da carta de madeira: a folga de baixo o deixa inteiro à mostra
+        card.kind === 'flop' ? 'w-60 pb-6' : 'w-48',
       )}
     >
       {card.kind === 'craque' ? (

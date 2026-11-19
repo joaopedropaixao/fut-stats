@@ -3,18 +3,9 @@
 
 @layer base {
   html {
+    /* A meta color-scheme do index.html é uma tentativa para o modo escuro forçado do Samsung Internet, sem garantia */
     color-scheme: dark;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  /*
-   * Sinal para o modo escuro forçado do Samsung Internet: a página já é escura (a meta color-scheme do index.html
-   * também diz isso), então o navegador não deve escurecer de novo. Não é garantido em todas as versões.
-   */
-  @media (prefers-color-scheme: dark) {
-    html {
-      color-scheme: dark;
-    }
   }
 
   /* Gramado à noite com holofote no topo (o tema Noite troca as cores pelos tokens) */
@@ -728,6 +719,8 @@
   --card-bg: var(--planks);
   --card-ink: #130a03;
   --card-ink-2: #2d1a0c;
+  /* A madeira não depende do `data-tier` (que some enquanto o rosto não apareceu) */
+  background-image: var(--planks);
 }
 
 .flop-face {

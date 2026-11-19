@@ -3,6 +3,9 @@ import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
 import { useSlowWait } from './slow-wait';
 
+/** Em 320 px "Gerando..." em 24 px encosta na borda do botão: abaixo de 360 px o texto vai para 16 px. */
+const NARROW_LOADING_TEXT = 'max-[359px]:text-pixel-sm';
+
 type GenerateBlockProps = {
   /** Já tem alguém no rascunho: o bloco vira "Regerar". */
   regenerate: boolean;
@@ -144,14 +147,14 @@ export function GenerateBlock({ regenerate, loading, onGenerate }: GenerateBlock
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col">
       <button
         type="button"
         disabled={loading}
         aria-busy={loading}
         onClick={press}
         className={cn(
-          'relative flex min-h-24 w-full items-center justify-center gap-4 px-4 py-2 select-none',
+          'relative flex min-h-24 w-full items-center justify-center gap-4 px-4 py-2 select-none max-[359px]:gap-2',
           'bg-surface shadow-float transition-[translate,box-shadow] duration-(--duration-fast) ease-out',
           'text-text',
           !loading && 'active:translate-x-1 active:translate-y-1 active:shadow-key-pressed',
@@ -192,14 +195,22 @@ export function GenerateBlock({ regenerate, loading, onGenerate }: GenerateBlock
         {loading ? (
           // Largura fixa: as reticências só aparecem e somem (opacidade), o texto não pula
           <span className="inline-flex items-baseline">
-            <PixelText size={24}>Gerando</PixelText>
+            <PixelText size={24} className={NARROW_LOADING_TEXT}>
+              Gerando
+            </PixelText>
             <span aria-hidden className="inline-flex">
-              <PixelText size={24}>.</PixelText>
+              <PixelText size={24} className={NARROW_LOADING_TEXT}>
+                .
+              </PixelText>
               <span className="animate-dot-2 motion-reduce:animate-none">
-                <PixelText size={24}>.</PixelText>
+                <PixelText size={24} className={NARROW_LOADING_TEXT}>
+                  .
+                </PixelText>
               </span>
               <span className="animate-dot-3 motion-reduce:animate-none">
-                <PixelText size={24}>.</PixelText>
+                <PixelText size={24} className={NARROW_LOADING_TEXT}>
+                  .
+                </PixelText>
               </span>
             </span>
           </span>
@@ -221,7 +232,7 @@ export function SlowWaitNotice() {
   return (
     <p
       data-testid="slow-wait"
-      className="animate-menu-in flex items-center gap-2.5 bg-surface-raised px-3 py-2.5 text-sm font-semibold text-text shadow-[inset_0_0_0_2px_var(--color-gold)]"
+      className="animate-menu-in mt-3 flex items-center gap-2.5 bg-surface-raised px-3 py-2.5 text-sm font-semibold text-text shadow-[inset_0_0_0_2px_var(--color-gold)]"
     >
       <span
         aria-hidden

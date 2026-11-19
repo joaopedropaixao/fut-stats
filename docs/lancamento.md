@@ -96,10 +96,11 @@ normal: fundo mais apagado, textos e superfícies com tom estranho.
 **Causa:** o Samsung Internet tem um modo escuro que escurece de novo as páginas que ele acha que são claras. O Fut
 Stats já é escuro, e o navegador pode escurecer o que já está escuro.
 
-**O que o app já faz:** avisa ao navegador que a página é escura (`<meta name="color-scheme" content="light dark">` no
-`index.html` e `color-scheme: dark` no CSS, inclusive dentro de `prefers-color-scheme: dark`). Isso pode resolver, mas
-**não é garantido**: o comportamento muda de uma versão do Samsung Internet para outra e não existe um jeito de o site
-desligar o escurecimento por conta própria.
+**O que o app já faz:** é só uma **tentativa**. O `index.html` tem `<meta name="color-scheme" content="light dark">` (o
+valor do exemplo da documentação da Samsung) e o CSS força `color-scheme: dark` no `html`, então a página segue sempre
+escura. Isso pode fazer o Samsung Internet deixar de escurecer de novo, mas **não é garantido**: o comportamento muda
+de uma versão para outra e não existe um jeito de o site desligar o escurecimento por conta própria. Quem confirma se
+funcionou é o jogador, no celular dele (peça o teste no preview da Vercel antes de contar com isso).
 
 **O que o jogador pode fazer** (os nomes dos menus podem variar com a versão do navegador):
 

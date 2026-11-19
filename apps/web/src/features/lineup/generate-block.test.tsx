@@ -56,3 +56,13 @@ describe('aviso "Acordando o servidor" (C2)', () => {
     expect(out).toContain('motion-reduce:animate-none');
   });
 });
+
+describe('espaço do aviso embaixo do bloco', () => {
+  it('a região aria-live vazia não cria espaço: o wrapper não tem gap e o aviso carrega o seu mt-3', () => {
+    const out = html({ loading: true });
+    // o wrapper (primeiro <div>) não tem gap; a região vazia seria um item flex e deixaria 12 px fixos sob o botão
+    expect(/^<div class="([^"]*)"/.exec(out)?.[1]).not.toContain('gap');
+    expect(out).toContain('aria-live="polite"></div>');
+    expect(renderToString(<SlowWaitNotice />)).toContain('mt-3');
+  });
+});
