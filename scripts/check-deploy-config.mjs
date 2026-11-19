@@ -374,8 +374,8 @@ export function checkBackupWorkflow(text) {
     problems.push('backup.yml: falta actions/upload-artifact');
   if (!/^\s*retention-days:\s*30\s*$/m.test(text))
     problems.push('backup.yml: o artefato deve ter retention-days: 30');
-  if (!text.includes('postgresql-client-17'))
-    problems.push('backup.yml: instale o cliente do PostgreSQL 17 (a versão do Neon)');
+  if (!text.includes('postgresql-client-18'))
+    problems.push('backup.yml: instale o cliente do PostgreSQL 18 (a versão do Neon)');
   for (const leak of secretLeaks(text, ALL_SECRETS)) {
     problems.push(`backup.yml: ${leak}`);
   }
