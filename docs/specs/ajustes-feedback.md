@@ -7,7 +7,7 @@
 | **Fatia** | `ajustes-feedback` (#17 da Trilha) |
 | **Modo** | Front |
 | **Parte de** | — |
-| **Status** | rascunho |
+| **Status** | aprovado em 19 nov 2026 |
 | **Base** | develop @23f7acd |
 | **Depende de** | — |
 | **Toca em** | apps/web/src/features/lineup/generate-block.tsx, apps/web/src/features/lineup/lineup-builder.tsx, apps/web/src/features/pack (pack-cards, share-card só se a carta do Perna de Pau mudar no canvas: não muda), apps/web/src/features/voting (player-card, flop-card), apps/web/src/index.css, apps/web/index.html, docs/lancamento.md, docs/03-roadmap.md |
@@ -96,6 +96,7 @@ Sem mudança.
   jeito garantido de desligar o escurecimento pelo site: **não prometemos a correção**. O PR pede que o jogador do
   Samsung A26 teste o preview da Vercel, e o `docs/lancamento.md` explica como desligar o modo escuro do navegador
   para o site.
+- **Desenho aprovado no Paper** (arquivo Fut Stats, página `ajustes-feedback (v1.1)`): quadro "1 · Gerar times — carregando" e quadro "2 · Perna de Pau — moldura de madeira", **variação A** (madeira escura, rachaduras, pé torto pixel no canto de baixo, selo da faixa com prego no canto de cima) e o card da página do resultado com a mesma madeira. A variação B foi descartada.
 - **Login:** nada de tela (dono, 19 nov 2026). Só o `docs/lancamento.md`, com o texto pronto para o grupo.
 
 ## Fora do escopo
@@ -112,6 +113,7 @@ Sem mudança.
 - Moldura do Perna de Pau: pacote e página do resultado, ou só pacote? → **Os dois**, faixa como selo, "pé torto" no
   canto, sem imagem nova no JS inicial.
 - Aviso de e-mails na tela de entrar? → **Não**, só documentação e texto para o grupo.
+- Portão 1 (19 nov 2026): spec e desenho aprovados, madeira **A**, sem ajustes.
 
 ## QA
 <Preenchido no fim.>
