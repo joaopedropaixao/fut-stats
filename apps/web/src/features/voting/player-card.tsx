@@ -5,7 +5,7 @@ import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
 import { formatRating } from '../../lib/rating-format';
-import { CrackSprite, FootSprite, TierSeal } from '../pack/flop-sprites';
+import { CrackSprite, EdgeCrack, FootSprite, TierSeal } from '../pack/flop-sprites';
 import { TIER_LABELS } from '../pack/tier';
 
 /** As pistas do walkout: o que da carta já apareceu. Sem pistas, a carta está pronta (tudo à mostra). */
@@ -241,7 +241,8 @@ export function PlayerCard({
       {wood && showFace && (
         <>
           {/* Rachaduras da madeira, o pé torto no canto de baixo e o selo da faixa, preso por um prego */}
-          <CrackSprite className="pointer-events-none absolute top-0 left-24 h-11 w-12" />
+          {/* Só a ponta na madeira de cima (16 px): a rachadura inteira passava por cima do texto da tira do time */}
+          <EdgeCrack height={16} scale={4} className="left-24" />
           <CrackSprite className="pointer-events-none absolute top-[150px] right-0 h-11 w-12" />
           <FootSprite className="pointer-events-none absolute -right-[18px] -bottom-[18px] h-[55px] w-[60px] origin-top-left rotate-[12deg]" />
           <TierSeal

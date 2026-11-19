@@ -169,6 +169,8 @@ function Stage({
               tier={frame.card.tier}
               you={frame.card.you}
               phrase={frame.card.phrase}
+              // Em 320 px a madeira (240 px, girada, com selo e pé torto) não cabe no palco: encolhe um pouco
+              className="max-[359px]:scale-[0.85]"
               hidden
             />
           </div>
@@ -510,7 +512,13 @@ function FinalCard({ card, number, delay }: { card: PackCard; number: number; de
           stats
         />
       ) : card.kind === 'flop' ? (
-        <FlopPackCard player={card.player} tier={card.tier} you={card.you} phrase={card.phrase} />
+        <FlopPackCard
+          player={card.player}
+          tier={card.tier}
+          you={card.you}
+          phrase={card.phrase}
+          className="max-[359px]:scale-[0.85]"
+        />
       ) : (
         <MinePackCard player={card.player} tier={card.tier} rank={card.rank} />
       )}

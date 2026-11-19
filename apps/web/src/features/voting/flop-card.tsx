@@ -4,7 +4,7 @@ import { PixelBodyLarge } from '../../components/ui/pixel-body-large';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { formatRating } from '../../lib/rating-format';
-import { CrackSprite, FootSprite, TierSeal } from '../pack/flop-sprites';
+import { EdgeCrack, FootSprite, TierSeal } from '../pack/flop-sprites';
 import { TIER_LABELS } from '../pack/tier';
 
 /**
@@ -72,7 +72,7 @@ export function FlopCard({
           />
         </>
       )}
-      <CrackSprite className="pointer-events-none absolute top-0 left-36 h-[33px] w-9" />
+      <EdgeCrack height={12} scale={3} className="left-36" />
       <FootSprite className="pointer-events-none absolute -bottom-4 -left-3 h-11 w-12" />
     </article>
   );

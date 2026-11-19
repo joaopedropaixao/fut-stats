@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { PixelText } from '../../components/ui/pixel-text';
 import { spritePaths, type SpriteMap } from '../../components/ui/pixel-sprite-maps';
 import { cn } from '../../lib/cn';
@@ -62,7 +63,8 @@ function Sprite({
   map,
   palette,
   className,
-}: SpriteProps & { map: SpriteMap; palette: Record<string, string> }) {
+  style,
+}: SpriteProps & { map: SpriteMap; palette: Record<string, string>; style?: CSSProperties }) {
   const paths = spritePaths(map, palette);
   return (
     <svg
@@ -71,6 +73,7 @@ function Sprite({
       viewBox={`0 0 ${map[0]!.length} ${map.length}`}
       shapeRendering="crispEdges"
       className={className}
+      style={style}
     >
       {Object.entries(paths).map(([color, d]) => (
         <path key={color} d={d} fill={color} />
@@ -87,6 +90,36 @@ export function FootSprite({ className }: SpriteProps) {
 /** Uma rachadura da madeira. O tamanho vem do `className` (grade 12 x 11). */
 export function CrackSprite({ className }: SpriteProps) {
   return <Sprite map={CRACK} palette={CRACK_PALETTE} className={className} />;
+}
+
+/**
+ * A rachadura que nasce da beirada de cima: só a ponta que cabe na madeira (`height` px), cortada rente ao miolo, para
+ * nenhuma decoração passar por cima do texto da tira do time (BRANCO é mais comprido que PRETO). A rachadura inteira
+ * (grade 12 x 11) é desenhada em `scale` px por pixel e o resto fica escondido.
+ */
+export function EdgeCrack({
+  height,
+  scale,
+  className,
+}: {
+  height: number;
+  scale: number;
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden
+      style={{ height, width: 12 * scale }}
+      className={cn('pointer-events-none absolute top-0 overflow-hidden', className)}
+    >
+      <Sprite
+        map={CRACK}
+        palette={CRACK_PALETTE}
+        className="block"
+        style={{ width: 12 * scale, height: 11 * scale }}
+      />
+    </span>
+  );
 }
 
 /** O prego do selo da faixa. O tamanho vem do `className` (grade 4 x 4). */

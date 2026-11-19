@@ -204,7 +204,10 @@ export function GenerateBlock({ regenerate, loading, onGenerate }: GenerateBlock
             </span>
           </span>
         ) : (
-          <PixelText size={24}>{regenerate ? 'Regerar' : 'Gerar times'}</PixelText>
+          // Em 320 px "Gerar times" não cabe ao lado do bloco: abaixo de 360 px o texto encolhe e quebra em duas linhas
+          <PixelText size={24} wrap className="min-w-0 min-[360px]:shrink-0">
+            {regenerate ? 'Regerar' : 'Gerar times'}
+          </PixelText>
         )}
       </button>
       {/* A região existe sempre: o leitor de tela só anuncia o que entra depois dela */}
