@@ -98,7 +98,7 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
       ) : (
         <div
           className={cn(
-            'moment-frame animate-moment-in relative flex min-h-[440px] items-center justify-center overflow-hidden px-3 pt-[72px] pb-6',
+            'moment-frame animate-moment-in relative flex min-h-[500px] items-center justify-center overflow-hidden px-3 pt-[72px] pb-6',
             onStage ? 'craque-stage' : 'bg-track',
             frame.kind !== 'closed' && 'cursor-pointer',
           )}
@@ -496,7 +496,10 @@ function FinalCard({ card, number, delay }: { card: PackCard; number: number; de
   return (
     <div
       style={style}
-      className="animate-final-in flex w-48 max-w-full flex-col items-center gap-4"
+      className={cn(
+        'animate-final-in flex max-w-full flex-col items-center gap-4',
+        card.kind === 'flop' ? 'w-60' : 'w-48',
+      )}
     >
       {card.kind === 'craque' ? (
         <CraqueCard

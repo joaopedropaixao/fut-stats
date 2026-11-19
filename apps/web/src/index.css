@@ -640,7 +640,10 @@
  * `transform` / `opacity` (reduzir movimento troca por um fade ou deixa parado).
  */
 
-/* Faixas: bronze, prata e ouro (família do --color-gold). A carta apagada (antes do rosto) usa o escuro. */
+/*
+ * Faixas: bronze, prata e ouro (família do --color-gold). A carta apagada (antes do rosto) usa o escuro.
+ * `.tier-vars` só define as cores da faixa (`--tier-*`) para quem não é carta, como o selo do card do resultado.
+ */
 .card-frame {
   --card-bg: var(--color-surface-3);
   --card-ink: var(--color-text);
@@ -649,8 +652,9 @@
   color: var(--card-ink);
 }
 
-.card-frame[data-tier='gold'] {
-  --card-bg: linear-gradient(
+.card-frame[data-tier='gold'],
+.tier-vars[data-tier='gold'] {
+  --tier-bg: linear-gradient(
     135deg,
     #f6d77a 0%,
     #e8a93a 30%,
@@ -658,12 +662,16 @@
     #d4f0e6 78%,
     #e8a93a 100%
   );
-  --card-ink: #111111;
-  --card-ink-2: #3a2a10;
+  --tier-ink: #111111;
+  --tier-ink-2: #3a2a10;
+  --card-bg: var(--tier-bg);
+  --card-ink: var(--tier-ink);
+  --card-ink-2: var(--tier-ink-2);
 }
 
-.card-frame[data-tier='silver'] {
-  --card-bg: linear-gradient(
+.card-frame[data-tier='silver'],
+.tier-vars[data-tier='silver'] {
+  --tier-bg: linear-gradient(
     135deg,
     #f4f7fa 0%,
     #a9b4bf 30%,
@@ -671,12 +679,16 @@
     #c3d3e3 78%,
     #93a0ad 100%
   );
-  --card-ink: #111111;
-  --card-ink-2: #28303a;
+  --tier-ink: #111111;
+  --tier-ink-2: #28303a;
+  --card-bg: var(--tier-bg);
+  --card-ink: var(--tier-ink);
+  --card-ink-2: var(--tier-ink-2);
 }
 
-.card-frame[data-tier='bronze'] {
-  --card-bg: linear-gradient(
+.card-frame[data-tier='bronze'],
+.tier-vars[data-tier='bronze'] {
+  --tier-bg: linear-gradient(
     135deg,
     #efbf93 0%,
     #b8703f 30%,
@@ -684,12 +696,51 @@
     #d3a27b 78%,
     #9a5a2e 100%
   );
-  --card-ink: #130a03;
-  --card-ink-2: #2d1a0c;
+  --tier-ink: #130a03;
+  --tier-ink-2: #2d1a0c;
+  --card-bg: var(--tier-bg);
+  --card-ink: var(--tier-ink);
+  --card-ink-2: var(--tier-ink-2);
 }
 
 .card-frame[data-tier] {
   background-image: var(--card-bg);
+}
+
+/*
+ * Moldura de madeira do Perna de Pau (Paper: "ajustes-feedback (v1.1)", variação A): sempre madeira, para qualquer
+ * nota. As tábuas horizontais são o fundo da carta; o miolo (`.flop-face`) é o papel claro. A faixa da nota não
+ * pinta a moldura: vira o selo (`--tier-bg` / `--tier-ink`, que o `data-tier` continua definindo). Só CSS e SVG
+ * pixel, sem imagem nova.
+ */
+.card-frame[data-wood],
+.wood-frame {
+  --planks: repeating-linear-gradient(
+    0deg,
+    var(--color-flop-wood-dark) 0 14px,
+    var(--color-flop-seam) 14px 16px,
+    var(--color-flop-wood) 16px 30px,
+    var(--color-flop-seam) 30px 32px
+  );
+}
+
+.card-frame[data-wood] {
+  --card-bg: var(--planks);
+  --card-ink: #130a03;
+  --card-ink-2: #2d1a0c;
+}
+
+.flop-face {
+  background-color: var(--color-flop-face);
+  box-shadow: inset 0 0 0 3px var(--color-flop-edge);
+}
+
+/* O card do resultado: as mesmas tábuas, e o miolo é o verde do app (com o mesmo contorno escuro de dentro) */
+.wood-frame {
+  background: var(--planks);
+  box-shadow:
+    inset 0 0 0 3px var(--color-outline),
+    4px 4px 0 var(--color-outline);
 }
 
 /*

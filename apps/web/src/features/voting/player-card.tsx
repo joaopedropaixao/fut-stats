@@ -5,6 +5,7 @@ import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
 import { formatRating } from '../../lib/rating-format';
+import { CrackSprite, FootSprite, TierSeal } from '../pack/flop-sprites';
 import { TIER_LABELS } from '../pack/tier';
 
 /** As pistas do walkout: o que da carta já apareceu. Sem pistas, a carta está pronta (tudo à mostra). */
@@ -35,8 +36,11 @@ export type PlayerCardProps = {
   special?: boolean;
   /** Gols e assistências na partida: duas etiquetas ao lado do bonequinho (a carta do Craque). */
   stats?: CardStats;
-  /** Fenda pixel e tom de zoeira (Perna de Pau). */
-  cracked?: boolean;
+  /**
+   * Moldura de madeira rachada com o pé torto no canto (o Perna de Pau): sempre madeira, para qualquer nota. A
+   * faixa da nota vira o selo "BRONZE" / "PRATA" / "OURO" preso na madeira.
+   */
+  wood?: boolean;
   /** Inclinação: cada carta tem a sua. */
   tilt?: string;
   /** Atraso da entrada em degraus (ms). */
@@ -86,16 +90,11 @@ function SolidStar() {
   );
 }
 
-/** A fenda pixel da carta rachada: um zigue-zague de degraus de 1 px na grade 48 x 70, de ponta a ponta no meio. */
-const CRACK_PATH = Array.from({ length: 12 }, (_, i) => {
-  const y = 31 + [0, 1, 0, 2, 1, 3, 2, 3, 1, 2, 0, 1][i]!;
-  return `M${i * 4} ${y}h4.5v1h-4.5z`;
-}).join('');
-
 /**
  * A base das três cartas (Craque, Perna de Pau e a sua), no molde da folha (Carta/Craque): moldura e fundo da
  * faixa pela nota (bronze, prata, ouro), tira do time, nota em dígitos pixel, posição, bonequinho e nomes.
  * Com `clues`, a carta faz o walkout: apagada, acende a cor do time, depois a posição, a nota e só então o rosto.
+ * Com `wood` (o Perna de Pau), a moldura é de madeira rachada, com o pé torto no canto e a faixa como selo.
  */
 export function PlayerCard({
   player,
@@ -106,7 +105,7 @@ export function PlayerCard({
   clues,
   you,
   special,
-  cracked,
+  wood,
   stats,
   tilt = '-rotate-[4deg]',
   delay = 0,
@@ -123,28 +122,20 @@ export function PlayerCard({
   const white = player.team === 'WHITE';
   const ring = special
     ? '#000 0 0 0 3px inset, #f3ead3 0 0 0 6px inset, 6px 6px 0 0 #000'
-    : '#000 0 0 0 3px inset, 6px 6px 0 0 #000';
-  return (
-    <article
-      aria-label={hidden ? undefined : label}
-      aria-hidden={hidden || undefined}
-      data-tier={showFace ? tier : undefined}
-      data-card={kind}
-      style={{ '--moment-delay': `${delay}ms`, boxShadow: ring } as CSSProperties}
-      className={cn(
-        'card-frame relative flex min-h-72 w-48 max-w-full flex-col justify-between gap-2 overflow-hidden p-3 pt-0',
-        tilt,
-        enter && 'animate-moment-in',
-        className,
-      )}
-    >
+    : wood
+      ? '#000 0 0 0 3px inset, 4px 4px 0 0 #000'
+      : '#000 0 0 0 3px inset, 6px 6px 0 0 #000';
+  // Na moldura de madeira o miolo é uma caixa própria: as seções (menos a tira do time) ganham o recuo dele
+  const pad = wood ? 'px-3' : undefined;
+  const sections = (
+    <>
       {/* Tira do time: acende primeiro, na cor do time */}
       <div
         className={cn(
-          '-mx-3 flex h-9 items-center justify-between',
-          you ? 'px-3' : 'px-4',
-          special && 'mt-2',
-          !special && 'mt-[3px]',
+          'flex items-center justify-between',
+          wood
+            ? 'h-[30px] shrink-0 px-3'
+            : cn('-mx-3 h-9', you ? 'px-3' : 'px-4', special && 'mt-2', !special && 'mt-[3px]'),
           showTeam
             ? white
               ? 'bg-team-white text-team-black shadow-[inset_0_-3px_0_0_#000]'
@@ -161,7 +152,7 @@ export function PlayerCard({
           </span>
         )}
       </div>
-      <div className="flex flex-col gap-1">
+      <div className={cn('flex flex-col gap-1', pad)}>
         <div className="flex items-start justify-between gap-2">
           {shown !== null ? (
             <span
@@ -178,17 +169,24 @@ export function PlayerCard({
           ) : (
             <PixelDigits value="0,0" scale={4} decorative className="invisible" />
           )}
-          <div className={cn('flex flex-col items-end gap-1', !showFace && 'invisible')}>
-            <SolidStar />
-            <PixelText className="text-(--card-ink-2)">{TIER_LABELS[tier]}</PixelText>
-          </div>
+          {/* Na madeira a faixa vira o selo preso na moldura (mais abaixo) */}
+          {!wood && (
+            <div className={cn('flex flex-col items-end gap-1', !showFace && 'invisible')}>
+              <SolidStar />
+              <PixelText className="text-(--card-ink-2)">{TIER_LABELS[tier]}</PixelText>
+            </div>
+          )}
         </div>
         <PixelText className={cn('text-(--card-ink-2)', !showPosition && 'invisible')}>
           {POSITION_LABELS[player.position]}
         </PixelText>
       </div>
       <div
-        className={cn('relative flex items-center', stats ? 'justify-between' : 'justify-center')}
+        className={cn(
+          'relative flex items-center',
+          stats ? 'justify-between' : 'justify-center',
+          pad,
+        )}
       >
         {stats && (
           <div className={cn('flex flex-col gap-1.5', !showFace && 'invisible')}>
@@ -205,27 +203,55 @@ export function PlayerCard({
           />
         </span>
       </div>
-      <div className={cn('flex flex-col gap-0.5', !showFace && 'invisible')}>
+      <div className={cn('flex flex-col gap-0.5', !showFace && 'invisible', pad)}>
         <PixelText wrap className="text-(--card-ink)">
           {player.nickname}
         </PixelText>
         <PixelText wrap className="text-(--card-ink-2)">
           {kind}
         </PixelText>
-        <PixelText wrap className="text-(--card-ink-2)">
+        <PixelText wrap className={wood ? 'text-flop-ink' : 'text-(--card-ink-2)'}>
           {note}
         </PixelText>
       </div>
-      {cracked && showFace && (
-        <svg
-          aria-hidden
-          viewBox="0 0 48 70"
-          shapeRendering="crispEdges"
-          preserveAspectRatio="none"
-          className="pointer-events-none absolute inset-0 h-full w-full"
-        >
-          <path d={CRACK_PATH} fill="#130a03" />
-        </svg>
+    </>
+  );
+  return (
+    <article
+      aria-label={hidden ? undefined : label}
+      aria-hidden={hidden || undefined}
+      data-tier={showFace ? tier : undefined}
+      data-wood={wood || undefined}
+      data-card={kind}
+      style={{ '--moment-delay': `${delay}ms`, boxShadow: ring } as CSSProperties}
+      className={cn(
+        'card-frame relative flex max-w-full flex-col justify-between gap-2',
+        // A madeira é mais larga (como no desenho, 240 px): a moldura come o miolo e a frase do Perna de Pau precisa de espaço
+        wood ? 'min-h-80 w-60 p-4' : 'min-h-72 w-48 overflow-hidden p-3 pt-0',
+        tilt,
+        enter && 'animate-moment-in',
+        className,
+      )}
+    >
+      {wood ? (
+        <div className="flop-face flex flex-1 flex-col justify-between gap-2 pb-3">{sections}</div>
+      ) : (
+        sections
+      )}
+      {wood && showFace && (
+        <>
+          {/* Rachaduras da madeira, o pé torto no canto de baixo e o selo da faixa, preso por um prego */}
+          <CrackSprite className="pointer-events-none absolute top-0 left-24 h-11 w-12" />
+          <CrackSprite className="pointer-events-none absolute top-[150px] right-0 h-11 w-12" />
+          <FootSprite className="pointer-events-none absolute -right-[18px] -bottom-[18px] h-[55px] w-[60px] origin-top-left rotate-[12deg]" />
+          <TierSeal
+            label={TIER_LABELS[tier]}
+            className={cn(
+              'absolute -right-[10px] origin-top-left rotate-[6deg]',
+              you ? 'top-[52px]' : 'top-10',
+            )}
+          />
+        </>
       )}
       {special && (
         <span

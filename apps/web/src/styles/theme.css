@@ -42,6 +42,15 @@
   --color-bronze-shadow: #6b3a16;
   --color-outline: #000000;
   --color-flop: #c4a07c;
+  --color-flop-wood: #8a5a2b; /* família flop: tábua clara da moldura de madeira do Perna de Pau */
+  --color-flop-wood-dark: #7a4a22; /* família flop: tábua escura */
+  --color-flop-seam: #5a3416; /* família flop: emenda entre as tábuas */
+  --color-flop-face: #e8cfa6; /* família flop: o miolo claro da carta (papel de embrulho) */
+  --color-flop-edge: #3b2412; /* família flop: contorno de dentro da moldura e sombra do pé torto */
+  --color-flop-crack: #2a160a; /* família flop: rachaduras */
+  --color-flop-ink: #7a2a12; /* família flop: a piada, sobre o miolo claro */
+  --color-flop-blood: #c0392b; /* família flop: o curativo do pé torto */
+  --color-flop-nail: #93a0ad; /* família flop: sombra do prego do selo */
   --color-success: #22c55e;
   --color-danger: #ef4444;
   --color-warning: #fb923c;
