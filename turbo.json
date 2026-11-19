@@ -7,6 +7,7 @@
     },
     "build": {
       "dependsOn": ["^build", "generate"],
+      "env": ["VITE_SENTRY_DSN", "VITE_SENTRY_ENVIRONMENT", "ENABLE_EXPERIMENTAL_COREPACK"],
       "outputs": ["dist/**"]
     },
     "lint": {},
