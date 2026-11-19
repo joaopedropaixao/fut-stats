@@ -143,7 +143,14 @@ botão em 320 px. Os três foram corrigidos (`EdgeCrack` recortado na madeira de
 | C13 | ✅ | `color-scheme.test.ts`; a meta `light dark` está no DOM |
 | C14 | ✅ | com o sistema em modo escuro: fundo #0d2717 e superfícies #143521, sem mudança |
 
-Observações que não reprovam:
+**Volta 3 (code-review do PR #86): APROVADO** (db5dddf). O pé torto ganhou folga embaixo nas cartas finais (O2), a
+região `aria-live` vazia não deixa mais 12 px fixos sob o botão, saiu o `@media (prefers-color-scheme: dark)` (que não
+fazia nada), o `useSlowWait` ganhou teste com fake timers e "Gerando..." cabe em 320 px (16 px e `gap-2` abaixo de
+360 px, que resolve o O1). A madeira também passou a não depender do `data-tier`. A, B, C, D, E, F e a regressão de
+C1–C14 passaram. Fora da fatia, segue registrado: a contagem "BRANCO 0 DE 7 · 0 DE 7 PRETO" (`lineup-status.tsx`) rola
+na horizontal em 320 px.
+
+Observações da volta 2 (O1 e O2 resolvidas na volta 3):
 - **O1:** em 320 px, o último ponto de "Gerando..." encosta na borda do botão.
 - **O2:** de 360 px para cima, nas cartas finais, a ponta do pé torto fica sob o canto da carta seguinte (só
   decoração com decoração).
