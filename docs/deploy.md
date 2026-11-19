@@ -721,7 +721,7 @@ Duas opções:
 
 - **A. Postgres local vazio (recomendado, não mexe no Neon).** Precisa do Docker:
   ```sh
-  docker run --rm -d --name restaurar-teste -e POSTGRES_PASSWORD=postgres -p 5434:5432 postgres:17-alpine
+  docker run --rm -d --name restaurar-teste -e POSTGRES_PASSWORD=postgres -p 5434:5432 postgres:18-alpine
   export RESTORE_DATABASE_URL='postgresql://postgres:postgres@localhost:5434/postgres'
   ```
   Ele nasce vazio, então não precisa de `--force`. Para terminar: `docker stop restaurar-teste`.
@@ -752,7 +752,7 @@ Passo a passo:
    sem saída, está igual. (Comparar com a produção "de agora" não prova nada: ela muda o tempo todo.)
 
 Para gerar um backup manual: `DIRECT_URL='<URL sem -pooler>' BACKUP_PASSPHRASE='...' sh scripts/backup-db.sh`.
-Precisa do `pg_dump` na mesma versão principal do Neon (17).
+Precisa do `pg_dump` na mesma versão principal do Neon (18).
 
 ## Como ler um erro no Sentry e achar o pedido pelo `requestId`
 

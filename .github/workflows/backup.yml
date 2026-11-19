@@ -22,15 +22,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # O pg_dump precisa ter a mesma versão principal do servidor (Neon: 17). O repositório oficial do PostgreSQL (PGDG)
-      # tem o cliente 17; o que vem no runner pode ser mais velho.
-      - name: Instalar o cliente do PostgreSQL 17
+      # O pg_dump precisa ter a mesma versão principal do servidor (Neon: 18). O repositório oficial do PostgreSQL (PGDG)
+      # tem o cliente 18; o que vem no runner pode ser mais velho.
+      - name: Instalar o cliente do PostgreSQL 18
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-          sudo apt-get install -y postgresql-client-17
-          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          sudo apt-get install -y postgresql-client-18
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
 
       # Sem `set -x` e sem eco: as variáveis de ambiente com segredo nunca vão para o log.
       - name: Gerar o backup cifrado
