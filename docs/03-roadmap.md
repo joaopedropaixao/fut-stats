@@ -49,10 +49,10 @@ abaixo).
 | 14 ✅ | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado, como ouvinte do sinal único de eventos da rodada (da `jogo-ao-vivo`). Pendência do `pacote-do-craque` resolvida (17 nov 2026): o aviso `RESULT` do Feed traz `hasPack` e o card do início não chama mais `GET .../voting/result`; a novidade chega pelo push `RESULT_OUT` (app fechado) e pelo SSE da `jogo-ao-vivo` (app aberto) |
 | 15 ✅ | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 30 em 30 minutos para a votação fechar no prazo). Depois, a release e **lançar para a pelada** |
 | 16 ✅ | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
-| 17 | `ajustes-feedback` | Front | — | Ajustes do feedback dos admins e do dono (19 nov 2026), release v1.1: loading do Gerar times com aviso de servidor acordando, moldura de madeira do Perna de Pau, meta color-scheme para o Samsung Internet no modo escuro, aviso dos e-mails aceitos no login (docs) |
+| 17 ✅ | `ajustes-feedback` | Front | — | Ajustes do feedback dos admins e do dono (19 nov 2026), release v1.1: loading do Gerar times com aviso de servidor acordando, moldura de madeira do Perna de Pau, meta color-scheme para o Samsung Internet no modo escuro, aviso dos e-mails aceitos no login (docs) |
 
 ### Próximas prioridades (18 nov 2026)
-Entregues até aqui: as fatias 0 a 16. **Release `v1.0.0` no ar em 18 nov 2026** (PR #80, tag `v1.0.0`) em
+Entregues até aqui: as fatias 0 a 17. **Release `v1.0.0` no ar em 18 nov 2026** (PR #80, tag `v1.0.0`) em
 <https://futstats-app.com.br>: o dono entrou, instalou o app no celular e criou a pelada. Falta do roteiro do dono
 (`docs/deploy.md`): R7b (segredos e primeiro backup) e R7c (despertador). Ordem:
 

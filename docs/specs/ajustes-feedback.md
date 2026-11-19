@@ -116,4 +116,36 @@ Sem mudança.
 - Portão 1 (19 nov 2026): spec e desenho aprovados, madeira **A**, sem ajustes.
 
 ## QA
-<Preenchido no fim.>
+2 voltas. **VEREDITO: APROVADO** na volta 2 (HEAD db362a3).
+
+Volta 1 reprovou com duas falhas na carta de madeira: F1, a rachadura de cima cruzava "BRANCO" na tira do time; F2, em
+320 px a carta saía cortada no palco do pacote. Também apareceu um extra: o bloco "Gerar times" parado estourava o
+botão em 320 px. Os três foram corrigidos (`EdgeCrack` recortado na madeira de cima, carta em `scale(0.85)` abaixo de
+360 px, texto do bloco quebrando em duas linhas abaixo de 360 px) e há um teste novo (`flop-wood.test.tsx`).
+
+| Id | Resultado | Evidência |
+|---|---|---|
+| F1 | ✅ | Branco (rodada 6) e Preto (rodada 8), palco e cartas finais, de 320 a 1280: a rachadura não toca o texto |
+| F2 | ✅ | 320 px: a carta vai de 26 a 279 px, dentro do palco, com selo e pé torto |
+| extra | ✅ | 320 px: "GERAR / TIMES" dentro do botão; de 360 px para cima, numa linha |
+| C1 | ✅ | `aria-busy`, botão desabilitado, bloco batendo, moeda e reticências em degraus |
+| C2 | ✅ | depois de 5 s, "Acordando o servidor, pode levar até 1 min" (`aria-live="polite"`) em 320, 390 e 1280 |
+| C3 | ✅ | resposta em 1,2 s: sem a linha; os times entram |
+| C4 | ✅ | Reduzir movimento: tudo parado, sem moeda; a linha aparece igual |
+| C5 | ✅ | 500 forçado: o bloco volta, a linha some e o alerta "Não gerou" aparece |
+| C6 | ✅ | nota 6,5: madeira e selo PRATA |
+| C7 | ✅ | 5,5 BRONZE e 8,2 OURO; a moldura é sempre madeira |
+| C8 | ✅ | card do resultado com madeira, pé torto e selo em 320, 390 e 1280 |
+| C9 | ✅ | VOCÊ e o selo da faixa não se cruzam |
+| C10 | ✅ | anúncio "Perna de pau: Tavinho, nota 5,5, bronze. Hoje não deu"; a decoração fica em `aria-hidden` |
+| C11 | ✅ | Craque e "Sua carta" com a moldura da faixa, sem madeira |
+| C12 | ✅ | JS inicial 119,8/150 kB, maior pedaço de rota 33,7/40, CSS 13,6/25, JS total 272/400 |
+| C13 | ✅ | `color-scheme.test.ts`; a meta `light dark` está no DOM |
+| C14 | ✅ | com o sistema em modo escuro: fundo #0d2717 e superfícies #143521, sem mudança |
+
+Observações que não reprovam:
+- **O1:** em 320 px, o último ponto de "Gerando..." encosta na borda do botão.
+- **O2:** de 360 px para cima, nas cartas finais, a ponta do pé torto fica sob o canto da carta seguinte (só
+  decoração com decoração).
+- **Fora da fatia:** o cabeçalho da escalação ("Preto 0 de 7") rola na horizontal em 320 px.
+
