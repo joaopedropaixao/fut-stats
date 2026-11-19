@@ -57,7 +57,7 @@ servidor acordando), nada de mudar o algoritmo nem de cron externo. O ping de 14
 | C10 | leitor de tela | revela o Perna de Pau | o anúncio continua com a faixa por escrito ("Perna de pau: ..., nota 6,5, prata"); a moldura é `aria-hidden` | Playwright (árvore) |
 | C11 | qualquer carta do Craque ou a sua | abre o pacote | moldura da faixa (bronze/prata/ouro) igual a hoje: nada muda fora do Perna de Pau | Playwright |
 | C12 | build | `pnpm build` | o JS inicial continua dentro do orçamento (`orcamento-de-bundle`); a moldura é CSS/SVG no chunk lazy do pacote e do resultado, sem imagem nova | build (check do orçamento) |
-| C13 | `apps/web/index.html` | build | tem `<meta name="color-scheme" content="light dark">` e o CSS declara `color-scheme: dark` também dentro de `@media (prefers-color-scheme: dark)` | unitário (lê o `index.html`) |
+| C13 | `apps/web/index.html` | build | tem `<meta name="color-scheme" content="light dark">` e o CSS mantém `color-scheme: dark` no `html` (a meta é uma tentativa para o Samsung Internet; quem confirma é o jogador) | unitário (lê o `index.html`) |
 | C14 | qualquer tela, modo escuro do sistema, Chrome desktop | olhar | as cores não mudam (fundo `#0d2717`, superfícies `#143521`) | Playwright (`colorScheme: 'dark'`) |
 
 ## Técnico
