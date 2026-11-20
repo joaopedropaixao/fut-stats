@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
+import { useEffect, useRef, type ReactNode, type Ref } from 'react';
 import {
   Navigate,
   Outlet,
@@ -17,7 +17,7 @@ import {
 import { setCurrentGroupId } from '../features/group/use-current-group';
 import { LiveRoundsMount } from '../features/live/live-rounds-mount';
 import { useSession } from '../features/session/use-session';
-import { ServerWait } from './server-wait';
+import { QueryServerWait } from './server-wait';
 import { TABS } from './tabs';
 import { useDelayedFlag } from './use-delayed-flag';
 
@@ -32,9 +32,6 @@ export function AppShell() {
   const navigate = useNavigate();
   const isMatchRoute = /^\/rodadas\/[^/]+\/jogo$/.test(pathname);
   const firstRender = useRef(true);
-  // "Tentar de novo" na espera do /me: remonta a tela de espera (temporizadores do zero) e esconde o erro já visto
-  const [attempt, setAttempt] = useState(0);
-  const [seenErrors, setSeenErrors] = useState(0);
   // Trocou de tela e o pedaço dela ainda está vindo: a tela anterior fica; passou de 300 ms, entra o esqueleto
   const loadingScreen = useDelayedFlag(useNavigation().state === 'loading', SLOW_NAVIGATION_MS);
 
@@ -101,15 +98,8 @@ export function AppShell() {
   const ready = session.data !== undefined;
   if (!ready) {
     return (
-      <ServerWait
-        key={attempt}
-        failed={session.errorUpdateCount > seenErrors}
-        retried={attempt > 0}
-        onRetry={() => {
-          setSeenErrors(session.errorUpdateCount);
-          setAttempt((n) => n + 1);
-          void session.refetch();
-        }}
+      <QueryServerWait
+        query={session}
         skeleton={
           <ShellFrame showTabs={false} isMatchRoute={isMatchRoute}>
             <SkeletonList rows={3} />

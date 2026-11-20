@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PixelText } from '../components/ui/pixel-text';
 import { ErrorState } from '../components/ui/states';
 import { WaitNotice } from '../components/ui/wait-notice';
@@ -122,4 +122,33 @@ export function ServerWait({
   if (view === 'error') return <ServerNotResponding onRetry={onRetry} />;
   if (view === 'starting') return <ServerStarting notice={noticeElapsed} focus={retried} />;
   return skeleton;
+}
+
+/**
+ * `ServerWait` ligado a uma consulta (a sessão, a prévia do convite): a falha é `errorUpdateCount` (depois das
+ * retentativas), e "Tentar de novo" refaz o pedido com `refetch()`, uma vez por toque, e remonta a espera para os
+ * temporizadores recomeçarem. O erro já visto não volta enquanto não houver outra falha.
+ */
+export function QueryServerWait({
+  query,
+  skeleton,
+}: {
+  query: { errorUpdateCount: number; refetch: () => unknown };
+  skeleton: ReactNode;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const [seenErrors, setSeenErrors] = useState(0);
+  return (
+    <ServerWait
+      key={attempt}
+      failed={query.errorUpdateCount > seenErrors}
+      retried={attempt > 0}
+      onRetry={() => {
+        setSeenErrors(query.errorUpdateCount);
+        setAttempt((n) => n + 1);
+        void query.refetch();
+      }}
+      skeleton={skeleton}
+    />
+  );
 }
