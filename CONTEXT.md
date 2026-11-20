@@ -256,7 +256,7 @@ Mora em `src/round-score/card-tier.ts` e é reexportada pelo `shared` (o web nã
 **Assinatura:** `cardTier(rating: number, cuts: CardTierCuts = DEFAULT_CARD_TIER_CUTS): CardTier`, com
 `CardTier = 'bronze' | 'silver' | 'gold'` e `CardTierCuts = { silver, gold }` (padrão `{ silver: 6, gold: 8 }`).
 **Configurável:** os cortes entram por `cuts`, sem mexer na função.
-**Onde é usada:** moldura e fundo das cartas do pacote do Craque (Craque, Perna de Pau e a carta de quem jogou).
+**Onde é usada:** moldura e fundo da **"Sua carta"** (a carta de quem jogou) e o **selo** das cartas especiais. Desde a `ajustes-feedback` (v1.1, 19–20 nov 2026), a carta do **Perna de Pau** tem moldura própria de madeira rachada e a do **Craque** tem moldura própria dourada ("Lenda": cantos em degraus, troféu com asas, faíscas, brilho), **as mesmas para qualquer nota**. Nas duas, a faixa da nota vira um selo pregado no canto de cima (BRONZE/PRATA/OURO). A regra do `cardTier` não mudou.
 A figurinha do jogador (`/jogadores/:id` e Perfil) também usa a faixa, pela **média do ranking geral
 arredondada a 1 casa, como aparece** (`stats.average` → `roundAverage`: 7,96 mostra 8,0 e é ouro), só para quem está
 ranqueado (`rank` ≠ `null`); com "Poucos jogos" ou sem média, fica neutra.
