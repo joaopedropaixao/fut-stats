@@ -1,41 +1,11 @@
-import { POSITION_LABELS, TEAM_LABELS } from '@fut-stats/shared';
-import { bodyLargeMap, bodyLargePalette } from '../../components/ui/pixel-body-large-maps';
-import { pixelDigitsPath } from '../../components/ui/pixel-glyphs';
-import { formatRating } from '../../lib/rating-format';
 import type { PackCard } from './deck';
-import { TIER_COLORS, TIER_LABELS } from './tier';
+import { drawLegendCard, LEGEND_W } from './share-legend';
+import { CARD_H, CARD_W, drawCardContent, resolveColor, text } from './share-draw';
+import { TIER_COLORS } from './tier';
 
 /** A imagem do Compartilhar: 1080 x 1350, a carta inteira no mesmo desenho pixel (4 px de tela por unidade). */
 export const SHARE_WIDTH = 1080;
 export const SHARE_HEIGHT = 1350;
-
-/** A carta em unidades de CSS (192 x 288), ampliada 4x no canvas. */
-const CARD_W = 192;
-const CARD_H = 288;
-
-const STAR_PATH = 'M12 2l3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5 7.5-.7z';
-
-/** Resolve `var(--token)` para a cor de verdade (o canvas não lê variável de CSS). */
-function resolveColor(value: string): string {
-  const match = /^var\((--[\w-]+)\)$/.exec(value);
-  if (!match) return value;
-  return getComputedStyle(document.documentElement).getPropertyValue(match[1]!).trim() || '#ffffff';
-}
-
-function text(
-  ctx: CanvasRenderingContext2D,
-  value: string,
-  x: number,
-  y: number,
-  opts: { size?: number; color: string; align?: CanvasTextAlign; maxWidth?: number },
-) {
-  const size = opts.size ?? 16;
-  ctx.font = `700 ${size}px Silkscreen, monospace`;
-  ctx.fillStyle = opts.color;
-  ctx.textAlign = opts.align ?? 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillText(value.toUpperCase(), x, y, opts.maxWidth);
-}
 
 /** Desenha a carta (a mesma da tela) e devolve o PNG. */
 export async function renderCardPng(card: PackCard, roundNumber: number): Promise<Blob> {
@@ -57,14 +27,17 @@ export async function renderCardPng(card: PackCard, roundNumber: number): Promis
 
   // A carta, centrada e ampliada 4x (inteiro: o pixel art não pode ficar fracionado). Com frase (o Craque), a marca
   // vai para o alto e a frase assina a carta embaixo; sem frase, o rodapé fica como era.
-  const scale = 4;
-  const ox = Math.round((SHARE_WIDTH - CARD_W * scale) / 2);
+  // O Craque (moldura Lenda, 240 x 370) é maior que a carta comum: ampliado 3x para caber com a frase embaixo.
+  const legend = card.kind === 'craque';
+  const scale = legend ? 3 : 4;
+  const ox = Math.round((SHARE_WIDTH - (legend ? LEGEND_W : CARD_W) * scale) / 2);
   const withPhrase = card.phrase !== null;
-  const oy = withPhrase ? 48 : 74;
+  const oy = legend ? 46 : withPhrase ? 48 : 74;
   ctx.save();
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
-  drawCard(ctx, card, roundNumber);
+  if (legend) drawLegendCard(ctx, card, roundNumber);
+  else drawCard(ctx, card, roundNumber);
   ctx.restore();
 
   if (withPhrase) {
@@ -160,7 +133,6 @@ function drawPhrase(ctx: CanvasRenderingContext2D, phrase: string) {
 
 function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: number) {
   const tier = TIER_COLORS[card.tier];
-  const { player } = card;
   // Sombra dura e fundo da faixa
   ctx.fillStyle = '#000';
   ctx.fillRect(6, 6, CARD_W, CARD_H);
@@ -176,97 +148,10 @@ function drawCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: nu
   ctx.lineWidth = 3;
   ctx.strokeRect(1.5, 1.5, CARD_W - 3, CARD_H - 3);
 
-  // Tira do time
-  const white = player.team === 'WHITE';
-  ctx.fillStyle = white ? '#fff' : '#000';
-  ctx.fillRect(3, 3, CARD_W - 6, 36);
-  ctx.fillStyle = white ? '#000' : 'rgba(255,255,255,0.35)';
-  ctx.fillRect(3, 36, CARD_W - 6, 3);
-  text(ctx, TEAM_LABELS[player.team], 16, 14, { color: white ? '#000' : '#fff' });
-  if (card.you) {
-    // O selo VOCÊ: fundo escuro, letras claras, contorno grosso e sombra dura (legível em qualquer faixa). Inteiro,
-    // com a sombra, dentro da tira do time e com a mesma margem do nome (13 de cada lado da tira, que vai de 3 a 189).
-    // A altura vem da medida real do texto (o acento do Ê incluído): 2,5 unidades (10 px do canvas) de folga entre o
-    // topo do acento e o miolo, e a mesma folga embaixo das letras.
-    const label = 'VOCÊ';
-    ctx.font = '700 16px Silkscreen, monospace';
-    // a medida vale para a linha de base alfabética (a mesma com que o texto é desenhado depois)
-    ctx.textBaseline = 'alphabetic';
-    ctx.textAlign = 'center';
-    const m = ctx.measureText(label);
-    const gap = 2.5;
-    const sw = 64;
-    const inner = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent + gap * 2;
-    const sh = Math.ceil(inner) + 6;
-    const sx = CARD_W - 3 - 13 - 3 - sw;
-    const sy = 3 + Math.floor((33 - (sh + 3)) / 2);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(sx + 3, sy + 3, sw, sh);
-    ctx.fillStyle = resolveColor('var(--color-text)');
-    ctx.fillRect(sx, sy, sw, sh);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(sx + 3, sy + 3, sw - 6, sh - 6);
-    ctx.fillStyle = resolveColor('var(--color-text)');
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText(label, sx + sw / 2, sy + 3 + gap + m.actualBoundingBoxAscent, sw - 12);
-  }
-
-  // Nota em dígitos pixel (escala 4)
-  const { d } = pixelDigitsPath(formatRating(card.score));
-  ctx.save();
-  ctx.translate(12, 48);
-  ctx.scale(4, 4);
-  ctx.fillStyle = tier.ink;
-  ctx.fill(new Path2D(d));
-  ctx.restore();
-  text(ctx, POSITION_LABELS[player.position], 12, 88, { color: tier.ink });
-
-  // Estrela e faixa por extenso
-  ctx.save();
-  ctx.translate(CARD_W - 12 - 22, 48);
-  ctx.scale(22 / 24, 22 / 24);
-  ctx.fillStyle = tier.ink;
-  ctx.fill(new Path2D(STAR_PATH));
-  ctx.restore();
-  text(ctx, TIER_LABELS[card.tier], CARD_W - 12, 74, { color: tier.ink, align: 'right' });
-
-  // O bonequinho grande (16 x 24 na escala 3); com números (o Craque), as etiquetas ficam à esquerda dele
-  const map = bodyLargeMap(player.avatar);
-  const palette = bodyLargePalette(player.avatar, white ? 'white' : 'black');
-  const hasStats = card.kind === 'craque';
-  const bx = hasStats ? CARD_W - 12 - 16 * 3 : Math.round((CARD_W - 16 * 3) / 2);
-  const by = 118;
-  map.forEach((line, y) =>
-    [...line].forEach((c, x) => {
-      const color = palette[c];
-      if (!color) return;
-      ctx.fillStyle = resolveColor(color);
-      ctx.fillRect(bx + x * 3, by + y * 3, 3, 3);
-    }),
-  );
-  if (hasStats) {
-    const { goals, assists } = player;
-    [`${goals} ${goals === 1 ? 'gol' : 'gols'}`, `${assists} assist.`].forEach((label, i) => {
-      const cy = 124 + i * 30;
-      ctx.font = '700 14px Silkscreen, monospace';
-      const cw = Math.ceil(ctx.measureText(label.toUpperCase()).width) + 14;
-      ctx.fillStyle = tier.ink;
-      ctx.fillRect(12, cy, cw, 24);
-      text(ctx, label, 19, cy + 5, { size: 14, color: '#fff' });
-    });
-  }
-
-  // Nomes: o apelido inteiro (encolhe na largura se precisar), o tipo da carta e a nota
-  const kind =
-    card.kind === 'mine' ? 'Sua carta' : card.kind === 'flop' ? 'Perna de pau' : 'Craque';
-  const note =
-    card.kind === 'mine'
-      ? card.rank !== null
-        ? `Posição ${card.rank}`
-        : ''
-      : `Rodada ${roundNumber}`;
-  text(ctx, player.nickname, 12, 208, { color: tier.ink, maxWidth: CARD_W - 24 });
-  text(ctx, kind, 12, 230, { color: tier.ink2, maxWidth: CARD_W - 24 });
-  text(ctx, note, 12, 252, { color: tier.ink2, maxWidth: CARD_W - 24 });
+  drawCardContent(ctx, card, roundNumber, {
+    faceW: CARD_W,
+    ink: tier.ink,
+    ink2: tier.ink2,
+    tierLabel: true,
+  });
 }
