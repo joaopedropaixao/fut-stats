@@ -7,7 +7,7 @@
 | **Fatia** | `ajustes-feedback` (#17 da Trilha) |
 | **Modo** | Front |
 | **Parte de** | — |
-| **Status** | aprovado em 19 nov 2026 (itens 1 a 4); item 5 aprovado em 19 nov 2026; item 6 aprovado em 20 nov 2026 (opção C, Lenda); QA aprovado na volta 5 |
+| **Status** | aprovado em 19 nov 2026 (itens 1 a 4); item 5 aprovado em 19 nov 2026; item 6 aprovado em 20 nov 2026 (opção C, Lenda); QA aprovado na volta 7 |
 | **Base** | develop @23f7acd |
 | **Depende de** | — |
 | **Toca em** | apps/web/src/features/lineup/generate-block.tsx, apps/web/src/features/lineup/lineup-builder.tsx, apps/web/src/features/pack (pack-cards, share-card só se a carta do Perna de Pau mudar no canvas: não muda), apps/web/src/features/voting (player-card, flop-card), apps/web/src/index.css, apps/web/index.html, docs/lancamento.md, docs/03-roadmap.md |
@@ -192,7 +192,22 @@ F2: depois dos 90 s, o "Tentar de novo" não refazia o pedido pendurado (no TanS
 a promessa); agora `restartQuery` cancela e refaz. As duas correções têm teste. A bola da tela de servidor passou a 72 px,
 como no desenho. Na volta 5 passaram C15–C30, a regressão dos itens 1 a 4 e o pronto da raiz. O JS inicial ficou em
 122,0/150 kB e `/dev/craque` não está no build. O Craque ficou claramente mais chamativo que o Perna de Pau
-(`c23-craque-vs-perna-de-pau.png`). A tela de servidor foi comparada com a **descrição** do desenho aprovado: o Paper
+(`c23-craque-vs-perna-de-pau.png`). **Voltas 6 e 7 (tela de servidor igual ao Paper + code-review): APROVADO na volta 7** (`817e869`). O dono mandou os
+prints aprovados do Paper (`ref-paper-servidor-3-iniciando.png`, `ref-paper-servidor-3b-3c.png`) e pediu a tela igual.
+O título passou a Silkscreen 400, numa linha de 360 a 430 px (20 px em 320). O erro virou o cartão do desenho, com a bola
+em cima, e a sombra ficou fixa. Medido por pixel a 390 px, a tela fica a até ~5 px do desenho nos três estados
+(comparativos `cmp-servidor-*.png`). O texto corrido segue em Chakra Petch (DS v1.4), e o Paper usa Inter. O
+code-review também foi tratado:
+- a: o selo do PNG do Compartilhar ficou alinhado com a tela;
+- b: o Perna de Pau nunca compartilha, agora com guarda e teste;
+- c: o Craque sozinho fica largo no resultado (falha da volta 6, corrigida na 7);
+- d: o `<main>` saiu do `role=status`;
+- e: um `<style>` inline no `<head>` evita o piscar branco em modo claro;
+- f: o `import type` foi para o topo;
+- g: as moedas param com Reduzir movimento e o botão em loading fica com `cursor-wait`;
+- h: o `restartQuery` só cancela a chave exata.
+
+A tela de servidor foi comparada com a **descrição** do desenho aprovado: o Paper
 ficou fora (limite semanal do plano) e não deu para ler os quadros 3, 3b e 3c. Diferenças: o erro usa o `ErrorState`
 padrão do app (tecla amarela com ícone, sem a bola), o subtítulo tem 16 px (15 no desenho) e "SERVIDOR INICIANDO..."
 quebra em duas linhas de 320 a 390 px.
