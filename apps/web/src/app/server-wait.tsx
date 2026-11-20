@@ -26,8 +26,8 @@ const BALL_PATHS = Object.entries(
 const SCALE = 6;
 
 /**
- * A bola pixel de 72 px com a sombra de dois degraus (32 e 48 px). Quicando, em degraus, a sombra encolhe quando ela
- * sobe e fica separada embaixo; parada (`still`, ou Reduzir movimento) a bola fica no chão e a sombra, colada nela.
+ * A bola pixel de 72 px com a sombra de dois degraus (32 e 48 px, #1d261d). Quicando, em degraus, a bola sobe e a sombra
+ * fica inteira no chão, separada dela; parada (`still`, ou Reduzir movimento) a bola fica no chão e a sombra quase encosta nela.
  */
 function Ball({ still }: { still?: boolean }) {
   return (
@@ -35,7 +35,7 @@ function Ball({ still }: { still?: boolean }) {
       aria-hidden
       className={cn(
         'relative flex w-[72px] flex-col items-center justify-end',
-        still ? 'h-[84px]' : 'h-[124px]',
+        still ? 'h-[82px]' : 'h-[122px]',
       )}
     >
       <svg
@@ -56,9 +56,9 @@ function Ball({ still }: { still?: boolean }) {
         height={8}
         viewBox="0 0 18 2"
         shapeRendering="crispEdges"
-        className={cn('mt-1', !still && 'animate-ball-shadow motion-reduce:animate-none')}
+        className="mt-0.5"
       >
-        <path d="M5 0h8v1h-8zM3 1h12v1h-12z" fill="var(--color-outline)" opacity="0.45" />
+        <path d="M5 0h8v1h-8zM3 1h12v1h-12z" fill="#1d261d" />
       </svg>
     </div>
   );
@@ -85,7 +85,8 @@ function ServerTitle({ children, className }: { children: string; className?: st
 
 /**
  * Tela cheia "Servidor iniciando...": a bola quica, uma frase de calma e, depois de 10 s, o aviso do 1 min. O título
- * cabe em uma linha de 375 px para cima; abaixo de 360 px ele diminui (16 px) em vez de quebrar.
+ * cabe em uma linha de 375 px para cima; abaixo de 360 px ele diminui (20 px) em vez de quebrar. A região do aviso
+ * não ocupa espaço enquanto vazia (a margem é do próprio aviso), para o bloco ficar centrado como no desenho.
  */
 export function ServerStarting({ notice, focus }: { notice: boolean; focus?: boolean }) {
   const ref = useRef<HTMLElement>(null);
@@ -97,22 +98,24 @@ export function ServerStarting({ notice, focus }: { notice: boolean; focus?: boo
       <main
         ref={ref}
         tabIndex={-1}
-        className="mx-auto flex min-h-dvh max-w-content flex-col items-center justify-center px-4 pt-16 pb-10 text-center outline-none"
+        className="mx-auto flex min-h-dvh max-w-content flex-col items-center justify-center px-4 pt-[68px] pb-10 text-center outline-none"
       >
         <title>Servidor iniciando · Fut Stats</title>
         <div role="status" className="flex flex-col items-center gap-[26px]">
           <Ball />
           <div className="flex flex-col items-center gap-2.5">
-            <ServerTitle className="whitespace-nowrap max-[359px]:text-pixel-sm">
+            <ServerTitle className="whitespace-nowrap max-[359px]:text-[20px] max-[359px]:leading-6">
               Servidor iniciando...
             </ServerTitle>
             <p className="text-[15px] leading-5 text-text-muted">Já já a pelada abre.</p>
           </div>
         </div>
         {/* A região existe sempre: o leitor de tela só anuncia o que entra depois dela */}
-        <div aria-live="polite" className="mt-7 flex w-full justify-center">
+        <div aria-live="polite" className="flex w-full justify-center">
           {notice && (
-            <WaitNotice className="max-w-full">Pode levar até 1 min na primeira vez</WaitNotice>
+            <WaitNotice wide className="mt-[35px] max-w-full">
+              Pode levar até 1 min na primeira vez
+            </WaitNotice>
           )}
         </div>
       </main>

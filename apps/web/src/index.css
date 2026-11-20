@@ -556,8 +556,7 @@
 }
 
 /*
- * Tela "Servidor iniciando": a bola pixel quica em degraus e a sombra no chão encolhe quando ela sobe (só transform
- * e opacity). Reduzir movimento: a bola fica parada no chão.
+ * Tela "Servidor iniciando": a bola pixel quica em degraus e a sombra fica parada no chão (só transform). Reduzir movimento: a bola fica parada no chão.
  */
 @keyframes ball-bounce {
   0%,
@@ -565,28 +564,12 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-40px);
-  }
-}
-
-@keyframes ball-shadow {
-  0%,
-  100% {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scaleX(0.55);
-    opacity: 0.6;
+    transform: translateY(-46px);
   }
 }
 
 @utility animate-ball-bounce {
   animation: ball-bounce 800ms steps(6, end) infinite;
-}
-
-@utility animate-ball-shadow {
-  animation: ball-shadow 800ms steps(6, end) infinite;
 }
 
 /* Votos enviados: o bonequinho dá um pulinho de 2 quadros (parado no chão, no ar), sem parar. Reduzir movimento: parado. */

@@ -88,10 +88,10 @@ describe('bola da tela de servidor', () => {
 });
 
 describe('tela igual ao desenho do Paper (itens 3, 3b e 3c)', () => {
-  it('o título é uma linha só (sem quebra) e muda para 16 px abaixo de 360 px, no peso regular do desenho', () => {
+  it('o título é uma linha só (sem quebra) e muda para 20 px abaixo de 360 px, no peso regular do desenho', () => {
     const out = renderToString(<ServerStarting notice={false} />);
     expect(out).toContain('whitespace-nowrap');
-    expect(out).toContain('max-[359px]:text-pixel-sm');
+    expect(out).toContain('max-[359px]:text-[20px]');
     expect(out).toContain('font-weight:400');
   });
 

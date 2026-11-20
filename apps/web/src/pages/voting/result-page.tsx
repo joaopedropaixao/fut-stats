@@ -20,7 +20,7 @@ import { flopPhrase } from '../../features/pack/impact-phrase';
 import { useMatch } from '../../features/match/queries';
 import { ShareButton } from '../../features/pack/share-button';
 import { ApiError } from '../../lib/api';
-import { cn } from '../../lib/cn';
+import { CRAQUE_ROW, craqueColumn } from '../../features/voting/craque-stage-layout';
 import { CraqueCard } from '../../features/voting/craque-card';
 import { FlopCard } from '../../features/voting/flop-card';
 import { MyScoreCard } from '../../features/voting/my-score-card';
@@ -144,15 +144,9 @@ function CraqueStage({ result, cards }: { result: RoundResult; cards: PackCard[]
   const tie = cards.length > 1;
   return (
     <div className="moment-frame craque-stage animate-moment-in flex flex-col items-center gap-8 px-4 py-8">
-      <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-8">
+      <div className={CRAQUE_ROW}>
         {cards.map((card, i) => (
-          <div
-            key={card.player.membershipId}
-            className={cn(
-              'flex max-w-full flex-col items-center gap-5',
-              tie ? 'w-60' : 'w-60 min-[360px]:w-full min-[360px]:max-w-xs',
-            )}
-          >
+          <div key={card.player.membershipId} className={craqueColumn(tie)}>
             <CraqueCard
               player={card.player}
               tier={card.tier}
@@ -163,7 +157,7 @@ function CraqueStage({ result, cards }: { result: RoundResult; cards: PackCard[]
               enter
             />
             {card.phrase !== null && <PhraseBanner phrase={card.phrase} className="w-full" />}
-            <ShareButton card={card} roundNumber={result.number} block />
+            <ShareButton card={card} roundNumber={result.number} block className="w-full" />
           </div>
         ))}
       </div>

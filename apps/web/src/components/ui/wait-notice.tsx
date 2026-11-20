@@ -6,12 +6,23 @@ import { cn } from '../../lib/cn';
  * "Acordando o servidor" do Gerar times e no "Pode levar até 1 min" da tela de servidor iniciando. Quem usa põe o
  * aviso dentro de uma região `aria-live="polite"` que já existe, para o leitor de tela anunciar quando ele entra.
  */
-export function WaitNotice({ children, className }: { children: ReactNode; className?: string }) {
+export function WaitNotice({
+  children,
+  className,
+  wide,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** Mais folga dos lados (a tela de servidor iniciando, como no desenho). */
+  wide?: boolean;
+}) {
   return (
     <p
       data-testid="slow-wait"
       className={cn(
-        'animate-menu-in flex items-center gap-2.5 bg-surface-raised px-3 py-2.5 text-sm font-semibold text-text shadow-[inset_0_0_0_2px_var(--color-gold)]',
+        'animate-menu-in flex items-center gap-2.5 bg-surface-raised py-2.5',
+        wide ? 'px-4' : 'px-3',
+        'text-sm font-semibold text-text shadow-[inset_0_0_0_2px_var(--color-gold)]',
         className,
       )}
     >
