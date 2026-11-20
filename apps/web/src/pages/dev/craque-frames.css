@@ -1,0 +1,212 @@
+/*
+ * Molduras do Craque (só dev, para o dono escolher). Fundo dourado brilhante, moldura espessa com bisel e friso,
+ * tudo em CSS e SVG pixel. Só transform e opacity animam; Reduzir movimento deixa tudo parado (sem brilho passando).
+ */
+
+.lab-card {
+  --ink: #2a1703;
+  --ink-2: #4a2c06;
+  --lt: #fff0a8;
+  --dk: #4a2c04;
+}
+
+.lab-card[data-tier='bronze'] {
+  --seal: var(--color-bronze-light);
+}
+
+.lab-card[data-tier='silver'] {
+  --seal: var(--color-silver-light);
+}
+
+.lab-card[data-tier='gold'] {
+  --seal: var(--color-gold-light);
+}
+
+/* O fundo: ouro polido, com um clarão de canto e uma faixa de reflexo (sem verde, creme ou arco-íris) */
+.lab-gold {
+  background:
+    linear-gradient(
+      115deg,
+      transparent 0 40%,
+      rgb(255 255 255 / 42%) 44% 48%,
+      transparent 52% 100%
+    ),
+    radial-gradient(130px 100px at 28% 18%, rgb(255 246 190 / 75%), transparent 70%),
+    linear-gradient(
+      135deg,
+      #fff0a8 0%,
+      #f8cf4a 20%,
+      #e8a93a 38%,
+      #ffe27a 56%,
+      #f2b83c 76%,
+      #c98a1a 100%
+    );
+}
+
+/* A face (o miolo dourado): contorno preto fino e bisel de dentro (sombra em cima, luz embaixo) */
+.lab-face {
+  box-shadow:
+    inset 0 0 0 3px #000,
+    inset 5px 5px 0 3px rgb(74 44 4 / 55%),
+    inset -5px -5px 0 3px rgb(255 244 180 / 70%);
+}
+
+/* A) Troféu: ouro velho grosso, bisel fundo */
+.lab-frame-a {
+  background: linear-gradient(
+    135deg,
+    #6a430a 0%,
+    #b9801c 22%,
+    #e9b648 46%,
+    #a8700f 72%,
+    #5a3606 100%
+  );
+  box-shadow:
+    inset 4px 4px 0 var(--lt),
+    inset -4px -4px 0 var(--dk),
+    0 0 0 3px #000,
+    7px 7px 0 3px #000;
+}
+
+/* B) Coroa de estrelas: ouro polido claro, friso duplo */
+.lab-frame-b {
+  background: linear-gradient(
+    135deg,
+    #8a5a10 0%,
+    #f2c14a 25%,
+    #fff1a0 48%,
+    #d9962a 74%,
+    #7a4c0a 100%
+  );
+  box-shadow:
+    inset 3px 3px 0 #fff8d0,
+    inset -3px -3px 0 var(--dk),
+    0 0 0 3px #000,
+    6px 6px 0 3px #000;
+}
+
+/* C) Lenda: cantos em degraus; o contorno preto vem dos drop-shadow do pai (o clip-path cortaria o box-shadow) */
+.lab-frame-c {
+  background: linear-gradient(
+    135deg,
+    #5a3606 0%,
+    #d49a22 20%,
+    #ffe680 44%,
+    #b97a14 70%,
+    #4a2c04 100%
+  );
+  clip-path: polygon(
+    0 20px,
+    5px 20px,
+    5px 15px,
+    10px 15px,
+    10px 10px,
+    15px 10px,
+    15px 5px,
+    20px 5px,
+    20px 0,
+    calc(100% - 20px) 0,
+    calc(100% - 20px) 5px,
+    calc(100% - 15px) 5px,
+    calc(100% - 15px) 10px,
+    calc(100% - 10px) 10px,
+    calc(100% - 10px) 15px,
+    calc(100% - 5px) 15px,
+    calc(100% - 5px) 20px,
+    100% 20px,
+    100% calc(100% - 20px),
+    calc(100% - 5px) calc(100% - 20px),
+    calc(100% - 5px) calc(100% - 15px),
+    calc(100% - 10px) calc(100% - 15px),
+    calc(100% - 10px) calc(100% - 10px),
+    calc(100% - 15px) calc(100% - 10px),
+    calc(100% - 15px) calc(100% - 5px),
+    calc(100% - 20px) calc(100% - 5px),
+    calc(100% - 20px) 100%,
+    20px 100%,
+    20px calc(100% - 5px),
+    15px calc(100% - 5px),
+    15px calc(100% - 10px),
+    10px calc(100% - 10px),
+    10px calc(100% - 15px),
+    5px calc(100% - 15px),
+    5px calc(100% - 20px),
+    0 calc(100% - 20px)
+  );
+}
+
+.lab-outline-c {
+  filter: drop-shadow(3px 0 0 #000) drop-shadow(-3px 0 0 #000) drop-shadow(0 3px 0 #000)
+    drop-shadow(0 -3px 0 #000) drop-shadow(7px 7px 0 #000);
+}
+
+/* O friso: uma linha escura fina dentro da moldura */
+.lab-friso {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid rgb(58 36 3 / 75%);
+}
+
+.lab-friso-lt {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid rgb(255 244 180 / 80%);
+}
+
+/* Raios saindo de trás do jogador (B) */
+.lab-rays {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-conic-gradient(
+    from -6deg at 50% 60%,
+    rgb(255 255 255 / 42%) 0 7deg,
+    transparent 7deg 20deg
+  );
+  mask-image: radial-gradient(circle at 50% 60%, #000 0, rgb(0 0 0 / 35%) 60%, transparent 85%);
+}
+
+/* O brilho que passa (o mesmo laço do pacote, mais forte em C) */
+.lab-sweep {
+  pointer-events: none;
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 34%;
+  background: linear-gradient(100deg, transparent 0%, rgb(255 255 255 / 70%) 50%, transparent 100%);
+}
+
+.lab-sweep-strong {
+  width: 46%;
+  background: linear-gradient(100deg, transparent 0%, rgb(255 255 255 / 92%) 50%, transparent 100%);
+}
+
+@keyframes lab-sweep {
+  0%,
+  45% {
+    opacity: 0;
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  46% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(280%) skewX(-18deg);
+  }
+}
+
+.lab-sweep {
+  animation: lab-sweep 3200ms steps(14, end) infinite;
+}
+
+.lab-sweep-late {
+  animation-delay: 1500ms;
+}
+
+/* Reduzir movimento: o brilho não passa (fica só o reflexo parado do fundo) */
+@media (prefers-reduced-motion: reduce) {
+  .lab-sweep {
+    display: none;
+  }
+}

@@ -115,6 +115,13 @@ export const appRoutes: RouteObject[] = [
           }),
         },
         {
+          // Molduras do Craque para o dono escolher (item 6); o que não for escolhido sai depois
+          path: '/dev/craque',
+          lazy: async () => ({
+            Component: (await import('./pages/dev/craque-frames')).CraqueFramesPage,
+          }),
+        },
+        {
           path: '/dev/componentes',
           lazy: async () => ({
             Component: (await import('./pages/dev/components-showcase')).ComponentsShowcasePage,

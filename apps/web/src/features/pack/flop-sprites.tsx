@@ -132,14 +132,28 @@ export function NailSprite({ className }: SpriteProps) {
  * define pela nota), preso na madeira por um prego e levemente girado. O texto escrito é o sinal; a cor sozinha
  * não basta. O posicionamento vem do `className` de quem usa.
  */
-export function TierSeal({ label, className }: { label: string; className?: string }) {
+export function TierSeal({
+  label,
+  className,
+  dark,
+}: {
+  label: string;
+  className?: string;
+  /**
+   * Selo escuro (fundo preto, letra e friso na cor da faixa `--seal`): aguenta qualquer fundo, até o dourado. Quem
+   * usa define `--seal` pela faixa (só a página de dev da moldura do Craque usa por enquanto).
+   */
+  dark?: boolean;
+}) {
   return (
     <span
       aria-hidden
-      style={{ backgroundImage: 'var(--tier-bg)' }}
+      style={dark ? undefined : { backgroundImage: 'var(--tier-bg)' }}
       className={cn(
-        'flex items-center gap-1.5 py-1 pr-2 pl-1.5 text-(--tier-ink)',
-        'shadow-[inset_0_0_0_2px_var(--color-outline),3px_3px_0_0_var(--color-outline)]',
+        'flex items-center gap-1.5 py-1 pr-2 pl-1.5',
+        dark
+          ? 'bg-team-black text-(--seal) shadow-[inset_0_0_0_3px_var(--seal),4px_4px_0_0_var(--color-outline)]'
+          : 'text-(--tier-ink) shadow-[inset_0_0_0_2px_var(--color-outline),3px_3px_0_0_var(--color-outline)]',
         className,
       )}
     >

@@ -49,6 +49,7 @@ const STATIC_SEGMENTS = new Set([
   'erro',
   'erro-na-tela',
   'componentes',
+  'craque',
 ]);
 
 /** O nome que o roteador dá ao segmento variável depois de cada parte fixa (`/convite/:code`). */
