@@ -7,7 +7,7 @@
 | **Fatia** | `ajustes-feedback` (#17 da Trilha) |
 | **Modo** | Front |
 | **Parte de** | — |
-| **Status** | aprovado em 19 nov 2026 (itens 1 a 4); item 5 aprovado em 19 nov 2026; item 6 aprovado em 20 nov 2026 (opção C, Lenda) |
+| **Status** | aprovado em 19 nov 2026 (itens 1 a 4); item 5 aprovado em 19 nov 2026; item 6 aprovado em 20 nov 2026 (opção C, Lenda); QA aprovado na volta 5 |
 | **Base** | develop @23f7acd |
 | **Depende de** | — |
 | **Toca em** | apps/web/src/features/lineup/generate-block.tsx, apps/web/src/features/lineup/lineup-builder.tsx, apps/web/src/features/pack (pack-cards, share-card só se a carta do Perna de Pau mudar no canvas: não muda), apps/web/src/features/voting (player-card, flop-card), apps/web/src/index.css, apps/web/index.html, docs/lancamento.md, docs/03-roadmap.md |
@@ -185,6 +185,17 @@ fazia nada), o `useSlowWait` ganhou teste com fake timers e "Gerando..." cabe em
 360 px, que resolve o O1). A madeira também passou a não depender do `data-tier`. A, B, C, D, E, F e a regressão de
 C1–C14 passaram. Fora da fatia, segue registrado: a contagem "BRANCO 0 DE 7 · 0 DE 7 PRETO" (`lineup-status.tsx`) rola
 na horizontal em 320 px.
+
+**Voltas 4 e 5 (itens 5 e 6): APROVADO na volta 5** (`0d06f1d`). A volta 4 reprovou com duas falhas. F1: as duas
+faíscas laterais da moldura Lenda causavam 2 px de rolagem horizontal em 320 px; agora ficam ocultas abaixo de 360 px.
+F2: depois dos 90 s, o "Tentar de novo" não refazia o pedido pendurado (no TanStack v5, `refetch()` sem dado reaproveita
+a promessa); agora `restartQuery` cancela e refaz. As duas correções têm teste. A bola da tela de servidor passou a 72 px,
+como no desenho. Na volta 5 passaram C15–C30, a regressão dos itens 1 a 4 e o pronto da raiz. O JS inicial ficou em
+122,0/150 kB e `/dev/craque` não está no build. O Craque ficou claramente mais chamativo que o Perna de Pau
+(`c23-craque-vs-perna-de-pau.png`). A tela de servidor foi comparada com a **descrição** do desenho aprovado: o Paper
+ficou fora (limite semanal do plano) e não deu para ler os quadros 3, 3b e 3c. Diferenças: o erro usa o `ErrorState`
+padrão do app (tecla amarela com ícone, sem a bola), o subtítulo tem 16 px (15 no desenho) e "SERVIDOR INICIANDO..."
+quebra em duas linhas de 320 a 390 px.
 
 Observações da volta 2 (O1 e O2 resolvidas na volta 3):
 - **O1:** em 320 px, o último ponto de "Gerando..." encosta na borda do botão.
