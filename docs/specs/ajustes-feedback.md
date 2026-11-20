@@ -7,7 +7,7 @@
 | **Fatia** | `ajustes-feedback` (#17 da Trilha) |
 | **Modo** | Front |
 | **Parte de** | — |
-| **Status** | aprovado em 19 nov 2026 (itens 1 a 4); item 5 aprovado em 19 nov 2026; item 6 aprovado em 20 nov 2026 (opção C, Lenda); QA aprovado na volta 7 |
+| **Status** | aprovado em 19 nov 2026 (itens 1 a 4); item 5 aprovado em 19 nov 2026; item 6 aprovado em 20 nov 2026 (opção C, Lenda); QA aprovado na volta 8 |
 | **Base** | develop @23f7acd |
 | **Depende de** | — |
 | **Toca em** | apps/web/src/features/lineup/generate-block.tsx, apps/web/src/features/lineup/lineup-builder.tsx, apps/web/src/features/pack (pack-cards, share-card só se a carta do Perna de Pau mudar no canvas: não muda), apps/web/src/features/voting (player-card, flop-card), apps/web/src/index.css, apps/web/index.html, docs/lancamento.md, docs/03-roadmap.md |
@@ -194,7 +194,15 @@ F2: depois dos 90 s, o "Tentar de novo" não refazia o pedido pendurado (no TanS
 a promessa); agora `restartQuery` cancela e refaz. As duas correções têm teste. A bola da tela de servidor passou a 72 px,
 como no desenho. Na volta 5 passaram C15–C30, a regressão dos itens 1 a 4 e o pronto da raiz. O JS inicial ficou em
 122,0/150 kB e `/dev/craque` não está no build. O Craque ficou claramente mais chamativo que o Perna de Pau
-(`c23-craque-vs-perna-de-pau.png`). **Voltas 6 e 7 (tela de servidor igual ao Paper + code-review): APROVADO na volta 7** (`817e869`). O dono mandou os
+(`c23-craque-vs-perna-de-pau.png`). **Volta 8 (última, focada): APROVADO** (`0fd6cca`). C37 (o Perna de Pau da rodada não compartilha a própria "Sua nota") e os nits do code-review da volta 7:
+- PNG do Craque com a proporção da tela;
+- `inviteQueryKey` único;
+- palco de 500 só nas cartas de 240 px;
+- a regra de compartilhar só em `canShareCard`.
+
+Risco anotado: o empate de dois Craques só foi conferido por simulação (o seed não tem rodada com empate).
+
+**Voltas 6 e 7 (tela de servidor igual ao Paper + code-review): APROVADO na volta 7** (`817e869`). O dono mandou os
 prints aprovados do Paper (`ref-paper-servidor-3-iniciando.png`, `ref-paper-servidor-3b-3c.png`) e pediu a tela igual.
 O título passou a Silkscreen 400, numa linha de 360 a 430 px (20 px em 320). O erro virou o cartão do desenho, com a bola
 em cima, e a sombra ficou fixa. Medido por pixel a 390 px, a tela fica a até ~5 px do desenho nos três estados
