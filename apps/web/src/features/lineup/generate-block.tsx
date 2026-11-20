@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { PixelText } from '../../components/ui/pixel-text';
+import { WaitNotice } from '../../components/ui/wait-notice';
 import { cn } from '../../lib/cn';
-import { useSlowWait } from './slow-wait';
+import { useSlowWait } from '../../lib/slow-wait';
 
 /** Em 320 px "Gerando..." em 24 px encosta na borda do botão: abaixo de 360 px o texto vai para 16 px. */
 const NARROW_LOADING_TEXT = 'max-[359px]:text-pixel-sm';
@@ -227,18 +228,7 @@ export function GenerateBlock({ regenerate, loading, onGenerate }: GenerateBlock
   );
 }
 
-/** "Acordando o servidor, pode levar até 1 min": borda dourada e um quadradinho que pisca em degraus. */
+/** "Acordando o servidor, pode levar até 1 min" embaixo do bloco (o `mt-3` é o espaço entre os dois). */
 export function SlowWaitNotice() {
-  return (
-    <p
-      data-testid="slow-wait"
-      className="animate-menu-in mt-3 flex items-center gap-2.5 bg-surface-raised px-3 py-2.5 text-sm font-semibold text-text shadow-[inset_0_0_0_2px_var(--color-gold)]"
-    >
-      <span
-        aria-hidden
-        className="animate-live-blink size-2.5 shrink-0 bg-gold-light shadow-[0_0_0_2px_var(--color-outline)] motion-reduce:animate-none"
-      />
-      Acordando o servidor, pode levar até 1 min
-    </p>
-  );
+  return <WaitNotice className="mt-3">Acordando o servidor, pode levar até 1 min</WaitNotice>;
 }

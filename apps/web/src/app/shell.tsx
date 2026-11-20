@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type Ref } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   Navigate,
   Outlet,
@@ -7,7 +7,7 @@ import {
   useNavigation,
   useSearchParams,
 } from 'react-router';
-import { ErrorState, SkeletonList } from '../components/ui/states';
+import { SkeletonList } from '../components/ui/states';
 import { TabBar } from '../components/ui/tab-bar';
 import {
   clearPendingDestination,
@@ -17,6 +17,7 @@ import {
 import { setCurrentGroupId } from '../features/group/use-current-group';
 import { LiveRoundsMount } from '../features/live/live-rounds-mount';
 import { useSession } from '../features/session/use-session';
+import { ServerWait } from './server-wait';
 import { TABS } from './tabs';
 import { useDelayedFlag } from './use-delayed-flag';
 
@@ -31,6 +32,9 @@ export function AppShell() {
   const navigate = useNavigate();
   const isMatchRoute = /^\/rodadas\/[^/]+\/jogo$/.test(pathname);
   const firstRender = useRef(true);
+  // "Tentar de novo" na espera do /me: remonta a tela de espera (temporizadores do zero) e esconde o erro já visto
+  const [attempt, setAttempt] = useState(0);
+  const [seenErrors, setSeenErrors] = useState(0);
   // Trocou de tela e o pedaço dela ainda está vindo: a tela anterior fica; passou de 300 ms, entra o esqueleto
   const loadingScreen = useDelayedFlag(useNavigation().state === 'loading', SLOW_NAVIGATION_MS);
 
@@ -92,26 +96,34 @@ export function AppShell() {
   // Logado e sem pelada: o início é criar uma ou entrar por convite
   if (session.data && session.data.groups.length === 0) return <Navigate to="/comecar" replace />;
 
-  // Com sessão em cache, um erro numa atualização em segundo plano não derruba a tela
+  // Ainda sem resposta do /me e sem sessão em cache: a espera (esqueleto, "Servidor iniciando" ou o erro). Com sessão
+  // em cache, um erro numa atualização em segundo plano não derruba a tela.
   const ready = session.data !== undefined;
-  // Depois de falhar uma vez, o erro fica na tela durante o "Tentar de novo" (o TanStack volta o status
-  // para pending ao refazer uma consulta sem dado; trocar pelo esqueleto tiraria o foco do botão)
-  const failed = session.errorUpdateCount > 0;
+  if (!ready) {
+    return (
+      <ServerWait
+        key={attempt}
+        failed={session.errorUpdateCount > seenErrors}
+        retried={attempt > 0}
+        onRetry={() => {
+          setSeenErrors(session.errorUpdateCount);
+          setAttempt((n) => n + 1);
+          void session.refetch();
+        }}
+        skeleton={
+          <ShellFrame showTabs={false} isMatchRoute={isMatchRoute}>
+            <SkeletonList rows={3} />
+          </ShellFrame>
+        }
+      />
+    );
+  }
 
   return (
-    <ShellFrame mainRef={mainRef} showTabs={ready} isMatchRoute={isMatchRoute}>
-      {!ready && !failed && <SkeletonList rows={3} />}
-      {!ready && failed && (
-        <ErrorState
-          title="Não deu para abrir o app"
-          message="Parece que a internet caiu ou o servidor está acordando. Tente de novo em instantes."
-          onRetry={() => void session.refetch()}
-          retrying={session.isFetching}
-        />
-      )}
+    <ShellFrame mainRef={mainRef} showTabs isMatchRoute={isMatchRoute}>
       {/* Com `?grupo=` ainda na URL a pelada está para trocar: a tela espera o frame em vez de abrir a errada */}
-      {ready && (loadingScreen || groupParam !== null ? <SkeletonList rows={3} /> : <Outlet />)}
-      {ready && <LiveRoundsMount />}
+      {loadingScreen || groupParam !== null ? <SkeletonList rows={3} /> : <Outlet />}
+      <LiveRoundsMount />
     </ShellFrame>
   );
 }
