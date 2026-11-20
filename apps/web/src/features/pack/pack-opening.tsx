@@ -65,6 +65,7 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
   }, [frame, last]);
 
   // O Craque (e os dois juntos) fazem o palco com holofote; o resto fica no escuro do pacote
+  const tall = frame.kind === 'duo' || (frame.kind === 'card' && frame.card.kind !== 'mine');
   const onStage = frame.kind === 'duo' || (frame.kind === 'card' && frame.card.kind === 'craque');
 
   const atEnd = index === last;
@@ -98,7 +99,9 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
       ) : (
         <div
           className={cn(
-            'moment-frame animate-moment-in relative flex min-h-[500px] items-center justify-center overflow-hidden px-3 pt-[72px] pb-6',
+            'moment-frame animate-moment-in relative flex items-center justify-center overflow-hidden px-3 pt-[72px] pb-6',
+            // As cartas de 240 px (Craque, Perna de pau e o empate) pedem o palco mais alto; o pacote fechado e a sua carta, não
+            tall ? 'min-h-[500px]' : 'min-h-[440px]',
             onStage ? 'craque-stage' : 'bg-track',
             frame.kind !== 'closed' && 'cursor-pointer',
           )}
@@ -526,7 +529,8 @@ function FinalCard({ card, number, delay }: { card: PackCard; number: number; de
       {card.kind === 'craque' && card.phrase !== null && (
         <PhraseBanner phrase={card.phrase} className="w-full" />
       )}
-      {card.kind !== 'flop' && <ShareButton card={card} roundNumber={number} block />}
+      {/* O `ShareButton` decide sozinho (`canShareCard`): o Perna de pau não tem a tecla */}
+      <ShareButton card={card} roundNumber={number} block />
     </div>
   );
 }

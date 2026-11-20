@@ -92,6 +92,7 @@ próprios para qualquer nota, e a faixa (`cardTier`) vira o selo no canto de cim
 | C28 | Compartilhar a carta do Craque | tocar | o PNG sai com a moldura do Craque e o selo da faixa (proposta, depende do dono) | unitário (canvas) |
 | C29 | leitor de tela | revelar o Craque | o anúncio segue com a faixa por escrito ("..., nota 9,1, ouro"); a decoração fica em `aria-hidden` | Playwright |
 | C30 | 320 a 430 px e desktop | pacote e resultado | sem rolagem horizontal, sem decoração sobre texto; o pacote continua lazy | Playwright + build |
+| C37 | quem foi o Perna de Pau da rodada | olha a carta comum "Sua nota" no resultado | sem a tecla "Compartilhar minha carta" (só ele, só nessa rodada); os demais jogadores seguem com a tecla e o Craque (inclusive sendo eu) continua compartilhando | unitário (`canShareCard` e `ShareButton`) + Playwright |
 
 ## Técnico
 
@@ -150,6 +151,7 @@ Sem mudança.
 - Item 5 (19 nov 2026): desenho (quadros 3, 3b e 3c) e limiares 3/10/90 s aprovados.
 - Item 6 (19 nov 2026): nem A nem B ("fundo sem graça"; o creme "ficou igual ao do Perna de Pau"); o dono pediu 3 opções novas, com fundo vivo e de impacto. Quando o Craque sou eu: moldura do Craque + contorno creme da carta especial + VOCÊ na tira, com o selo um pouco abaixo (aprovado). O PNG do Compartilhar do Craque sai com a moldura nova (aprovado).
 - Item 6, segunda rodada (20 nov 2026): também recusou Noite de final, Realeza e Holo ("essas cores ficaram nada a ver"). Pediu dourado e brilhante, parecido com o OURO do Craque de antes, mas com uma moldura mais forte, porque "a carta do Perna de Pau ficou mais bonita e chamativa do que a do Craque". Entre as três variações feitas em código (`/dev/craque`), escolheu a **C, Lenda**: cantos em degraus, ponteiras e troféu com asas no topo, faíscas, dois brilhos passando e fundo dourado metálico. O selo é escuro (fundo preto, letra na cor da faixa) e a nota pixel escurece para dar contraste.
+- Perna de Pau não compartilha a própria carta comum na rodada (20 nov 2026): a tecla "Compartilhar minha carta" some só para quem foi o Perna de Pau da rodada; o Craque e os demais seguem como estão (decisão do dono).
 
 ## QA
 2 voltas. **VEREDITO: APROVADO** na volta 2 (HEAD db362a3).

@@ -7,15 +7,15 @@ import { TIER_LABELS } from './tier';
 /**
  * A carta do Craque no Compartilhar: a moldura "Lenda" desenhada no canvas (fundo dourado metálico, cantos em
  * degraus, friso duplo, troféu com asas, ponteiras, faíscas e o selo escuro da faixa). Mesmas medidas da carta na tela
- * (240 x 370 unidades de CSS), a mesma moldura para qualquer nota: só o selo muda de faixa.
+ * (240 x 390 unidades de CSS: `pt-[54px]` do troféu, `p-5` da moldura e o miolo de `min-h-[296px]`), a mesma moldura para qualquer nota: só o selo muda de faixa.
  */
 export const LEGEND_W = 240;
-export const LEGEND_H = 370;
+export const LEGEND_H = 390;
 
 const TOP = 54;
 const PAD = 20;
 const FACE_W = LEGEND_W - PAD * 2;
-const FACE_H = 276;
+const FACE_H = 296;
 const FRAME_H = FACE_H + PAD * 2;
 
 const INK = '#140b02';
@@ -232,7 +232,7 @@ function drawSeal(ctx: CanvasRenderingContext2D, card: PackCard) {
   ctx.restore();
 }
 
-/** Desenha a carta do Craque com a moldura "Lenda" (a origem é o canto de cima à esquerda da área de 240 x 370). */
+/** Desenha a carta do Craque com a moldura "Lenda" (a origem é o canto de cima à esquerda da área de 240 x 390). */
 export function drawLegendCard(ctx: CanvasRenderingContext2D, card: PackCard, roundNumber: number) {
   drawFrame(ctx);
   ctx.save();
@@ -247,6 +247,8 @@ export function drawLegendCard(ctx: CanvasRenderingContext2D, card: PackCard, ro
     ink2: INK_2,
     tierLabel: false,
     emboss: true,
+    // O miolo da tela tem 296 (o conteúdo comum, 276): os nomes descem para o pé, como o `justify-between` da tela
+    namesDy: FACE_H - 276,
   });
   ctx.restore();
   drawOrnaments(ctx);

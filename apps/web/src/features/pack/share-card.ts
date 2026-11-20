@@ -1,5 +1,6 @@
 import type { PackCard } from './deck';
 import { drawLegendCard, LEGEND_W } from './share-legend';
+import { canShareCard } from './share-rule';
 import { CARD_H, CARD_W, drawCardContent, resolveColor, text } from './share-draw';
 import { TIER_COLORS } from './tier';
 
@@ -9,9 +10,9 @@ export const SHARE_HEIGHT = 1350;
 
 /** Desenha a carta (a mesma da tela) e devolve o PNG. */
 export async function renderCardPng(card: PackCard, roundNumber: number): Promise<Blob> {
-  // O Perna de pau não tem Compartilhar (o pacote não mostra a tecla e a página do resultado também não): sem moldura de
-  // madeira aqui, e quem tentar passar uma carta dele leva o erro em vez de um PNG com a moldura errada
-  if (card.kind === 'flop') throw new Error('O Perna de pau não é compartilhável');
+  // Quem não compartilha (`canShareCard`: o Perna de pau e a carta comum do Perna de pau da rodada) leva o erro em vez de
+  // um PNG sem moldura de madeira ou de uma carta que não deveria sair
+  if (!canShareCard(card)) throw new Error('Esta carta não é compartilhável');
   // A fonte pixel precisa estar carregada antes de desenhar o texto
   try {
     await document.fonts.load('700 16px Silkscreen');
@@ -30,12 +31,12 @@ export async function renderCardPng(card: PackCard, roundNumber: number): Promis
 
   // A carta, centrada e ampliada 4x (inteiro: o pixel art não pode ficar fracionado). Com frase (o Craque), a marca
   // vai para o alto e a frase assina a carta embaixo; sem frase, o rodapé fica como era.
-  // O Craque (moldura Lenda, 240 x 370) é maior que a carta comum: ampliado 3x para caber com a frase embaixo.
+  // O Craque (moldura Lenda, 240 x 390) é maior que a carta comum: ampliado 3x para caber com a frase embaixo.
   const legend = card.kind === 'craque';
   const scale = legend ? 3 : 4;
   const ox = Math.round((SHARE_WIDTH - (legend ? LEGEND_W : CARD_W) * scale) / 2);
   const withPhrase = card.phrase !== null;
-  const oy = legend ? 46 : withPhrase ? 48 : 74;
+  const oy = legend ? 38 : withPhrase ? 48 : 74;
   ctx.save();
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);

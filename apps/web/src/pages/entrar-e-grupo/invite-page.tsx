@@ -20,6 +20,9 @@ import { useSession } from '../../features/session/use-session';
 import { ApiError, apiGet, LOGIN_URL } from '../../lib/api';
 import { ChalkCorner } from './chalk';
 
+/** A chave da prévia do convite: a consulta e o "Tentar de novo" da espera usam a mesma. */
+const inviteQueryKey = (code: string) => ['invite', code] as const;
+
 /** Prévia pública do convite; logado escolhe apelido e posição e entra, deslogado entra com Google e volta. */
 export function InvitePage() {
   const { code = '' } = useParams();
@@ -29,7 +32,7 @@ export function InvitePage() {
     if (session.data) clearPendingDestination();
   }, [session.data]);
   const preview = useQuery({
-    queryKey: ['invite', code],
+    queryKey: inviteQueryKey(code),
     queryFn: ({ signal }) =>
       apiGet(`/invites/${encodeURIComponent(code)}`, invitePreviewSchema, { signal }),
   });
@@ -43,7 +46,7 @@ export function InvitePage() {
     return (
       <QueryServerWait
         query={preview}
-        queryKey={['invite', code]}
+        queryKey={inviteQueryKey(code)}
         skeleton={
           <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pt-6 pb-10">
             <title>Convite · Fut Stats</title>

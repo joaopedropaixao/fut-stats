@@ -42,6 +42,8 @@ export type ContentOptions = {
   tierLabel: boolean;
   /** Sombra clara sob a nota (a Lenda: tinta escura sobre o ouro). */
   emboss?: boolean;
+  /** Quanto os nomes (apelido, tipo e nota) descem: o miolo da Lenda é mais alto que o da carta comum. */
+  namesDy?: number;
 };
 
 /** O que vai dentro da carta, do miolo para dentro: tira do time, nota, posição, bonequinho, números e nomes. */
@@ -153,7 +155,8 @@ export function drawCardContent(
         ? `Posição ${card.rank}`
         : ''
       : `Rodada ${roundNumber}`;
-  text(ctx, player.nickname, 12, 208, { color: o.ink, maxWidth: W - 24 });
-  text(ctx, kind, 12, 230, { color: o.ink2, maxWidth: W - 24 });
-  text(ctx, note, 12, 252, { color: o.ink2, maxWidth: W - 24 });
+  const dy = o.namesDy ?? 0;
+  text(ctx, player.nickname, 12, 208 + dy, { color: o.ink, maxWidth: W - 24 });
+  text(ctx, kind, 12, 230 + dy, { color: o.ink2, maxWidth: W - 24 });
+  text(ctx, note, 12, 252 + dy, { color: o.ink2, maxWidth: W - 24 });
 }

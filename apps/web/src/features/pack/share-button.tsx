@@ -3,6 +3,7 @@ import { Button } from '../../components/ui/button';
 import type { PackCard } from './deck';
 import { shareFileName, shareText } from './pack-text';
 import { shareCard } from './share';
+import { canShareCard } from './share-rule';
 
 type ShareButtonProps = {
   card: PackCard;
@@ -40,8 +41,8 @@ export function ShareButton({ card, roundNumber, block, className }: ShareButton
     }
   };
 
-  // O Perna de pau não tem Compartilhar (e o `renderCardPng` também recusa a carta dele)
-  if (card.kind === 'flop') return null;
+  // Sem Compartilhar (a regra é de `canShareCard`): não renderiza nada nem ocupa espaço
+  if (!canShareCard(card)) return null;
 
   return (
     <div className={className}>
