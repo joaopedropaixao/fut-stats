@@ -79,6 +79,22 @@ de entrar não espera o `/me` (renderiza na hora), e o convite tem a própria es
 | C21 | /entrar, /convite/:código e /dev/entrar | abrir com a API lenta | nenhuma delas mostra a tela de servidor (seguem como hoje) | Playwright |
 | C22 | build | `pnpm build` | o JS inicial continua dentro do orçamento (a tela vai no pedaço inicial: SVG pixel com a bola que já existe, sem imagem nova) | build |
 
+**Item 5b, aviso no botão "Entrar com Google"** (pedido do dono, 20 nov 2026). A tela de servidor só cobre quem já tem
+sessão. Para quem é novo, a decisão do dono é **só o aviso no botão**, sem acordar a API antes (nada de ping ao abrir a tela).
+O login é uma **navegação** do navegador para `/api/auth/google` (redirect para o Google), não um `fetch`. Enquanto a API não
+responde, o navegador mantém a página atual na tela e o JS segue rodando. Dá para pôr o botão em "carregando" no toque e
+mostrar o aviso no próprio botão até a página sair. Ao voltar pelo histórico (bfcache, evento `pageshow` com `persisted`),
+o botão volta ao normal.
+
+| Id | Dado | Quando | Então | Teste |
+|---|---|---|---|---|
+| C31 | tela de entrar ou do convite | toca em "Entrar com Google" | o botão fica em carregando (`aria-busy`, sem segundo toque) e a navegação para `/api/auth/google` segue como hoje | Playwright |
+| C32 | a API ainda não respondeu aos 3 s | espera | o texto do botão vira "Servidor iniciando..." (mesmo hook `useSlowWait`) | Playwright (`/api/auth/google` atrasado) |
+| C33 | ainda esperando aos 10 s | espera | entra embaixo do botão a linha dourada "Pode levar até 1 min na primeira vez" (`aria-live`) | Playwright |
+| C34 | a API responde rápido | toca | sai para o Google sem mostrar nenhum aviso | Playwright |
+| C35 | a pessoa volta do Google pelo histórico (bfcache) | `pageshow` | o botão volta ao normal, sem aviso | Playwright |
+| C36 | /dev/entrar | — | sem mudança | Playwright |
+
 **Item 6, carta do Craque com moldura própria.** Mesma regra do Perna de Pau: a carta do Craque tem moldura e fundo
 próprios para qualquer nota, e a faixa (`cardTier`) vira o selo no canto de cima.
 
