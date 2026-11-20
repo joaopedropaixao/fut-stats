@@ -133,16 +133,6 @@ function Failure({
   );
 }
 
-/** O brilho holográfico da carta do Craque: uma faixa diagonal que atravessa em degraus (parada com reduzir movimento). */
-function Holo() {
-  return (
-    <span
-      aria-hidden
-      className="animate-holo pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-[linear-gradient(100deg,transparent_0%,rgb(255_255_255/60%)_50%,transparent_100%)]"
-    />
-  );
-}
-
 /**
  * O palco do Craque na página: holofote, gradiente e padrão pixel; a carta (com gols, assistências e a frase) em
  * foco, e embaixo os números dele e os lances dele na partida (`useMatch`, só leitura). Empate: as cartas lado a
@@ -160,7 +150,7 @@ function CraqueStage({ result, cards }: { result: RoundResult; cards: PackCard[]
             key={card.player.membershipId}
             className={cn(
               'flex max-w-full flex-col items-center gap-5',
-              tie ? 'w-48' : 'w-48 min-[360px]:w-full min-[360px]:max-w-xs',
+              'w-60 min-[360px]:max-w-xs',
             )}
           >
             <CraqueCard
@@ -171,9 +161,7 @@ function CraqueStage({ result, cards }: { result: RoundResult; cards: PackCard[]
               stats
               delay={i * 160}
               enter
-            >
-              <Holo />
-            </CraqueCard>
+            />
             {card.phrase !== null && <PhraseBanner phrase={card.phrase} className="w-full" />}
             <ShareButton card={card} roundNumber={result.number} block />
           </div>

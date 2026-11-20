@@ -6,6 +6,7 @@ import { PixelText } from '../../components/ui/pixel-text';
 import { cn } from '../../lib/cn';
 import { formatRating } from '../../lib/rating-format';
 import { CrackSprite, EdgeCrack, FootSprite, TierSeal } from '../pack/flop-sprites';
+import { LegendOrnaments, LegendShine } from '../pack/legend-frame';
 import { TIER_LABELS } from '../pack/tier';
 
 /** As pistas do walkout: o que da carta já apareceu. Sem pistas, a carta está pronta (tudo à mostra). */
@@ -41,6 +42,12 @@ export type PlayerCardProps = {
    * faixa da nota vira o selo "BRONZE" / "PRATA" / "OURO" preso na madeira.
    */
   wood?: boolean;
+  /**
+   * Moldura "Lenda" do Craque: fundo dourado metálico, cantos em degraus, troféu com asas, ponteiras e faíscas, a mesma
+   * para qualquer nota. A faixa da nota vira o selo escuro no canto de cima. No walkout, a moldura e o selo só acendem
+   * com o rosto.
+   */
+  legend?: boolean;
   /** Inclinação: cada carta tem a sua. */
   tilt?: string;
   /** Atraso da entrada em degraus (ms). */
@@ -95,6 +102,7 @@ function SolidStar() {
  * faixa pela nota (bronze, prata, ouro), tira do time, nota em dígitos pixel, posição, bonequinho e nomes.
  * Com `clues`, a carta faz o walkout: apagada, acende a cor do time, depois a posição, a nota e só então o rosto.
  * Com `wood` (o Perna de Pau), a moldura é de madeira rachada, com o pé torto no canto e a faixa como selo.
+ * Com `legend` (o Craque), a moldura "Lenda" dourada, com a faixa como selo escuro.
  */
 export function PlayerCard({
   player,
@@ -106,6 +114,7 @@ export function PlayerCard({
   you,
   special,
   wood,
+  legend,
   stats,
   tilt = '-rotate-[4deg]',
   delay = 0,
@@ -125,15 +134,17 @@ export function PlayerCard({
     : wood
       ? '#000 0 0 0 3px inset, 4px 4px 0 0 #000'
       : '#000 0 0 0 3px inset, 6px 6px 0 0 #000';
-  // Na moldura de madeira o miolo é uma caixa própria: as seções (menos a tira do time) ganham o recuo dele
-  const pad = wood ? 'px-3' : undefined;
+  // Nas molduras (madeira e Lenda) o miolo é uma caixa própria: as seções (menos a tira do time) ganham o recuo dele
+  const framed = wood || legend;
+  const legendLit = Boolean(legend && showFace);
+  const pad = framed ? 'px-3' : undefined;
   const sections = (
     <>
       {/* Tira do time: acende primeiro, na cor do time */}
       <div
         className={cn(
           'flex items-center justify-between',
-          wood
+          framed
             ? 'h-[30px] shrink-0 px-3'
             : cn('-mx-3 h-9', you ? 'px-3' : 'px-4', special && 'mt-2', !special && 'mt-[3px]'),
           showTeam
@@ -164,13 +175,16 @@ export function PlayerCard({
                 value={formatRating(shown)}
                 scale={4}
                 label={`Nota ${formatRating(shown)}`}
+                className={
+                  legendLit ? '[filter:drop-shadow(2px_2px_0_rgb(255_238_170/60%))]' : undefined
+                }
               />
             </span>
           ) : (
             <PixelDigits value="0,0" scale={4} decorative className="invisible" />
           )}
           {/* Na madeira a faixa vira o selo preso na moldura (mais abaixo) */}
-          {!wood && (
+          {!framed && (
             <div className={cn('flex flex-col items-end gap-1', !showFace && 'invisible')}>
               <SolidStar />
               <PixelText className="text-(--card-ink-2)">{TIER_LABELS[tier]}</PixelText>
@@ -216,6 +230,58 @@ export function PlayerCard({
       </div>
     </>
   );
+  if (legend) {
+    return (
+      <article
+        aria-label={hidden ? undefined : label}
+        aria-hidden={hidden || undefined}
+        data-tier={showFace ? tier : undefined}
+        data-lit={legendLit || undefined}
+        data-special={special || undefined}
+        data-card={kind}
+        data-legend
+        style={{ '--moment-delay': `${delay}ms` } as CSSProperties}
+        className={cn(
+          'legend-card relative w-60 max-w-full pt-[54px]',
+          tilt,
+          enter && 'animate-moment-in',
+          className,
+        )}
+      >
+        {legendLit && <LegendOrnaments />}
+        <div className="legend-outline relative">
+          <div className="legend-frame relative flex p-5">
+            {legendLit && (
+              <>
+                <i aria-hidden className="legend-friso inset-[8px]" />
+                <i aria-hidden className="legend-friso-lt inset-[13px]" />
+              </>
+            )}
+            <div
+              className={cn(
+                'legend-face relative flex min-h-[296px] flex-1 flex-col justify-between gap-2 overflow-hidden pb-3',
+                legendLit ? 'legend-gold' : 'bg-surface-3',
+              )}
+            >
+              {sections}
+              {legendLit && <LegendShine />}
+            </div>
+            {children}
+          </div>
+        </div>
+        {legendLit && (
+          <TierSeal
+            dark
+            label={TIER_LABELS[tier]}
+            className={cn(
+              'absolute -right-[12px] origin-top-left rotate-[6deg]',
+              you ? 'top-[112px]' : 'top-[96px]',
+            )}
+          />
+        )}
+      </article>
+    );
+  }
   return (
     <article
       aria-label={hidden ? undefined : label}

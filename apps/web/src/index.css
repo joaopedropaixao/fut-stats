@@ -1020,26 +1020,6 @@
   animation: pack-burst 360ms steps(4, end) var(--moment-delay, 0ms) both;
 }
 
-/* Brilho holográfico na carta do Craque: uma faixa diagonal atravessa em degraus, num laço lento */
-@keyframes holo-sweep {
-  0%,
-  55% {
-    opacity: 0;
-    transform: translateX(-140%) skewX(-18deg);
-  }
-  56% {
-    opacity: 0.85;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(260%) skewX(-18deg);
-  }
-}
-
-@utility animate-holo {
-  animation: holo-sweep 3600ms steps(14, end) infinite;
-}
-
 /* Entrada da carta do final: sobe em degraus, uma depois da outra */
 @keyframes final-in {
   0% {
@@ -1062,14 +1042,9 @@
 /* Reduzir movimento: o pacote do início fica parado; as cartas finais entram só com fade; sem brilho */
 @media (prefers-reduced-motion: reduce) {
   .animate-pack-wobble,
-  .animate-holo,
   .animate-pack-flash,
   .animate-pack-burst {
     animation: none !important;
-  }
-
-  .animate-holo {
-    display: none;
   }
 
   .animate-final-in {

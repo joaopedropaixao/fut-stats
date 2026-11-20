@@ -186,7 +186,7 @@ function Stage({
         </div>
       );
     case 'duo':
-      // As duas cartas encolhidas (0,7; 0,6 em 320) para caber lado a lado a partir de 360 px; em 320 ficam empilhadas
+      // As duas cartas (240 px, com a moldura Lenda) encolhidas (0,625; 0,55 em 320) para caber lado a lado a partir de 360 px; em 320 ficam empilhadas
       return (
         <div
           aria-hidden
@@ -195,9 +195,9 @@ function Stage({
           {frame.cards.map((c) => (
             <div
               key={c.player.membershipId}
-              className="h-[173px] w-[115px] min-[360px]:h-[202px] min-[360px]:w-[134px]"
+              className="h-[222px] w-[132px] min-[360px]:h-[258px] min-[360px]:w-[150px]"
             >
-              <div className="w-48 origin-top-left scale-[0.6] min-[360px]:scale-[0.7]">
+              <div className="w-60 origin-top-left scale-[0.55] min-[360px]:scale-[0.625]">
                 <CraqueCard
                   player={c.player}
                   tier={c.tier}
@@ -331,7 +331,7 @@ function Walkout({ card, number, onFace }: { card: PackCard; number: number; onF
           stats
           clues={clues}
           hidden
-          className="relative z-10"
+          className="relative z-10 max-[359px]:scale-[0.85]"
         >
           {clues.face && (
             <>
@@ -501,7 +501,7 @@ function FinalCard({ card, number, delay }: { card: PackCard; number: number; de
       className={cn(
         'animate-final-in flex max-w-full flex-col items-center gap-4',
         // O pé torto sai 18 px para fora da carta de madeira: a folga de baixo o deixa inteiro à mostra
-        card.kind === 'flop' ? 'w-60 pb-6' : 'w-48',
+        card.kind === 'flop' ? 'w-60 pb-6' : card.kind === 'craque' ? 'w-60' : 'w-48',
       )}
     >
       {card.kind === 'craque' ? (

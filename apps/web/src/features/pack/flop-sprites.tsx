@@ -141,7 +141,7 @@ export function TierSeal({
   className?: string;
   /**
    * Selo escuro (fundo preto, letra e friso na cor da faixa `--seal`): aguenta qualquer fundo, até o dourado. Quem
-   * usa define `--seal` pela faixa (só a página de dev da moldura do Craque usa por enquanto).
+   * usa define `--seal` pela faixa (a carta do Craque, moldura "Lenda", `.legend-card[data-tier]`).
    */
   dark?: boolean;
 }) {
