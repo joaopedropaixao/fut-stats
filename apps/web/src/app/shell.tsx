@@ -16,7 +16,7 @@ import {
 } from '../features/group/invite-code';
 import { setCurrentGroupId } from '../features/group/use-current-group';
 import { LiveRoundsMount } from '../features/live/live-rounds-mount';
-import { useSession } from '../features/session/use-session';
+import { sessionQueryKey, useSession } from '../features/session/use-session';
 import { QueryServerWait } from './server-wait';
 import { TABS } from './tabs';
 import { useDelayedFlag } from './use-delayed-flag';
@@ -100,6 +100,7 @@ export function AppShell() {
     return (
       <QueryServerWait
         query={session}
+        queryKey={sessionQueryKey}
         skeleton={
           <ShellFrame showTabs={false} isMatchRoute={isMatchRoute}>
             <SkeletonList rows={3} />

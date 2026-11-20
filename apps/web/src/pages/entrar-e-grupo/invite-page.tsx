@@ -43,6 +43,7 @@ export function InvitePage() {
     return (
       <QueryServerWait
         query={preview}
+        queryKey={['invite', code]}
         skeleton={
           <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pt-6 pb-10">
             <title>Convite · Fut Stats</title>

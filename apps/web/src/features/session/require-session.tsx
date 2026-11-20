@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from 'react-router';
 import { QueryServerWait } from '../../app/server-wait';
 import { SkeletonList } from '../../components/ui/states';
-import { useSession } from './use-session';
+import { sessionQueryKey, useSession } from './use-session';
 
 /**
  * Rotas de quem está logado, mas sem a moldura do app (sem abas): sem sessão, vai para /entrar. Enquanto o /me não
@@ -14,6 +14,7 @@ export function RequireSession() {
     return (
       <QueryServerWait
         query={session}
+        queryKey={sessionQueryKey}
         skeleton={
           <div className="mx-auto w-full max-w-content px-4 pt-6">
             <SkeletonList rows={3} />

@@ -81,9 +81,10 @@ export function LegendOrnaments() {
       />
       <Spark className="-top-1 left-2" delay={0} />
       <Spark className="top-16 -left-7" delay={250} />
-      <Spark className="top-[46%] -right-7" delay={500} />
+      {/* As faíscas que passam da lateral direita somem abaixo de 360 px (senão a página ganha rolagem horizontal) */}
+      <Spark className="top-[46%] -right-7 max-[359px]:hidden" delay={500} />
       <Spark className="bottom-10 -left-6" delay={150} />
-      <Spark className="-bottom-3 right-8" delay={400} />
+      <Spark className="-bottom-3 right-8 max-[359px]:hidden" delay={400} />
       <Spark className="top-4 right-0" delay={600} />
     </>
   );

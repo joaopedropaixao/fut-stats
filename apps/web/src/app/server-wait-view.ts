@@ -10,6 +10,8 @@ export const SERVER_WAIT = {
   giveUpAfter: 90000,
 } as const;
 
+import type { QueryClient, QueryKey } from '@tanstack/react-query';
+
 export type ServerWaitView = 'skeleton' | 'starting' | 'error';
 
 /** O que a tela mostra enquanto o /me não voltou, pelos temporizadores e pela falha do pedido. */
@@ -47,3 +49,18 @@ export const SERVER_WAIT_BALL = [
   '..KWWKKWWK..',
   '...KKKKKK...',
 ] as const;
+
+/**
+ * "Tentar de novo" da espera do servidor: cancela o pedido que ainda estiver pendente e refaz. No TanStack v5, um
+ * `refetch()` de uma consulta sem dado e ainda pendurada reaproveita a mesma promessa (o servidor dormindo nunca
+ * respondeu) e nenhuma chamada nova sai; cancelar antes garante um `GET` novo. Com o erro já resolvido (o 500), o
+ * cancelamento não tem o que cancelar e o `refetch()` refaz como sempre.
+ */
+export async function restartQuery(
+  queryClient: QueryClient,
+  queryKey: QueryKey,
+  refetch: () => unknown,
+): Promise<void> {
+  await queryClient.cancelQueries({ queryKey });
+  await refetch();
+}

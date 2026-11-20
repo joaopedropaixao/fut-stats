@@ -1,9 +1,10 @@
+import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PixelText } from '../components/ui/pixel-text';
 import { ErrorState } from '../components/ui/states';
 import { WaitNotice } from '../components/ui/wait-notice';
 import { useSlowWait } from '../lib/slow-wait';
-import { SERVER_WAIT, SERVER_WAIT_BALL, serverWaitView } from './server-wait-view';
+import { restartQuery, SERVER_WAIT, SERVER_WAIT_BALL, serverWaitView } from './server-wait-view';
 
 const BALL = SERVER_WAIT_BALL;
 const BALL_FILL: Record<string, string> = { K: '#111111', W: 'var(--color-text)' };
@@ -22,12 +23,12 @@ const BALL_PATHS = Object.entries(
     return byColor;
   }, {}),
 );
-const SCALE = 5;
+const SCALE = 6;
 
 /** A bola pixel quicando em degraus, com a sombra no chão. Com Reduzir movimento fica parada no chão. */
 function BouncingBall() {
   return (
-    <div aria-hidden className="relative flex h-[116px] w-[60px] flex-col items-center justify-end">
+    <div aria-hidden className="relative flex h-[128px] w-[72px] flex-col items-center justify-end">
       <svg
         focusable="false"
         width={BALL[0].length * SCALE}
@@ -131,11 +132,15 @@ export function ServerWait({
  */
 export function QueryServerWait({
   query,
+  queryKey,
   skeleton,
 }: {
   query: { errorUpdateCount: number; refetch: () => unknown };
+  /** A chave da consulta: "Tentar de novo" cancela o pedido pendurado antes de refazer (`restartQuery`). */
+  queryKey: QueryKey;
   skeleton: ReactNode;
 }) {
+  const queryClient = useQueryClient();
   const [attempt, setAttempt] = useState(0);
   const [seenErrors, setSeenErrors] = useState(0);
   return (
@@ -146,7 +151,7 @@ export function QueryServerWait({
       onRetry={() => {
         setSeenErrors(query.errorUpdateCount);
         setAttempt((n) => n + 1);
-        void query.refetch();
+        void restartQuery(queryClient, queryKey, () => query.refetch());
       }}
       skeleton={skeleton}
     />
