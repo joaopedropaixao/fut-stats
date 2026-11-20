@@ -7,7 +7,7 @@
 | **Fatia** | `ajustes-feedback` (#17 da Trilha) |
 | **Modo** | Front |
 | **Parte de** | — |
-| **Status** | aprovado em 19 nov 2026 (itens 1 a 4); item 5 aprovado em 19 nov 2026; item 6 esperando o Portão 1 (novas opções) |
+| **Status** | aprovado em 19 nov 2026 (itens 1 a 4); item 5 aprovado em 19 nov 2026; item 6 aprovado em 20 nov 2026 (opção C, Lenda) |
 | **Base** | develop @23f7acd |
 | **Depende de** | — |
 | **Toca em** | apps/web/src/features/lineup/generate-block.tsx, apps/web/src/features/lineup/lineup-builder.tsx, apps/web/src/features/pack (pack-cards, share-card só se a carta do Perna de Pau mudar no canvas: não muda), apps/web/src/features/voting (player-card, flop-card), apps/web/src/index.css, apps/web/index.html, docs/lancamento.md, docs/03-roadmap.md |
@@ -149,6 +149,7 @@ Sem mudança.
 - Portão 1 (19 nov 2026): spec e desenho aprovados, madeira **A**, sem ajustes.
 - Item 5 (19 nov 2026): desenho (quadros 3, 3b e 3c) e limiares 3/10/90 s aprovados.
 - Item 6 (19 nov 2026): nem A nem B ("fundo sem graça"; o creme "ficou igual ao do Perna de Pau"); o dono pediu 3 opções novas, com fundo vivo e de impacto. Quando o Craque sou eu: moldura do Craque + contorno creme da carta especial + VOCÊ na tira, com o selo um pouco abaixo (aprovado). O PNG do Compartilhar do Craque sai com a moldura nova (aprovado).
+- Item 6, segunda rodada (20 nov 2026): também recusou Noite de final, Realeza e Holo ("essas cores ficaram nada a ver"). Pediu dourado e brilhante, parecido com o OURO do Craque de antes, mas com uma moldura mais forte, porque "a carta do Perna de Pau ficou mais bonita e chamativa do que a do Craque". Entre as três variações feitas em código (`/dev/craque`), escolheu a **C, Lenda**: cantos em degraus, ponteiras e troféu com asas no topo, faíscas, dois brilhos passando e fundo dourado metálico. O selo é escuro (fundo preto, letra na cor da faixa) e a nota pixel escurece para dar contraste.
 
 ## QA
 2 voltas. **VEREDITO: APROVADO** na volta 2 (HEAD db362a3).
