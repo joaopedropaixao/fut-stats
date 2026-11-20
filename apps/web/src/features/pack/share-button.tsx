@@ -40,6 +40,9 @@ export function ShareButton({ card, roundNumber, block, className }: ShareButton
     }
   };
 
+  // O Perna de pau não tem Compartilhar (e o `renderCardPng` também recusa a carta dele)
+  if (card.kind === 'flop') return null;
+
   return (
     <div className={className}>
       <Button

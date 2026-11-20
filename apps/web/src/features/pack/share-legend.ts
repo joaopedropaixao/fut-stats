@@ -212,7 +212,8 @@ function drawSeal(ctx: CanvasRenderingContext2D, card: PackCard) {
   const w = Math.ceil(ctx.measureText(label).width) + 6 + 12 + 6 + 8;
   const h = 28;
   ctx.save();
-  ctx.translate(LEGEND_W - 12 - w + 12, card.you ? 112 : 96);
+  // Como na tela (`-right-[12px]`): a borda direita do selo passa 12 unidades da borda direita da carta
+  ctx.translate(LEGEND_W + 12 - w, card.you ? 112 : 96);
   ctx.rotate((6 * Math.PI) / 180);
   ctx.fillStyle = '#000';
   ctx.fillRect(4, 4, w, h);

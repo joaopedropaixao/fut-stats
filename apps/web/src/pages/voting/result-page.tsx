@@ -150,7 +150,7 @@ function CraqueStage({ result, cards }: { result: RoundResult; cards: PackCard[]
             key={card.player.membershipId}
             className={cn(
               'flex max-w-full flex-col items-center gap-5',
-              'w-60 min-[360px]:max-w-xs',
+              tie ? 'w-60' : 'w-60 min-[360px]:w-full min-[360px]:max-w-xs',
             )}
           >
             <CraqueCard

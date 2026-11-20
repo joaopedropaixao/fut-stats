@@ -15,14 +15,15 @@ describe('bloco Gerar times', () => {
   it('parado: "Gerar times" (ou "Regerar"), botão habilitado, sem movimento de espera', () => {
     const out = html({ loading: false });
     expect(out).toContain('Gerar times');
-    expect(out).not.toContain('disabled');
+    expect(out).not.toContain('disabled=""');
     expect(out).not.toContain('animate-block-bump');
     expect(html({ loading: false, regenerate: true })).toContain('Regerar');
   });
 
   it('gerando: botão desabilitado com aria-busy, texto "Gerando", bloco batendo e moeda em loop (C1)', () => {
     const out = html({ loading: true });
-    expect(out).toContain('disabled');
+    expect(out).toContain('disabled=""');
+    expect(out).toContain('disabled:cursor-wait');
     expect(out).toContain('aria-busy="true"');
     expect(out).toContain('Gerando');
     expect(out).toContain('animate-block-bump');

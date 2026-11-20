@@ -9,6 +9,9 @@ export const SHARE_HEIGHT = 1350;
 
 /** Desenha a carta (a mesma da tela) e devolve o PNG. */
 export async function renderCardPng(card: PackCard, roundNumber: number): Promise<Blob> {
+  // O Perna de pau não tem Compartilhar (o pacote não mostra a tecla e a página do resultado também não): sem moldura de
+  // madeira aqui, e quem tentar passar uma carta dele leva o erro em vez de um PNG com a moldura errada
+  if (card.kind === 'flop') throw new Error('O Perna de pau não é compartilhável');
   // A fonte pixel precisa estar carregada antes de desenhar o texto
   try {
     await document.fonts.load('700 16px Silkscreen');

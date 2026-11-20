@@ -157,7 +157,8 @@ export function GenerateBlock({ regenerate, loading, onGenerate }: GenerateBlock
         className={cn(
           'relative flex min-h-24 w-full items-center justify-center gap-4 px-4 py-2 select-none max-[359px]:gap-2',
           'bg-surface shadow-float transition-[translate,box-shadow] duration-(--duration-fast) ease-out',
-          'text-text',
+          // Gerando: o bloco segue vivo, mas o botão não aceita toque (cursor de espera, sem o efeito de pressionar)
+          'text-text disabled:cursor-wait',
           !loading && 'active:translate-x-1 active:translate-y-1 active:shadow-key-pressed',
         )}
       >
@@ -172,13 +173,18 @@ export function GenerateBlock({ regenerate, loading, onGenerate }: GenerateBlock
               data-testid="coin"
               className={cn(
                 'pointer-events-none absolute inset-x-0 top-[27px] flex justify-center motion-reduce:hidden',
-                loading ? 'animate-coin-loop' : 'animate-coin-rise',
+                loading ? 'animate-coin-loop motion-reduce:animate-none' : 'animate-coin-rise',
               )}
             >
               <Sprite
                 rects={COIN_RECTS}
                 size={[8, 12]}
-                className={cn('h-9 w-6', loading ? 'animate-coin-spin-loop' : 'animate-coin-spin')}
+                className={cn(
+                  'h-9 w-6',
+                  loading
+                    ? 'animate-coin-spin-loop motion-reduce:animate-none'
+                    : 'animate-coin-spin',
+                )}
               />
             </span>
           )}

@@ -1,3 +1,5 @@
+import type { QueryClient, QueryKey } from '@tanstack/react-query';
+
 /**
  * Quando o app abre e a API está dormindo (Render gratuito), o primeiro `GET /api/me` leva até ~1 min. Limiares em
  * ms, ajustáveis: até `startingAfter` o esqueleto de sempre (resposta rápida não pisca); depois, a tela
@@ -9,8 +11,6 @@ export const SERVER_WAIT = {
   noticeAfter: 10000,
   giveUpAfter: 90000,
 } as const;
-
-import type { QueryClient, QueryKey } from '@tanstack/react-query';
 
 export type ServerWaitView = 'skeleton' | 'starting' | 'error';
 
@@ -51,16 +51,19 @@ export const SERVER_WAIT_BALL = [
 ] as const;
 
 /**
- * "Tentar de novo" da espera do servidor: cancela o pedido que ainda estiver pendente e refaz. No TanStack v5, um
- * `refetch()` de uma consulta sem dado e ainda pendurada reaproveita a mesma promessa (o servidor dormindo nunca
- * respondeu) e nenhuma chamada nova sai; cancelar antes garante um `GET` novo. Com o erro já resolvido (o 500), o
- * cancelamento não tem o que cancelar e o `refetch()` refaz como sempre.
+ * "Tentar de novo" da espera do servidor. No TanStack v5, um `refetch()` de uma consulta sem dado e ainda pendurada
+ * reaproveita a mesma promessa (o servidor dormindo nunca respondeu) e nenhuma chamada nova sai. Por isso, só nesse
+ * caso (sem dado e buscando) cancela antes, e só essa chave (`exact`): outros observadores não são revertidos. Com o
+ * erro já resolvido (o 500), ou com dado em cache, o `refetch()` refaz como sempre.
  */
 export async function restartQuery(
   queryClient: QueryClient,
   queryKey: QueryKey,
   refetch: () => unknown,
 ): Promise<void> {
-  await queryClient.cancelQueries({ queryKey });
+  const state = queryClient.getQueryState(queryKey);
+  if (state?.fetchStatus === 'fetching' && state.data === undefined) {
+    await queryClient.cancelQueries({ queryKey, exact: true });
+  }
   await refetch();
 }

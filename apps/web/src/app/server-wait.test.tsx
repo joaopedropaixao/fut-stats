@@ -48,6 +48,8 @@ describe('tela "Servidor iniciando" (C16, C17, C20)', () => {
   it('é role="status", tem o título, a frase de calma e a bola; sem a barra de abas', () => {
     const out = renderToString(<ServerStarting notice={false} />);
     expect(out).toContain('role="status"');
+    // o landmark <main> fica sem role: só a região interna é o status
+    expect(out).toMatch(/<main(?![^>]*role=)/);
     expect(out).toContain('Servidor iniciando...');
     expect(out).toContain('Já já a pelada abre.');
     expect(out).toContain('animate-ball-bounce');
@@ -82,5 +84,23 @@ describe('estado de erro "O servidor não respondeu" (C19)', () => {
 describe('bola da tela de servidor', () => {
   it('é a mesma grade da bola das reações (copiada para não pesar o pedaço inicial)', () => {
     expect([...SERVER_WAIT_BALL]).toEqual([...REACTION_SPRITES.BALL]);
+  });
+});
+
+describe('tela igual ao desenho do Paper (itens 3, 3b e 3c)', () => {
+  it('o título é uma linha só (sem quebra) e muda para 16 px abaixo de 360 px, no peso regular do desenho', () => {
+    const out = renderToString(<ServerStarting notice={false} />);
+    expect(out).toContain('whitespace-nowrap');
+    expect(out).toContain('max-[359px]:text-pixel-sm');
+    expect(out).toContain('font-weight:400');
+  });
+
+  it('o erro é o cartão do desenho: borda de 3 px danger, role=alert, tecla creme sem ícone e a bola parada', () => {
+    const out = renderToString(<ServerNotResponding onRetry={() => {}} />);
+    expect(out).toContain('role="alert"');
+    expect(out).toContain('border-danger');
+    expect(out).toContain('bg-text');
+    expect(out).toContain('Tentar de novo');
+    expect(out).not.toContain('animate-ball-bounce');
   });
 });
