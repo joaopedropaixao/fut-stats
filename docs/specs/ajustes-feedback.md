@@ -76,7 +76,7 @@ de entrar não espera o `/me` (renderiza na hora), e o convite tem a própria es
 | C18 | a tela de servidor está aberta | o `/me` responde | a tela some e o app abre onde a pessoa ia (ou vai para /entrar sem sessão) | Playwright |
 | C19 | o `/me` falhou (depois das retentativas) ou passou de 90 s sem resposta | — | estado de erro "O servidor não respondeu" + "Tentar de novo"; tocar refaz o pedido e volta para "Servidor iniciando"; sem repetir sozinho em loop | Playwright + unitário dos limiares |
 | C20 | Reduzir movimento ligado | tela de servidor | bola parada no chão; os textos e o aviso aparecem iguais | Playwright |
-| C21 | deslogado abrindo `/`, abrindo `/convite/:código` (espera o `GET /invites`) ou `/comecar` | API lenta | a mesma tela de servidor (3 s, 10 s, erro); `/entrar` e `/dev/entrar` não chamam a API ao abrir e seguem iguais | Playwright |
+| C21 | deslogado abrindo `/`, abrindo `/convite/:código` (espera o `GET /invites`) ou `/comecar` | API lenta | a mesma tela de servidor (3 s, 10 s, erro); `/entrar` e `/dev/entrar` não esperam a API para aparecer (o `/entrar` pede o `/me` em segundo plano, mas renderiza na hora) e seguem iguais | Playwright |
 | C22 | build | `pnpm build` | o JS inicial continua dentro do orçamento (a tela vai no pedaço inicial: SVG pixel com a bola que já existe, sem imagem nova) | build |
 
 **Item 6, carta do Craque com moldura própria.** Mesma regra do Perna de Pau: a carta do Craque tem moldura e fundo
