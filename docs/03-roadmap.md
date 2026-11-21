@@ -95,6 +95,17 @@ Cada release leva tag e release no GitHub. Ordem:
    acordada" (decidir o custo em horas do Render); o "Serviço de notificação" junto do "Feed e presença ao vivo"; Cartola
    (Fase 5) e pagamentos (Fase 6). Cada um vira fatia com spec, e releases pequenos agrupam o que o dono quiser levar.
 
+### Pacote `v1.2` (próximo release de melhorias, 21 nov 2026)
+Release pequeno, sem pressa: o que entra aqui só importa depois da pelada de 22 nov 2026. Itens decididos:
+
+- **Ranking: mínimo de 2 rodadas com nota para classificar** (decisão do dono, 21 nov 2026; antes eram 3, resposta à P4 de
+  14 nov). É só a constante `DEFAULT_MIN_RATED_GAMES` do domínio (3 → 2), com os testes de `minRatedGames` e a regra do
+  ranking no `CONTEXT.md` atualizados no mesmo PR; o texto "Precisa de N rodadas com nota…" já vem do valor da API, e a
+  Tendência usa o mesmo mínimo. Sem migration. Não muda nada até a 3ª rodada encerrada (o mínimo já era
+  `min(alvo, rodadas encerradas)`: o ranking existe desde a 1ª rodada). Não mexe na nota do seletor (média das 5 últimas).
+- **Rolagem horizontal em 320 px** na contagem "BRANCO 0 DE 7 · 0 DE 7 PRETO" (`lineup-status.tsx`).
+- **O que sair do feedback da pelada de 22 nov 2026** (jogadores e admins): entra aqui antes do release.
+
 ### Depois do lançamento: ideias aprovadas pelo dono
 Ainda sem spec nem ordem. Entram na trilha depois do feedback das primeiras rodadas.
 
