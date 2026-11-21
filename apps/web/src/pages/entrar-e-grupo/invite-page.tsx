@@ -2,11 +2,11 @@ import { invitePreviewSchema } from '@fut-stats/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useParams } from 'react-router';
+import { QueryServerWait } from '../../app/server-wait';
 import { Button, ButtonLink, LinkButton } from '../../components/ui/button';
 import { GoogleMark } from '../../components/ui/google-mark';
 import { PixelDigits } from '../../components/ui/pixel-digits';
 import { PixelText } from '../../components/ui/pixel-text';
-import { ErrorState } from '../../components/ui/states';
 import { clearPendingDestination, savePendingDestination } from '../../features/group/invite-code';
 import { FieldErrorNotice } from '../../features/group/field-error-notice';
 import { useRevealFieldError } from '../../features/group/use-reveal-field-error';
@@ -20,6 +20,9 @@ import { useSession } from '../../features/session/use-session';
 import { ApiError, apiGet, LOGIN_URL } from '../../lib/api';
 import { ChalkCorner } from './chalk';
 
+/** A chave da prévia do convite: a consulta e o "Tentar de novo" da espera usam a mesma. */
+const inviteQueryKey = (code: string) => ['invite', code] as const;
+
 /** Prévia pública do convite; logado escolhe apelido e posição e entra, deslogado entra com Google e volta. */
 export function InvitePage() {
   const { code = '' } = useParams();
@@ -29,7 +32,7 @@ export function InvitePage() {
     if (session.data) clearPendingDestination();
   }, [session.data]);
   const preview = useQuery({
-    queryKey: ['invite', code],
+    queryKey: inviteQueryKey(code),
     queryFn: ({ signal }) =>
       apiGet(`/invites/${encodeURIComponent(code)}`, invitePreviewSchema, { signal }),
   });
@@ -38,19 +41,26 @@ export function InvitePage() {
   // Sem sessão (ou sem conseguir saber): o caminho é entrar com o Google e voltar para cá
   const signedOut = session.data === null || (session.data === undefined && session.isError);
 
+  // A prévia ainda não veio (ou falhou, menos o 404 do convite inválido): a espera do servidor, como na abertura do app
+  if (preview.data === undefined && !notFound) {
+    return (
+      <QueryServerWait
+        query={preview}
+        queryKey={inviteQueryKey(code)}
+        skeleton={
+          <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pt-6 pb-10">
+            <title>Convite · Fut Stats</title>
+            <InviteSkeleton />
+          </div>
+        }
+      />
+    );
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pt-6 pb-10">
       <title>Convite · Fut Stats</title>
-      {preview.isPending && <InviteSkeleton />}
       {notFound && <InvalidInvite />}
-      {preview.isError && !notFound && (
-        <ErrorState
-          title="Não deu para abrir o convite"
-          message="Parece que a internet caiu ou o servidor está acordando. Tente de novo."
-          onRetry={() => void preview.refetch()}
-          retrying={preview.isFetching}
-        />
-      )}
       {preview.data && (
         <>
           <InviteTicket groupName={preview.data.groupName} memberCount={preview.data.memberCount} />

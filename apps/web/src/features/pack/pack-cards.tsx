@@ -15,8 +15,10 @@ type SiblingProps = {
 };
 
 /**
- * A carta do Perna de Pau no molde das cartas: cai virada e rachada, com a piada dele ("HOJE NÃO DEU"). Tom de zoeira, nunca de
- * humilhação: a faixa vem pela nota (normalmente bronze) e a madeira fica no selo, não na moldura.
+ * A carta do Perna de Pau no molde das cartas: cai com a moldura de madeira rachada e o pé torto no canto, com a
+ * piada dele ("HOJE NÃO DEU"). Tom de zoeira, nunca de humilhação: a moldura é sempre madeira, para qualquer nota, e
+ * a faixa da nota (normalmente bronze) vira o selo preso na madeira. O leitor de tela segue ouvindo a faixa por
+ * escrito (`pack-text`); a moldura é decoração.
  */
 export function FlopPackCard({
   player,
@@ -36,7 +38,7 @@ export function FlopPackCard({
       kind="Perna de pau"
       note={phrase ?? 'Hoje não deu'}
       you={you}
-      cracked
+      wood
       tilt="rotate-[5deg]"
       delay={delay}
       hidden={hidden}

@@ -7,7 +7,7 @@ import {
   useNavigation,
   useSearchParams,
 } from 'react-router';
-import { ErrorState, SkeletonList } from '../components/ui/states';
+import { SkeletonList } from '../components/ui/states';
 import { TabBar } from '../components/ui/tab-bar';
 import {
   clearPendingDestination,
@@ -16,7 +16,8 @@ import {
 } from '../features/group/invite-code';
 import { setCurrentGroupId } from '../features/group/use-current-group';
 import { LiveRoundsMount } from '../features/live/live-rounds-mount';
-import { useSession } from '../features/session/use-session';
+import { sessionQueryKey, useSession } from '../features/session/use-session';
+import { QueryServerWait } from './server-wait';
 import { TABS } from './tabs';
 import { useDelayedFlag } from './use-delayed-flag';
 
@@ -92,26 +93,28 @@ export function AppShell() {
   // Logado e sem pelada: o início é criar uma ou entrar por convite
   if (session.data && session.data.groups.length === 0) return <Navigate to="/comecar" replace />;
 
-  // Com sessão em cache, um erro numa atualização em segundo plano não derruba a tela
+  // Ainda sem resposta do /me e sem sessão em cache: a espera (esqueleto, "Servidor iniciando" ou o erro). Com sessão
+  // em cache, um erro numa atualização em segundo plano não derruba a tela.
   const ready = session.data !== undefined;
-  // Depois de falhar uma vez, o erro fica na tela durante o "Tentar de novo" (o TanStack volta o status
-  // para pending ao refazer uma consulta sem dado; trocar pelo esqueleto tiraria o foco do botão)
-  const failed = session.errorUpdateCount > 0;
+  if (!ready) {
+    return (
+      <QueryServerWait
+        query={session}
+        queryKey={sessionQueryKey}
+        skeleton={
+          <ShellFrame showTabs={false} isMatchRoute={isMatchRoute}>
+            <SkeletonList rows={3} />
+          </ShellFrame>
+        }
+      />
+    );
+  }
 
   return (
-    <ShellFrame mainRef={mainRef} showTabs={ready} isMatchRoute={isMatchRoute}>
-      {!ready && !failed && <SkeletonList rows={3} />}
-      {!ready && failed && (
-        <ErrorState
-          title="Não deu para abrir o app"
-          message="Parece que a internet caiu ou o servidor está acordando. Tente de novo em instantes."
-          onRetry={() => void session.refetch()}
-          retrying={session.isFetching}
-        />
-      )}
+    <ShellFrame mainRef={mainRef} showTabs isMatchRoute={isMatchRoute}>
       {/* Com `?grupo=` ainda na URL a pelada está para trocar: a tela espera o frame em vez de abrir a errada */}
-      {ready && (loadingScreen || groupParam !== null ? <SkeletonList rows={3} /> : <Outlet />)}
-      {ready && <LiveRoundsMount />}
+      {loadingScreen || groupParam !== null ? <SkeletonList rows={3} /> : <Outlet />}
+      <LiveRoundsMount />
     </ShellFrame>
   );
 }

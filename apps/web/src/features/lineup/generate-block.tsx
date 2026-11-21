@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { PixelText } from '../../components/ui/pixel-text';
+import { WaitNotice } from '../../components/ui/wait-notice';
 import { cn } from '../../lib/cn';
+import { useSlowWait } from '../../lib/slow-wait';
+
+/** Em 320 px "Gerando..." em 24 px encosta na borda do botão: abaixo de 360 px o texto vai para 16 px. */
+const NARROW_LOADING_TEXT = 'max-[359px]:text-pixel-sm';
 
 type GenerateBlockProps = {
   /** Já tem alguém no rascunho: o bloco vira "Regerar". */
@@ -71,26 +76,10 @@ const FILL: Fill = {
   W: 'fill-text',
 };
 
-/** Bloco "usado": a face e o "?" viram um só tom escuro, o brilho vira ouro e a sombra some no contorno. */
-const FILL_USED: Fill = {
-  K: 'fill-outline',
-  G: 'fill-gold-shadow',
-  Y: 'fill-gold-shadow',
-  B: 'fill-outline',
-  W: 'fill-gold',
-};
-
-/** Pixel do "?" (contorno e miolo), que no bloco "usado" some na face. */
-function isGlyph(row: number, col: number, char: string) {
-  if (char !== 'K' && char !== 'W') return false;
-  if (row < 4 || row > 23 || col < 4 || col > 25) return false;
-  return !(row <= 5 && col <= 5);
-}
-
 type Cell = { x: number; y: number; w: number; fill: string };
 
 /** Junta pixels vizinhos da mesma cor numa linha em um só retângulo (menos nós no SVG). */
-function toRects(grid: string[], palette: Fill, glyphFill?: string): Cell[] {
+function toRects(grid: string[], palette: Fill): Cell[] {
   const out: Cell[] = [];
   grid.forEach((line, y) => {
     let x = 0;
@@ -100,13 +89,11 @@ function toRects(grid: string[], palette: Fill, glyphFill?: string): Cell[] {
         x += 1;
         continue;
       }
-      const fill = glyphFill && isGlyph(y, x, char) ? glyphFill : palette[char]!;
+      const fill = palette[char]!;
       let w = 1;
       while (x + w < line.length) {
         const next = line[x + w]!;
-        const nextFill =
-          next === '.' ? null : glyphFill && isGlyph(y, x + w, next) ? glyphFill : palette[next];
-        if (nextFill !== fill) break;
+        if (next === '.' || palette[next] !== fill) break;
         w += 1;
       }
       out.push({ x, y, w, fill });
@@ -117,7 +104,6 @@ function toRects(grid: string[], palette: Fill, glyphFill?: string): Cell[] {
 }
 
 const BLOCK_RECTS = toRects(BLOCK, FILL);
-const BLOCK_USED_RECTS = toRects(BLOCK, FILL_USED, 'fill-gold-shadow');
 const COIN_RECTS = toRects(COIN, FILL);
 
 function Sprite({
@@ -147,10 +133,13 @@ function Sprite({
 /**
  * Bloco "?" do Mario ao lado de "Gerar times" / "Regerar": toca, ele pula e uma moeda sai de dentro e some.
  * Dourado da família `--color-gold` (exceção aprovada no DESIGN.md; o amarelo de ação é só do Publicar).
- * Gerando: bloco "usado" (sem "?"). Tudo anda em degraus; com Reduzir movimento não pula e a moeda não aparece.
+ * Gerando: o bloco continua dourado e vivo, bate em degraus (quadros A e B) soltando moedas em loop, e o texto
+ * ganha reticências que andam em degraus. Com mais de 5 s, uma linha avisa que o servidor está acordando. Tudo
+ * anda em degraus (só transform e opacity); com Reduzir movimento fica parado ("Gerando...") e a linha aparece igual.
  */
 export function GenerateBlock({ regenerate, loading, onGenerate }: GenerateBlockProps) {
   const [hops, setHops] = useState(0);
+  const slow = useSlowWait(loading);
 
   function press() {
     if (loading) return;
@@ -159,42 +148,93 @@ export function GenerateBlock({ regenerate, loading, onGenerate }: GenerateBlock
   }
 
   return (
-    <button
-      type="button"
-      disabled={loading}
-      aria-busy={loading}
-      onClick={press}
-      className={cn(
-        'relative flex min-h-24 w-full items-center justify-center gap-4 px-4 py-2 select-none',
-        'bg-surface shadow-float transition-[translate,box-shadow] duration-(--duration-fast) ease-out',
-        loading
-          ? 'text-disabled'
-          : 'text-text active:translate-x-1 active:translate-y-1 active:shadow-key-pressed',
-      )}
-    >
-      <span
-        // A key nova reinicia o pulo e a moeda a cada toque
-        key={hops}
-        aria-hidden
-        className="relative size-[90px] shrink-0"
-      >
-        {hops > 0 && (
-          <span
-            data-testid="coin"
-            className="pointer-events-none absolute inset-x-0 top-[27px] flex animate-coin-rise justify-center motion-reduce:hidden"
-          >
-            <Sprite rects={COIN_RECTS} size={[8, 12]} className="animate-coin-spin h-9 w-6" />
-          </span>
+    <div className="flex flex-col">
+      <button
+        type="button"
+        disabled={loading}
+        aria-busy={loading}
+        onClick={press}
+        className={cn(
+          'relative flex min-h-24 w-full items-center justify-center gap-4 px-4 py-2 select-none max-[359px]:gap-2',
+          'bg-surface shadow-float transition-[translate,box-shadow] duration-(--duration-fast) ease-out',
+          // Gerando: o bloco segue vivo, mas o botão não aceita toque (cursor de espera, sem o efeito de pressionar)
+          'text-text disabled:cursor-wait',
+          !loading && 'active:translate-x-1 active:translate-y-1 active:shadow-key-pressed',
         )}
-        <Sprite
-          rects={loading ? BLOCK_USED_RECTS : BLOCK_RECTS}
-          size={[30, 30]}
-          className={cn('relative size-[90px]', hops > 0 && 'animate-block-hop')}
-        />
-      </span>
-      <PixelText size={24}>
-        {loading ? 'Gerando' : regenerate ? 'Regerar' : 'Gerar times'}
-      </PixelText>
-    </button>
+      >
+        <span
+          // A key nova reinicia o pulo e a moeda a cada toque
+          key={hops}
+          aria-hidden
+          className="relative size-[90px] shrink-0"
+        >
+          {(hops > 0 || loading) && (
+            <span
+              data-testid="coin"
+              className={cn(
+                'pointer-events-none absolute inset-x-0 top-[27px] flex justify-center motion-reduce:hidden',
+                loading ? 'animate-coin-loop motion-reduce:animate-none' : 'animate-coin-rise',
+              )}
+            >
+              <Sprite
+                rects={COIN_RECTS}
+                size={[8, 12]}
+                className={cn(
+                  'h-9 w-6',
+                  loading
+                    ? 'animate-coin-spin-loop motion-reduce:animate-none'
+                    : 'animate-coin-spin',
+                )}
+              />
+            </span>
+          )}
+          <Sprite
+            rects={BLOCK_RECTS}
+            size={[30, 30]}
+            className={cn(
+              'relative size-[90px]',
+              loading
+                ? 'animate-block-bump motion-reduce:animate-none'
+                : hops > 0 && 'animate-block-hop',
+            )}
+          />
+        </span>
+        {loading ? (
+          // Largura fixa: as reticências só aparecem e somem (opacidade), o texto não pula
+          <span className="inline-flex items-baseline">
+            <PixelText size={24} className={NARROW_LOADING_TEXT}>
+              Gerando
+            </PixelText>
+            <span aria-hidden className="inline-flex">
+              <PixelText size={24} className={NARROW_LOADING_TEXT}>
+                .
+              </PixelText>
+              <span className="animate-dot-2 motion-reduce:animate-none">
+                <PixelText size={24} className={NARROW_LOADING_TEXT}>
+                  .
+                </PixelText>
+              </span>
+              <span className="animate-dot-3 motion-reduce:animate-none">
+                <PixelText size={24} className={NARROW_LOADING_TEXT}>
+                  .
+                </PixelText>
+              </span>
+            </span>
+          </span>
+        ) : (
+          // Em 320 px "Gerar times" não cabe ao lado do bloco: abaixo de 360 px o texto encolhe e quebra em duas linhas
+          <PixelText size={24} wrap className="min-w-0 min-[360px]:shrink-0">
+            {regenerate ? 'Regerar' : 'Gerar times'}
+          </PixelText>
+        )}
+      </button>
+      {/* A região existe sempre: o leitor de tela só anuncia o que entra depois dela */}
+      <div aria-live="polite">{slow && <SlowWaitNotice />}</div>
+    </div>
   );
+}
+
+/** "Acordando o servidor, pode levar até 1 min" embaixo do bloco (o `mt-3` é o espaço entre os dois). */
+export function SlowWaitNotice() {
+  return <WaitNotice className="mt-3">Acordando o servidor, pode levar até 1 min</WaitNotice>;
 }
