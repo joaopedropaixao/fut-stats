@@ -8,8 +8,9 @@ description: Preparar no Codex os specs restantes da v1 do Fut Stats, lote de pe
 O objetivo, conteúdo dos specs, perguntas em lote e ondas são os mesmos do líder Claude.
 Leia docs/specs/2026-11-14-autonomia-v1.md, AGENTS.md, CONTEXT.md, a Trilha, visão/escopo,
 Cartola, docs/design/DESIGN.md, specs entregues e docs/specs/_modelo.md.
-Use .harness/codex-workers.md e .harness/operacao.md. Modelo econômico gpt-6-luna/medium;
-não adotar o modelo Claude citado no spec histórico nem subir de modelo automaticamente.
+Use .harness/codex-workers.md e .harness/operacao.md. O líder usa a linha TPL da matriz Codex,
+na complexidade registrada; não adotar modelo Claude do spec histórico. Registrar classificação
+antes de prepare e conservar a configuração das sessões já abertas.
 
 ## Preparação do coordenador
 

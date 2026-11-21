@@ -73,14 +73,15 @@ test('reserva idempotente não troca ferramenta e detecta branch incorreta', (t)
     0,
   );
 });
-test('prepare usa modelo econômico, gera brief e não permite duplicar uma tentativa', (t) => {
+test('prepare usa modelo da classificação, gera brief e não permite duplicar uma tentativa', (t) => {
   const f = fixture(t),
     w = f.wt('um');
   f.run('reserve', '--team', 'um', '--agent', 'codex', '--worktree', w);
+  f.run('classify', '--team', 'um', '--complexity', 'ROTINEIRA', '--reason', 'fixture');
   const args = ['prepare', '--team', 'um', '--role', 'tpl', '--worktree', w, '--spec', f.brief];
   const r = f.run(...args);
   assert.equal(r.status, 0, r.stderr);
-  assert.ok(r.data.argv.includes('gpt-6-luna'));
+  assert.ok(r.data.argv.includes('gpt-6.1-sol'));
   assert.ok(r.data.argv.includes('medium'));
   assert.ok(readFileSync(r.data.specFile, 'utf8').includes(w));
   assert.ok(readFileSync(r.data.specFile, 'utf8').includes('Entrega: tarefa de teste'));
@@ -91,6 +92,31 @@ test('bind só associa a tentativa registrada e o Stop não herda papel de outra
   const f = fixture(t),
     w = f.wt('um');
   f.run('reserve', '--team', 'um', '--agent', 'codex', '--worktree', w);
+  f.run('classify', '--team', 'um', '--complexity', 'ROTINEIRA', '--reason', 'fixture');
+  f.run(
+    'approve',
+    '--team',
+    'um',
+    '--mode',
+    'Front',
+    '--spec',
+    f.brief,
+    '--evidence',
+    'aprovação fixture',
+  );
+  const proof = join(f.dir, 'setup.json');
+  writeFileSync(
+    proof,
+    JSON.stringify({
+      worktree: w,
+      head: f.git(w, 'rev-parse', 'HEAD'),
+      checks: {
+        install: { command: 'fixture install', exitCode: 0, evidence: 'log' },
+        environment: { command: 'fixture ambiente', exitCode: 0, evidence: 'log' },
+      },
+    }),
+  );
+  f.run('ready', '--team', 'um', '--worktree', w, '--stage', 'dev', '--proof', proof);
   f.run('prepare', '--team', 'um', '--role', 'dev-front', '--worktree', w, '--spec', f.brief);
   assert.notEqual(f.run('bind', '--team', 'um', '--key', 'dev-front', '--session', 's1').status, 0);
   assert.equal(
@@ -170,6 +196,7 @@ test('tentativa comprovadamente não lançada pode ser cancelada sem apagar hist
   const f = fixture(t),
     w = f.wt('um');
   f.run('reserve', '--team', 'um', '--agent', 'codex', '--worktree', w);
+  f.run('classify', '--team', 'um', '--complexity', 'ROTINEIRA', '--reason', 'fixture');
   const args = ['prepare', '--team', 'um', '--role', 'tpl', '--worktree', w, '--spec', f.brief];
   f.run(...args);
   assert.notEqual(f.run('cancel-prepared', '--team', 'um', '--key', 'tpl').status, 0);
@@ -211,6 +238,7 @@ test('brief não lê arquivo de segredo nem usa papel fora da equipe', (t) => {
   const f = fixture(t),
     w = f.wt('um');
   f.run('reserve', '--team', 'um', '--agent', 'codex', '--worktree', w);
+  f.run('classify', '--team', 'um', '--complexity', 'ROTINEIRA', '--reason', 'fixture');
   const secret = join(f.dir, '.env');
   writeFileSync(secret, 'fixture only');
   assert.notEqual(

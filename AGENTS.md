@@ -15,13 +15,18 @@ regra de negócio vem de lá. **Se a regra estiver ambígua ou em aberto, pergun
 - Claude Code e Codex compartilham contexto e papéis em `.harness/roles`. No Codex, usar
   `.agents/skills/{lancar-equipe,tpl,lider-v1,mergear}`; no Claude, `.claude/skills`.
   Operação/contas/reservas em `.harness/operacao.md`; hooks e ativação em `.codex/README.md`.
-  Novos workers Codex usam `gpt-6-luna` com esforço `medium`, sem escalada automática.
+  Novos workers Codex usam a matriz de `.harness/model-policy.json`, conforme papel e complexidade
+  registrada antes da delegação. Orquestrador usa Sol/low; escolha explícita do dono para uma
+  sessão prevalece. Não alterar política silenciosamente nem migrar sessões existentes.
   Equipes de ambas as ferramentas contam juntas no limite de três; nenhuma tarefa é transferida implicitamente.
   Testar harness: `node --test .codex/hooks/bridge.test.mjs .harness/*.test.mjs`.
 - Uma tarefa = um worktree = uma branch = um PR. Arquivos compartilhados (`package.json` da raiz,
   `pnpm-lock.yaml`, `schema.prisma`, CI) têm um dono por vez. Antes do PR: `git fetch && git rebase origin/develop`.
 - Fatia da Trilha: equipe TPL → DEVs ↔ QA (skills `lancar-equipe` e `tpl`, agentes em `.claude/agents/`).
   Merge na `develop`: só o orquestrador, com o ok do dono (skill `mergear`).
+  Depois da integração de uma entrega, descartar chats/terminais e worktrees da equipe sem pedir confirmação,
+  somente após comprovar commits integrados (ou equivalência após rebase), Git limpo, workers encerrados e
+  recursos liberados. Preservar `feature/plugin-harness` e seu worktree; arquitetura pausada não é entrega finalizada.
   Fluxo em `docs/specs/2026-10-24-equipe-design.md`. Fim da v1 com líder (specs em lote) e álbum de prints:
   `docs/specs/2026-11-14-autonomia-v1.md`. Mais de uma equipe ao mesmo tempo (opcional, portas e banco
   por equipe): `docs/specs/2026-10-30-equipe-paralela.md`.

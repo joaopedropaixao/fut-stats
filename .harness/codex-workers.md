@@ -19,7 +19,9 @@ workers Orca; não interpreta o frontmatter dos agentes Claude como configuraç�
 
 O vínculo é por sessão **e** worktree. Um DEV simples não desativa a proteção de push do TPL
 que compartilha a mesma branch. Não vincular a sessão do coordenador ao papel do DEV.
-Modelos: gpt-6-luna/medium por padrão, sem escalada automática. Não cria subagentes extras
+Modelos: usar model/effort e complexidade do kickoff, resolvidos por `.harness/model-policy.json`.
+Não alterar modelo silenciosamente; reclassificação registrada só afeta próximas execuções.
+Não cria subagentes extras
 para tarefas pequenas. Briefs curtos, logs em arquivos e leitura só das seções necessárias.
 
 ## Perguntar ou aguardar
@@ -43,6 +45,12 @@ Para mensagens e runs, seguir a preamble do Orca e .harness/operacao.md.
 - Antes de worker_done com relatório, marcar phase delivering. Stop roda a verificação
   adicional do DEV nesse worktree; não confiar no Stop como substituto da evidência explícita.
 - No retorno para corrigir, voltar a working; repetir verificações e relatório ao entregar.
+- No Par, back produz o contrato como primeiro marco no próprio binding e registra
+  `team.mjs contract --team <fatia> --session <id> --sha <commit> --evidence <referência>`.
+  Informar o SHA ao TPL sem worker_done: ainda há implementação. Front aguarda esse marco.
+- Se o coordenador encerrou a tentativa, uma nova execução usa a chave de follow-up fornecida
+  por ele; nunca sobrescrever recibo ou fabricar binding. Recuperação da mesma sessão preserva
+  o histórico; conferir novamente worktree, prontidão e contrato antes de agir.
 
 ## QA
 
@@ -58,6 +66,11 @@ conteúdo/modo dos arquivos versionados e não ignorados; aceita docs/design/pri
 .playwright-mcp/. Não audita banco, arquivos ignorados ou efeitos externos; o QA continua
 obrigado a respeitar o escopo. Qualquer alteração não permitida invalida o veredito; não apagar
 as alterações automaticamente, pedir diagnóstico ao QA e devolver a correção ao DEV.
+
+Para equipes com plano incremental, seguir `.harness/qa-incremental.md`: `qa-evidence` e
+`qa-result` usam a própria sessão vinculada. Esses comandos gravam somente o registro externo
+ao Git; são permitidos ao QA. Reuso não elimina independência: julgar provas e lacunas,
+invalidar evidência suspeita e ampliar regressão se necessário. Inconclusivo não é aprovado.
 
 ## TPL e líder
 
