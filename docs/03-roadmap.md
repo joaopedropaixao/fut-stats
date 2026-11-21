@@ -49,9 +49,10 @@ abaixo).
 | 14 ✅ | `pwa-e-push` | Par | — | **Onda 6.** Instalar o app e Web Push: rodada marcada, times publicados, votação aberta e resultado, como ouvinte do sinal único de eventos da rodada (da `jogo-ao-vivo`). Pendência do `pacote-do-craque` resolvida (17 nov 2026): o aviso `RESULT` do Feed traz `hasPack` e o card do início não chama mais `GET .../voting/result`; a novidade chega pelo push `RESULT_OUT` (app fechado) e pelo SSE da `jogo-ao-vivo` (app aberto) |
 | 15 ✅ | `producao` | Back | — | **Onda 6.** `main` no ar, Sentry, backup do banco e o despertador (webhook chamado de 30 em 30 minutos para a votação fechar no prazo). Depois, a release e **lançar para a pelada** |
 | 16 ✅ | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
+| 17 ✅ | `ajustes-feedback` | Front | — | Ajustes do feedback dos admins e do dono (19 nov 2026), release v1.1: loading do Gerar times com aviso de servidor acordando, moldura de madeira do Perna de Pau, meta color-scheme para o Samsung Internet no modo escuro, aviso dos e-mails aceitos no login (docs), tela de servidor iniciando quando a API está dormindo, moldura "Lenda" dourada na carta do Craque (a faixa vira selo) |
 
 ### Próximas prioridades (18 nov 2026)
-Entregues até aqui: as fatias 0 a 16. **Release `v1.0.0` no ar em 18 nov 2026** (PR #80, tag `v1.0.0`) em
+Entregues até aqui: as fatias 0 a 17. **Release `v1.0.0` no ar em 18 nov 2026** (PR #80, tag `v1.0.0`) em
 <https://futstats-app.com.br>: o dono entrou, instalou o app no celular e criou a pelada. Falta do roteiro do dono
 (`docs/deploy.md`): R7b (segredos e primeiro backup) e R7c (despertador). Ordem:
 
@@ -74,10 +75,11 @@ Ainda sem spec nem ordem. Entram na trilha depois do feedback das primeiras roda
 | Ideia | O que é | Origem |
 |---|---|---|
 | Serviço de notificação | Um serviço próprio (p.ex. `fut-stats-app-notification-service`) que ouve o sinal único de eventos da rodada e centraliza tudo: manda os aparelhos se atualizarem, envia os avisos e, no futuro, webhooks para fora. O sinal da `jogo-ao-vivo` já é a costura para isso | Dono, 17 nov 2026 (decisões em `specs/jogo-ao-vivo.md`) |
-| Feed e presença ao vivo | Reações, comentários e "vou / não vou" atualizam na hora, pelo mesmo canal da `jogo-ao-vivo` | Dono, 17 nov 2026 |
-| Moldura do Perna de Pau | A carta do Perna de Pau ganha moldura própria (madeira, rachada, "pé torto") no lugar da faixa da nota, que continua visível. Hoje a faixa segue a nota (`cardTier`), e um Perna de Pau com 6,5 sai prata | Dono, 18 nov 2026 |
+| Feed e presença ao vivo | Reações, comentários e "vou / não vou" atualizam na hora, pelo mesmo canal da `jogo-ao-vivo`. Entra junto do "Serviço de notificação" | Dono, 17 nov 2026 |
 | Resenha-enquete | Uma resenha do tipo votação, para os admins decidirem com o grupo: o que fazer com o dinheiro da pelada, cancelar ou não uma pelada, e coisas do tipo | Dono, 18 nov 2026 |
 | Instagram da pelada | Levar resenhas, resultados, votações etc. para um Instagram da pelada, onde o pessoal já está todo dia, para mais gente ficar sabendo e engajar. Bem mais para a frente | Dono, 18 nov 2026 |
+| API sempre acordada | Um serviço externo gratuito chama o `/api/health` de produção de 14 em 14 minutos, para o Render não dormir (hoje o primeiro acesso depois de 15 min parado leva ~48 s). Custo: ~720 das 750 h/mês gratuitas do Render, somadas por conta; o staging ficaria sem ping | Dono, 19 nov 2026 |
+| Outros jeitos de entrar | Login por link no e-mail ou por outro provedor além do Google | Dono, 19 nov 2026 |
 
 Limite de três equipes ao mesmo tempo, somando Claude e Codex; cada orquestrador cuida das equipes que lançou e
 os avisos entre equipes vão no quadro (`.claude/scripts/quadro.sh`).

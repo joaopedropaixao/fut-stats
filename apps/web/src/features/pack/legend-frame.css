@@ -1,0 +1,188 @@
+/*
+ * Moldura "Lenda" do Craque (opção C, escolhida pelo dono em 20 nov 2026): fundo dourado metálico, cantos em degraus
+ * com contorno preto, friso duplo, troféu com asas, ponteiras e faíscas. A mesma moldura para qualquer nota; a faixa
+ * vira o selo escuro (`TierSeal dark`). Só CSS e SVG pixel. Só transform e opacity animam; Reduzir movimento deixa o
+ * brilho e as faíscas parados. Carregado junto com o pacote e o resultado (pedaço lazy), fora do JS inicial.
+ */
+
+/* Apagada (antes do rosto no walkout): texto claro sobre o miolo escuro; acesa: tinta escura sobre o ouro */
+.legend-card {
+  --card-ink: var(--color-text);
+  --card-ink-2: var(--color-text-muted);
+  color: var(--card-ink);
+}
+
+.legend-card[data-lit] {
+  --card-ink: #140b02;
+  --card-ink-2: #3a2204;
+}
+
+.legend-card[data-tier='bronze'] {
+  --seal: var(--color-bronze-light);
+}
+
+.legend-card[data-tier='silver'] {
+  --seal: var(--color-silver-light);
+}
+
+.legend-card[data-tier='gold'] {
+  --seal: var(--color-gold-light);
+}
+
+/* O fundo: ouro polido, com um clarão de canto e uma faixa de reflexo (sem verde, creme ou arco-íris) */
+.legend-gold {
+  background:
+    linear-gradient(
+      115deg,
+      transparent 0 40%,
+      rgb(255 255 255 / 42%) 44% 48%,
+      transparent 52% 100%
+    ),
+    radial-gradient(130px 100px at 28% 18%, rgb(255 246 190 / 75%), transparent 70%),
+    linear-gradient(
+      135deg,
+      #fff0a8 0%,
+      #f8cf4a 20%,
+      #e8a93a 38%,
+      #ffe27a 56%,
+      #f2b83c 76%,
+      #c98a1a 100%
+    );
+}
+
+/* A face (o miolo): contorno preto fino; acesa, ganha o bisel de dentro (sombra em cima, luz embaixo) */
+.legend-face {
+  box-shadow: inset 0 0 0 3px #000;
+}
+
+.legend-card[data-lit] .legend-face {
+  box-shadow:
+    inset 0 0 0 3px #000,
+    inset 5px 5px 0 3px rgb(74 44 4 / 55%),
+    inset -5px -5px 0 3px rgb(255 244 180 / 70%);
+}
+
+/* O Craque sou eu: o contorno creme da carta especial, dentro do preto */
+.legend-card[data-special] .legend-face {
+  box-shadow:
+    inset 0 0 0 3px #000,
+    inset 0 0 0 6px #f3ead3,
+    inset 0 0 0 9px #000;
+}
+
+/* A moldura, em degraus nos cantos; apagada, é só o fundo escuro do palco */
+.legend-frame {
+  background: var(--color-track);
+  clip-path: polygon(
+    0 20px,
+    5px 20px,
+    5px 15px,
+    10px 15px,
+    10px 10px,
+    15px 10px,
+    15px 5px,
+    20px 5px,
+    20px 0,
+    calc(100% - 20px) 0,
+    calc(100% - 20px) 5px,
+    calc(100% - 15px) 5px,
+    calc(100% - 15px) 10px,
+    calc(100% - 10px) 10px,
+    calc(100% - 10px) 15px,
+    calc(100% - 5px) 15px,
+    calc(100% - 5px) 20px,
+    100% 20px,
+    100% calc(100% - 20px),
+    calc(100% - 5px) calc(100% - 20px),
+    calc(100% - 5px) calc(100% - 15px),
+    calc(100% - 10px) calc(100% - 15px),
+    calc(100% - 10px) calc(100% - 10px),
+    calc(100% - 15px) calc(100% - 10px),
+    calc(100% - 15px) calc(100% - 5px),
+    calc(100% - 20px) calc(100% - 5px),
+    calc(100% - 20px) 100%,
+    20px 100%,
+    20px calc(100% - 5px),
+    15px calc(100% - 5px),
+    15px calc(100% - 10px),
+    10px calc(100% - 10px),
+    10px calc(100% - 15px),
+    5px calc(100% - 15px),
+    5px calc(100% - 20px),
+    0 calc(100% - 20px)
+  );
+}
+
+.legend-card[data-lit] .legend-frame {
+  background: linear-gradient(
+    135deg,
+    #5a3606 0%,
+    #d49a22 20%,
+    #ffe680 44%,
+    #b97a14 70%,
+    #4a2c04 100%
+  );
+}
+
+/* O contorno preto e a sombra dura vêm dos drop-shadow do pai (o clip-path cortaria um box-shadow) */
+.legend-outline {
+  filter: drop-shadow(3px 0 0 #000) drop-shadow(-3px 0 0 #000) drop-shadow(0 3px 0 #000)
+    drop-shadow(0 -3px 0 #000) drop-shadow(7px 7px 0 #000);
+}
+
+/* O friso duplo: uma linha escura e uma clara dentro da moldura */
+.legend-friso {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid rgb(58 36 3 / 75%);
+}
+
+.legend-friso-lt {
+  position: absolute;
+  pointer-events: none;
+  border: 2px solid rgb(255 244 180 / 80%);
+}
+
+/* O texto e o resto do miolo ficam por cima do brilho: o reflexo passa por trás das letras, que seguem legíveis */
+.legend-face > :not(.legend-sweep, svg) {
+  position: relative;
+  z-index: 1;
+}
+
+/* O brilho que passa, em degraus: dois por carta, o segundo atrasado */
+.legend-sweep {
+  pointer-events: none;
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 46%;
+  background: linear-gradient(100deg, transparent 0%, rgb(255 255 255 / 92%) 50%, transparent 100%);
+  z-index: 0;
+  animation: legend-sweep 3200ms steps(14, end) infinite;
+}
+
+.legend-sweep-late {
+  animation-delay: 1500ms;
+}
+
+@keyframes legend-sweep {
+  0%,
+  45% {
+    opacity: 0;
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  46% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(280%) skewX(-18deg);
+  }
+}
+
+/* Reduzir movimento: o brilho não passa (fica só o reflexo parado do fundo) */
+@media (prefers-reduced-motion: reduce) {
+  .legend-sweep {
+    display: none;
+  }
+}

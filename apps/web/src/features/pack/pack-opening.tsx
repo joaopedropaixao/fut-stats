@@ -65,6 +65,7 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
   }, [frame, last]);
 
   // O Craque (e os dois juntos) fazem o palco com holofote; o resto fica no escuro do pacote
+  const tall = frame.kind === 'duo' || (frame.kind === 'card' && frame.card.kind !== 'mine');
   const onStage = frame.kind === 'duo' || (frame.kind === 'card' && frame.card.kind === 'craque');
 
   const atEnd = index === last;
@@ -98,7 +99,9 @@ export default function PackOpening({ result, onFinish, onDone }: PackOpeningPro
       ) : (
         <div
           className={cn(
-            'moment-frame animate-moment-in relative flex min-h-[440px] items-center justify-center overflow-hidden px-3 pt-[72px] pb-6',
+            'moment-frame animate-moment-in relative flex items-center justify-center overflow-hidden px-3 pt-[72px] pb-6',
+            // As cartas de 240 px (Craque, Perna de pau e o empate) pedem o palco mais alto; o pacote fechado e a sua carta, não
+            tall ? 'min-h-[500px]' : 'min-h-[440px]',
             onStage ? 'craque-stage' : 'bg-track',
             frame.kind !== 'closed' && 'cursor-pointer',
           )}
@@ -169,6 +172,8 @@ function Stage({
               tier={frame.card.tier}
               you={frame.card.you}
               phrase={frame.card.phrase}
+              // Em 320 px a madeira (240 px, girada, com selo e pé torto) não cabe no palco: encolhe um pouco
+              className="max-[359px]:scale-[0.85]"
               hidden
             />
           </div>
@@ -184,7 +189,7 @@ function Stage({
         </div>
       );
     case 'duo':
-      // As duas cartas encolhidas (0,7; 0,6 em 320) para caber lado a lado a partir de 360 px; em 320 ficam empilhadas
+      // As duas cartas (240 px, com a moldura Lenda) encolhidas (0,625; 0,55 em 320) para caber lado a lado a partir de 360 px; em 320 ficam empilhadas
       return (
         <div
           aria-hidden
@@ -193,9 +198,9 @@ function Stage({
           {frame.cards.map((c) => (
             <div
               key={c.player.membershipId}
-              className="h-[173px] w-[115px] min-[360px]:h-[202px] min-[360px]:w-[134px]"
+              className="h-[222px] w-[132px] min-[360px]:h-[258px] min-[360px]:w-[150px]"
             >
-              <div className="w-48 origin-top-left scale-[0.6] min-[360px]:scale-[0.7]">
+              <div className="w-60 origin-top-left scale-[0.55] min-[360px]:scale-[0.625]">
                 <CraqueCard
                   player={c.player}
                   tier={c.tier}
@@ -329,7 +334,7 @@ function Walkout({ card, number, onFace }: { card: PackCard; number: number; onF
           stats
           clues={clues}
           hidden
-          className="relative z-10"
+          className="relative z-10 max-[359px]:scale-[0.85]"
         >
           {clues.face && (
             <>
@@ -496,7 +501,11 @@ function FinalCard({ card, number, delay }: { card: PackCard; number: number; de
   return (
     <div
       style={style}
-      className="animate-final-in flex w-48 max-w-full flex-col items-center gap-4"
+      className={cn(
+        'animate-final-in flex max-w-full flex-col items-center gap-4',
+        // O pé torto sai 18 px para fora da carta de madeira: a folga de baixo o deixa inteiro à mostra
+        card.kind === 'flop' ? 'w-60 pb-6' : card.kind === 'craque' ? 'w-60' : 'w-48',
+      )}
     >
       {card.kind === 'craque' ? (
         <CraqueCard
@@ -507,14 +516,21 @@ function FinalCard({ card, number, delay }: { card: PackCard; number: number; de
           stats
         />
       ) : card.kind === 'flop' ? (
-        <FlopPackCard player={card.player} tier={card.tier} you={card.you} phrase={card.phrase} />
+        <FlopPackCard
+          player={card.player}
+          tier={card.tier}
+          you={card.you}
+          phrase={card.phrase}
+          className="max-[359px]:scale-[0.85]"
+        />
       ) : (
         <MinePackCard player={card.player} tier={card.tier} rank={card.rank} />
       )}
       {card.kind === 'craque' && card.phrase !== null && (
         <PhraseBanner phrase={card.phrase} className="w-full" />
       )}
-      {card.kind !== 'flop' && <ShareButton card={card} roundNumber={number} block />}
+      {/* O `ShareButton` decide sozinho (`canShareCard`): o Perna de pau não tem a tecla */}
+      <ShareButton card={card} roundNumber={number} block />
     </div>
   );
 }

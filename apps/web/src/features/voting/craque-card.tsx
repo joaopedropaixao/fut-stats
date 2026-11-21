@@ -25,7 +25,8 @@ type CraqueCardProps = {
 /**
  * A carta do Craque (folha: Carta/Craque), inclinada, na faixa da nota: a nota em dígitos pixel, a posição, o
  * bonequinho, o apelido, "CRAQUE" e a rodada. Estende a base comum das cartas (`PlayerCard`): faz o walkout do
- * pacote (pistas em degraus) e, sendo o Craque você, vira a carta especial com o selo "VOCÊ".
+ * pacote (pistas em degraus) e, sendo o Craque você, vira a carta especial com o selo "VOCÊ". A moldura é a "Lenda":
+ * dourada e a mesma para qualquer nota; a faixa vira o selo escuro (`legend` do `PlayerCard`).
  */
 export function CraqueCard({
   player,
@@ -46,6 +47,7 @@ export function CraqueCard({
       tier={tier}
       score={player.score}
       kind="Craque"
+      legend
       note={`Rodada ${roundNumber}`}
       clues={clues}
       you={special}
