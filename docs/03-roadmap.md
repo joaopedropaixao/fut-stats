@@ -51,10 +51,20 @@ abaixo).
 | 16 ✅ | `polimento-v1` | Front | — | **Onda 5, antes do `feed`.** Ajustes que vieram dos testes do dono (15 nov 2026): folga no orçamento do JS inicial (148,2 de 150 kB depois do pacote; o `feed` precisa de espaço), frase de impacto para "só 1 assistência" na carta do Craque (hoje cai em "JOGOU DEMAIS"), moldura bronze/prata/ouro (`cardTier`) na figurinha do ranking |
 | 17 ✅ | `ajustes-feedback` | Front | — | Ajustes do feedback dos admins e do dono (19 nov 2026), release v1.1: loading do Gerar times com aviso de servidor acordando, moldura de madeira do Perna de Pau, meta color-scheme para o Samsung Internet no modo escuro, aviso dos e-mails aceitos no login (docs), tela de servidor iniciando quando a API está dormindo, moldura "Lenda" dourada na carta do Craque (a faixa vira selo) |
 
-### Próximas prioridades (18 nov 2026)
-Entregues até aqui: as fatias 0 a 17. **Release `v1.0.0` no ar em 18 nov 2026** (PR #80, tag `v1.0.0`) em
-<https://futstats-app.com.br>: o dono entrou, instalou o app no celular e criou a pelada. Falta do roteiro do dono
-(`docs/deploy.md`): R7b (segredos e primeiro backup) e R7c (despertador). Ordem:
+### Próximas prioridades (21 nov 2026)
+Entregues até aqui: as fatias 0 a 17, em <https://futstats-app.com.br>. Releases na `main`:
+
+| Release | Quando | O que levou |
+|---|---|---|
+| `v1.0.0` | 18 nov 2026 (PR #80) | A v1: o dono entrou, instalou o app no celular e criou a pelada |
+| `v1.0.1` | 19 nov 2026 (PR #83) | Workflow "Preparar homologação" (precisa estar na branch padrão) e a reserva de admin |
+| `v1.1.0` | 21 nov 2026 (PR #87) | A fatia 17 `ajustes-feedback`, o backup no PostgreSQL 18 (#85) e as variáveis do Sentry no cache do build (#84). Sem migration |
+
+O roteiro do dono (`docs/deploy.md`) está completo: o backup diário (R7b) e o despertador (R7c) rodam na `main`.
+**Release com a proteção das branches atual:** a `develop` e a `main` exigem PR, o check `ci` e a branch em dia. Antes do
+PR `develop` → `main`, um PR de sincronização traz o merge commit do release anterior de volta para a `develop`
+(branch `feature/sync-main` com a `main` mesclada, sem nenhum arquivo alterado); o botão "Update branch" não funciona.
+Cada release leva tag e release no GitHub. Ordem:
 
 1. ✅ **`polimento-v1`** (Front, pequeno): abre espaço no orçamento do JS inicial e fecha os ajustes dos testes. Vem
    antes do `feed` porque ele é a próxima tela grande.
@@ -64,10 +74,37 @@ Entregues até aqui: as fatias 0 a 17. **Release `v1.0.0` no ar em 18 nov 2026**
 3. ✅ **`jogo-ao-vivo`** (Par), ✅ **`pwa-e-push`** (Par) e ✅ **`producao`** (Back), que coloca a `main` no
    ar no domínio próprio (`futstats-app.com.br`).
 4. **Lançar para a pelada** (em andamento): primeiro os admins testam e dão feedback (semana de 18 nov 2026),
-   depois os jogadores, na pelada do domingo seguinte. Coletar feedback em 2–3 rodadas. O `docs/lancamento.md` explica como instalar o app
+   depois os jogadores, na pelada de 22 nov 2026 (o dono manda o link e o texto de `docs/lancamento.md`). Coletar
+   feedback em 2–3 rodadas. O `docs/lancamento.md` explica como instalar o app
    no Android e no **iPhone** (no Safari: Compartilhar → Adicionar à Tela de Início; sem instalar, o iPhone não
    recebe avisos). A ideia é todo mundo ter o app com ícone na tela, como um app da loja.
-5. Depois do lançamento: os ajustes do feedback, as ideias abaixo, Cartola (Fase 5) e pagamentos (Fase 6).
+   O login é só pelo Google: entra quem tem conta Google (Gmail, ou outro e-mail que tenha sido usado para criar uma).
+   **Em aberto do lançamento:**
+   - **Samsung Internet no modo escuro:** a `<meta name="color-scheme">` da `v1.1.0` é uma tentativa; só o jogador do
+     Samsung A26 confirma, abrindo o app com o celular em modo escuro. Sem correção, o contorno é desligar o modo escuro
+     do navegador para o site (`docs/lancamento.md`).
+   - **Staging x banco de produção:** o staging do Render chegou a apontar para o branch `prod` do Neon (19 nov 2026).
+     O dono o moveu para o `dev`. Falta confirmar o host `Datasource` no log do deploy do staging e limpar no `prod` os
+     grupos de teste criados por ele (jogador nunca é apagado: desativar, ou o procedimento manual de
+     `docs/operacao/registro.md`).
+   - **Rolagem horizontal em 320 px** na contagem "BRANCO 0 DE 7 · 0 DE 7 PRETO" (`lineup-status.tsx`), achada pelo QA da
+     fatia 17 e deixada de fora dela: ajuste pequeno, vai no próximo pacote de correções.
+   - **Empate de dois Craques:** o resultado e o pacote foram conferidos só por simulação (o seed não tem rodada com
+     empate). Olhar com atenção se acontecer.
+5. Depois do lançamento, em ordem de decisão do dono: os ajustes do feedback das primeiras rodadas; a "API sempre
+   acordada" (decidir o custo em horas do Render); o "Serviço de notificação" junto do "Feed e presença ao vivo"; Cartola
+   (Fase 5) e pagamentos (Fase 6). Cada um vira fatia com spec, e releases pequenos agrupam o que o dono quiser levar.
+
+### Pacote `v1.2` (próximo release de melhorias, 21 nov 2026)
+Release pequeno, sem pressa: o que entra aqui só importa depois da pelada de 22 nov 2026. Itens decididos:
+
+- **Ranking: mínimo de 2 rodadas com nota para classificar** (decisão do dono, 21 nov 2026; antes eram 3, resposta à P4 de
+  14 nov). É só a constante `DEFAULT_MIN_RATED_GAMES` do domínio (3 → 2), com os testes de `minRatedGames` e a regra do
+  ranking no `CONTEXT.md` atualizados no mesmo PR; o texto "Precisa de N rodadas com nota…" já vem do valor da API, e a
+  Tendência usa o mesmo mínimo. Sem migration. Não muda nada até a 3ª rodada encerrada (o mínimo já era
+  `min(alvo, rodadas encerradas)`: o ranking existe desde a 1ª rodada). Não mexe na nota do seletor (média das 5 últimas).
+- **Rolagem horizontal em 320 px** na contagem "BRANCO 0 DE 7 · 0 DE 7 PRETO" (`lineup-status.tsx`).
+- **O que sair do feedback da pelada de 22 nov 2026** (jogadores e admins): entra aqui antes do release.
 
 ### Depois do lançamento: ideias aprovadas pelo dono
 Ainda sem spec nem ordem. Entram na trilha depois do feedback das primeiras rodadas.
@@ -80,6 +117,7 @@ Ainda sem spec nem ordem. Entram na trilha depois do feedback das primeiras roda
 | Instagram da pelada | Levar resenhas, resultados, votações etc. para um Instagram da pelada, onde o pessoal já está todo dia, para mais gente ficar sabendo e engajar. Bem mais para a frente | Dono, 18 nov 2026 |
 | API sempre acordada | Um serviço externo gratuito chama o `/api/health` de produção de 14 em 14 minutos, para o Render não dormir (hoje o primeiro acesso depois de 15 min parado leva ~48 s). Custo: ~720 das 750 h/mês gratuitas do Render, somadas por conta; o staging ficaria sem ping | Dono, 19 nov 2026 |
 | Outros jeitos de entrar | Login por link no e-mail ou por outro provedor além do Google | Dono, 19 nov 2026 |
+| Camisetas no Perfil | O jogador escolhe a camiseta do seu bonequinho no **Perfil**, com as cores clássicas dos times brasileiros, para personalizar mais. **Precisa de planejamento antes de virar fatia:** onde a camiseta pessoal vale e onde não. Nas telas em que a cor é a do **time** (no VS, na montagem, no placar: Branco x Preto) a camiseta pessoal não pode aparecer, senão confunde os times. Perguntas para o planejamento: lista de cores (e se alguma, como a preta e branca, precisa de cuidado), onde ela aparece (Perfil, ranking, cartas, feed), se é por jogador ou por grupo, e o contrato (`avatar`, hoje com cor da pele e do cabelo) | Dono, 21 nov 2026 |
 
 Limite de três equipes ao mesmo tempo, somando Claude e Codex; cada orquestrador cuida das equipes que lançou e
 os avisos entre equipes vão no quadro (`.claude/scripts/quadro.sh`).
