@@ -117,6 +117,7 @@ Ainda sem spec nem ordem. Entram na trilha depois do feedback das primeiras roda
 | Instagram da pelada | Levar resenhas, resultados, votações etc. para um Instagram da pelada, onde o pessoal já está todo dia, para mais gente ficar sabendo e engajar. Bem mais para a frente | Dono, 18 nov 2026 |
 | API sempre acordada | Um serviço externo gratuito chama o `/api/health` de produção de 14 em 14 minutos, para o Render não dormir (hoje o primeiro acesso depois de 15 min parado leva ~48 s). Custo: ~720 das 750 h/mês gratuitas do Render, somadas por conta; o staging ficaria sem ping | Dono, 19 nov 2026 |
 | Outros jeitos de entrar | Login por link no e-mail ou por outro provedor além do Google | Dono, 19 nov 2026 |
+| Camisetas no Perfil | O jogador escolhe a camiseta do seu bonequinho no **Perfil**, com as cores clássicas dos times brasileiros, para personalizar mais. **Precisa de planejamento antes de virar fatia:** onde a camiseta pessoal vale e onde não. Nas telas em que a cor é a do **time** (no VS, na montagem, no placar: Branco x Preto) a camiseta pessoal não pode aparecer, senão confunde os times. Perguntas para o planejamento: lista de cores (e se alguma, como a preta e branca, precisa de cuidado), onde ela aparece (Perfil, ranking, cartas, feed), se é por jogador ou por grupo, e o contrato (`avatar`, hoje com cor da pele e do cabelo) | Dono, 21 nov 2026 |
 
 Limite de três equipes ao mesmo tempo, somando Claude e Codex; cada orquestrador cuida das equipes que lançou e
 os avisos entre equipes vão no quadro (`.claude/scripts/quadro.sh`).
