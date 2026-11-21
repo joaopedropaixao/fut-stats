@@ -61,7 +61,7 @@ O helper não executa Orca, Git remoto nem modelos. Ele fornece os argumentos e 
 3. O resultado tem key, specFile e argv. Para Codex, executar uma única chamada Orca com esses
    argumentos, respeitando espaços e sem eval. Exemplo de forma: `orca orchestration worker-start
    --spec-file <specFile> --task-title "<papel> <fatia>" --worktree path:<raiz>
-   --agent codex --model gpt-6-luna --effort medium --json`. TPL/líder usam também --keep-open.
+   --agent codex --model <modelo-do-argv> --effort <esforço-do-argv> --json`. TPL/líder usam também --keep-open.
    Para Claude, argv é null: seguir .harness/claude-workers.md, com terminal pessoal explícito.
 4. Guardar a resposta completa fora do Git. Copiar os IDs reais de Task, Dispatch e Run do
    recibo para `node .harness/team.mjs record --team <fatia> --key <key>
@@ -77,9 +77,11 @@ coordenador registra o recibo e responde para ele prosseguir. Não precisa relan
 - Pergunta: worker usa ask e termina o turno; coordenador responde via reply se a decisão já
   consta no spec/CONTEXT/conversa. Regra nova, mudança de banco do dono ou portão vai ao dono.
 - Correção: send ao **dispatch registrado**, não terminal send nem novo worker da mesma tarefa.
-- Worker terminado que precisa corrigir: send pode reabrir a Task conforme Orca; mantenha
-  registro como recorded até acabar todas as voltas, não execute settle prematuramente.
-- QA sempre novo: novo round, brief sem histórico dos DEVs, nova chamada worker-start.
+- Worker terminado que precisa corrigir: inspecionar o efeito de send no Orca. Com o mesmo
+  Task/Dispatch e tentativa recorded, continuar nela. Novo Task/Dispatch exige tentativa
+  relacionada, depois de comprovar encerramento anterior; ver ciclo v2 abaixo.
+- Nova avaliação funcional QA usa novo round e brief sem conversa dos DEVs. Recuperação de
+  infraestrutura retoma a mesma QA/rodada; não é nova reprovação funcional.
 - Falha de start ou recibo ausente: não repetir prepare nem worker-start; carregar a referência
   recovery-and-cleanup do Orca. Inspecionar worker-show/list, recuperar recibo e registrar.
   Se não houve worker e a tentativa precisa ser substituída, guardar evidência da ausência e
@@ -95,12 +97,86 @@ coordenador registra o recibo e responde para ele prosseguir. Não precisa relan
 
 Somente após worker_done, validações e inspeção de que o worker/helpers encerraram:
 `node .harness/team.mjs settle --team <fatia> --key <key> --evidence <provas>`.
-Depois do merge autorizado, remover a linha do quadro e os worktrees de implementação somente
-com Git limpo, nenhum commit exclusivo e nenhum worker ativo. Usar Orca para remover worktrees.
-Preservar chat mantido aberto se o dono ainda usa; confirmar antes de removê-lo.
-Liberar a reserva apenas depois de parar os servidores próprios e conferir que nenhuma sessão
-usa as portas/banco: `release --team <fatia> --evidence <provas>`. O helper não para processos,
-não apaga worktrees e não comprova liveness: essa verificação é do coordenador.
+Após integrar a entrega na `develop`, descartar os chats/terminais e worktrees da equipe sem pedir
+confirmação de preservação. Faça isso somente depois de comprovar que os commits estão integrados
+(ou que seus equivalentes estão presentes após rebase), o Git está limpo, workers/helpers estão
+encerrados e recursos foram liberados. Se algum critério falhar, não remover ainda; reconciliar ou
+registrar o impedimento. Trabalho pausado, inclusive arquitetura em andamento, não está finalizado.
+
+Sequência de cleanup:
+1. Conferir `worker_done`, ausência de escrita e validações; então registrar `settle`.
+2. Confirmar integração dos commits (ou equivalência após rebase), `git status --short` vazio e
+   ausência de commits exclusivos em relação à `origin/develop`.
+3. Parar servidores próprios e confirmar que nenhuma sessão usa as portas/banco; liberar com
+   `node .harness/team.mjs release --team <fatia> --evidence <provas>`.
+4. Remover pelo Orca os chats/terminais da equipe e os worktrees. Remover a linha do quadro.
+
+O helper não para processos, não apaga worktrees e não comprova liveness: essa verificação é do
+coordenador. `feature/plugin-harness` e seu worktree são exceções permanentes definidas em AGENTS.md.
 
 Para revisar: `node .harness/team.mjs status`. Um desenho de sessão não muda outra sessão;
 estado local é rastreabilidade e coordenação, não uma barreira de segurança.
+
+## Ciclo v2 para novas equipes Codex
+
+Novas reservas Codex recebem `policyVersion: 2`. Reservas existentes sem essa versão e
+equipes Claude mantêm seus gates anteriores; não editar JSON para migrar uma equipe ativa.
+O estado tem `schemaVersion: 2`; versões futuras desconhecidas são recusadas em escrita.
+Novas reservas também recebem `routingVersion: 1`; precisam de `classify` antes de prepare.
+Equipes sem routingVersion mantêm Luna/medium, sem migração implícita. Matriz e telemetria em
+`.harness/metricas.md`; plano/evidências do QA em `.harness/qa-incremental.md`.
+
+Antes de DEVs, registrar o spec aprovado (o brief de launch pode ser outro arquivo):
+
+```sh
+node .harness/team.mjs approve --team <fatia> --mode Par --spec <spec.md> --evidence <referência-do-ok>
+node .harness/team.mjs ready --team <fatia> --worktree <raiz> --stage dev --proof <setup.json>
+```
+
+`approve` registra uma atestação do coordenador; não concede aprovação pelo dono. Spec
+alterado invalida seu digest. Mudança técnica autorizada dentro do contrato registra a
+referência da autorização aplicável; comportamento/aceite novos exigem aprovação nova.
+Para substituir aprovação, DEVs e QA precisam estar encerrados/reconciliados.
+
+Prova JSON mínima, fora do Git, com SHA real do checkout e sem segredos:
+
+```json
+{
+  "worktree": "<raiz absoluta canônica do checkout>",
+  "head": "<SHA completo>",
+  "checks": {
+    "install": { "command": "pnpm install --frozen-lockfile", "exitCode": 0, "evidence": "<log>" },
+    "environment": { "command": "<verificação sem ler segredos>", "exitCode": 0, "evidence": "<log>" }
+  }
+}
+```
+
+Para `--stage qa`, incluir também checks `api`, `web`, `fixtures`, `browser` no mesmo formato
+e `browser: { "pid": <PID real>, "args": [<argv real contendo --isolated>], "navigation":
+"<evidência de navegação real>" }`. Preparar o processo pelo transporte suportado do Orca;
+não inferir PID/argv de um exemplo de configuração. `isolatedContext` não basta.
+Registrar QA readiness no checkout do QA e nos checkouts de cada DEV. O helper valida formato,
+HEAD e referências, mas **não executa comandos nem verifica liveness**; o coordenador verifica
+o ambiente real. Não colocar credenciais, URLs com tokens ou conteúdo de `.env` na prova.
+
+No Par, back vinculado registra `contract --team <fatia> --session <id> --sha <commit>
+--evidence <referência>` a partir do próprio checkout. O commit deve alterar shared e ser
+ancestral de HEAD. O front exige esse SHA como ancestral e setup próprio. TPL não grava no back.
+O marco de contrato não encerra o DEV. `prepare` e `bind` verificam os gates da política v2;
+HEAD alterado requer prontidão renovada antes de iniciar/recuperar o trabalho.
+
+Após encerramento comprovado, `settle` mantém recibo e binding histórico. Para uma nova
+execução relacionada, usar `prepare` com os argumentos normais mais `--after <chave-anterior>
+--reason <motivo>`. QA também informa o mesmo `--round` em recuperação. Usar a nova chave
+retornada para record/bind. A mesma sessão pode vincular-se à sucessora direta da própria
+tentativa encerrada; o vínculo anterior vai para history. Outra equipe/papel/worktree não
+é transferência permitida. Cada predecessor só tem uma sucessora; para continuar, seguir a cadeia.
+
+Antes de qualquer launch, reconciliar recibos ausentes no Orca. A tentativa sucessora pode
+registrar um follow-up já criado pelo Orca: não chamar worker-start de novo nesse caso.
+Uma intenção comprovadamente não lançada pode ser cancelada como antes; retry recebe ID novo.
+
+`release` arquiva equipe, tentativas e bindings em `archives` na mesma escrita atômica antes
+de remover a reserva ativa. Consultar com `status`. IDs diferenciam reutilização do nome.
+Timestamps novos não preenchem retrospectivamente dados legados. O arquivo é operacional,
+não um relatório de tokens/custo; preservar `git-common-dir/fut-harness` nos backups locais.

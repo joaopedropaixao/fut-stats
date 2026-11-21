@@ -5,7 +5,7 @@ description: Conduzir no Codex uma fatia Fut Stats como TPL, do spec aprovado à
 
 # TPL Codex
 
-Você coordena uma fatia; não implementa a feature (exceto o commit inicial de contrato), não
+Você coordena uma fatia; não implementa a feature nem o commit inicial de contrato, não
 faz merge na develop/main, não inventa regra de negócio e nunca lê .env.
 Leia .harness/operacao.md, .harness/codex-workers.md e os três specs de processo:
 2026-10-24-equipe-design.md, 2026-10-30-equipe-paralela.md e 2026-11-14-autonomia-v1.md.
@@ -22,6 +22,10 @@ Etapas: Research, Spec: esperando ok, Implement, QA volta N, PR, Esperando o don
 Fetch com git-pessoal.sh. Checkpoints: início, antes de QA, mudança de contrato/schema/CONTEXT,
 aviso do orquestrador e antes do PR. Ler aviso no quadro, tratar e só então limpar com aviso <fatia> -.
 Comparar Base/Depende de/Toca em do spec com origin/develop; revisar se uma dependência entrou.
+Registrar também `team.mjs workflow --team <fatia> --phase RESEARCH|PLAN|IMPLEMENT|VERIFY`.
+Ao esperar aprovação nova do dono, `owner-wait --state start`; approve fecha a espera.
+Modelo/esforço vêm da classificação do kickoff. Reclassificar apenas com nova informação
+relevante, justificando e preservando tentativas existentes; não subir modelo por falha isolada.
 
 ## Research e aprovação
 
@@ -36,29 +40,36 @@ Commit e push do spec. **Portão 1:** aguardar aprovação explícita e registra
 Em worker, perguntar ao pai via ask com phase waiting e terminar o turno; não marcar worker_done.
 Toda tela segue a exigência de design aprovado no Paper do AGENTS.md.
 
+Antes de preparar DEV, registrar a aprovação existente com `team.mjs approve --team <fatia>
+--mode Front|Back|Par --spec <spec-aprovado.md> --evidence <referência-da-aprovação>`.
+Isso atesta a aprovação do dono, não a concede. Detalhe técnico dentro do contrato pode ser
+resolvido pelo TPL; mudança de comportamento ou aceite volta ao dono. Alteração do arquivo
+invalida o digest: reconciliar DEVs/QA antes de registrar a versão e sua autorização aplicável.
+
 ## Implementar com DEVs
 
 ### Par
 
 1. Criar pelo Orca o filho <fatia>-back, branch feature/<fatia>-back, base feature/<fatia>,
    usando --parent-worktree <seletor-exato-do-TPL>. Conferir branch retornada.
-2. Escrever somente schemas do contrato aprovado em packages/shared no back e fazer primeiro
-   commit `feat(shared): contrato de <fatia>`. Guardar SHA.
-3. Criar filho front, branch feature/<fatia>-front a partir desse SHA, pelo Orca. Conferir branch.
-4. Instalar dependências em ambos e ligar .env com comandos ln -s isolados e caminhos absolutos.
-   Quando existir .env.equipe do TPL, ligar também esse arquivo aos dois filhos. Não reservar
-   novas vagas para DEVs: eles compartilham a vaga da equipe.
-5. Preparar os dois briefs e tentativas com team.mjs, roles dev-back e dev-front. Cada brief
-   inclui worktree absoluto, spec, cenários, SHA do contrato, porta/banco, arquivos permitidos,
-   relatório exigido e caminho do papel .harness/roles/<papel>.md.
-6. Lançar ambos como workers Codex do Orca, registrar cada recibo e terminar o turno. São
-   independentes e podem rodar juntos. Não usar subagentes Claude ou improvisar modelo diferente.
+2. Instalar dependências e ligar .env no back, com caminhos absolutos e sem ler seu conteúdo.
+   Ligar também .env.equipe quando existir. Registrar `ready --stage dev` com a prova do back.
+3. Preparar e lançar somente o DEV back. Primeiro marco do brief: escrever os schemas aprovados,
+   commit `feat(shared): contrato de <fatia>` e `contract --session <id> --sha <sha> --evidence
+   <referência>` no próprio binding. Back comunica o SHA; esse marco não é worker_done/settle.
+4. Criar o front a partir desse SHA. Instalar dependências, ligar os arquivos de ambiente e
+   registrar sua própria prontidão. Não reservar novas vagas: ambos usam os recursos da equipe.
+5. Preparar e lançar o front após o contrato registrado ser ancestral da sua base. Briefs incluem
+   worktree, spec, cenários, SHA, recursos, arquivos permitidos, papel e relatório exigido.
+6. Back e front podem então trabalhar em paralelo. Registrar cada recibo e terminar o turno.
+   Não usar subagentes Claude nem improvisar modelo diferente.
 
 ### Front ou Back
 
 Um worker DEV no próprio worktree da equipe. Preparar role correspondente e vincular a sessão
 dele separadamente. Enquanto o DEV escreve, TPL só coordena: não editar spec, código nem Git
 nesse mesmo checkout. Mudança necessária de contrato/spec deve ser serializada com o DEV.
+Registrar prontidão `dev` desse worktree antes de preparar a tentativa.
 
 ### Durante a implementação
 
@@ -78,16 +89,28 @@ abrir Run filho, preservar o canal do pai conforme preamble; não assumir que Ru
    publicar a branch da fatia pelos checkpoints existentes; branches filhas continuam locais.
 2. Conferir API/web nas portas da equipe. Ler .harness/roles/qa.md: todos os cenários, permissões,
    tipos de teste, console, responsividade e álbum continuam obrigatórios.
+   Confirmar encerramento dos DEVs e registrar settle com evidência. Registrar `ready --stage qa`
+   no checkout do QA e em cada checkout dos DEVs, com fixtures e processo MCP `--isolated`
+   comprovados. Provas podem referenciar o mesmo ambiente, mas identificam cada HEAD.
 3. Capturar baseline de cada worktree com audit-tree.mjs, fora do worktree auditado, sob controle
    do TPL. Não fornecer ao QA permissão para alterar as baselines. Nenhum DEV escreve durante QA.
+   Antes da primeira rodada, registrar qa-plan conforme `.harness/qa-incremental.md`, cobrindo
+   critérios, tipos de teste e dependências. Enviar qa-status ao QA com lacunas, provas e
+   revisões; ele decide independentemente o que ainda é confiável.
 4. Preparar QA novo: role qa, --round <contador-monotônico>, worktree do TPL; brief com spec,
    worktrees do par, portas, contrato, critérios e falhas da volta anterior. Não enviar histórico
    de conversa dos DEVs nem dizer que o QA só precisa confirmar o que eles afirmaram.
 5. Lançar worker e registrar recibo. Ao retorno, executar audit-tree check nos worktrees e no
    checkout do TPL se distinto. Se houve alteração não permitida, invalidar veredito, inspecionar
    e pedir esclarecimento ao QA; não apagar trabalho nem aceitar o PR por ter testes verdes.
-6. APROVADO com todas as evidências → entrega. REPROVADO → send a cada DEV só suas falhas,
-   exigir regressão do bug; repetir com QA novo. Depois de três reprovações, levar ao dono.
+6. APROVADO com todas as evidências → entrega, no próximo passo útil, sem espera artificial.
+   REPROVADO funcional → recuperar DEV encerrado com tentativa relacionada conforme operação,
+   enviar só suas falhas, exigir regressão; repetir com QA novo. Após três reprovações funcionais,
+   levar ao dono. Falha de infraestrutura é inconclusiva: recuperar a mesma QA e não consumir
+   rodada funcional. Novo Task/Dispatch exige novo recibo relacionado; nunca sobrescrever o antigo.
+   Registrar correções com qa-correction usando issue estável. Duas correções falhas do mesmo
+   issue são decisão técnica do TPL; dono decide mudanças de produto e o limite funcional.
+   qa-result aprovado e qa-status next=deliver conduzem à entrega.
 7. Volta de design é separada: repassar os pedidos exatamente ao front; QA novo confere pedidos,
    telas afetadas e sobreposição, refaz álbum. Não conta nas três voltas funcionais.
 
