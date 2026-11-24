@@ -79,7 +79,26 @@ Cada release leva tag e release no GitHub. Ordem:
    no Android e no **iPhone** (no Safari: Compartilhar → Adicionar à Tela de Início; sem instalar, o iPhone não
    recebe avisos). A ideia é todo mundo ter o app com ícone na tela, como um app da loja.
    O login é só pelo Google: entra quem tem conta Google (Gmail, ou outro e-mail que tenha sido usado para criar uma).
+   A pelada de 22 nov 2026 foi um sucesso: o pessoal gostou muito e abriu o app o fim de semana todo, até sem notificação.
+   Nenhum bug que impedisse de fazer algo; só melhorias (24 nov 2026, abaixo e nos pacotes `v1.2` e `v1.3`).
    **Em aberto do lançamento:**
+   - **Correção manual dos goleiros da rodada 1 (A FAZER, prioridade: antes do próximo jogo; só o orquestrador, com o
+     ok do dono).** Os goleiros de aluguel não tinham o link, então a rodada 1 foi montada com dois jogadores de linha
+     que só tinham se cadastrado (**Leo**, no Branco, e **Jorly**, no Preto) na vaga `GOALKEEPER`; eles **não foram ao
+     jogo nem votaram**. Quem de fato jogou: **Croud** (Branco) e **Ramon** (Preto), que se cadastraram depois da
+     votação, e o pessoal votou em Leo e Jorly como se fossem eles. Objetivo: Leo e Jorly ficam com 0 jogos, 0 notas e
+     nenhuma presença na rodada 1, e Croud e Ramon recebem tudo (Leo→Croud, Jorly→Ramon). Ranking e nota de referência
+     são calculados na leitura: não há nada a recalcular. Passos, numa transação só no Neon `prod`:
+     1. Backup manual antes (workflow "Backup do banco", `workflow_dispatch`); opcional, uma branch cópia da `prod`.
+     2. Consultas só de leitura (a rodada 1 e as contagens por membro: presença, escalação, lances, votos dados,
+        Craque, Perna de Pau, notas, registro) para confirmar ids e que Croud e Ramon ainda não têm nada na rodada.
+     3. Script: apagar a `Attendance` de Leo e Jorly na rodada 1 e criar a confirmada de Croud e Ramon; trocar o
+        `membershipId` do `TeamPlayer` (inclui nota da rodada, contagem, Craque e Perna de Pau), de `Rating.targetId`,
+        de `Vote.mvpId` e `Vote.flopId` e de `MatchEvent` dessa rodada; abortar se as contagens não baterem e só dar
+        `COMMIT` se baterem. O `AuditLog` não muda (guarda os ids antigos só como texto do que aconteceu).
+     4. Conferir no app: Histórico da rodada 1, aba Goleiros do Ranking e o Perfil dos quatro.
+     Depois, registrar o procedimento em `docs/operacao/registro.md` ("trocar o dono de uma escalação"). Os dois
+     inativos que jogaram (ver v1.2) o dono reativa à mão no Elenco para contornar o "Sem presença" até a v1.2.
    - **Samsung Internet no modo escuro:** a `<meta name="color-scheme">` da `v1.1.0` é uma tentativa; só o jogador do
      Samsung A26 confirma, abrindo o app com o celular em modo escuro. Sem correção, o contorno é desligar o modo escuro
      do navegador para o site (`docs/lancamento.md`).
@@ -104,7 +123,43 @@ Release pequeno, sem pressa: o que entra aqui só importa depois da pelada de 22
   Tendência usa o mesmo mínimo. Sem migration. Não muda nada até a 3ª rodada encerrada (o mínimo já era
   `min(alvo, rodadas encerradas)`: o ranking existe desde a 1ª rodada). Não mexe na nota do seletor (média das 5 últimas).
 - **Rolagem horizontal em 320 px** na contagem "BRANCO 0 DE 7 · 0 DE 7 PRETO" (`lineup-status.tsx`).
-- **O que sair do feedback da pelada de 22 nov 2026** (jogadores e admins): entra aqui antes do release.
+- **Histórico não pode depender de "ativo"** (bug, feedback de 24 nov 2026): quem jogou uma rodada e depois foi
+  desativado aparece "Sem presença" no campo da partida antiga, porque `confirmedMembers` (`lineups.service.ts`) filtra
+  `active: true`. Numa rodada encerrada, a presença vem só da `Attendance` (a escalação continua sendo a história).
+  Teste que reproduz: jogador que jogou, foi desativado e continua com a presença na rodada antiga. Contorno até lá: o
+  dono reativa os dois inativos que jogaram.
+- **Elenco mostra a nota atual** (decisão do dono, 24 nov 2026): hoje o Elenco mostra a `initialRating` e todos ficaram
+  com 6 depois da 1ª rodada. A "nota inicial" nunca foi bem uma avaliação do admin, então o Elenco passa a mostrar a
+  **nota de referência** (a mesma do ranking, do seletor e da lista de presença). A `initialRating` continua existindo
+  como ponto de partida que completa as rodadas que faltam, editável pelo admin ao editar o jogador, com o nome e a
+  explicação ajustados na tela. Precisa de desenho (o que aparece no card do Elenco e na edição) e do CONTEXT.md.
+- **Card de presença do Feed: separar Jogadores e Goleiros.** Hoje, quando os goleiros confirmam, os jogadores
+  sobrepõem o ícone de goleiro. **A discutir** como fica o desenho (dois grupos no card?) antes de implementar.
+- **O que sair do restante do feedback** (jogadores e admins): entra aqui antes do release.
+
+**Decidido não fazer na v1.2:** manter inativos no ranking (os dois que jogam "de vez em quando"). Vai e volta
+desnecessário: o pacote `v1.3` já define quem aparece (só Mensalistas e Rotativos, ativos). Contorno: reativar os dois.
+
+### Pacote `v1.3` (a planejar, feedback de 24 nov 2026)
+Duas fatias grandes, cada uma com spec e perguntas ao dono antes de construir. Depois da `v1.2`.
+
+- **Tipos de jogador: Mensalista, Rotativo e Inativo.** Hoje só existe ativo/inativo, e o dono usava "inativo" para quem
+  joga de vez em quando e não paga o mensal (por isso saíram do ranking). O modelo novo:
+  - **Mensalista** (ativo): tem prioridade na lista de presença, que **abre na segunda**.
+  - **Rotativo / avulso** (ativo): joga direto, mas não paga mensal e entra se sobrar vaga e paga depois. A lista
+    **abre para eles na quinta**, se os mensalistas confirmados não bastarem para fechar os times.
+  - **Inativo** (de verdade): raramente vai à pelada, **não recebe notificação** e não aparece no ranking. Se mesmo com
+    os rotativos os times não fecharem, os admins chamam os inativos à mão.
+  - **Ranking:** só Mensalistas e Rotativos (os ativos), o que dá sentido à regra "inativos ficam fora" do `CONTEXT.md`.
+  - Perguntas para o planejamento: o que é "número suficiente" (14 ou conforme o formato da rodada?); a abertura na
+    quinta é automática (o despertador de 30 em 30 minutos já existe) ou o admin decide; avisos de push por tipo; como
+    fica quem hoje é inativo e jogou; como o admin muda o tipo; se goleiro contratado é um tipo à parte ou segue a flag
+    `isHiredGoalkeeper`; migration em `Membership` e contrato `shared`.
+- **Lançar gols, assistências e placar durante o jogo.** Os admins pediram, para não ter que lembrar de quem foi a
+  assistência: com o rodízio ligado, quem está fora esperando a vez anota o gol, quem fez a assistência e mexe no
+  placar. Hoje o jogador lança os próprios lances na resenha pós-jogo e o admin lança os de todos. Perguntas: quem pode
+  lançar e para quem (qualquer jogador por qualquer um? só quem está fora?), quem mexe no placar, como corrigir e como
+  fica o registro de auditoria. Aproveita o canal SSE da `jogo-ao-vivo`, para todo mundo ver na hora.
 
 ### Depois do lançamento: ideias aprovadas pelo dono
 Ainda sem spec nem ordem. Entram na trilha depois do feedback das primeiras rodadas.
